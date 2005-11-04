@@ -1,0 +1,14 @@
+data List = Cons hd tl | Nil
+
+head x = case x of Cons -> x.hd
+
+map f xs = case xs of
+    Nil -> Nil
+    Cons -> Cons (f xs.hd) (map f xs.tl)
+
+reverse xs = rev xs Nil
+
+rev xs acc = case xs of
+    Nil -> acc
+    Cons -> rev xs.tl (Cons xs.hd acc)
+
