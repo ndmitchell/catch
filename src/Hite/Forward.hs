@@ -17,6 +17,7 @@
 module Hite.Forward(forward) where
 
 import Hite.Type
+import General
 
 
 forward :: Hite -> Hite
