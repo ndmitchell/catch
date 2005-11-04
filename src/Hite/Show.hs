@@ -18,7 +18,21 @@ instance Show Func where
     show (Func name args expr) = "\n" ++ name ++ concatMap (' ':) args ++ " = " ++ show expr
     
 instance Show Expr where
-    show _ = "todo"
+    show x = f False 0 x
+        where
+            brack True x = "(" ++ x ++ ")"
+            brack False x = x
+            
+            f b i (Var name path) = name ++ concatMap ('.':) path
+            f b i (Make name args) = f b i (Call (CallFunc name) args)
+            f b i (CallFunc name) = name
+            f b i (Call name args) = brack b $ concat $ intersperse " " $
+                                     map (f True i) (name:args)
+
+            f b i (Case cond opts) = "case " ++ show cond ++ " of\n" ++
+                                     (init $ unlines $ map (g (i+4)) opts)
+
+            g i (a,b) = replicate i ' ' ++ a ++ " -> " ++ f False i b
 
 {-
 showData x = "data = " ++ concat (intersperse " | " x)
