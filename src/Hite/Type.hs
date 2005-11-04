@@ -21,11 +21,11 @@ data Func = Func {funcName :: FuncName, funcArgs :: [FuncArg], expr :: Expr}
 
 
 data Expr = Call {callFunc :: Expr, callArgs :: [Expr]}
-          | Var FuncArg [CtorArg] -- variable, the path you have to go down
-                                 -- all variables are parameter based, 1 indexed
+          | Var {varArg :: FuncArg, varPath :: [CtorArg]}
           | CallFunc {callName :: FuncName}
           | Make {makeName :: CtorName, makeArgs :: [Expr]}
           | Case Expr [(CtorName, Expr)] -- case x of Cons a b, Nil -> Case "x" (Cons, ["a", "b"]), (Nil, [])
+          deriving Eq
 
 
 
@@ -40,8 +40,17 @@ allExpr x = x : concatMap allExpr (case x of
     )
 
 
+getWith :: String -> (a -> String) -> [a] -> a
+getWith name f xs = head $ filter (\x -> f x == name) xs
+
 getFunc :: FuncName -> Hite -> Func
-getFunc name hite = head $ filter (\x -> funcName x == name) (funcs hite)
+getFunc name hite = getWith name funcName (funcs hite)
+
+getData :: DataName -> Hite -> Data
+getData name hite = getWith name dataName (datas hite)
+
+getCtor :: CtorName -> Hite -> Ctor
+getCtor name hite = getWith name ctorName (concatMap ctors (datas hite))
 
 
 {- 
