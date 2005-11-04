@@ -1,5 +1,7 @@
 data List = Cons hd tl | Nil
 
+id x = x
+
 head x = case x of Cons -> x.hd
 
 map f xs = case xs of
