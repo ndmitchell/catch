@@ -23,3 +23,6 @@ snds = map snd
 filterFst f = filter (f . fst)
 filterSnd f = filter (f . snd)
 
+lookupDef def val lst = case lookup val lst of
+                            Nothing -> def
+                            Just x -> x
