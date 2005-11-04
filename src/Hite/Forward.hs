@@ -28,9 +28,7 @@ forwardFunc h func = func{expr = forwardExpr h [] (expr func)}
 
 
 forwardExpr :: Hite -> [(Expr, Expr)] -> Expr -> Expr
-forwardExpr h xs v@Var{} = case lookup v xs of
-                                   Nothing -> v
-                                   Just x -> x
+forwardExpr h xs v@Var{} = lookupDef v v xs
                                    
 forwardExpr h xs (Case v@(Var name path) alts) = Case v (map f alts)
     where
