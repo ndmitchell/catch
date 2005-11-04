@@ -6,12 +6,6 @@
 module Hite.Type where
 
 
--- constraints:
--- Data.dataName is ignored for most purposes
--- unique(datas.*ctors.*args)
--- unique(datas.*funcs.funcName)
--- unique(datas.funcs.*args)
-
 type FuncName = String
 type DataName = String
 type CtorName = String
@@ -35,11 +29,22 @@ data Expr = Call {callFunc :: Expr, callArgs :: [Expr]}
 
 
 
+-- some basic utility functions
+
+allExpr :: Expr -> [Expr]
+allExpr x = x : concatMap allExpr (case x of
+        Call x xs -> x : xs
+        Make _ xs -> xs
+        Case _ xs -> map snd xs
+        _ -> []
+    )
+
+
+getFunc :: FuncName -> Hite -> Func
+getFunc name hite = head $ filter (\x -> funcName x == name) (funcs hite)
+
 
 {- 
-getFunc :: Hite -> FuncName -> Exp
-getFunc h s = funcs h ! s
-
 
 type Data = [[CtorName]]
 
