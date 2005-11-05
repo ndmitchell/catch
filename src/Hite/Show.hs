@@ -26,6 +26,7 @@ instance Show Expr where
             f b i (Var name path) = name ++ concatMap ('.':) path
             f b i (Make name args) = f b i (Call (CallFunc name) args)
             f b i (CallFunc name) = name
+            f b i (Call (CallFunc name) []) = name
             f b i (Call name args) = brack b $ concat $ intersperse " " $
                                      map (f True i) (name:args)
 
