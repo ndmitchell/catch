@@ -1,11 +1,11 @@
 -hite -forward
 ---------------------------------------------------------------------
-data List = Cons tl hd | Nil
+data List = Cons hd tl | Nil
 g f x = case x of
     Nil -> x
     Cons -> f x
 ---------------------------------------------------------------------
-data List = Cons tl hd | Nil
+data List = Cons hd tl | Nil
 g f x = case x of
 	Nil -> Nil
 	Cons -> f (Cons x.hd x.tl)
