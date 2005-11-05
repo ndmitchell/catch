@@ -43,7 +43,9 @@ readExpr args x = rewrite $ noAfter $ rExprs (filter (/= '\r') x)
                   else if "(" `isPrefixOf` x then rBrack x
                   else rName x
         
-        rName x = (Var name path, b)
+        rName x = if null a
+                  then error $ "Expected name, found: " ++ take 10 x
+                  else (Var name path, b)
             where
                 (name:path) = splitList "." a
                 (a,b) = break (\x -> not (isKeywordChar x || x == '.')) x
