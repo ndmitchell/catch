@@ -1,0 +1,33 @@
+-hite -firstify
+---------------------------------------------------------------------
+data List = Cons hd tl | Nil
+data Bool = True | False
+
+map f xs = case xs of
+    Nil -> Nil
+    Cons -> Cons (f xs.hd) (map f xs.tl)
+
+not x = case x of
+	True -> False
+	False -> True
+
+invert x = map not x
+
+---------------------------------------------------------------------
+data List = Cons hd tl | Nil
+data Bool = True | False
+
+map f xs = case xs of
+    Nil -> Nil
+    Cons -> Cons (f xs.hd) (map f xs.tl)
+
+not x = case x of
+    True -> False
+    False -> True
+
+invert x = map_FIRST_not x
+
+map_FIRST_not xs = case xs of
+     Nil -> Nil
+     Cons -> Cons (not xs.hd) (map_FIRST_not xs.tl)
+
