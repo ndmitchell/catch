@@ -5,24 +5,25 @@ module Hite.Reachable(reachable) where
 import Hite.Type
 import List
 import Maybe
+import General
 
 
 reachable :: FuncName -> Hite -> Hite
-reachable name hite = hite{funcs = filter g (funcs hite)}
+reachable name hite@(Hite datas funcs) = Hite aliveDatas aliveFuncs
     where
-        canFind = fixSet f [name]
+        aliveFuncNames = fixSet f [name]
+        aliveFuncs = [x | x <- funcs, funcName x `elem` aliveFuncNames]
         
-        g func = funcName func `elem` canFind
+        aliveCtorNames = nub $ concat [fsts alts | y <- aliveFuncs, Case _ alts <- allExpr (expr y)]
+        aliveDatas = [x | x <- datas, any (`elem` aliveCtorNames) (map ctorName (ctors x))]
         
-        f x = concatMap g $ allExpr $ expr $ getFunc x hite
-            where
-                g (CallFunc x) = [x]
-                g _ = []
+        f x = [y | CallFunc y <- allExpr $ expr $ getFunc x hite]
 
 
 
 
---fixSet :: Eq a => (a -> [a]) -> [a] -> [a]
+-- find the fixed point of a set
+fixSet :: Eq a => (a -> [a]) -> [a] -> [a]
 fixSet f elems = fix2 f elems []
     where
         fix2 f [] _    = []
@@ -30,10 +31,3 @@ fixSet f elems = fix2 f elems []
             where
                 done2 = x ++ done
                 x2 = nub $ concatMap f x
-
-{-
-fixSet f [] = []
-fixSet f x  = x ++ fixSet f (x2 \\ x)
-    where x2 = nub $ concatMap f x
-
--}
