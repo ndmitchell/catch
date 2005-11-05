@@ -1,0 +1,30 @@
+-hite -reachable main
+---------------------------------------------------------------------
+data List = Cons hd tl | Nil
+data Nat = Zero | Succ succ
+
+main xs = reverse xs
+
+id x = x
+
+head x = case x of Cons -> x.hd
+
+map f xs = case xs of
+    Nil -> Nil
+    Cons -> Cons (f xs.hd) (map f xs.tl)
+
+reverse xs = rev xs Nil
+
+rev xs acc = case xs of
+    Nil -> acc
+    Cons -> rev xs.tl (Cons xs.hd acc)
+---------------------------------------------------------------------
+data List = Cons hd tl | Nil
+
+main xs = reverse xs
+
+reverse xs = rev xs Nil
+
+rev xs acc = case xs of
+    Nil -> acc
+    Cons -> rev xs.tl (Cons xs.hd acc)
