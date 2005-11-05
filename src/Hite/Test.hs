@@ -9,6 +9,7 @@ import Hite.Show
 import Hite.Check
 import Hite.Reachable
 import Hite.Forward
+import Hite.Firstify
 
 
 readAndParse :: FilePath -> IO Hite
@@ -34,7 +35,11 @@ testForward :: FilePath -> IO ()
 testForward = testFilter forward
 
 
+testFirstify :: FilePath -> IO ()
+testFirstify = testFilter firstify
+
 
 testFilter :: (Hite -> Hite) -> FilePath -> IO ()
 testFilter f file = do h <- readAndParse file
                        print $ f h
+
