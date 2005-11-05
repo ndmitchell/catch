@@ -3,6 +3,7 @@ module Hite.Check(check) where
 
 import Hite.Type
 import List
+import General
 
 -- in reality either return True, or crash
 check :: Hite -> Bool
@@ -27,8 +28,7 @@ check (Hite datas funcs) =
         
                 elm :: String -> [String] -> Bool
                 elm x xs | not (x `elem` xs) = error $ "Name not from recognised set: " ++ show x ++
-                                                       " in function " ++ name ++ " " ++
-                                                       " {" ++ concat (intersperse "," xs) ++ "}"
+                                                       " in function " ++ name ++ " " ++ strSet xs
                          | otherwise = True
 
         
