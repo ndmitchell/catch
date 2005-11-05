@@ -2,7 +2,8 @@
 
 module Main(main) where
 
-
+import System
+import Test
 
 main = do x <- getArgs
           if null x
