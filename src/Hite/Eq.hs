@@ -18,3 +18,8 @@ instance Eq Hite where
     (Hite da fa) == (Hite db fb) = 
         compareUnordered dataName da db &&
         compareUnordered funcName fa fb
+
+instance Eq Data where
+    (Data na ca) == (Data nb cb) =
+        na == nb &&
+        compareUnordered ctorName ca cb

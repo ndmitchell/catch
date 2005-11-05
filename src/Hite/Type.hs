@@ -17,7 +17,6 @@ type FuncArg  = String
 data Hite = Hite {datas :: [Data], funcs :: [Func]}
 
 data Data = Data {dataName :: DataName, ctors :: [Ctor]}
-          deriving Eq
 
 data Ctor = Ctor {ctorName :: CtorName, ctorArgs :: [CtorArg]}
           deriving Eq
