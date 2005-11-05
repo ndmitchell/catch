@@ -3,7 +3,8 @@ module Hite
     (
     module Hite.Type,
     module Hite.Read, module Hite.Show, module Hite.Eq,
-    module Hite.Forward, module Hite.Check, module Hite.Inline, module Hite.Reachable
+    module Hite.Forward, module Hite.Check, module Hite.Inline, module Hite.Reachable,
+    module Hite.Firstify
     )
     where
 
@@ -15,4 +16,4 @@ import Hite.Forward
 import Hite.Check
 import Hite.Inline
 import Hite.Reachable
-
+import Hite.Firstify
