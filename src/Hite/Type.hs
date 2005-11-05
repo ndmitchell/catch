@@ -6,6 +6,7 @@
 module Hite.Type where
 
 import General
+import Maybe
 
 
 type FuncName = String
@@ -44,6 +45,14 @@ allExpr x = x : concatMap allExpr (case x of
         _ -> []
     )
 
+mapExpr :: (Expr -> Expr) -> Expr -> Expr
+mapExpr f x = f $ case x of
+    Call a bs -> Call (mapExpr f a) (map (mapExpr f) bs)
+    Make a bs -> Make a             (map (mapExpr f) bs)
+    Case a bs -> Case (mapExpr f a) (map (\(d,e) -> (d,mapExpr f e)) bs)
+    _ -> x
+
+
 
 getWith :: String -> (a -> String) -> [a] -> a
 getWith name f xs = case filter (\x -> f x == name) xs of
@@ -59,6 +68,19 @@ getData name hite = getWith name dataName (datas hite)
 
 getCtor :: CtorName -> Hite -> Ctor
 getCtor name hite = getWith name ctorName (concatMap ctors (datas hite))
+
+
+-- 1 based
+getArgPos :: FuncName -> FuncArg -> Hite -> Int
+getArgPos func arg hite = fromJust $ lookup arg $ zip (funcArgs (getFunc func hite)) [1..]
+
+
+getArgName :: FuncName -> Int -> Hite -> FuncArg
+getArgName func arg hite = funcArgs (getFunc func hite) !! (arg - 1)
+
+
+callArg :: Expr -> Int -> Maybe Expr
+callArg (Call _ args) n = if length args >= n then Just (args !! (n - 1)) else Nothing
 
 
 {- 
@@ -120,13 +142,6 @@ allExps x = x : concatMap allExps (case x of
 allExpsFunc hite func = allExps (getFunc hite func)
 
 
-mapExp :: (Exp -> Exp) -> Exp -> Exp
-mapExp f x = f $ case x of
-    Call a bs -> Call (mapExp f a) (map (mapExp f) bs)
-    Make a bs -> Make a            (map (mapExp f) bs)
-    Case a bs -> Case (mapExp f a) (map (\(d,e) -> (d,mapExp f e)) bs)
-    _ -> x
-    
 
 isCaseComplete :: Hite -> Exp -> Bool
 isCaseComplete hite (Case _ stmts) = null (allCtors hite (head ctors) \\ ctors)
