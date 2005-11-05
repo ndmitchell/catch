@@ -5,6 +5,8 @@
 
 module Hite.Type where
 
+import General
+
 
 type FuncName = String
 type DataName = String
@@ -15,9 +17,13 @@ type FuncArg  = String
 data Hite = Hite {datas :: [Data], funcs :: [Func]}
 
 data Data = Data {dataName :: DataName, ctors :: [Ctor]}
+          deriving Eq
+
 data Ctor = Ctor {ctorName :: CtorName, ctorArgs :: [CtorArg]}
+          deriving Eq
 
 data Func = Func {funcName :: FuncName, funcArgs :: [FuncArg], expr :: Expr}
+          deriving Eq
 
 
 data Expr = Call {callFunc :: Expr, callArgs :: [Expr]}
@@ -41,7 +47,10 @@ allExpr x = x : concatMap allExpr (case x of
 
 
 getWith :: String -> (a -> String) -> [a] -> a
-getWith name f xs = head $ filter (\x -> f x == name) xs
+getWith name f xs = case filter (\x -> f x == name) xs of
+                        [x] -> x
+                        [] -> error $ "getWith: Could not find " ++ name ++ " in " ++ strSet (map f xs)
+                        _ -> error $ "getWith: Repetition of " ++ name ++ " in " ++ strSet (map f xs)
 
 getFunc :: FuncName -> Hite -> Func
 getFunc name hite = getWith name funcName (funcs hite)
