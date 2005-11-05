@@ -7,7 +7,7 @@ import Char
 import List
 
 
-isKeywordChar x = isAlphaNum x
+isKeywordChar x = isAlphaNum x || x == '_'
 
 
 readExpr :: [FuncArg] -> String -> Expr
