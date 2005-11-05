@@ -2,6 +2,8 @@
 module General where
 
 import Maybe
+import Directory
+import List
 
 {-
 import IOExts
@@ -26,3 +28,19 @@ filterSnd f = filter (f . snd)
 lookupDef def val lst = case lookup val lst of
                             Nothing -> def
                             Just x -> x
+
+
+readFileMaybe :: FilePath -> IO (Maybe String)
+readFileMaybe file = do x <- doesFileExist file
+                        if x
+                            then do y <- readFile file
+                                    return (Just y)
+                            else return Nothing
+
+
+eqUnordered :: Ord a => [a] -> [a] -> Bool
+eqUnordered xs ys = sort xs == sort ys
+
+
+strSet :: [String] -> String
+strSet xs = " {" ++ concat (intersperse "," xs) ++ "}"
