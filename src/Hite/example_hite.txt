@@ -1,5 +1,6 @@
 data List = Cons hd tl | Nil
 data Nat = Zero | Succ succ
+data Bool = True | False
 
 id x = x
 
@@ -14,4 +15,10 @@ reverse xs = rev xs Nil
 rev xs acc = case xs of
     Nil -> acc
     Cons -> rev xs.tl (Cons xs.hd acc)
+
+not x = case x of
+	True -> False
+	False -> True
+
+invert x = map not x
 
