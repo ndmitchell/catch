@@ -1,4 +1,5 @@
 data List = Cons hd tl | Nil
+data Nat = Zero | Succ succ
 
 id x = x
 
