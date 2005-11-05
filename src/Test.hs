@@ -6,6 +6,8 @@ import Hite
 import Directory
 import TextUtil
 
+import Reduce.Simple
+
 
 data Mode = Interactive | Batch String String
 
@@ -17,6 +19,7 @@ test xs = do testItem Interactive xs
 
 testItem :: Mode -> [String] -> IO ()
 testItem m ("-hite":xs) = testHite m xs
+testItem m ("-reduce":xs) = testReduce m xs
 testItem m xs = mapM_ testFolder xs
 
 
@@ -59,6 +62,11 @@ testHite m [] = putStrLn "ERROR: You must specify what test to run after -hite"
 testHite m (x:xs) = putStrLn $ "ERROR: Unknown test, " ++ x
 
 
+testReduce :: Mode -> [String] -> IO ()
+testReduce m ("-simple":files) = exec m files (show . reduceSimple . read) eqHite
+
+
+
 exec :: Mode -> [FilePath] -> (String -> String) -> (String -> String -> Bool) -> IO ()
 exec Interactive []    f eq = putStrLn "No files to check against"
 
@@ -83,15 +91,14 @@ exec (Batch input output) _ f eq = if eq (f input) output then return () else
         
 
 checkHiteId :: Mode -> (Hite -> Hite) -> [FilePath] -> IO ()
-checkHiteId m f xs = exec m xs (show . f . read) (\a b -> f (read a) == read b)
+checkHiteId m f xs = exec m xs (show . f . read) eqHite
 
 checkHiteRun :: Show a => (Hite -> a) -> [FilePath] -> IO ()
-checkHiteRun f xs = exec Interactive xs (show . f . read) eqHiteStr
-    where
-        eqHiteStr a b = read a `eqHite` read b
-        
-        eqHite :: Hite -> Hite -> Bool
-        eqHite = (==)
+checkHiteRun f xs = exec Interactive xs (show . f . read) eqHite
+
+
+eqHite :: String -> String -> Bool
+eqHite a b = (read a :: Hite) == (read b :: Hite)
 
 
 
