@@ -70,6 +70,11 @@ getCtor :: CtorName -> Hite -> Ctor
 getCtor name hite = getWith name ctorName (concatMap ctors (datas hite))
 
 
+getDataFromCtor :: CtorName -> Hite -> Data
+getDataFromCtor name hite = head $ filter f (datas hite)
+    where f (Data _ ctors) = name `elem` (map ctorName ctors)
+
+
 -- 1 based
 getArgPos :: FuncName -> FuncArg -> Hite -> Int
 getArgPos func arg hite = fromJust $ lookup arg $ zip (funcArgs (getFunc func hite)) [1..]
