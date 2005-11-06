@@ -4,13 +4,16 @@ module Main(main) where
 
 import System
 import Test
+import Hite
+import Checker.CaseCheck
 
 main = do x <- getArgs
           if null x
-              then putStrLn helpMsg
+              then putStr helpMsg
               else case head x of
                        "-test" -> test (tail x)
-                       _ -> putStrLn "Unknown command"
+                       "-case" -> runCase (tail x)
+                       x -> putStrLn $ "Unknown command, " ++ x
 
 
 helpMsg = unlines [
@@ -19,3 +22,8 @@ helpMsg = unlines [
     "http://www.cs.york.ac.uk/~ndm/projects/catch.php"
     ]
 
+
+
+runCase [x] = do src <- readFile x
+                 caseCheck (read src)
+runCase _ = putStrLn "Expected, filename"
