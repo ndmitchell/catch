@@ -43,4 +43,4 @@ eqUnordered xs ys = sort xs == sort ys
 
 
 strSet :: [String] -> String
-strSet xs = " {" ++ concat (intersperse "," xs) ++ "}"
+strSet xs = "{" ++ concat (intersperse "," xs) ++ "}"
