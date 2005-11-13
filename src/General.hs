@@ -44,3 +44,10 @@ eqUnordered xs ys = sort xs == sort ys
 
 strSet :: [String] -> String
 strSet xs = "{" ++ concat (intersperse "," xs) ++ "}"
+
+
+splitEither :: [Either a b] -> ([a], [b])
+splitEither (Left  x:xs) = let (a,b) = splitEither xs in (x:a, b)
+splitEither (Right x:xs) = let (a,b) = splitEither xs in (a, x:b)
+splitEither [] = ([], [])
+
