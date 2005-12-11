@@ -1,0 +1,76 @@
+\documentclass{article}
+
+\title{CATCH: Defunctionalization}
+\author{Neil Mitchell}
+\include{catch_inc}
+
+\begin{document}
+
+\maketitle
+
+\section{Purpose}
+
+This section is meant to show how defunctionalization can transform a program
+with higher order functions into a first order one.
+
+\section{Remove Anonymous Lambda}
+
+These should be removed, relatively easy.
+
+\section{Calculating Arity}
+
+Before Partial Applications can be removed, it must first be determined what
+are partial and which are saturated. This requires the arity of functions to be
+calculated.
+
+In the following example:
+
+\begin{code}
+> even = (.) not odd
+> (.) f g x = f (g x)
+\end{code}
+
+\T{(.)} takes 3 arguments, therefore the arity of \T{(.)} is 3. \T{even} has
+\T{(.)} at its root, with 2 arguments, therefore the value is the arity of
+\T{(.)} minus 2 = 1.
+
+\section{Remove Partial Application}
+
+If a function has less arguments than it needs, add a lambda.
+
+In the above example, \T{not} and \T{odd} are both calculated to have arity 1:
+
+\begin{code}
+> even = \lam{}x -> (.) (\lam{}y -> not y) (\lam{}z -> odd z) x
+\end{code}
+
+This can be transformed to:
+
+\begin{code}
+> even x = (.) (\lam{}y -> not y) (\lam{}z -> odd z) x
+\end{code}
+
+\section{Apply Reynolds method}
+
+A solution to this is to create partial application data structures everywhere:
+
+\begin{code}
+> data Func1 = Not1
+>            | Odd1
+>
+> apply1 :: Func1 -> a -> b
+> apply1 Not1 x = not x
+> apply1 Odd1 x = odd x
+\end{code}
+
+Now these can be transformed in, replacing all evaluations of a higher order
+function with an apply:
+
+\begin{code}
+> even x = (.) Not1 Odd1 x
+> (.) f g x = apply1 f (apply1 g x)
+\end{code}
+
+Now there are no higher order functions left.
+
+\end{document}

@@ -1,0 +1,188 @@
+
+-- initial declaration
+
+inc :: Int -> Int
+inc x = x+1
+
+map :: (Int -> Int) -> Int -> Int
+map f [] = []
+map f (x:xs) = f x : map f xs
+
+main :: [Int] -> [Int]
+main xs = map head xs
+
+
+-- make lambda's explicit
+
+main xs = map (\x -> inc x) xs
+
+
+-- make them a function type
+
+c1 :: Int -> Int
+c1 = \x -> inc x
+
+
+-- rewrite in terms of the combinators
+
+main xs = map c1 xs
+
+
+== ATTEMPT 2
+-- generate a datatype which isolates the combinators
+
+data CInt = Inc :: CInt -> CInt
+		  | Const :: Int -> CInt
+
+apply :: CInt -> CInt
+
+
+
+-- first order version
+
+data Func = Inc
+		  | Dec
+
+apply :: Func -> Int -> Int
+apply Inc x = x+1
+apply Dec x = x+1
+
+map :: Func -> [Int] -> [Int]
+map f [] = []
+map f (x:xs) = apply f x : map f xs
+
+main xs = map Inc xs
+
+
+-- general algorithm
+
+data Funcs1 = Inc1
+	        | Dec1
+            | Map1 f
+			  
+data Funcs2 = Map2
+
+
+apply1 :: Funcs1 -> a -> b
+apply1 Int x = inc x
+apply1 Dec x = dec x
+apply1 (Map f) x = map f x
+
+apply2 :: Funcs2 -> a -> b -> c
+apply2 Map f x = map f x
+
+
+
+map :: Func1 -> [a] -> [b]
+map f [] = []
+map f (x:xs) = apply1 f x : map f xs
+
+
+main xs = map Inc xs
+
+-- map head example
+
+data Func1 = Head1 :: [a] -> a
+           | ...
+           
+map :: Func1 -> [a] -> [b]
+map f [] = []
+map f (x:xs) = apply1 f x : map f xs
+
+head :: [a] -> a
+head (x:xs) = x
+
+apply1 Head x = head x
+apply1 ...
+
+main xs = map Head1 xs
+
+-- workings
+
+x_head{:}
+f_apply1{~Head} v x_apply1{:}
+f_apply1{Head} => x_apply1{:}
+
+{- hilights tupling weakness
+if any f is Head, then all x must be :
+when in fact the constraint is if in a call you have f=Head => x{:}
+but bound up IN THE SAME CALL
+-}
+
+
+i.e.
+\forall calls . (f_apply1{Head} => x_apply1{:})
+but this gets represented as:
+(\exists calls f_apply1{Head}) => (\forall calls x_apply1{:})
+
+
+
+\forall apply1 (f{Head} => x{:})
+becomes:
+(\exists apply1 f{Head}) => \forall apply1 x{:})
+
+which is wrong!
+
+need to have an explicit notion of forall in the compound type?
+would this also help with constrained star variables?
+
+
+could the propogate phase deal with this?
+
+what if they are backward/fixed in different directions?
+
+
+\forall apply1 (f{~Head} v x{:})
+\forall map (f{~Head} v x.hd{:})
+\forall map (f{~Head} v x.tl*.hd{:})
+\forall main (Head{~Head} v x.tl*.hd{:})
+\forall main (x.tl*.hd{:})
+
+== PARTIAL APPS
+
+even = (.) not odd
+(.) f g x = f (g x)
+not b = ...
+odd x = ...
+
+-- note that ., not and odd are app PAP's
+
+even = \x -> (.) (\y -> not y) (\z -> odd z) x
+
+-- move the x back
+
+even x = (.) (\y -> not y) (\z -> odd z) x
+(.) f g x = f (g x)
+
+-- now move to using apply1
+
+data Func1 = Not1
+		   | Odd1
+
+apply1 Not1 x = not x
+apply1 Odd1 x = odd x
+
+(.) f g x = apply1 f (apply1 g x)
+even x = (.) Not1 Odd1 x
+
+
+-- now special case, inline all (.)
+
+even x = apply1 Not1 (apply1 Odd1 x)
+
+-- now inline all not recursive apply1's
+
+even x = not (odd x)
+
+-- same can be done for $
+
+
+-- EXPANDING ALL PAP's
+add explicit \ if the function is called with less arguments than it should have
+this can easily be checked, but may require fixed pointing (i.e. even 1 -> 2)
+
+
+arity(even) = arity(.) - 2
+arity(.) = 3
+
+
