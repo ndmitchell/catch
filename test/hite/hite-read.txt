@@ -1,4 +1,4 @@
--hite -read
+-hite
 ---------------------------------------------------------------------
 data List = Nil | Cons hd tl
 data Nat = Zero | Succ succ

@@ -1,4 +1,4 @@
--hite -forward
+-forward
 ---------------------------------------------------------------------
 data List = Cons hd tl | Nil
 g f x = case x of

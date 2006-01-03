@@ -1,4 +1,4 @@
--hite -reachable main
+-reachable=main
 ---------------------------------------------------------------------
 data List = Cons hd tl | Nil
 data Nat = Zero | Succ succ

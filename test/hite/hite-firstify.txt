@@ -1,4 +1,4 @@
--hite -firstify
+-firstify
 ---------------------------------------------------------------------
 data List = Cons hd tl | Nil
 data Bool = True | False
