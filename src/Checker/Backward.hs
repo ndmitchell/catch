@@ -9,6 +9,14 @@ backward :: Hite -> Req -> Either (Req, [Expr]) String
 backward hite c = Right "todo"
 
 
+
+-- from the semantics in the paper
+-- backwardStep :: Hite -> Req -> Pred Req
+
+
+
+ 
+
 {-
 
 

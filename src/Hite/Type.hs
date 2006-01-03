@@ -22,12 +22,13 @@ data Data = Data {dataName :: DataName, ctors :: [Ctor]}
 data Ctor = Ctor {ctorName :: CtorName, ctorArgs :: [CtorArg]}
           deriving Eq
 
-data Func = Func {funcName :: FuncName, funcArgs :: [FuncArg], expr :: Expr}
+data Func = Func {funcName :: FuncName, funcArgs :: [FuncArg], body :: Expr}
           deriving Eq
 
 
 data Expr = Call {callFunc :: Expr, callArgs :: [Expr]}
-          | Var {varArg :: FuncArg, varPath :: [CtorArg]}
+          | Var {varArg :: FuncArg, scope :: FuncName}
+          | Sel {expr :: Expr, path :: CtorArg}
           | CallFunc {callName :: FuncName}
           | Make {makeName :: CtorName, makeArgs :: [Expr]}
           | Case Expr [(CtorName, Expr)] -- case x of Cons a b, Nil -> Case "x" (Cons, ["a", "b"]), (Nil, [])

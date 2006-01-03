@@ -17,7 +17,7 @@ specialise hite (name, arg) = hite{funcs = oldfuncs ++ newfuncs}
         (Func _ funcArgs funcBody) = getFunc name hite
         
         
-        oldfuncs = map (\x -> x{expr = mapExpr bind (expr x)}) (funcs hite)
+        oldfuncs = map (\x -> x{body = mapExpr bind (body x)}) (funcs hite)
         bind c@(Call _ args) | ar /= [] && (arr `elem` useful) =
             Call (CallFunc $ genName arr) (remArg args)
             where
@@ -57,11 +57,11 @@ specialise hite (name, arg) = hite{funcs = oldfuncs ++ newfuncs}
 
 -- get a list of all higher order functions
 getHigherOrder :: Hite -> [(FuncName, FuncArg)]
-getHigherOrder hite = nub [(funcName f, arg) | f <- funcs hite, Call (Var arg []) _ <- allExpr $ expr f]
+getHigherOrder hite = nub [(funcName f, arg) | f <- funcs hite, Call (Var arg []) _ <- allExpr $ body f]
 
 
 canSpecialise :: Hite -> (FuncName, FuncArg) -> Bool
-canSpecialise hite (name, arg) = sum (map f $ allExpr $ expr $ getFunc name hite) == 0
+canSpecialise hite (name, arg) = sum (map f $ allExpr $ body $ getFunc name hite) == 0
     where
         pos = getArgPos name arg hite
         
@@ -74,7 +74,7 @@ canSpecialise hite (name, arg) = sum (map f $ allExpr $ expr $ getFunc name hite
 
 recursiveCalls :: Hite -> FuncName -> [Expr]
 recursiveCalls hite func = [x |
-    x@(Call (CallFunc name) args) <- allExpr $ expr $ getFunc func hite,
+    x@(Call (CallFunc name) args) <- allExpr $ body $ getFunc func hite,
     name == func]
 
 

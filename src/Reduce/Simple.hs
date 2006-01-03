@@ -54,14 +54,14 @@ redExpr :: Hite -> [(String, Expr)] -> HsExp -> Expr
 redExpr hite rep (HsCase (HsVar var) alts) =
         Case on (map redAlt alts)
     where
-        on@(Var name path) = fromJust $ lookup (ident var) rep
+        on = fromJust $ lookup (ident var) rep
     
         redAlt :: HsAlt -> (String, Expr)
         redAlt (HsAlt _ (HsPApp con vars) (HsUnGuardedAlt ex) []) =
                 (ctor, redExpr hite (rep ++ newRep)  ex)
             where
                 ctor = ident con
-                newRep = [(ident v, Var name (path++[p])) |
+                newRep = [(ident v, Sel on p) |
                           (v,p) <- zip vars (ctorArgs $ getCtor ctor hite)]
 
 redExpr hite rep (HsVar x) = lookupDef (CallFunc qx) qx rep

@@ -23,7 +23,8 @@ instance Show Expr where
             brack True x = "(" ++ x ++ ")"
             brack False x = x
             
-            f b i (Var name path) = name ++ concatMap ('.':) path
+            f b i (Var name pare) = name
+            f b i (Sel expr arg) = f True i expr ++ "." ++ arg
             f b i (Make name args) = f b i (Call (CallFunc name) args)
             f b i (CallFunc name) = name
             f b i (Call (CallFunc name) []) = name

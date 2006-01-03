@@ -18,7 +18,8 @@ check (Hite datas funcs) =
         checkFunc :: Func -> Bool
         checkFunc (Func name args expr) = unique args && checkExpr expr
             where
-                checkExpr (Var x path) = x `elm` args && all (`elm` allCtorArg) path
+                checkExpr (Var x "") = x `elm` args
+                checkExpr (Sel x path) = checkExpr x && path `elm` allCtorArg
                 checkExpr (CallFunc x) = x `elm` allFuncName
                 checkExpr (Make name args) = name `elm` allCtorName && all checkExpr args
                 checkExpr (Call name args) = all checkExpr (name:args)
