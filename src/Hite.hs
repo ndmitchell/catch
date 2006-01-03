@@ -24,9 +24,16 @@ import CmdLine
 
 
 cmdLine = [
-            CmdLine "hite" OptString OptHite return "Reads in a hite file",
+            CmdLine "hite" OptString OptHite (const return) "Reads in a hite file",
             f "inline" inline "Inline some definitions",
-            f "forward" forward "Perform forward motion on some definitions"
+            f "forward" forward "Perform forward motion on some definitions",
+            f "check" (\x -> if check x then x else undefined) "Check some hite is valid",
+            g "reachable" (defMain reachable) "Do reachable analysis",
+            f "firstify" firstify "Perform firstification"
         ]
     where
-        f a b c = CmdLine a OptHite OptHite (\(DatHite x) -> return $ DatHite (b x)) c
+        f a b c = g a (const b) c
+        g a b c = CmdLine a OptHite OptHite (\a (DatHite x) -> return $ DatHite (b a x)) c
+        
+        defMain f "" = f "main"
+        defMain f x  = f x

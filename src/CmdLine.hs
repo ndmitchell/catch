@@ -34,7 +34,7 @@ datToOpt (DatInputs _) = OptInputs
 
 
 
-data CmdLine = CmdLine String CmdOpt CmdOpt (CmdDat -> IO CmdDat) String
+data CmdLine = CmdLine String CmdOpt CmdOpt (String -> CmdDat -> IO CmdDat) String
 
 
 instance Show CmdLine where
@@ -56,13 +56,13 @@ specials = [f 0 "verbose" "output lots of information",
             f 1 "help" "show this help screen"
            ]
     where
-        f n a b = CmdLine a (OptSpecial n) (OptSpecial n) return b
+        f n a b = CmdLine a (OptSpecial n) (OptSpecial n) (const return) b
 
 
 exec :: [CmdLine] -> [String] -> IO ()
 exec cmds args = 
             if null normals || null files || showHelp then putStrLn (helpMsg cmds2)
-            else if typeCheck normals then runCommands verbose normals files
+            else if typeCheck (map fst normals) then runCommands verbose normals files
             else error "internal error, typeCheck should not return false"
     where
         verbose  = 0 `elem` specialCodes
@@ -72,14 +72,16 @@ exec cmds args =
         coms = map (getCmd . map toLower . tail) flags
         
         
-        specialCodes = map (\(CmdLine _ (OptSpecial n) _ _ _) -> n) spec
-        (spec, normals) = partition isSpecial coms
+        specialCodes = map (\(CmdLine _ (OptSpecial n) _ _ _, _) -> n) spec
+        (spec, normals) = partition (isSpecial . fst) coms
         (flags, files) = partition ("-" `isPrefixOf`) args
         
-        getCmd name = case [c | c@(CmdLine n _ _ _ _) <- cmds2, n == name] of
-                           (x:_) -> x
+        getCmd name = case [c | c@(CmdLine n _ _ _ _) <- cmds2, n == nam] of
+                           (x:_) -> (x, if null opt then [] else tail opt)
                            [] -> error $
                                 "Unknown argument: " ++ name ++ ", try -help for valid arguments"
+            where
+                (nam, opt) = break (== '=') name
 
 isSpecial (CmdLine _ (OptSpecial _) _ _ _) = True
 isSpecial _ = False
@@ -107,7 +109,7 @@ helpMsg xs = unlines $
 typeCheck :: [CmdLine] -> Bool
 typeCheck cmds = f (begin:cmds)
     where
-        begin = CmdLine "<input>" OptAction OptInputs return ""
+        begin = CmdLine "<input>" OptAction OptInputs (const return) ""
     
         f (CmdLine n1 _ input _ _ : c@(CmdLine n2 output _ _ _) : rest) =
             if isJust (compatType input output) then f (c:rest)
@@ -125,22 +127,22 @@ compatType OptInputs b = compatType OptString b
 compatType _ _ = Nothing
 
 
-runCommands :: Bool -> [CmdLine] -> [FilePath] -> IO ()
+runCommands :: Bool -> [(CmdLine, String)] -> [FilePath] -> IO ()
 runCommands verbose actions files =
     do
         s <- begin
         f actions (head s)
     where
-        f [a] s = do g True a s
-                     return ()
+        f [(a,v)] s = do g True a s v
+                         return ()
 
-        f (a:as) s = do s2 <- g verbose a s
-                        f as s2
+        f ((a,v):as) s = do s2 <- g verbose a s v
+                            f as s2
         
-        g disp (CmdLine name input output act _) s = 
+        g disp (CmdLine name input output act _) s v = 
                 do  out $ replicate 40 '-' ++ "\n-- Result after " ++ name ++ "\n"
                     s2 <- conv s
-                    s3 <- act s2
+                    s3 <- act v s2
                     out $ show s3
                     return s3
             where
@@ -151,6 +153,6 @@ runCommands verbose actions files =
     
         begin :: IO [CmdDat]
         begin = case actions of
-                    (CmdLine _ OptInputs _ _ _:_) -> return [DatInputs files]
+                    ((CmdLine _ OptInputs _ _ _,_):_) -> return [DatInputs files]
                     _ -> do x <- mapM readFile files
                             return $ map DatString x
