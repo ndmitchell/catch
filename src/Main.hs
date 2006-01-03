@@ -18,7 +18,7 @@ main = do x <- getArgs
 
 helpMsg = unlines [
     "Catch - Case And Termination Checker for Haskell",
-    "(C) Neil Mitchell 2004-2005",
+    "(C) Neil Mitchell 2004-2006",
     "http://www.cs.york.ac.uk/~ndm/projects/catch.php"
     ]
 
