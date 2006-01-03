@@ -1,11 +1,21 @@
 
 
-module Main(main) where
+module Main where
 
 import System
 import Test
 import Hite
-import Checker.CaseCheck
+import CmdLine
+
+
+main = do args <- getArgs
+          mainArgs args
+
+
+mainArgs args = exec Hite.cmdLine args
+
+{-
+
 
 main = do x <- getArgs
           if null x
@@ -27,3 +37,4 @@ helpMsg = unlines [
 runCase [x] = do src <- readFile x
                  caseCheck (read src)
 runCase _ = putStrLn "Expected, filename"
+-}
