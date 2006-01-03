@@ -138,7 +138,7 @@ runCommands verbose actions files =
                         f as s2
         
         g disp (CmdLine name input output act _) s = 
-                do  out $ replicate 40 '-' ++ "\n-- Performing " ++ name ++ "\n"
+                do  out $ replicate 40 '-' ++ "\n-- Result after " ++ name ++ "\n"
                     s2 <- conv s
                     s3 <- act s2
                     out $ show s3
