@@ -33,19 +33,19 @@ readData x = map f $ join $ map (:[]) $ filter (not . isBlank) $ lines x
 -- also remove _ from LHS of case matches
 -- as dictated by the data
 fixData :: Hite -> Hite
-fixData x = x
-
-{-
-
-                g (CoreVar "_", x) = map (\a -> (a, body)) (allCtors \\ ctorNames)
-                    where
-                        body = f subs x
-                        
-                        ctorNames = concatMap (h . fst) alts
-                        h (CoreApp (CoreCon x) _) = [x]
-                        h _ = []
-                    
-                        allCtors = map ctorName $ ctors $
-                            getDataFromCtor (head ctorNames) (Hite types [])
-                        
--}
+fixData h@(Hite datas funcs) = Hite datas (map g funcs)
+    where
+        g func = func{body = mapExpr f (body func)}
+    
+        f (Sel x arg) | '$' `elem` arg = Sel x (ctorArgs (getCtor a h) !! read b)
+            where (a,_:b) = break (== '$') arg
+        
+        f (Case x alts) = Case x (concatMap g alts)
+            where
+                allCtors = map ctorName $ ctors $ getDataFromCtor (head myCtors) h
+                myCtors = filter (/= "_") $ map fst alts
+                
+                g ("_", b) = zip (allCtors \\ myCtors) (repeat b)
+                g (a  , b) = [(a,b)]
+    
+        f x = x
