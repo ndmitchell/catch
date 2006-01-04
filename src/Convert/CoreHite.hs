@@ -7,19 +7,15 @@ import Hite
 import List
 
 
-baseTypes :: [Data]
-baseTypes = [Data "[]" [Ctor "[]" [], Ctor ":" ["hd","tl"]]]
-
-
 coreHite :: Core -> Hite
-coreHite (Core xs) = Hite baseTypes (map convFunc xs)
+coreHite (Core xs) = Hite [] (map convFunc xs)
 
 getName (CoreVar x) = x
 
 
 convFunc :: CoreFunc -> Func
 convFunc (CoreFunc (CoreApp name args) body) =
-        Func (getName name) (map getName args) (convExpr baseTypes (map f args) body)
+        Func (getName name) (map getName args) (convExpr [] (map f args) body)
     where
         f (CoreVar x) = (x,Var x "") 
 
@@ -46,19 +42,8 @@ convExpr types subs x = f subs x
                 CoreCase (CoreVar switch) alts = y
                 rSwitch = rep switch
                 
-                g (CoreVar "_", x) = map (\a -> (a, body)) (allCtors \\ ctorNames)
-                    where
-                        body = f subs x
-                        
-                        ctorNames = concatMap (h . fst) alts
-                        h (CoreApp (CoreCon x) _) = [x]
-                        h _ = []
-                    
-                        allCtors = map ctorName $ ctors $
-                            getDataFromCtor (head ctorNames) (Hite types [])
-                        
-                
+                g (CoreVar "_", x) = [("_", f subs x)]
                 g (CoreApp (CoreCon con) args, x) = [(con, f (zipWith h [0..] args ++ subs) x)]
                     where h n (CoreVar arg) = (arg, Sel rSwitch (getCtor con n))
 
-                getCtor con n = head [xs !! n | Data _ cs <- types, Ctor c xs <- cs, c == con]
+                getCtor con n = con ++ "$" ++ show n
