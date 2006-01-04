@@ -14,6 +14,7 @@ cmdLine = [
             CmdLine "cores" OptInputs OptCore (const readCores) "Reads in many core files",
             f "hite" id "Reads in a hite file",
             f "inline" inline "Inline some definitions",
+            f "errorfail" errorFail "Remove failure type errors",
             f "forward" forward "Perform forward motion on some definitions",
             f "check" (\x -> if check x then x else undefined) "Check some hite is valid",
             g "reachable" (defMain reachable) "Do reachable analysis",

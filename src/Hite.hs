@@ -5,7 +5,7 @@ module Hite
     module Hite.Read, module Hite.Show, module Hite.Eq,
     module Hite.Forward, module Hite.Check, module Hite.Inline, module Hite.Reachable,
     module Hite.Firstify,
-    module Hite.Data
+    module Hite.Data, module Hite.ErrorFail
     )
     where
 
@@ -19,3 +19,4 @@ import Hite.Inline
 import Hite.Reachable
 import Hite.Firstify
 import Hite.Data
+import Hite.ErrorFail
