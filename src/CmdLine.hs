@@ -6,6 +6,7 @@
 module CmdLine(CmdOpt(..), CmdDat(..), CmdLine(..), exec) where
 
 import Hite
+import Core
 
 import List
 import Maybe
@@ -23,7 +24,7 @@ data Verbosity = Normal | Verbose | Quiet
 
 -- a DatString can automatically be converted to a DatHite
 
-fullCmdLine = specials ++ test_cmdLine ++ Hite.cmdLine
+fullCmdLine = specials ++ test_cmdLine ++ Hite.cmdLine ++ Core.cmdLine
 
 
 specials = [f 0 "verbose" "output lots of information",
@@ -137,6 +138,7 @@ typeCheck cmds = f (begin:cmds)
 compatType :: CmdOpt -> CmdOpt -> Maybe (CmdDat -> IO CmdDat)
 compatType a b | a == b = Just return
 compatType OptString OptHite = Just (\(DatString x) -> return $ DatHite (read x))
+compatType OptString OptCore = Just (\(DatString x) -> return $ DatCore (readCore x))
 
 -- is never used, always handled by the runCommands function
 compatType OptInputs b = compatType OptString b
