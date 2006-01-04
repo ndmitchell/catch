@@ -131,7 +131,9 @@ typeCheck cmds = f (begin:cmds)
     
         f (CmdLine n1 _ input _ _ : c@(CmdLine n2 output _ _ _) : rest) =
             if isJust (compatType input output) then f (c:rest)
-            else error $ "Incompatible types: " ++ n1 ++ " -> " ++ n2
+            else error $ "Incompatible types: " ++
+                         n1 ++ "(" ++ show input  ++ ")" ++ " -> " ++
+                         n2 ++ "(" ++ show output ++ ")"
         f _ = True
 
 
