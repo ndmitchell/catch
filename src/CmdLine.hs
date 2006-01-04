@@ -7,6 +7,7 @@ module CmdLine(CmdOpt(..), CmdDat(..), CmdLine(..), exec) where
 
 import Hite
 import Core
+import Convert.CoreHite
 
 import List
 import Maybe
@@ -141,6 +142,7 @@ compatType :: CmdOpt -> CmdOpt -> Maybe (CmdDat -> IO CmdDat)
 compatType a b | a == b = Just return
 compatType OptString OptHite = Just (\(DatString x) -> return $ DatHite (read x))
 compatType OptString OptCore = Just (\(DatString x) -> return $ DatCore (readCore x))
+compatType OptCore   OptHite = Just (\(DatCore x  ) -> return $ DatHite (coreHite x))
 
 -- is never used, always handled by the runCommands function
 compatType OptInputs b = compatType OptString b
