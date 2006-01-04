@@ -37,6 +37,42 @@ data Expr = Call {callFunc :: Expr, callArgs :: [Expr]}
 
 
 -- some basic utility functions
+class PlayExpr a where
+    mapExpr :: (Expr -> Expr) -> a -> a
+    allExpr :: a -> [Expr]
+
+
+instance PlayExpr a => PlayExpr [a] where
+    mapExpr f xs = map (mapExpr f) xs
+    allExpr xs = concatMap allExpr xs
+
+
+instance PlayExpr Expr where
+    mapExpr f x = f $ case x of
+        Call a bs -> Call (mapExpr f a) (mapExpr f bs)
+        Make a bs -> Make a             (mapExpr f bs)
+        Case a bs -> Case (mapExpr f a) (map (\(d,e) -> (d,mapExpr f e)) bs)
+        _ -> x
+    
+    allExpr x = x : concatMap allExpr (case x of
+            Call x xs -> x : xs
+            Make _ xs -> xs
+            Case _ xs -> map snd xs
+            _ -> []
+        )
+
+instance PlayExpr Func where
+    mapExpr f x = x{body = mapExpr f (body x)}
+    allExpr x = allExpr (body x)
+
+instance PlayExpr Hite where
+    mapExpr f x = x{funcs = mapExpr f (funcs x)}
+    allExpr x = allExpr (funcs x)
+
+
+{-
+
+
 
 allExpr :: Expr -> [Expr]
 allExpr x = x : concatMap allExpr (case x of
@@ -53,6 +89,8 @@ mapExpr f x = f $ case x of
     Case a bs -> Case (mapExpr f a) (map (\(d,e) -> (d,mapExpr f e)) bs)
     _ -> x
 
+-}
+{-
 
 mapExprHite :: (Expr -> Expr) -> Hite -> Hite
 mapExprHite f (Hite a b) = Hite a (map (mapExprFunc f) b)
@@ -60,6 +98,7 @@ mapExprHite f (Hite a b) = Hite a (map (mapExprFunc f) b)
 
 mapExprFunc :: (Expr -> Expr) -> Func -> Func
 mapExprFunc f func = func{body = mapExpr f (body func)}
+-}
 
 
 getWith :: String -> (a -> String) -> [a] -> a

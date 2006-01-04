@@ -4,7 +4,7 @@ module Hite.ErrorFail(errorFail) where
 import Hite.Type
 
 errorFail :: Hite -> Hite
-errorFail a = mapExprHite f a
+errorFail a = mapExpr f a
     where
         f (Case a bs) = Case a (filter g bs)
         f x = x
