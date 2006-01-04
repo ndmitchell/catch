@@ -29,7 +29,8 @@ cmdLine = [
             f "forward" forward "Perform forward motion on some definitions",
             f "check" (\x -> if check x then x else undefined) "Check some hite is valid",
             g "reachable" (defMain reachable) "Do reachable analysis",
-            f "firstify" firstify "Perform firstification"
+            f "firstify" firstify "Perform firstification",
+            CmdLine "merge" OptHite OptHite mergeHite "Merge in some hite code" 
         ]
     where
         f a b c = g a (const b) c
@@ -37,3 +38,10 @@ cmdLine = [
         
         defMain f "" = f "main"
         defMain f x  = f x
+
+
+mergeHite file (DatHite (Hite d f)) = 
+    do
+        src <- readFile file
+        let Hite d2 f2 = read src
+        return $ DatHite $ Hite (d2 ++ d) (f2 ++ f)
