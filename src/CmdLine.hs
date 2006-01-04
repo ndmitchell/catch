@@ -66,18 +66,19 @@ execEither inp args =
         verbose  = 0 `elem` specialCodes
         showHelp = 1 `elem` specialCodes
     
-        coms = map (getCmd . map toLower . tail) flags
+        coms = map (getCmd . tail) flags
         
         
         specialCodes = map (\(CmdLine _ (OptSpecial n) _ _ _, _) -> n) spec
         (spec, normals) = partition (isSpecial . fst) coms
         (flags, files) = partition ("-" `isPrefixOf`) args
         
-        getCmd name = case [c | c@(CmdLine n _ _ _ _) <- fullCmdLine, n == nam] of
+        getCmd name = case [c | c@(CmdLine n _ _ _ _) <- fullCmdLine, n == nam2] of
                            (x:_) -> (x, if null opt then [] else tail opt)
                            [] -> error $
                                 "Unknown argument: " ++ name ++ ", try -help for valid arguments"
             where
+                nam2 = map toLower nam
                 (nam, opt) = break (== '=') name
 
 isSpecial (CmdLine _ (OptSpecial _) _ _ _) = True
