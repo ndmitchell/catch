@@ -15,13 +15,13 @@ getName (CoreVar x) = x
 
 convFunc :: CoreFunc -> Func
 convFunc (CoreFunc (CoreApp name args) body) =
-        Func (getName name) (map getName args) (convExpr [] (map f args) body)
+        Func (getName name) (map getName args) (convExpr (map f args) body)
     where
         f (CoreVar x) = (x,Var x "") 
 
 
-convExpr :: [Data] -> [(String, Expr)] -> CoreExpr -> Expr
-convExpr types subs x = f subs x
+convExpr :: [(String, Expr)] -> CoreExpr -> Expr
+convExpr subs x = f subs x
     where
         f :: [(String, Expr)] -> CoreExpr -> Expr
         f subs y = case y of
@@ -33,7 +33,7 @@ convExpr types subs x = f subs x
                 
                 CoreVar x -> rep x
                     
-                CoreCase _ _ -> Case rSwitch (concatMap g alts)
+                CoreCase _ _ -> Case rSwitch (map g alts)
             where
                 rep x = case lookup x subs of
                             Just a -> a
@@ -42,8 +42,8 @@ convExpr types subs x = f subs x
                 CoreCase (CoreVar switch) alts = y
                 rSwitch = rep switch
                 
-                g (CoreVar "_", x) = [("_", f subs x)]
-                g (CoreApp (CoreCon con) args, x) = [(con, f (zipWith h [0..] args ++ subs) x)]
+                g (CoreVar "_", x) = ("_", f subs x)
+                g (CoreApp (CoreCon con) args, x) = (con, f (zipWith h [0..] args ++ subs) x)
                     where h n (CoreVar arg) = (arg, Sel rSwitch (getCtor con n))
 
                 getCtor con n = con ++ "$" ++ show n
