@@ -54,6 +54,13 @@ mapExpr f x = f $ case x of
     _ -> x
 
 
+mapExprHite :: (Expr -> Expr) -> Hite -> Hite
+mapExprHite f (Hite a b) = Hite a (map (mapExprFunc f) b)
+
+
+mapExprFunc :: (Expr -> Expr) -> Func -> Func
+mapExprFunc f func = func{body = mapExpr f (body func)}
+
 
 getWith :: String -> (a -> String) -> [a] -> a
 getWith name f xs = case filter (\x -> f x == name) xs of
