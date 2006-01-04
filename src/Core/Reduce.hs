@@ -20,7 +20,8 @@ red x = x
 aliases = [
     ("Prelude.Prelude.Eq.Prelude.", ""),
     ("Prelude.Prelude.Num.Prelude.", ""),
-    ("Prelude.","")
+    ("Prelude.",""),
+    ("YHC.Internal.","")
     ]
 
 redName x = g aliases
