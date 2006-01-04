@@ -6,7 +6,7 @@ import List
 
 reduce (Core x) = Core $ map f x
 
-f (CoreFunc a b) = CoreFunc a (red b)
+f (CoreFunc a b) = CoreFunc (red a) (red b)
 
 red (CoreCon x) = CoreCon (redName x)
 red (CoreVar x) = CoreVar (redName x)
@@ -18,10 +18,13 @@ red x = x
 
 
 aliases = [
+    ("Prelude.undefined", "_"),
     ("Prelude.Prelude.Eq.Prelude.", ""),
     ("Prelude.Prelude.Num.Prelude.", ""),
     ("Prelude.",""),
-    ("YHC.Internal.","")
+    ("YHC.Internal.",""),
+    ("Preamble.preamble_",""),
+    ("Preamble.","")
     ]
 
 redName x = g aliases
