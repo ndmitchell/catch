@@ -19,6 +19,7 @@ red x = x
 
 aliases = [
     ("Prelude.undefined", "_"),
+    ("Preamble.preamble_undefined", "_"),
     ("Prelude.Prelude.Eq.Prelude.", ""),
     ("Prelude.Prelude.Num.Prelude.", ""),
     ("Prelude.",""),
