@@ -3,6 +3,7 @@ module CmdLineData where
 
 
 import Hite.Type
+import Hite.Show
 import Core.Type
 import Core.Show
 
