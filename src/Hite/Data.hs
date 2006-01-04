@@ -33,10 +33,8 @@ readData x = map f $ join $ map (:[]) $ filter (not . isBlank) $ lines x
 -- also remove _ from LHS of case matches
 -- as dictated by the data
 fixData :: Hite -> Hite
-fixData h@(Hite datas funcs) = Hite datas (map g funcs)
+fixData h = mapExpr f h
     where
-        g func = func{body = mapExpr f (body func)}
-    
         f (Sel x arg) | '$' `elem` arg = Sel x (ctorArgs (getCtor a h) !! read b)
             where (a,_:b) = break (== '$') arg
         
