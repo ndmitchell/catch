@@ -52,5 +52,5 @@ mergeHite file (DatHite (Hite d f)) =
 mergeData file (DatHite (Hite d f)) = 
     do
         src <- readFile file
-        return $ DatHite $ Hite (readData src ++ d) f
+        return $ DatHite $ fixData $ Hite (readData src ++ d) f
 
