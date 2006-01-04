@@ -17,11 +17,13 @@ getName (CoreVar x) = x
 
 convFunc :: CoreFunc -> Func
 convFunc (CoreFunc (CoreApp name args) body) =
-    Func (getName name) (map getName args) (convExpr baseTypes body)
+        Func (getName name) (map getName args) (convExpr baseTypes (map f args) body)
+    where
+        f (CoreVar x) = (x,Var x "") 
 
 
-convExpr :: [Data] -> CoreExpr -> Expr
-convExpr types x = f [] x
+convExpr :: [Data] -> [(String, Expr)] -> CoreExpr -> Expr
+convExpr types subs x = f subs x
     where
         f :: [(String, Expr)] -> CoreExpr -> Expr
         f subs y = case y of
@@ -37,7 +39,7 @@ convExpr types x = f [] x
             where
                 rep x = case lookup x subs of
                             Just a -> a
-                            Nothing -> Var x ""
+                            Nothing -> CallFunc x
                 
                 CoreCase (CoreVar switch) _ = y
                 rSwitch = rep switch
