@@ -5,18 +5,23 @@ import Core
 import Hite
 
 
+baseTypes :: [Data]
+baseTypes = [Data "[]" [Ctor "[]" [], Ctor ":" ["hd","tl"]]]
+
+
 coreHite :: Core -> Hite
-coreHite (Core xs) = Hite [] (map convFunc xs)
+coreHite (Core xs) = Hite baseTypes (map convFunc xs)
 
 getName (CoreVar x) = x
 
 
 convFunc :: CoreFunc -> Func
-convFunc (CoreFunc (CoreApp name args) body) = Func (getName name) (map getName args) (convExpr body)
+convFunc (CoreFunc (CoreApp name args) body) =
+    Func (getName name) (map getName args) (convExpr baseTypes body)
 
 
-convExpr :: CoreExpr -> Expr
-convExpr x = f [] x
+convExpr :: [Data] -> CoreExpr -> Expr
+convExpr types x = f [] x
     where
         f :: [(String, Expr)] -> CoreExpr -> Expr
         f subs y = case y of
@@ -38,5 +43,7 @@ convExpr x = f [] x
                 rSwitch = rep switch
                 
                 g (CoreVar "_", x) = ("_", f subs x)
-                g (CoreApp (CoreCon con) args, x) = (con, f (zipWith h [1..] args ++ subs) x)
-                    where h n (CoreVar arg) = (arg, Sel rSwitch (con ++ "_" ++ show n))
+                g (CoreApp (CoreCon con) args, x) = (con, f (zipWith h [0..] args ++ subs) x)
+                    where h n (CoreVar arg) = (arg, Sel rSwitch (getCtor con n))
+
+                getCtor con n = head [xs !! n | Data _ cs <- types, Ctor c xs <- cs, c == con]
