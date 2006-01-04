@@ -18,6 +18,7 @@ import Hite.Check
 import Hite.Inline
 import Hite.Reachable
 import Hite.Firstify
+import Hite.Data
 
 
 import CmdLineData
@@ -30,7 +31,8 @@ cmdLine = [
             f "check" (\x -> if check x then x else undefined) "Check some hite is valid",
             g "reachable" (defMain reachable) "Do reachable analysis",
             f "firstify" firstify "Perform firstification",
-            CmdLine "merge" OptHite OptHite mergeHite "Merge in some hite code" 
+            CmdLine "merge" OptHite OptHite mergeHite "Merge in some hite code",
+            CmdLine "data" OptHite OptHite mergeData "Merge in some data definitions"
         ]
     where
         f a b c = g a (const b) c
@@ -45,3 +47,10 @@ mergeHite file (DatHite (Hite d f)) =
         src <- readFile file
         let Hite d2 f2 = read src
         return $ DatHite $ Hite (d2 ++ d) (f2 ++ f)
+
+
+mergeData file (DatHite (Hite d f)) = 
+    do
+        src <- readFile file
+        return $ DatHite $ Hite (readData src ++ d) f
+
