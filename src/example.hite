@@ -1,0 +1,31 @@
+data List = Cons hd tl | Nil
+data Nat = Zero | Succ succ
+data Bool = True | False
+
+main x = map head x
+
+id x = x
+
+head x = case x of Cons -> x.hd
+
+map f xs = case xs of
+    Nil -> Nil
+    Cons -> Cons (f xs.hd) (map f xs.tl)
+
+reverse xs = rev xs Nil
+
+rev xs acc = case xs of
+    Nil -> acc
+    Cons -> rev xs.tl (Cons xs.hd acc)
+
+not x = case x of
+	True -> False
+	False -> True
+
+invert x = map not x
+
+mapHead x = case x of
+	Nil -> Nil
+	Cons -> Cons (head x.hd) (mapHead x.tl)
+
+
