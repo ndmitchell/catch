@@ -2,7 +2,8 @@
 module Core.Read(readCore) where
 
 import Core.Type
+import Core.Reduce
 
 readCore :: String -> Core
-readCore ('=':xs) = read (lines xs !! 1)
-readCore xs = read xs
+readCore ('=':xs) = reduce $ read (lines xs !! 1)
+readCore xs = reduce $ read xs
