@@ -3,8 +3,6 @@
 module Main where
 
 import System
-import Test
-import Hite
 import CmdLine
 
 
@@ -12,7 +10,7 @@ main = do args <- getArgs
           mainArgs args
 
 
-mainArgs args = exec Hite.cmdLine args
+mainArgs args = exec args
 
 {-
 

@@ -20,7 +20,7 @@ import Hite.Reachable
 import Hite.Firstify
 
 
-import CmdLine
+import CmdLineData
 
 
 cmdLine = [

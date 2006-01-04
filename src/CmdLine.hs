@@ -5,51 +5,25 @@
 -}
 module CmdLine(CmdOpt(..), CmdDat(..), CmdLine(..), exec) where
 
-import Hite.Type
-import Hite.Read
-import Hite.Show
+import Hite
 
 import List
 import Maybe
 import Char
+import TextUtil
+import Directory
 
 
-data CmdOpt = OptString | OptHite | OptAction | OptInputs | OptSpecial Int
-              deriving Eq
+import CmdLineData
 
 
-instance Show CmdOpt where
-    show OptString = "string"
-    show OptHite = "Hite"
-    show OptAction = "()"
-    show OptInputs = "*"
+data Verbosity = Normal | Verbose | Quiet
+                 deriving Eq
 
-
-data CmdDat = DatString String | DatHite Hite | DatAction String | DatInputs [String]
-
-datToOpt (DatString _) = OptString
-datToOpt (DatHite   _) = OptHite
-datToOpt (DatAction _) = OptAction
-datToOpt (DatInputs _) = OptInputs
-
-
-
-data CmdLine = CmdLine String CmdOpt CmdOpt (String -> CmdDat -> IO CmdDat) String
-
-
-instance Show CmdLine where
-    show c = cmdLineName c
-
-
-instance Show CmdDat where
-    show (DatString x) = x
-    show (DatHite x) = show x
-    show (DatAction x) = x
-
-
-cmdLineName (CmdLine a _ _ _ _) = a
 
 -- a DatString can automatically be converted to a DatHite
+
+fullCmdLine = specials ++ test_cmdLine ++ Hite.cmdLine
 
 
 specials = [f 0 "verbose" "output lots of information",
@@ -59,16 +33,37 @@ specials = [f 0 "verbose" "output lots of information",
         f n a b = CmdLine a (OptSpecial n) (OptSpecial n) (const return) b
 
 
-exec :: [CmdLine] -> [String] -> IO ()
-exec cmds args = 
-            if null normals || null files || showHelp then putStrLn (helpMsg cmds2)
-            else if typeCheck (map fst normals) then runCommands verbose normals files
-            else error "internal error, typeCheck should not return false"
+
+execPipe :: [String] -> String -> IO CmdDat
+execPipe args inp = execEither (Just inp) args
+
+
+exec :: [String] -> IO ()
+exec args = do execEither Nothing args
+               return ()
+
+
+execEither :: Maybe String -> [String] -> IO CmdDat
+execEither inp args = 
+    do
+        allFiles <- collectFiles files
+        inp2 <- case inp of
+                   Just a -> return $ DatString a
+                   Nothing -> do x <- collectFiles files
+                                 return $ DatInputs x
+        
+        if null normals || (null files && isNothing inp) || showHelp
+            then do putStrLn helpMsg
+                    return (DatAction helpMsg)
+         else if typeCheck (map fst normals)
+            then runCommands verb normals inp2
+         else error "internal error, typeCheck should not return false"
     where
+        verb = if isJust inp then Quiet else if verbose then Verbose else Normal
+        
         verbose  = 0 `elem` specialCodes
         showHelp = 1 `elem` specialCodes
     
-        cmds2 = specials ++ cmds
         coms = map (getCmd . map toLower . tail) flags
         
         
@@ -76,7 +71,7 @@ exec cmds args =
         (spec, normals) = partition (isSpecial . fst) coms
         (flags, files) = partition ("-" `isPrefixOf`) args
         
-        getCmd name = case [c | c@(CmdLine n _ _ _ _) <- cmds2, n == nam] of
+        getCmd name = case [c | c@(CmdLine n _ _ _ _) <- fullCmdLine, n == nam] of
                            (x:_) -> (x, if null opt then [] else tail opt)
                            [] -> error $
                                 "Unknown argument: " ++ name ++ ", try -help for valid arguments"
@@ -87,17 +82,39 @@ isSpecial (CmdLine _ (OptSpecial _) _ _ _) = True
 isSpecial _ = False
 
 
+collectFiles :: [FilePath] -> IO [FilePath]
+collectFiles x = concatMapM f x
+    where
+        f x = do isDir <- doesDirectoryExist x
+                 isFile <- doesFileExist x
+                 if isDir then
+                     do xs <- getDirectoryContents x
+                        concatMapM (f . (++) (x ++ "/")) $ filter isReal xs
+                  else if isFile then
+                     return [x]
+                  else
+                     error $ "ERROR: Not a file or folder, " ++ x
+            where
+                isReal "." = False
+                isReal ".." = False
+                isReal "CVS" = False
+                isReal _ = True
 
-helpMsg :: [CmdLine] -> String
-helpMsg xs = unlines $ 
+
+concatMapM f xs = do x <- mapM f xs
+                     return $ concat x
+
+
+helpMsg :: String
+helpMsg = unlines $ 
         [
             "Catch - Case And Termination Checker for Haskell",
             "(C) Neil Mitchell 2004-2006",
             "http://www.cs.york.ac.uk/~ndm/projects/catch.php",
             ""
-        ] ++ map f xs
+        ] ++ map f fullCmdLine
     where
-        longestName = maximum $ map (length . cmdLineName) xs
+        longestName = maximum $ map (length . cmdLineName) fullCmdLine
         f c@(CmdLine name input output _ desc) =
             "   -" ++ pad name ++ "  " ++ desc ++
             if isSpecial c then "" else " (" ++ show input ++ "->" ++ show output ++ ")"
@@ -127,16 +144,15 @@ compatType OptInputs b = compatType OptString b
 compatType _ _ = Nothing
 
 
-runCommands :: Bool -> [(CmdLine, String)] -> [FilePath] -> IO ()
-runCommands verbose actions files =
+runCommands :: Verbosity -> [(CmdLine, String)] -> CmdDat -> IO CmdDat
+runCommands verbose actions inp =
     do
         s <- begin
-        f actions (head s)
+        f actions s
     where
-        f [(a,v)] s = do g True a s v
-                         return ()
+        f [(a,v)] s = g (verbose /= Quiet) a s v
 
-        f ((a,v):as) s = do s2 <- g verbose a s v
+        f ((a,v):as) s = do s2 <- g (verbose == Verbose) a s v
                             f as s2
         
         g disp (CmdLine name input output act _) s v = 
@@ -146,13 +162,63 @@ runCommands verbose actions files =
                     out $ show s3
                     return s3
             where
-                conv = fromJust $ compatType (datToOpt s) output
+                conv = fromJust $ compatType (datToOpt s) input
                 out x = if disp then putStrLn x else return ()
-                
     
-    
-        begin :: IO [CmdDat]
-        begin = case actions of
-                    ((CmdLine _ OptInputs _ _ _,_):_) -> return [DatInputs files]
-                    _ -> do x <- mapM readFile files
-                            return $ map DatString x
+        begin :: IO CmdDat
+        begin = case (actions, inp) of
+                    (((CmdLine _ OptInputs _ _ _,_):_), DatInputs x) -> return inp
+                    (_, DatString x) -> return inp
+                    (_, DatInputs [x]) -> do y <- readFile x
+                                             return $ DatString y
+
+
+
+---------------------------------------------------------------------
+-- module Test where
+-- because of lack of mututally recursive modules, these modules
+-- need to be in the same source file
+
+test_cmdLine = [CmdLine "test" OptInputs OptAction (const tester) "Performs some regression tests"]
+
+
+tester :: CmdDat -> IO CmdDat
+tester (DatInputs xs) = do rep <- mapM testFile xs
+                           let repn = zip3 [1..] rep xs
+                               progress = unlines $ map f repn
+                               reports = concatMap g repn
+                               summary = "Passed " ++ show (lxs - length (catMaybes rep)) ++ "/" ++ show lxs
+                           return $ DatAction $ progress ++ reports ++ "\n" ++ summary
+    where
+        llxs = length (show lxs)
+        lxs = length xs
+        
+        pad n = show n ++ replicate (llxs - length (show n)) ' '
+        
+        f :: (Int, Maybe String, FilePath) -> String
+        f (n, res, file) = 
+            "Test " ++ pad n ++ "/" ++ show lxs ++ " - " ++ 
+            if isJust res then "FAIL" else "pass" ++
+            " (" ++ file ++ ")"
+        
+        g :: (Int, Maybe String, FilePath) -> String
+        g (n, Nothing, _) = ""
+        g (n, Just x , _) = "Detailed report for " ++ show n ++ "\n"
+
+
+-- if you fail, return Just Result
+-- otherwise return Nothing for success
+testFile :: FilePath -> IO (Maybe String)
+testFile file = do x <- readFile file
+                   let xs = lines x
+                       params = splitList " " (head xs)
+                       brk = xs !! 1
+                       (input, _:output) = break (== brk) (drop 2 xs)
+                       out = unlines output
+                   res <- execPipe params (unlines input)
+                   return Nothing
+                   
+
+eqHite :: String -> String -> Bool
+eqHite a b = (read a :: Hite) == (read b :: Hite)
+
