@@ -24,7 +24,7 @@ import CmdLineData
 
 
 cmdLine = [
-            CmdLine "hite" OptString OptHite (const return) "Reads in a hite file",
+            f "hite" id "Reads in a hite file",
             f "inline" inline "Inline some definitions",
             f "forward" forward "Perform forward motion on some definitions",
             f "check" (\x -> if check x then x else undefined) "Check some hite is valid",
