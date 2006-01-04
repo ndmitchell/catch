@@ -11,7 +11,7 @@ check (Hite datas funcs) =
         unique allCtorName && unique allCtorArg && unique allFuncName &&
         all checkFunc funcs
     where
-        allFuncName = map funcName funcs
+        allFuncName = "_" : map funcName funcs
         allCtorName = concatMap (map ctorName . ctors) datas
         allCtorArg  = concatMap (concatMap ctorArgs . ctors) datas
     
