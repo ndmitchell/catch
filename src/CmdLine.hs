@@ -17,6 +17,7 @@ import Directory
 
 
 import CmdLineData
+import Actions
 
 
 data Verbosity = Normal | Verbose | Quiet
@@ -25,7 +26,7 @@ data Verbosity = Normal | Verbose | Quiet
 
 -- a DatString can automatically be converted to a DatHite
 
-fullCmdLine = specials ++ test_cmdLine ++ Hite.cmdLine ++ Core.cmdLine
+fullCmdLine = specials ++ test_cmdLine ++ Actions.cmdLine
 
 
 specials = [f 0 "verbose" "output lots of information",
