@@ -1,6 +1,8 @@
 
 module Preamble where
 
+preamble_undefined = preamble_undefined
+
 _apply1 f x = f x
 
 
