@@ -22,9 +22,12 @@ data Data = Data {dataName :: DataName, ctors :: [Ctor]}
 data Ctor = Ctor {ctorName :: CtorName, ctorArgs :: [CtorArg]}
           deriving Eq
 
-data Func = Func {funcName :: FuncName, funcArgs :: [FuncArg], body :: Expr}
+data Func = Func {funcName :: FuncName, funcArgs :: [FuncArg], body :: Expr, funcKind :: Kind}
           deriving Eq
 
+data Kind = Star
+          | Arrow [Kind]
+          deriving Eq
 
 data Expr = Call {callFunc :: Expr, callArgs :: [Expr]}
           | Var {varArg :: FuncArg, scope :: FuncName}

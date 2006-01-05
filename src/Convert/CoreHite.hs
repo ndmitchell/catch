@@ -15,7 +15,7 @@ getName (CoreVar x) = x
 
 convFunc :: CoreFunc -> Func
 convFunc (CoreFunc (CoreApp name args) body) =
-        Func (getName name) (map getName args) (convExpr (map f args) body)
+        Func (getName name) (map getName args) (convExpr (map f args) body) Star
     where
         f (CoreVar x) = (x,Var x "") 
 

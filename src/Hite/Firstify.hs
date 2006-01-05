@@ -14,7 +14,7 @@ specialise :: Hite -> (FuncName, FuncArg) -> Hite
 specialise hite (name, arg) = hite{funcs = oldfuncs ++ newfuncs}
     where
         pos = getArgPos name arg hite
-        (Func _ funcArgs funcBody) = getFunc name hite
+        (Func _ funcArgs funcBody _) = getFunc name hite
         
         
         oldfuncs = map (\x -> x{body = mapExpr bind (body x)}) (funcs hite)
@@ -27,7 +27,7 @@ specialise hite (name, arg) = hite{funcs = oldfuncs ++ newfuncs}
         
         
         newfuncs = map newfunc useful
-        newfunc replace = Func newName (remArg funcArgs) (mapExpr f funcBody)
+        newfunc replace = Func newName (remArg funcArgs) (mapExpr f funcBody) Star
             where
                 newName = genName replace
             
@@ -37,7 +37,7 @@ specialise hite (name, arg) = hite{funcs = oldfuncs ++ newfuncs}
                 f x = x
                                                     
         
-        useful = nub [argVal | Func func _ expr <- funcs hite,
+        useful = nub [argVal | Func func _ expr _ <- funcs hite,
                                func /= name,
                                call <- allExpr expr,
                                argVal <- getArgVar call]

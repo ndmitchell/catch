@@ -44,7 +44,7 @@ readCtor x = Ctor name args
 
 
 readFunc :: String -> Func
-readFunc x = Func name args (readExpr args $ trimLeft expr)
+readFunc x = Func name args (readExpr args $ trimLeft expr) Star
     where
         (name:args) = splitList " " $ singleSpace $ trim prefix
         (prefix, '=':expr) = break (== '=') x
