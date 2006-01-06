@@ -14,7 +14,7 @@ import General
 
 
 specialise :: Hite -> Hite
-specialise hite = foldl freeze hite (reverse $ specialiseable hite)
+specialise hite = foldl freeze hite (specialiseable hite)
 
 
 
