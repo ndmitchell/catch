@@ -21,7 +21,14 @@ instance Show Func where
 
 instance Show Kind where
     show Star = "*"
-    show (Arrow xs) = concat $ intersperse "->" $ map show xs
+    show (Arrow xs) = concat $ intersperse "->" $ map f xs
+        where
+            f x@(Arrow _) = "(" ++ show x ++ ")"
+            f x = show x
+    
+    show (Kinded as) = "{" ++ concat (intersperse ", " (map f as)) ++ "}"
+        where
+            f (name, arg) = concatMap (++ ".") name ++ show arg
 
 
 instance Show Expr where
