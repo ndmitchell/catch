@@ -27,6 +27,7 @@ data Func = Func {funcName :: FuncName, funcArgs :: [FuncArg], body :: Expr, fun
 
 data Kind = Star
           | Arrow [Kind]
+          | Kinded [([CtorArg], Kind)]
           deriving Eq
 
 data Expr = Call {callFunc :: Expr, callArgs :: [Expr]}
@@ -37,6 +38,9 @@ data Expr = Call {callFunc :: Expr, callArgs :: [Expr]}
           | Case Expr [(CtorName, Expr)] -- case x of Cons a b, Nil -> Case "x" (Cons, ["a", "b"]), (Nil, [])
           deriving Eq
 
+
+isVar (Var{}) = True; isVar _ = False
+isCallFunc (CallFunc{}) = True; isCallFunc _ = False
 
 
 -- some basic utility functions
