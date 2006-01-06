@@ -17,6 +17,7 @@ cmdLine = [
             f "errorfail" errorFail "Remove failure type errors",
             f "forward" forward "Perform forward motion on some definitions",
             f "kind" kind "Add kind annotations",
+            f "specialise" specialise "Perform specialisation",
             f "check" (\x -> if check x then x else undefined) "Check some hite is valid",
             g "reachable" (defMain reachable) "Do reachable analysis",
             f "firstify" firstify "Perform firstification",
