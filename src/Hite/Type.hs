@@ -77,6 +77,18 @@ instance PlayExpr Hite where
     allExpr x = allExpr (funcs x)
 
 
+class PlayFunc a where
+    mapFunc :: (Func -> Func) -> a -> a
+
+instance PlayFunc a => PlayFunc [a] where
+    mapFunc f xs = map (mapFunc f) xs
+
+instance PlayFunc Func where
+    mapFunc f x = f x
+
+instance PlayFunc Hite where
+    mapFunc f x = x{funcs = mapFunc f (funcs x)}
+
 {-
 
 
