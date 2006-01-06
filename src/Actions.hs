@@ -16,6 +16,7 @@ cmdLine = [
             f "inline" inline "Inline some definitions",
             f "errorfail" errorFail "Remove failure type errors",
             f "forward" forward "Perform forward motion on some definitions",
+            f "short" shortName "Make some names shorter",
             f "kind" kind "Add kind annotations",
             f "specialise" specialise "Perform specialisation",
             f "check" (\x -> if check x then x else undefined) "Check some hite is valid",

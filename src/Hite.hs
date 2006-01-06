@@ -4,7 +4,7 @@ module Hite
     module Hite.Type,
     module Hite.Read, module Hite.Show, module Hite.Eq,
     module Hite.Forward, module Hite.Check, module Hite.Inline, module Hite.Reachable,
-    module Hite.Firstify, module Hite.Specialise,
+    module Hite.Firstify, module Hite.Specialise, module Hite.ShortName,
     module Hite.Data, module Hite.ErrorFail, module Hite.Kind
     )
     where
@@ -22,3 +22,5 @@ import Hite.Data
 import Hite.ErrorFail
 import Hite.Kind
 import Hite.Specialise
+import Hite.ShortName
+
