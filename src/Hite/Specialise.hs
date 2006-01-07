@@ -9,13 +9,57 @@ module Hite.Specialise(specialise) where
 
 import Hite.Type
 import Hite.Kind
+import Hite.Normalise
 import List
 import General
+import Maybe
+
+
+type Template = (FuncName, [Int])
+type Instance = (Template, [FuncName])
 
 
 specialise :: Hite -> Hite
-specialise hite = foldl freeze hite (specialiseable hite)
+specialise bad_hite = f [] hite
+        -- (instances able hite) [] nhite{funcs = (funcs nhite) ++ fullGenerate inst []}
+    where
+        hite = normalise bad_hite
+        able = specialiseable hite
+        
+        
+        f :: [Instance] -> Hite -> Hite
+        f done hite = if null todo then hite else f (todo ++ done) res2
+            where
+                todo = instances hite able \\ done
+                res = hite{funcs = (funcs hite) ++ map (generate hite) todo}
+                res2 = repoint res todo
 
+{-
+
+        nhite = normalise hite
+        inst = nub $ concatMap (getInst (funcs nhite)) able
+        
+        
+        getInst funcs (func,pos) = [(func,zip pos x) | x <- instances funcs (func, pos)]
+        
+        
+        fullGenerate [] done = []
+        fullGenerate todo done = newfuncs ++ fullGenerate newtodos newdone
+            where
+                newdone = todo ++ done
+                newfuncs = map (generate nhite) todo
+                newtodos = (nub $ concatMap (getInst newfuncs) able) \\ newdone
+     -}   
+        
+        
+    {-
+    f $ f $ f (Hite ds (reverse fs))
+    where
+        Hite ds fs = f hite
+    
+        f x = foldl freeze x (specialiseable x)
+        -}
+{-
 
 
 freeze :: Hite -> (FuncName, [FuncArg]) -> Hite
@@ -60,22 +104,80 @@ freeze hite (name, arg:_) = hite{funcs = oldfuncs ++ newfuncs}
         
         remArg args = take (pos-1) args ++ drop pos args
         genName x = name ++ "_SPEC_" ++ x
+-}
+
+
+newName :: Instance -> String
+newName ((func, _), args) = func ++ "_SPEC" ++ concatMap ('_':) args
+
+
+repoint :: Hite -> [Instance] -> Hite
+repoint hite is = mapExpr f hite
+    where
+        f (Call (CallFunc a) bs) | isJust mInst &&
+                                   matchInst inst bs
+                = Call (CallFunc (newName inst)) [x | (n,x) <- zip [0..] bs, not (n `elem` pos)]
+            where
+                Just inst@((_, pos),_) = mInst
+                mInst = getInstance a
+        f x = x
+        
+        getInstance x = case [i | i@((name,_),_) <- is, x == name] of
+                            [] -> Nothing
+                            [x] -> Just x
+        
+        matchInst ((_, pos), val) items = and $ zipWith g pos val
+            where g p v = (items !! p) == CallFunc v
+
+
+-- generate a new function to satisfy the template
+generate :: Hite -> Instance -> Func
+generate hite i@((func, pos), rep) = Func newname newargs newbody Star
+    where
+        newname = newName i
+        newargs = [x | (n, x) <- zip [0..] args, not (n `elem` pos)]
+        newbody = mapExpr f body
+    
+        rename = [(args !! n, name) | (n,name) <- zip pos rep]
+        Func _ args body k = getFunc func hite
+        
+        f (Var x y) = case lookup x rename of
+                           Just z -> CallFunc z
+                           Nothing -> Var x y
+        f x = x
 
 
 
--- which functions can be specialised, and in which arguments
-specialiseable :: Hite -> [(FuncName, [FuncArg])]
+-- find all the places you could use all the templates function
+instances :: Hite -> [Template] -> [Instance]
+instances hite ts = nub $ concatMap g ts
+    where
+        g t = concatMap (f t) (funcs hite)
+
+        f t@(func, pos) (Func name args body _)
+            | name == func = []
+            | otherwise    =
+             [(t, map callName ars) | Call (CallFunc n) as <- allExpr body, n == func,
+                    ars <- [map (as !!) pos], all isCallFunc ars]
+        
+
+
+-- | Which functions can be specialised, and in which arguments.
+--   Arguments are 0 indexed, all have at least one specialiseable argument
+--   No function appears more than once
+specialiseable :: Hite -> [Template]
 specialiseable hite = concatMap f (funcs $ kind hite)
     where
         f (Func name []   body _         ) = []
-        f (Func name args body (Arrow ks)) = if null sargs then [] else [(name, sargs)]
+        f (Func name args body (Arrow ks)) = 
+                if null sargs then [] else [(name, sargs)]
             where
-                sargs = map (\(a,b,c) -> b) $ filter g (zip3 [1..] args ks)
+                sargs = map (\(a,b,c) -> a) $ filter g (zip3 [0..] args ks)
                 
                 g (n, arg, Star) = False
                 g (n, arg, _) = and items
                     where
-                        items = [(args !! n) /= Var arg "" |
+                        items = [varArg (args !! n) == arg |
                                       Call (CallFunc me) args <- allExpr body,
                                       me == name]
 
