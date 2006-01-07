@@ -6,6 +6,7 @@ import CmdLineData
 import Hite
 import Core
 import Convert.CoreHite
+import Checker.CaseCheck
 
 
 
@@ -25,7 +26,8 @@ cmdLine = [
             CmdLine "merge" OptHite OptHite mergeHite "Merge in some hite code",
             CmdLine "data" OptHite OptHite mergeData "Merge in some data definitions",
             CmdLine "preamble" OptCore OptHite (const preamble) "Add preamble definitions",
-            CmdLine "prepare" OptCore OptHite (const prepare) "Prepare a file for checking"
+            CmdLine "prepare" OptCore OptHite (const prepare) "Prepare a file for checking",
+            CmdLine "case" OptHite OptAction (const runCaseCheck) "Case check a file"
         ]
     where
         f a b c = g a (const b) c
@@ -77,3 +79,9 @@ prepare x =
                 a
     where
         wrap f (DatHite x) = DatHite (f x)
+
+
+runCaseCheck (DatHite h) =
+    do
+        caseCheck h
+        return (DatAction "")
