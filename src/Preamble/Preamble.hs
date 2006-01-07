@@ -3,7 +3,7 @@ module Preamble where
 
 import Prelude hiding (
     -- standard
-    map, head, (.)
+    map, head, (.), reverse
     )
 
 
@@ -32,3 +32,7 @@ map f [] = []
 map f (x:xs) = f x : map f xs
 
 
+reverse xs = reverse_acc xs []
+    where
+        reverse_acc [] ys = ys
+        reverse_acc (x:xs) ys = reverse_acc xs (x:ys)
