@@ -59,12 +59,14 @@ instance PlayExpr Expr where
         Call a bs -> Call (mapExpr f a) (mapExpr f bs)
         Make a bs -> Make a             (mapExpr f bs)
         Case a bs -> Case (mapExpr f a) (map (\(d,e) -> (d,mapExpr f e)) bs)
+        Sel  a b  -> Sel  (mapExpr f a) b
         _ -> x
     
     allExpr x = x : concatMap allExpr (case x of
             Call x xs -> x : xs
             Make _ xs -> xs
             Case _ xs -> map snd xs
+            Sel  x _  -> [x]
             _ -> []
         )
 
