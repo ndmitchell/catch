@@ -24,7 +24,8 @@ cmdLine = [
             f "firstify" firstify "Perform firstification",
             CmdLine "merge" OptHite OptHite mergeHite "Merge in some hite code",
             CmdLine "data" OptHite OptHite mergeData "Merge in some data definitions",
-            CmdLine "preamble" OptCore OptHite (const preamble) "Add preamble definitions"
+            CmdLine "preamble" OptCore OptHite (const preamble) "Add preamble definitions",
+            CmdLine "prepare" OptCore OptHite (const prepare) "Prepare a file for checking"
         ]
     where
         f a b c = g a (const b) c
@@ -60,3 +61,19 @@ preamble (DatCore (Core x)) =
         let Core y = readCore src
             hite = coreHite $ Core (y ++ x)
         mergeData "preamble.data" (DatHite hite)
+
+
+prepare x =
+    do 
+        a <- preamble x
+        return $
+                wrap kind $
+                wrap (reachable "main") $
+                wrap inline $
+                wrap kind $
+                wrap specialise $
+                wrap errorFail $
+                wrap shortName $
+                a
+    where
+        wrap f (DatHite x) = DatHite (f x)
