@@ -108,7 +108,7 @@ freeze hite (name, arg:_) = hite{funcs = oldfuncs ++ newfuncs}
 
 
 newName :: Instance -> String
-newName ((func, _), args) = func ++ "_SPEC" ++ concatMap ('_':) args
+newName ((func, _), args) = func ++ "$" ++ concat (intersperse "_" args)
 
 
 repoint :: Hite -> [Instance] -> Hite
