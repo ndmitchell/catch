@@ -5,6 +5,8 @@ module Constraint.Req(
 
 import Constraint.Pred
 import RegExp
+import List
+import Char
 
 import Hite
 import General
@@ -14,7 +16,12 @@ import General.Similar
 data Req = Req Expr (RegExp String) [CtorName]
 
 instance Show Req where
-    show (Req expr regs opts) = show expr ++ ";" ++ show regs ++ strSet opts
+    show (Req expr regs opts) =
+        "<" ++ inline (show expr) ++ "," ++ show regs ++ "," ++ strSet opts ++ ">"
+        where
+            inline x = case lines x of
+                            [x] -> x
+                            xs -> "{" ++ (concat $ intersperse "; " $ map (dropWhile isSpace) xs) ++ "}"
 
 
 reduceReq (Req a b c) = Req a (reduceRegExp b) c
