@@ -4,7 +4,7 @@ module Constraint.ReqMonad(ReqMonad, runReqMonad, find, finds) where
 import General.StateMonad
 import Constraint.Constraint
 import Constraint.Req
-import Constraint.Pred
+import Pred.Type
 
 
 type ReqMonad a = Transform a
@@ -18,14 +18,14 @@ find :: Req -> ReqMonad Reqs
 find x = writeState (\s -> let see = seen s
                            in
                                 if x `elem` see then
-                                    (s, PredTrue)
+                                    (s, predTrue)
                                 else
-                                    (MyState (x:see), PredAtom x)
+                                    (MyState (x:see), predLit x)
                     )
 
 
 finds :: Reqs -> ReqMonad Reqs
-finds x = mapReqM find x
+finds x = mapPredLitM find x
 
 
 {-
