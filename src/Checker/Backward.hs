@@ -5,8 +5,13 @@ import Hite
 import Constraint
 
 
-backward :: Hite -> Req -> Either (Req, [Expr]) String
-backward hite c = Right "todo"
+backward :: Hite -> Req -> Reqs
+
+backward hite (Req (Var a b) path opts) = PredAtom $ Req (Var a b) path opts
+
+backward hite (Req (Sel a b) path opts) = PredAtom $ Req a (RCon [RLit b, path]) opts
+
+backward hite a = error $ "Backward: " ++ show a
 
 
 

@@ -5,18 +5,51 @@ import Hite
 import General
 import List
 
-import Constraint
-
 import Checker.Propagate
 import Checker.Backward
-import Checker.Fixpoint
 
+import Constraint
+
+{-
+
+import Checker.Propagate
+import Checker.Fixpoint
+-}
 
 caseCheck :: Hite -> IO ()
-caseCheck hite = do res <- solveReqs solveProp hite putStrLn (incompleteCases hite)
+caseCheck bad_hite = do putStrLn $ disp $ full $ reduce $ generate hite
+{-                    res <- solveReqs solveProp hite putStrLn (incompleteCases hite)
                     if res then putStrLn "Success!" else putStrLn "Failed"
+                    -}
+    where
+        hite = annotate bad_hite
+        
+        
+        disp :: [Reqs] -> String
+        disp x = f 0 x
+            where
+                f 10 (x:xs) = "\nNON TERMINATION"
+                f n  (x:xs) = show n ++ ": " ++ show x ++ "\n" ++ f (n+1) xs
+                f n  []     = "\nMAIN: " ++ show allMains
 
+            
+                allMains = filter isMain $ concatMap allReq x
+                
+                isMain (Req (Var a b) _ _) = b == "main"
+                isMain _ = False
+        
+        
+        
+        full :: Reqs -> [Reqs]
+        full reqs | null $ allReq reqs = []
+                  | otherwise = reqs : full (next reqs)
 
+        
+        next :: Reqs -> Reqs
+        next x = reduce $ mapReq (backward hite) $ mapReq (propagate hite) x
+        
+        
+{-
 
 solveReqs :: (Hite -> (String -> IO ()) -> Req -> IO Bool) ->
               Hite -> (String -> IO ()) -> Reqs -> IO Bool
@@ -56,6 +89,7 @@ solveBack hite out c = do out $ "Backwards: " ++ show c
                                                        return False
                                          Left  x -> do out $ "Fixpoint: " ++ show x
                                                        solveReqs solveProp hite out x
+-}
 {-                         
 
 
@@ -76,14 +110,24 @@ solveCase hite out c = do out $ "Initial: " ++ show c
 
 
 
-incompleteCases :: Hite -> Reqs -- (FuncName, Expr, [CtorName])]
-incompleteCases hite = Ands [PredAtom $
-        Req func (Var (varArg on) []) lambda opts  |
-        Func func _ body <- funcs hite,
-        c@(Case on alts) <- allExpr body,
+generate :: Hite -> Reqs
+generate hite = Ands [PredAtom $
+        Req on lambda opts |
+        c@(Case on alts) <- allExpr hite,
         opts <- [fsts alts],
         allOpts <- [map ctorName $ ctors $ getDataFromCtor (head opts) hite],
         not $ null $ allOpts \\ opts]
+
+
+
+-- and annotations as to which function each variable is in
+annotate :: Hite -> Hite
+annotate h = mapFunc f h
+    where
+        f (Func name args body k) = Func name args (mapExpr (g name) body) k
+        g name (Var x y) = Var x name
+        g name x = x
+
 
 {-
 
