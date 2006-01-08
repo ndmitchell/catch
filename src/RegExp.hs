@@ -13,7 +13,8 @@ module RegExp(
     
     -- | Various properties on regular expressions
     module RegExp.Prop,
-    module RegExp.Enum
+    module RegExp.Enum,
+    module RegExp.Blur
     )
     where
 
@@ -21,3 +22,11 @@ import RegExp.Type
 import RegExp.Parse
 import RegExp.Prop
 import RegExp.Enum
+import RegExp.Blur
+
+
+import General.Similar
+
+
+instance Eq x => Eq (RegExp x) where
+    a == b = a ~= b
