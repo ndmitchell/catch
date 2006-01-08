@@ -7,6 +7,7 @@ module Hite.Type where
 
 import General
 import Maybe
+import RegExp
 
 
 type FuncName = String
@@ -33,9 +34,11 @@ data Kind = Star
 data Expr = Call {callFunc :: Expr, callArgs :: [Expr]}
           | Var {varArg :: FuncArg, scope :: FuncName}
           | Sel {expr :: Expr, path :: CtorArg}
+          | Path {expr :: Expr, pathPath :: RegExp CtorArg}
           | CallFunc {callName :: FuncName}
           | Make {makeName :: CtorName, makeArgs :: [Expr]}
           | Case Expr [(CtorName, Expr)] -- case x of Cons a b, Nil -> Case "x" (Cons, ["a", "b"]), (Nil, [])
+          | Bottom
           deriving Eq
 
 
@@ -60,6 +63,7 @@ instance PlayExpr Expr where
         Make a bs -> Make a             (mapExpr f bs)
         Case a bs -> Case (mapExpr f a) (map (\(d,e) -> (d,mapExpr f e)) bs)
         Sel  a b  -> Sel  (mapExpr f a) b
+        Path a b  -> Path (mapExpr f a) b
         _ -> x
     
     allExpr x = x : concatMap allExpr (case x of
@@ -67,6 +71,7 @@ instance PlayExpr Expr where
             Make _ xs -> xs
             Case _ xs -> map snd xs
             Sel  x _  -> [x]
+            Path x _  -> [x]
             _ -> []
         )
 
@@ -90,6 +95,15 @@ instance PlayFunc Func where
 
 instance PlayFunc Hite where
     mapFunc f x = x{funcs = mapFunc f (funcs x)}
+
+
+
+selToPath :: Expr -> Expr
+selToPath x = mapExpr f x
+    where
+        f (Sel (Path a b) c) = Path a (regConcat [b,regLit c])
+        f (Sel a b) = Path a (regLit b)
+        f x = x
 
 {-
 
