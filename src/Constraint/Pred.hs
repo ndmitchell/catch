@@ -21,6 +21,18 @@ mapPred f x = f $ case x of
         fs = map (mapPred f)
 
 
+mapPredM :: Monad m => (Pred a -> m (Pred a)) -> Pred a -> m (Pred a)
+mapPredM f x = do y <- case x of
+                      Ors xs  -> do ys <- fs xs
+                                    return $ Ors xs
+                      Ands xs -> do ys <- fs xs
+                                    return $ Ands xs
+                      x -> return x
+                  f y
+    where
+        fs xs = mapM (mapPredM f) xs
+
+
 allPred :: Pred a -> [Pred a]
 allPred x = x : concatMap allPred (case x of
         Ands y -> y
@@ -29,8 +41,8 @@ allPred x = x : concatMap allPred (case x of
         )
 
 
--- reduce :: Pred a -> Pred a
-reduce x = mapPred f x
+reducePred :: Pred a -> Pred a
+reducePred x = mapPred f x
     where
         f (Ors  [x]) = x
         f (Ands [x]) = x
