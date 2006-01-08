@@ -50,12 +50,12 @@ showBy showme x = f OUnion x
 -- | Read a string, convert to a regular expression.
 --   The main input mechanism
 readRegExpChar :: String -> RegExpChar
-readRegExpChar = reduce . readRegExpCharRaw
+readRegExpChar = reduceRegExp . readRegExpCharRaw
 
 
 -- | Used to create 'readRegExpChar'
 readBy :: (String -> [Char]) -> String -> RegExp Char
-readBy f = reduce . readByRaw f
+readBy f = reduceRegExp . readByRaw f
 
 
 -- | Read but do not perform reduction to lowest form

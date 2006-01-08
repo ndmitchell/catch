@@ -17,7 +17,7 @@ module RegExp.Type(
     -- A set of creation functions, that do basic minimization
     regOmega, regLambda, regLit, regUnion, regConcat, regKleene,
     -- and recreate a regular expression with these simplifications
-    reduce,
+    reduceRegExp,
 
     -- * Smaller
     smaller
@@ -59,11 +59,11 @@ textOmega :: String
 textOmega = "0"
 
 -- | And a play class
-mapRegExp :: (RegExp a -> RegExp a) -> RegExp a -> RegExp a
+mapRegExp :: Eq a => (RegExp a -> RegExp a) -> RegExp a -> RegExp a
 mapRegExp f x = f $ case x of
-        RegKleene y -> RegKleene (f y)
-        RegConcat ys -> RegConcat (fs ys)
-        RegUnion  ys -> RegUnion  (fs ys)
+        RegKleene y -> regKleene (f y)
+        RegConcat ys -> regConcat (fs ys)
+        RegUnion  ys -> regUnion  (fs ys)
         x -> x
     where
         fs = map (mapRegExp f)
@@ -120,12 +120,14 @@ regCU f g xs  = f xs
 
 -- | Rebuilds a regular expression using the simplification creation functions.
 --   Incorporates all the simplifications of the basic constructors, but no more.
-reduce :: Eq a => RegExp a -> RegExp a
-reduce (RegKleene x) = regKleene (reduce x)
-reduce (RegConcat x) = regConcat (map reduce x)
-reduce (RegUnion  x) = regUnion  (map reduce x)
-reduce (RegOmega   ) = regOmega
-reduce (RegLit    x) = regLit x
+reduceRegExp :: Eq a => RegExp a -> RegExp a
+reduceRegExp x = mapRegExp f x
+    where
+        f (RegKleene x) = regKleene x
+        f (RegConcat x) = regConcat x
+        f (RegUnion  x) = regUnion  x
+        f (RegOmega   ) = regOmega
+        f (RegLit    x) = regLit x
 
 
 ---------------------------------------------------------------------
