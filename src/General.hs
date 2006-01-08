@@ -51,3 +51,7 @@ splitEither (Left  x:xs) = let (a,b) = splitEither xs in (x:a, b)
 splitEither (Right x:xs) = let (a,b) = splitEither xs in (a, x:b)
 splitEither [] = ([], [])
 
+
+
+fromJustNote msg (Just a) = a
+fromJustNote msg Nothing = error $ "fromJust2: Nothing (" ++ msg ++ ")"
