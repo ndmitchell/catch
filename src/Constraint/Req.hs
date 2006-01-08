@@ -4,17 +4,21 @@ module Constraint.Req(
     ) where
 
 import Constraint.Pred
-import Constraint.RegExp
+import RegExp
 
 import Hite
 import General
+import General.Similar
 
 
 data Req = Req Expr (RegExp String) [CtorName]
-           deriving Eq
 
 instance Show Req where
-    show (Req expr regs opts) = show expr ++ "." ++ show regs ++ strSet opts
+    show (Req expr regs opts) = show expr ++ ":" ++ show regs ++ strSet opts
 
 
-reduceReq (Req a b c) = Req a (simp b) c
+reduceReq (Req a b c) = Req a (reduce b) c
+
+
+instance Eq Req where
+    (Req a1 b1 c1) == (Req a2 b2 c2) = (a1 == a2) && (b1 == b2) && (c1 == c2)
