@@ -8,15 +8,15 @@ import Constraint
 
 propagate :: Hite -> Req -> Reqs
 propagate hite (Req (Var arg name) path set) = 
-        Ands $ concatMap f $ allExpr $ callOne hite
+        predAnd $ concatMap f $ allExpr $ callOne hite
     where
         pos = getArgPos name arg hite
 
         f c@(Call (CallFunc n) _) | n == name = 
                 case callArg c pos of
-                    Nothing -> [PredFalse ] {- $ "Unsaturated use of partial function, " ++ name ++
+                    Nothing -> [predFalse ] {- $ "Unsaturated use of partial function, " ++ name ++
                                            " (wanted " ++ show pos ++ ")"] -}
-                    Just x -> [PredAtom $ Req x path set]
+                    Just x -> [predLit $ Req x path set]
 
         f _ = []
 

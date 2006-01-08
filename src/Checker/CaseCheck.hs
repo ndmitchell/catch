@@ -38,7 +38,7 @@ caseCheck bad_hite = putStrLn $ f 50 output res
 solve :: Hite -> Req -> ReqMonad (Reqs, Output)
 solve hite r@(Req on path opts) = 
     case on of
-        Var a b | b == "main" -> return (PredAtom r, [])
+        Var a b | b == "main" -> return (predLit r, [])
                 | otherwise   -> solves hite $ propagate hite r
         x -> solves hite $ backward hite r
                       
@@ -49,7 +49,7 @@ simplify x = do y <- finds $ simpler x
                 return $ simpler y
 
 
-simpler x = mapReq (PredAtom . simpReq) (reducePred x)
+simpler x = mapPredLit (predLit . simpReq) (reducePred x)
 
 
 simpReq = blurReq . reduceReq
@@ -65,18 +65,16 @@ solves hite x = do q <- simplify x
                    apply q
     where
         apply q = case simpler q of
-            PredAtom y -> do (res, out) <- solve hite y
-                             return (res, ("* " ++ show y) : out)
+            PredLit y -> do (res, out) <- solve hite y
+                            return (res, ("* " ++ show y) : out)
 
-            Ors [] ->  return (PredFalse, [])
-            Ands [] -> return (PredTrue, [])
-
+            x | null (allPredLit x) -> return (x, [])
             xs -> f xs
         
     
-        f xs = do let reqs = nub $ allReq xs
+        f xs = do let reqs = nub $ allPredLit xs
                   mids <- mapM (solve hite) reqs
-                  let res = simpler $ mapReq (g (zip reqs (map fst mids))) xs
+                  let res = simpler $ mapPredLit (g (zip reqs (map fst mids))) xs
                       
                       outF = "> " ++ show xs
                       outM = concatMap h (zip reqs (map snd mids))
@@ -94,12 +92,12 @@ indent x = "  " ++ x
 indents = map indent
 
 
-
+{-
 caseCheck2 :: Hite -> IO ()
 caseCheck2 bad_hite = do putStrLn $ disp $ full $ simpler $ generate hite
-{-                    res <- solveReqs solveProp hite putStrLn (incompleteCases hite)
-                    if res then putStrLn "Success!" else putStrLn "Failed"
-                    -}
+--                    res <- solveReqs solveProp hite putStrLn (incompleteCases hite)
+--                    if res then putStrLn "Success!" else putStrLn "Failed"
+                    
     where
         hite = annotate bad_hite
         
@@ -112,7 +110,7 @@ caseCheck2 bad_hite = do putStrLn $ disp $ full $ simpler $ generate hite
                 f n  []     = "\nMAIN: " ++ show allMains
 
             
-                allMains = filter isMain $ concatMap allReq x
+                allMains = filter isMain $ concatMap allPredLit x
                 
                 isMain (Req (Var a b) _ _) = b == "main"
                 isMain _ = False
@@ -126,7 +124,7 @@ caseCheck2 bad_hite = do putStrLn $ disp $ full $ simpler $ generate hite
         
         next :: Reqs -> Reqs
         next x = simpler $ mapReq (backward hite) $ mapReq (propagate hite) x
-        
+        -}
         
 {-
 
@@ -190,7 +188,7 @@ solveCase hite out c = do out $ "Initial: " ++ show c
 
 
 generate :: Hite -> Reqs
-generate hite = Ands [PredAtom $
+generate hite = predAnd [predLit $
         Req on regLambda opts |
         c@(Case on alts) <- allExpr hite,
         opts <- [fsts alts],

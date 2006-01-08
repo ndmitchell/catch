@@ -7,9 +7,9 @@ import Constraint
 
 backward :: Hite -> Req -> Reqs
 
-backward hite (Req (Var a b) path opts) = PredAtom $ Req (Var a b) path opts
+backward hite (Req (Var a b) path opts) = predLit $ Req (Var a b) path opts
 
-backward hite (Req (Sel a b) path opts) = PredAtom $ Req a (regConcat [regLit b, path]) opts
+backward hite (Req (Sel a b) path opts) = predLit $ Req a (regConcat [regLit b, path]) opts
 
 backward hite a = error $ "Backward: " ++ show a
 
