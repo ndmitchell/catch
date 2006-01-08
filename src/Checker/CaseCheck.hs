@@ -28,7 +28,7 @@ caseCheck bad_hite = putStrLn $ f 50 output res
         (res,output) = runReqMonad [] (solves hite (generate hite))
         hite = annotate bad_hite
         
-        f _ [] res = "\nRESULT: " ++ show (reducePred res)
+        f _ [] res = "\nRESULT: " ++ show (reduceReqs res)
         f 0 _ res = "\nNON TERMINATION"
         f n (x:xs) res = x ++ "\n" ++ f (n-1) xs res
 
@@ -57,6 +57,14 @@ simpReq = blurReq . reduceReq
 
 blurReq (Req a b c) = Req a (blur b) c
 
+
+
+reduceReqs x = simplifyPred [RuleAnd ruleAnd] x
+    where
+        ruleAnd (Req a1 b1 c1) (Req a2 b2 c2)
+            | a1 == a2 && c1 == c2 =
+            Just (Req a1 (regUnion [b1,b2]) c1)
+        ruleAnd _ _ = Nothing
 
 
 
