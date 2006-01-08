@@ -23,7 +23,7 @@ type Output = [String]
 
 
 caseCheck :: Hite -> IO ()
-caseCheck bad_hite = putStrLn $ f 50 output res 
+caseCheck bad_hite = putStrLn $ f 100 output res 
     where
         (res,output) = runReqMonad [] (solves hite (generate hite))
         hite = annotate bad_hite
@@ -80,17 +80,23 @@ solves hite x = do q <- simplify x
             xs -> f xs
         
     
-        f xs = do let reqs = nub $ allPredLit xs
-                  mids <- mapM (solve hite) reqs
-                  let res = simpler $ mapPredLit (g (zip reqs (map fst mids))) xs
+        f xs = do mids <- mapM (solve hite) reqs
+                  let rens = zip reqs (map fst mids)
+                      res = simpler $ mapPredLit (g rens) xs
                       
                       outF = "> " ++ show xs
                       outM = concatMap h (zip reqs (map snd mids))
                       outL = "< " ++ show res
                       
                   return (res, [outF] ++ outM ++ [outL])
-        
-        g ren r = fromJust $ lookup r ren
+            where
+                reqs = nub $ allPredLit xs
+            
+                g ren r = case lookup r ren of
+                              Just x -> x
+                              Nothing -> predLit r -- has already been replaced once
+                              -- sometimes mapPredLit traverses twice
+            
         
         h (from, out) = (indent $ "+ " ++ show from) : (indents $ indents $ out)
 
