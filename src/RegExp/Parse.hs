@@ -17,7 +17,7 @@ import RegExp.General
 -- SHOW SUPPORT
 
 instance Show a => Show (RegExp a) where
-    show x = showBy showNoChar x
+    show x = showBy showNoQuote x
 
 
 data Order =  OUnion | OConcat | OKleene
@@ -34,7 +34,7 @@ showBy showme x = f OUnion x
         f p (RegOmega          ) = textOmega
 
         f p (RegKleene x) = f OKleene x ++ "*"
-        f p (RegConcat x) = brack (OConcat < p) $ join OConcat ""  x
+        f p (RegConcat x) = brack (OConcat < p) $ join OConcat "."  x
         f p (RegUnion  x) = brack (OUnion  < p) $ join OUnion  "+" x
 
         brack False s = s

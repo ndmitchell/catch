@@ -11,9 +11,10 @@ import List
 
 -- | special hack so RegExp Char prints out well
 -- since Char's are the most common thing by far
-showNoChar :: Show a => a -> String
-showNoChar x = case show x of
+showNoQuote :: Show a => a -> String
+showNoQuote x = case show x of
                    ['\'',y,'\''] -> [y]
+                   ('\"':x@(_:_)) | last x == '\"' -> init x
                    y -> y
 
 
