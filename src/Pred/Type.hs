@@ -79,6 +79,11 @@ allPredLit x = concatMap f (allPred x)
 
 -- * Construction and simplification
 
+predBool :: Bool -> Pred a
+predBool True  = predTrue
+predBool False = predFalse
+
+
 predFalse :: Pred a
 predFalse = PredOr []
 
