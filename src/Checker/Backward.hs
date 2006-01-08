@@ -5,6 +5,7 @@ import Hite
 import Constraint
 import Maybe
 import List
+import General
 
 
 backward :: Hite -> Req -> Reqs
@@ -25,7 +26,7 @@ backward hite (Req (Call (CallFunc name) params) path opts) =
         rename = zip args params
         res = mapExpr f body
         
-        f (Var a _) = fromJust $ lookup a rename
+        f (Var a _) = fromJustNote "backward" $ lookup a rename
         f x = x
 
 
@@ -38,6 +39,19 @@ backward hite (Req (Case on alts) path opts) = predAnd $ map f alts
                 predLit $ Req expr path opts
             ]
 
+
+backward hite (Req (Make x ys) path opts) = predAnd $ pre : zipWith f cArgs ys
+    where
+        cArgs = ctorArgs $ getCtor x hite
+
+        f arg e = predLit $ Req e (quotient arg path) opts
+        
+        pre = if isEwp path then
+                  predBool (x `elem` opts)
+              else
+                  predTrue
+        
+        
 
 backward hite a = error $ "Backward: " ++ show a
 
