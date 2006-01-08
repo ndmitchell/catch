@@ -4,11 +4,13 @@ module Checker.CaseCheck(caseCheck) where
 import Hite
 import General
 import List
+import Maybe
 
 import Checker.Propagate
 import Checker.Backward
 
 import Constraint
+import Constraint.ReqMonad
 
 {-
 
@@ -16,8 +18,104 @@ import Checker.Propagate
 import Checker.Fixpoint
 -}
 
+type Output = [String]
+
+
+
 caseCheck :: Hite -> IO ()
-caseCheck bad_hite = do putStrLn $ disp $ full $ reduce $ generate hite
+caseCheck bad_hite = putStrLn $ f 50 output res 
+    where
+        (res,output) = runReqMonad [] (solves hite (generate hite))
+        hite = annotate bad_hite
+        
+        f _ [] res = "\nRESULT: " ++ show res
+        f 0 _ res = "\nNON TERMINATION"
+        f n (x:xs) res = x ++ "\n" ++ f (n-1) xs res
+
+
+
+
+solve :: Hite -> Req -> ReqMonad (Reqs, Output)
+solve hite r@(Req on path opts) = 
+    case on of
+        Var a b | b == "main" -> return (PredAtom r, [])
+                | otherwise   -> solves hite $ propagate hite r
+        x -> solves hite $ backward hite r
+                      
+
+
+simplify :: Reqs -> ReqMonad Reqs
+simplify x = do y <- finds $ reduce x
+                return $ reduce y
+
+
+reduce x = mapReq (PredAtom . simpReq) (reducePred x)
+
+
+simpReq = blurReq . reduceReq
+
+
+blurReq (Req a b c) = Req a (blurRegExp b) c
+
+
+blurRegExp x = f x
+    where
+        f (RStar x) = RStar (f x)
+        f (RUni x) = RUni (map f x)
+        f (RCon x) = RCon (g x)
+        f x = x
+        
+        g (a:b:c:d) | a == b && b == c =
+            a : b : RStar c :
+            (
+                if not (null d) && (head d == RStar c) then
+                    tail d
+                else
+                    d
+            )
+        g (x:xs) = x : g xs
+        g [] = []
+
+
+
+
+solves :: Hite -> Reqs -> ReqMonad (Reqs, Output)
+solves hite x = do q <- simplify x
+                   apply q
+    where
+        apply q = case reduce q of
+            PredAtom y -> do (res, out) <- solve hite y
+                             return (res, ("* " ++ show y) : out)
+
+            Ors [] ->  return (PredFalse, [])
+            Ands [] -> return (PredTrue, [])
+
+            xs -> f xs
+        
+    
+        f xs = do let reqs = nub $ allReq xs
+                  mids <- mapM (solve hite) reqs
+                  let res = reduce $ mapReq (g (zip reqs (map fst mids))) xs
+                      
+                      outF = "> " ++ show xs
+                      outM = concatMap h (zip reqs (map snd mids))
+                      outL = "< " ++ show res
+                      
+                  return (res, [outF] ++ outM ++ [outL])
+        
+        g ren r = fromJust $ lookup r ren
+        
+        h (from, out) = (indent $ "+ " ++ show from) : (indents $ indents $ out)
+
+
+
+indent x = "    " ++ x
+indents = map indent
+
+
+
+caseCheck2 :: Hite -> IO ()
+caseCheck2 bad_hite = do putStrLn $ disp $ full $ reduce $ generate hite
 {-                    res <- solveReqs solveProp hite putStrLn (incompleteCases hite)
                     if res then putStrLn "Success!" else putStrLn "Failed"
                     -}
