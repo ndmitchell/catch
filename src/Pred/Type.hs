@@ -9,6 +9,11 @@ data Pred a = PredOr  [Pred a]
             | PredLit a
 
 
+isPredLit (PredLit _) = True; isPredLit _ = False
+isPredAnd (PredAnd _) = True; isPredAnd _ = False
+isPredOr  (PredOr  _) = True; isPredOr  _ = False
+
+
 -- * Show instance
 instance Show a => Show (Pred a) where
     show x = case x of
