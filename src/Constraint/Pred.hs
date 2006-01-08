@@ -47,11 +47,11 @@ reducePred x = mapPred f x
         f (Ors  [x]) = x
         f (Ands [x]) = x
         
-        f (Ors  xs) = case concatMap g_or  xs of
+        f (Ors  xs) = case filter (not . isFalse) $ concatMap g_or  xs of
                         [x] -> x
                         xs -> Ors xs
                         
-        f (Ands xs) = case concatMap g_and xs of
+        f (Ands xs) = case filter (not . isTrue) $ concatMap g_and xs of
                         [x] -> x
                         xs -> Ands xs
         
@@ -74,11 +74,13 @@ reducePred x = mapPred f x
 isFalse (Ors  []) = True
 isFalse (Ands xs) = any isFalse xs
 isFalse (Ors  xs) = all isFalse xs
+isFalse PredFalse = True
 isFalse _ = False
 
 isTrue (Ands []) = True
 isTrue (Ands xs) = all isTrue xs
 isTrue (Ors  xs) = any isTrue xs
+isTrue PredTrue  = True
 isTrue _ = False
 
 {-
