@@ -14,7 +14,7 @@ import General.Similar
 data Req = Req Expr (RegExp String) [CtorName]
 
 instance Show Req where
-    show (Req expr regs opts) = show expr ++ ":" ++ show regs ++ strSet opts
+    show (Req expr regs opts) = show expr ++ ";" ++ show regs ++ strSet opts
 
 
 reduceReq (Req a b c) = Req a (reduceRegExp b) c
