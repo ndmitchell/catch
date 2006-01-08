@@ -2,6 +2,8 @@
 
 module Constraint.RegExp where
 
+import List
+
 data RegExp a = RLit a
               | ROmega
               | RStar (RegExp a)
@@ -33,9 +35,11 @@ instance Show a => Show (RegExp a) where
         where
             f :: Show a => Order -> RegExp a -> String
 
-            f p (RLit x) = show x
+            f p (RLit x) = case show x of
+                               ('\"':xs@(_:_)) | last xs == '\"' -> init xs
+                               xs -> xs
 
-            f p (RStar ROmega) = "^"
+            f p (RStar ROmega) = "1"
             f p (ROmega) = "0"
 
             -- show kleene star with prefix notation, as thats better for this purpose

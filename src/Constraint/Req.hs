@@ -10,7 +10,7 @@ import Hite
 import General
 
 
-data Req = Req FuncName Expr (RegExp String) [CtorName]
+data Req = Req Expr (RegExp String) [CtorName]
 
 instance Show Req where
-    show (Req func expr _ opts) = func ++ "@" ++ show expr ++ strSet opts
+    show (Req expr regs opts) = show expr ++ "." ++ show regs ++ strSet opts

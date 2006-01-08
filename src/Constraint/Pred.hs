@@ -11,15 +11,65 @@ data Pred a = Ors  [Pred a]
             deriving (Eq)
 
 
-{-
-mapPred :: (Pred -> Pred) -> Pred -> Pred
-mapPred f x = case x of
-        Ors  xs -> f (Ors  (fs xs))
-        Ands xs -> f (Ands (fs xs))
+
+mapPred :: (Pred a -> Pred a) -> Pred a -> Pred a
+mapPred f x = f $ case x of
+        Ors  xs -> Ors  (fs xs)
+        Ands xs -> Ands (fs xs)
         x -> x
     where
         fs = map (mapPred f)
 
+
+allPred :: Pred a -> [Pred a]
+allPred x = x : concatMap allPred (case x of
+        Ands y -> y
+        Ors  y -> y
+        _ -> []
+        )
+
+
+-- reduce :: Pred a -> Pred a
+reduce x = mapPred f x
+    where
+        f (Ors  [x]) = x
+        f (Ands [x]) = x
+        
+        f (Ors  xs) = case concatMap g_or  xs of
+                        [x] -> x
+                        xs -> Ors xs
+                        
+        f (Ands xs) = case concatMap g_and xs of
+                        [x] -> x
+                        xs -> Ands xs
+        
+        f x = x
+        
+        g_or (Ors x) = x
+        g_or x = [x]
+        
+        g_and (Ands x) = x
+        g_and x = [x]
+        
+        {-
+        f (Ors xs) = f $ Ors (filter isFalse xs)
+        f (Ands xs) = Ands (filter isTrue xs)
+        f x = x
+        -}
+
+
+
+isFalse (Ors  []) = True
+isFalse (Ands xs) = any isFalse xs
+isFalse (Ors  xs) = all isFalse xs
+isFalse _ = False
+
+isTrue (Ands []) = True
+isTrue (Ands xs) = all isTrue xs
+isTrue (Ors  xs) = any isTrue xs
+isTrue _ = False
+
+{-
 
 type Path = Regex Sel
 
@@ -31,7 +81,6 @@ instance Show Req where
             f [x] = x
             f xs  = "(" ++ concat (intersperse "," xs) ++ ")"
 -}
-
 
 instance Show a => Show (Pred a) where
     show x = case x of
@@ -50,6 +99,8 @@ instance Show a => Show (Pred a) where
                     f (Ors  _) = True
                     f (Ands _) = True
                     f _ = False
+
+
 
 {-
 
