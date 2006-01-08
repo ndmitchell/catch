@@ -23,39 +23,14 @@ type Output = [String]
 
 
 caseCheck :: Hite -> IO ()
-caseCheck bad_hite = putStrLn $ f 100 output res 
+caseCheck bad_hite = putStrLn $ f 1000 output res 
     where
-        (res,output) = runReqMonad [] (solves hite (generate hite))
+        (res,output) = solves hite [] (generate hite)
         hite = annotate bad_hite
         
         f _ [] res = "\nRESULT: " ++ show (reduceReqs res)
         f 0 _ res = "\nNON TERMINATION"
         f n (x:xs) res = x ++ "\n" ++ f (n-1) xs res
-
-
-
-
-solve :: Hite -> Req -> ReqMonad (Reqs, Output)
-solve hite r@(Req on path opts) = 
-    case on of
-        Var a b | b == "main" -> return (predLit r, [])
-                | otherwise   -> solves hite $ propagate hite r
-        x -> solves hite $ backward hite r
-                      
-
-
-simplify :: Reqs -> ReqMonad Reqs
-simplify x = do y <- finds $ simpler x
-                return $ simpler y
-
-
-simpler x = mapPredLit (predLit . simpReq) (reducePred x)
-
-
-simpReq = blurReq . reduceReq
-
-
-blurReq (Req a b c) = Req a (blur b) c
 
 
 
@@ -68,37 +43,66 @@ reduceReqs x = simplifyPred [RuleAnd ruleAnd] x
 
 
 
-solves :: Hite -> Reqs -> ReqMonad (Reqs, Output)
-solves hite x = do q <- simplify x
-                   apply q
-    where
-        apply q = case simpler q of
-            PredLit y -> do (res, out) <- solve hite y
-                            return (res, ("* " ++ show y) : out)
+simpler x = mapPredLit (predLit . simpReq) (reducePred x)
 
-            x | null (allPredLit x) -> return (x, [])
-            xs -> f xs
-        
-    
-        f xs = do mids <- mapM (solve hite) reqs
-                  let rens = zip reqs (map fst mids)
-                      res = simpler $ mapPredLit (g rens) xs
-                      
-                      outF = "> " ++ show xs
-                      outM = concatMap h (zip reqs (map snd mids))
-                      outL = "< " ++ show res
-                      
-                  return (res, [outF] ++ outM ++ [outL])
+
+simpReq = blurReq . reduceReq
+
+
+blurReq (Req a b c) = Req a (blur b) c
+
+
+
+type State = (
+                Reqs, -- the current value
+                Output -- the output to give
+             )
+
+addOut :: String -> State -> State
+addOut msg (r, o) = (r, msg:o)
+
+
+solve :: Hite -> [Req] -> Req -> State
+solve hite pending r | r `elem` pending = (predTrue, [])
+
+solve hite pending r@(Req _ path opts) | isEmpty path = (predTrue, [])
+
+solve hite pending r@(Req (Var a b) path opts) 
+    | b == "main" = (predLit r, [])
+    | otherwise   = solves hite (r:pending) $ propagate hite r
+
+solve hite pending r = solves hite (r:pending) $ backward hite r
+
+
+
+solves :: Hite -> [Req] -> Reqs -> State
+solves hite pending x = 
+        case simpler x of
+             PredLit y -> addOut ("* " ++ show y) $ solve hite pending y
+             x | null (allPredLit x) -> (x, [])
+             xs -> f xs
+    where
+        f xs = (res, [outF] ++ outM ++ [outL])
             where
                 reqs = nub $ allPredLit xs
+                mids = map (solve hite pending) reqs
+                rens = zip reqs (map fst mids)
+                res = simpler $ mapPredLit (g rens) xs
             
-                g ren r = case lookup r ren of
-                              Just x -> x
-                              Nothing -> predLit r -- has already been replaced once
+                outF = "> " ++ show xs
+                outM = concatMap h (zip reqs mids)
+                outL = "< " ++ show res
+
+
+        g ren r = case lookup r ren of
+                      Just x -> x
+                      Nothing -> predLit r -- has already been replaced once
                               -- sometimes mapPredLit traverses twice
-            
         
-        h (from, out) = (indent $ "+ " ++ show from) : (indents $ indents $ out)
+        h (from, (final, out)) =
+            (indent $ "+ " ++ show from) :
+            (indents $ indents $ out) ++
+            [indent $ indent $ show final]
 
 
 
