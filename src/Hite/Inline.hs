@@ -19,7 +19,8 @@ inline hite = mapExpr f hite
 inlineable :: Hite -> [(FuncName, FuncName)]
 inlineable hite = concatMap f (funcs hite)
     where
-        f (Func name args1 (Call (CallFunc x) args2) _) | and (zipWith g args1 args2) = [(name, x)]
+        f (Func name args1 (Call (CallFunc x) args2) _)
+            | (length args1 == length args2) && and (zipWith g args1 args2) = [(name, x)]
         f _ = []
         
         g s1 (Var s2 _) = s1 == s2
