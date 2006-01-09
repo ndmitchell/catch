@@ -5,19 +5,48 @@ import Core
 import Hite
 
 import List
+import Maybe
 
 
 coreHite :: Core -> Hite
-coreHite (Core xs) = Hite [] (map convFunc xs)
+coreHite (Core xs) = Hite [] (concatMap convFunc xs)
 
 getName (CoreVar x) = x
 
 
-convFunc :: CoreFunc -> Func
-convFunc (CoreFunc (CoreApp name args) body) =
-        Func (getName name) (map getName args) (convExpr (map f args) body) Star
+convFunc :: CoreFunc -> [Func]
+convFunc (CoreFunc (CoreApp orig_name orig_args) body) =
+        if null complexCases then
+            [Func name args (convExpr ren body) Star]
+        else
+            [Func name args newBody Star,
+             Func newName allArgs (convExpr ren2 body2) Star]
     where
-        f (CoreVar x) = (x,Var x "") 
+        name = getName orig_name
+        args = map getName orig_args
+        newName = name ++ "_CASE"
+        newBody =
+            Call (CallFunc newName)
+            (map (`Var` "") args ++ map (convExpr ren) complexCases)
+
+        ren =  [(x, Var x "") | x <- args]
+        ren2 = [(x, Var x "") | x <- allArgs]
+        
+        body2 = mapCore h body
+        
+        newArgs = ["case_" ++ show n | n <- [1..length complexCases]]
+        allArgs = args ++ newArgs
+        complexCases = nub $ concatMap g (allCore body)
+        
+        g (CoreCase (CoreVar _) _) = []
+        g (CoreCase x _) = [x]
+        g _ = []
+        
+        renComplex = zip complexCases newArgs 
+        
+        h x@(CoreCase (CoreVar _) _) = x
+        h (CoreCase x alts) = CoreCase (CoreVar $ fromJust $ lookup x renComplex) alts
+        h x = x
 
 
 convExpr :: [(String, Expr)] -> CoreExpr -> Expr
