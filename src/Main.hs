@@ -4,12 +4,19 @@ module Main where
 
 import System
 import CmdLine
+import TextUtil
 
 
+main :: IO ()
 main = do args <- getArgs
           mainArgs args
 
 
+mainCmd :: String -> IO ()
+mainCmd x = mainArgs (splitList " " x)
+
+
+mainArgs :: [String] -> IO ()
 mainArgs args = exec args
 
 {-
