@@ -53,6 +53,16 @@ backward hite (Req (Make x ys) path opts) = predAnd $ pre : zipWith f cArgs ys
               else
                   predTrue
 
+
+backward hite (Req orig@(Htap name args alt) path opts) = predAnd $
+    [
+        predLit $ Req alt path opts,
+        predLit $ Req (Make name (map f args)) path opts
+    ]
+    where
+        f Nothing = orig
+        f (Just x) = x
+
         
 -- backward hite (Req Bottom path opts) = predTrue
 
@@ -65,14 +75,83 @@ blurExpr :: Expr -> Expr
 blurExpr x = mapExpr f x
     where
         f (Path a b) = Path a (blur b)
-        f x@(Make name bs) = makeBound 3 x
+        f x@(Make name bs) = blurMake x
         f x = x
         
+        
+blurMake :: Expr -> Expr
+blurMake orig@(Make name args) =
+        if null old then
+            if null new then
+                orig
+            else
+                Htap name
+                     (replace n1 (map Just args) Nothing)
+                     (addMatches 1 n1 (dropMatches n1 orig))
+        else
+            args !! head old
+    where
+        n1 = head new
+        new = filter canBlur [0 .. length args - 1]
+        
+        old = filter isHtap [0 .. length args - 1]
+        
+        
+        -- is the existing position a Htap that satisfies me
+        isHtap :: Int -> Bool
+        isHtap p = case args !! p of
+                        Htap n as alt -> 
+                            n == name &&
+                            isNothing (as !! p) &&
+                            and (zipWith (==) (map fromJust (ignore p as)) (ignore p args))
+                        _ -> False
+        
+        
+        -- can you blur on parameter n
+        canBlur :: Int -> Bool
+        canBlur p = f 3 p (args !! p)
+        
+        
+        isMatch :: Int -> Expr -> Bool
+        isMatch p (Make n as) = 
+            n == name &&
+            length as == length args &&
+            and (zipWith (==) (ignore p as) (ignore p args))
+        isMatch p _ = False
+            
+        getMatch p (Make n as) = as !! p
+        
+        
+        f 0 p expr = True
+        f n p x = isMatch p x && f (n-1) p (getMatch p x)
+        f _ _ _ = False
+        
+        
+        dropMatches :: Int -> Expr -> Expr
+        dropMatches p x | isMatch p x = dropMatches p (getMatch p x)
+                        | otherwise   = x
+        
+        
+        addMatches :: Int -> Int -> Expr -> Expr
+        addMatches 0 p x = x
+        addMatches n p x = addMatches (n-1) p (addMatch p x)
+        
+        
+        addMatch :: Int -> Expr -> Expr
+        addMatch p x = Make name (replace p args x)
+        
+        
+        
+        ignore n xs = take n xs ++ drop (n+1) xs
+        replace n xs rep = take n xs ++ [rep] ++ drop (n+1) xs
+        
+        {-
         
         makeBound 0 (Make name bs) = Bottom
         makeBound n (Make name bs) = Make name (map (makeBound (n-1)) bs)
         makeBound _ x = x
 
+-}
 
 
 
