@@ -18,6 +18,8 @@ module RegExp.Type(
     regOmega, regLambda, regLit, regUnion, regConcat, regKleene,
     -- and recreate a regular expression with these simplifications
     reduceRegExp,
+    
+    mapRegExp,
 
     -- * Smaller
     smaller
