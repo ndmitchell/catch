@@ -10,7 +10,7 @@ import List
 propagate :: Hite -> Req -> Reqs
 --propagate a b = propagateSimple a b
 
-propagate hite (Req (Var arg name) path set) = 
+propagate hite r@(Req (Var arg name) path set) = 
         predAnd $ concatMap (f predFalse . body) $ funcs $ callOne hite
     where
         pos = getArgPos name arg hite
@@ -20,7 +20,7 @@ propagate hite (Req (Var arg name) path set) =
         f hist c@(Call (CallFunc n) args) | n == name =
                 concatMap (f hist) args ++
                 case callArg c pos of
-                    Nothing -> [predOr [hist, predFalse]] -- unsaturued use of partial app
+                    Nothing -> error $ "unsaturated: " ++ show (length args, c) -- [predOr [hist, predFalse]] -- unsaturued use of partial app
                     Just x -> [predOr [hist, predLit $ Req x path set]]
                     
         f hist (Case on alts) = concatMap g alts
