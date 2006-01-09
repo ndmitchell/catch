@@ -71,7 +71,7 @@ instance PlayExpr Expr where
     allExpr x = x : concatMap allExpr (case x of
             Call x xs -> x : xs
             Make _ xs -> xs
-            Case _ xs -> map snd xs
+            Case x xs -> x : map snd xs
             Sel  x _  -> [x]
             Path x _  -> [x]
             _ -> []
