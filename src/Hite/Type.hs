@@ -34,10 +34,12 @@ data Kind = Star
 data Expr = Call {callFunc :: Expr, callArgs :: [Expr]}
           | Var {varArg :: FuncArg, scope :: FuncName}
           | Sel {expr :: Expr, path :: CtorArg}
-          | Path {expr :: Expr, pathPath :: RegExp CtorArg}
           | CallFunc {callName :: FuncName}
           | Make {makeName :: CtorName, makeArgs :: [Expr]}
           | Case Expr [(CtorName, Expr)] -- case x of Cons a b, Nil -> Case "x" (Cons, ["a", "b"]), (Nil, [])
+          | Path {expr :: Expr, pathPath :: RegExp CtorArg}
+          | Htap CtorName [Maybe Expr] Expr -- backward path
+          -- constructor, list of arguments (nothing is recurse), expr is alt
           | Bottom
           deriving Eq
 

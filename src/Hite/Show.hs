@@ -41,6 +41,8 @@ instance Show Expr where
             f b i (Var name ""  ) = name
             f b i (Var name pare) = pare ++ "@" ++ name
             f b i (Bottom) = "_|_"
+            f b i (Htap name args alt) = brack b $ concat $ intersperse " " $
+                                         (name : map (h i alt) args)
             f b i (Sel expr arg) = f True i expr ++ "." ++ arg
             f b i (Path expr args) = f True i expr ++ "." ++ show args
             f b i (Make name args) = f b i (Call (CallFunc name) args)
@@ -53,6 +55,9 @@ instance Show Expr where
                                      (init $ unlines $ map (g (i+4)) opts)
 
             g i (a,b) = replicate i ' ' ++ a ++ " -> " ++ f False i b
+            
+            h i alt Nothing = "( *** | " ++ f True i alt ++ ")"
+            h i alt (Just x) = f True i x
 
 {-
 showData x = "data = " ++ concat (intersperse " | " x)
