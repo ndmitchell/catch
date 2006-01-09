@@ -3,7 +3,7 @@ module Preamble where
 
 import Prelude hiding (
     -- standard
-    map, head, (.), reverse
+    map, head, reverse, foldr, (||), null
     )
 
 
@@ -36,3 +36,13 @@ reverse xs = reverse_acc xs []
     where
         reverse_acc [] ys = ys
         reverse_acc (x:xs) ys = reverse_acc xs (x:ys)
+
+foldr f z []      = z
+foldr f z (x:xs)  = f x (foldr f z xs)
+
+null [] = True
+null _ = False
+
+
+True || _ = True
+False || a = a
