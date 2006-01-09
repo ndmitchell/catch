@@ -4,3 +4,9 @@
 Bool
 	True
 	False
+()
+	()
+(,)
+	(,) fst snd
+(,,)
+	(,,) fst3 snd3 thr3
