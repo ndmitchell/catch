@@ -2,6 +2,7 @@
 module Hite.Kind(kind) where
 
 import Hite.Type
+import Hite.Show
 import Maybe
 
 
