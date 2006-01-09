@@ -8,6 +8,8 @@ import List
 
 
 propagate :: Hite -> Req -> Reqs
+--propagate a b = propagateSimple a b
+
 propagate hite (Req (Var arg name) path set) = 
         predAnd $ concatMap (f predFalse . body) $ funcs $ callOne hite
     where
@@ -46,3 +48,20 @@ callOne hite = mapExpr f hite
         f (CallFunc x) = Call (CallFunc x) []
         f (Call (Call (CallFunc x) []) ys) = Call (CallFunc x) ys
         f x = x
+
+
+
+propagateSimple :: Hite -> Req -> Reqs
+propagateSimple hite (Req (Var arg name) path set) = 
+        predAnd $ concatMap f $ allExpr $ callOne hite
+    where
+        pos = getArgPos name arg hite
+
+        f c@(Call (CallFunc n) _) | n == name = 
+                case callArg c pos of
+                    Nothing -> [predFalse ] {- $ "Unsaturated use of partial function, " ++ name ++
+                                           " (wanted " ++ show pos ++ ")"] -}
+                    Just x -> [predLit $ Req x path set]
+
+        f _ = []
+
