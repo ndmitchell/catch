@@ -14,14 +14,14 @@ blur x = f x
         f (RegConcat x) = regConcat (g x)
         f x = x
         
+        g (a : RegKleene b : c) | a ~= b = g (RegKleene b : a : c)
+        
+        g (RegKleene a : b : c : d : e) | a ~= b && b ~= c && c ~= d =
+            g (RegKleene a : c : d : e)
+        
         g (a:b:c:d) | a ~= b && b ~= c =
-            a : b : RegKleene c :
-            (
-                if not (null d) && (head d ~= RegKleene c) then
-                    tail d
-                else
-                    d
-            )
+            g (RegKleene a : b : c : d)
+
         g (x:xs) = x : g xs
         g [] = []
 
