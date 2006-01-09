@@ -1,5 +1,5 @@
 
-module Core.Show(showCore) where
+module Core.Show(showCore, showCoreExpr) where
 
 import List
 import Core.Type
@@ -29,6 +29,8 @@ showExprLine y = case showExpr y of
 noBracket ('(':xs) = init xs
 noBracket x = x
 
+
+showCoreExpr = unlines . showExpr
 
 showExpr :: CoreExpr -> [String]
 showExpr (CoreCon x) = [x]
