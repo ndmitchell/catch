@@ -19,6 +19,7 @@ cmdLine = [
             f "forward" forward "Perform forward motion on some definitions",
             f "short" shortName "Make some names shorter",
             f "kind" kind "Add kind annotations",
+            f "dead" deadArgs "Remove dead arguments",
             f "specialise" specialise "Perform specialisation",
             f "check" (\x -> if check x then x else undefined) "Check some hite is valid",
             g "reachable" (defMain reachable) "Do reachable analysis",
