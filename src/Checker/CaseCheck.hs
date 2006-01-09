@@ -23,7 +23,7 @@ type Output = [String]
 
 
 caseCheck :: Hite -> IO ()
-caseCheck bad_hite = putStrLn $ f 1000 output res 
+caseCheck bad_hite = putStrLn $ f 10000 output res 
     where
         (res,output) = solves hite [] (generate hite)
         hite = annotate bad_hite
