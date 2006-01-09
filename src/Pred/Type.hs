@@ -95,7 +95,8 @@ predTrue = PredAnd []
 predOr :: [Pred a] -> Pred a
 predOr xs = case filter (not . isFalse) $ concatMap f xs of
                 [x] -> x
-                xs -> PredOr xs
+                xs | any isTrue xs -> predTrue
+                   | otherwise -> PredOr xs
     where
         f (PredOr x) = x
         f x = [x]
@@ -103,7 +104,8 @@ predOr xs = case filter (not . isFalse) $ concatMap f xs of
 predAnd :: [Pred a] -> Pred a
 predAnd xs = case filter (not . isTrue) $ concatMap f xs of
                  [x] -> x
-                 xs -> PredAnd xs
+                 xs | any isFalse xs -> predFalse
+                    | otherwise -> PredAnd xs
     where
         f (PredAnd x) = x
         f x = [x]
