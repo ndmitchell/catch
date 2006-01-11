@@ -1,11 +1,17 @@
 
 module Constraint(
-    module Constraint.Req, module Pred.Type, module Constraint.Constraint,
-    module RegExp, module Pred.Simplify
+        module Reqs.Type,
+        module RegExp.Type, module RegExp.Parse, module RegExp.Prop, module RegExp.Blur,
+        module Pred.Type, module Pred.Simplify
     ) where
 
-import Constraint.Req
+
+import Reqs.Type
+
+import RegExp.Type
+import RegExp.Parse
+import RegExp.Prop
+import RegExp.Blur
+
 import Pred.Type
 import Pred.Simplify
-import RegExp
-import Constraint.Constraint

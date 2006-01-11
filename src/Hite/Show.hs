@@ -3,7 +3,7 @@ module Hite.Show() where
 
 import Hite.Type
 import List
-import RegExp
+import RegExp.Parse
 
 
 instance Show Hite where

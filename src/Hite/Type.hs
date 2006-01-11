@@ -7,7 +7,7 @@ module Hite.Type where
 
 import General.General
 import Maybe
-import RegExp
+import RegExp.Type
 
 
 type FuncName = String

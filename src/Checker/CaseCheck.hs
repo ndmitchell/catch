@@ -11,7 +11,6 @@ import Checker.Propagate
 import Checker.Backward
 
 import Constraint
-import Constraint.ReqMonad
 
 {-
 
