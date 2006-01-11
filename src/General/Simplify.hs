@@ -1,5 +1,5 @@
 
-module General.Simplify where
+module General.Simplify(Rule(..), simplifyList, simplifySet) where
 
 import List
 import Maybe
