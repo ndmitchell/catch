@@ -5,7 +5,7 @@ module Hite.Reachable(reachable) where
 import Hite.Type
 import List
 import Maybe
-import General
+import General.General
 
 
 reachable :: FuncName -> Hite -> Hite

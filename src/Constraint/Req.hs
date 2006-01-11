@@ -9,7 +9,7 @@ import List
 import Char
 
 import Hite
-import General
+import General.General
 
 
 data Req = Req Expr (RegExp String) [CtorName]

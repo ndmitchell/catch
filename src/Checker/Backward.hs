@@ -5,7 +5,7 @@ import Hite
 import Constraint
 import Maybe
 import List
-import General
+import General.General
 
 
 backward :: Hite -> Req -> Reqs

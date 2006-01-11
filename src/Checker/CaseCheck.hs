@@ -2,7 +2,7 @@
 module Checker.CaseCheck(caseCheck) where
 
 import Hite
-import General
+import General.General
 import List
 import Maybe
 

@@ -5,7 +5,7 @@
 
 module Hite.Type where
 
-import General
+import General.General
 import Maybe
 import RegExp
 

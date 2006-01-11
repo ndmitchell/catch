@@ -4,7 +4,7 @@ module Main where
 
 import System
 import CmdLine
-import TextUtil
+import General.TextUtil
 
 
 main :: IO ()

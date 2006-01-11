@@ -3,7 +3,7 @@ module Hite.Firstify(firstify) where
 
 import Hite.Type
 import List
-import General
+import General.General
 
 
 firstify :: Hite -> Hite

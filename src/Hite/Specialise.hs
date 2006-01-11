@@ -11,7 +11,7 @@ import Hite.Type
 import Hite.Kind
 import Hite.Normalise
 import List
-import General
+import General.General
 import Maybe
 
 

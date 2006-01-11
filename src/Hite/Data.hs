@@ -2,7 +2,7 @@
 module Hite.Data where
 
 import Hite.Type
-import TextUtil
+import General.TextUtil
 import List
 import Char
 

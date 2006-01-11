@@ -3,7 +3,7 @@ module Hite.Check(check) where
 
 import Hite.Type
 import List
-import General
+import General.General
 
 -- in reality either return True, or crash
 check :: Hite -> Bool

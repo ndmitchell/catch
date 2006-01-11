@@ -5,7 +5,7 @@ module Hite.Read() where
 import Hite.Type
 import Hite.ReadExpr
 
-import TextUtil
+import General.TextUtil
 import Char
 import List
 

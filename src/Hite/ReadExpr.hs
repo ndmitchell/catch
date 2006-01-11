@@ -2,7 +2,7 @@
 module Hite.ReadExpr(readExpr) where
 
 import Hite.Type
-import TextUtil
+import General.TextUtil
 import Char
 import List
 

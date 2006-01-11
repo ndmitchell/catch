@@ -12,7 +12,7 @@ import Convert.CoreHite
 import List
 import Maybe
 import Char
-import TextUtil
+import General.TextUtil
 import Directory
 
 
