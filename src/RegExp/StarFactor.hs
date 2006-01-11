@@ -1,14 +1,16 @@
 
-module RegExp.StarFactor() where
+module RegExp.StarFactor(simplifyStar) where
 
 import RegExp.Type
 import RegExp.Parse
-import General.Similar
 import RegExp.General
 import RegExp.Factorise
 
 import List
 import Maybe
+
+
+simplifyStar x = starToRegExp $ error $ show $ regExpToStar x
 
 
 sample = regUnion [regConcat [regKleene (regLit 'x'), regLit 'x', regLit 'x'], regLit 'x']
@@ -27,16 +29,16 @@ data Factor = Ran Int Int
             | Con [Factor]
             deriving (Eq, Show)
 
-instance Eq a => Similar (StarFactor a) where
-    (StarKleene a s1) ~= (StarKleene b s2) = a ~= b && s1 == s2
-    (StarConcat a) ~= (StarConcat b) = length a == length b && and (zipWith (~=) a b)
-    (StarUnion  a) ~= (StarUnion  b) = length a == length b && setEqBy (~=) a b
-    (StarOmega   ) ~= (StarOmega   ) = True
-    (StarLit    a) ~= (StarLit    b) = a == b
-    _ ~= _ = False
+instance Eq a => Eq (StarFactor a) where
+    (StarKleene a s1) == (StarKleene b s2) = a == b && s1 == s2
+    (StarConcat a) == (StarConcat b) = a == b
+    (StarUnion  a) == (StarUnion  b) = length a == length b && setEqBy (==) a b
+    (StarOmega   ) == (StarOmega   ) = True
+    (StarLit    a) == (StarLit    b) = a == b
+    _ == _ = False
             
 
-starToRegExp :: Eq a => StarFactor a -> RegExp a
+starToRegExp :: (Show a, Eq a) => StarFactor a -> RegExp a
 starToRegExp x = case x of
         StarConcat xs -> regConcat (map starToRegExp xs)
         StarUnion  xs -> regUnion  (map starToRegExp xs)
@@ -52,12 +54,26 @@ starToRegExp x = case x of
         
         f x (Uni as) = regUnion  $ map (f x) as
         f x (Con as) = regConcat $ map (f x) as
-    
-    
 
 
 
 regExpToStar :: (Show a, Eq a) => RegExp a -> StarFactor a
+{-
+regExpToStar x = simplifyStar $ introduceStar x
+
+
+
+introduceStar (RegConcat xs) = StarKleene (StarConcat (map introduceStar xs)) (Ran 1 1)
+introduceStar (RegUnion  xs) = StarKleene (StarUnion  (map introduceStar xs)) (Ran 1 1)
+introduceStar (RegConcat xs) = StarKleene (StarConcat (map introduceStar xs)) (Ran 1 1)
+introduceStar (RegConcat xs) = StarKleene (StarConcat (map introduceStar xs)) (Ran 1 1)
+intro
+
+
+
+
+
+-}
 regExpToStar x = case x of
     RegConcat xs -> starConcat (map regExpToStar xs)
     RegUnion  xs -> starUnion  (map regExpToStar xs)
@@ -71,9 +87,9 @@ starConcat xs = case f (concatMap explode xs) of
                     [x] -> x
                     xs -> StarConcat xs
     where
-        f (StarKleene x1 s1 : StarKleene x2 s2 : xs) | x1 ~= x2 = f (StarKleene x1 (con [s1,s2]) : xs)
-        f (StarKleene x1 s1 : x2 : xs) | x1 ~= x2 = f (StarKleene x1 (con [s1, Ran 1 1]) : xs)
-        f (x2 : StarKleene x1 s1 : xs) | x1 ~= x2 = f (StarKleene x1 (con [s1, Ran 1 1]) : xs)
+        f (StarKleene x1 s1 : StarKleene x2 s2 : xs) | x1 == x2 = f (StarKleene x1 (con [s1,s2]) : xs)
+        f (StarKleene x1 s1 : x2 : xs) | x1 == x2 = f (StarKleene x1 (con [s1, Ran 1 1]) : xs)
+        f (x2 : StarKleene x1 s1 : xs) | x1 == x2 = f (StarKleene x1 (con [s1, Ran 1 1]) : xs)
         f (x: xs) = x : f xs
         f [] = []
         

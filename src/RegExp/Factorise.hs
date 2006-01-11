@@ -2,20 +2,19 @@
 module RegExp.Factorise(factorise) where
 
 import RegExp.Type
-import General.Similar
 import Maybe
 import RegExp.Parse
 
 
 
-factorise :: Eq a => RegExp a -> RegExp a
+factorise :: (Show a, Eq a) => RegExp a -> RegExp a
 factorise x = mapRegExp f x
     where
         f (RegUnion xs) = regUnion $ factorList $ factorList $ factorList xs
         f x = x
 
 
-factorList :: Eq a => [RegExp a] -> [RegExp a]
+factorList :: (Show a, Eq a) => [RegExp a] -> [RegExp a]
 factorList x = applyFunc f x
     where
         f a b = factorPair (g a) (g b)
@@ -25,7 +24,7 @@ factorList x = applyFunc f x
 
 
 
-factorPair :: Eq a => [RegExp a] -> [RegExp a] -> Maybe (RegExp a)
+factorPair :: (Show a, Eq a) => [RegExp a] -> [RegExp a] -> Maybe (RegExp a)
 factorPair xs ys = if mx == 0 then Nothing else Just combine
     where
         mx = maximum (map fst res)
@@ -47,14 +46,14 @@ factorPair xs ys = if mx == 0 then Nothing else Just combine
         f xs ys = regUnion [regConcat xs, regConcat ys]
 
 
-matchLen :: Eq a => [RegExp a] -> [RegExp a] -> Int
-matchLen (a:as) (b:bs) | a ~= b = 1 + matchLen as bs
+matchLen :: (Show a, Eq a) => [RegExp a] -> [RegExp a] -> Int
+matchLen (a:as) (b:bs) | a == b = 1 + matchLen as bs
 matchLen _ _ = 0
 
 
 -- stolen from pred :)
 -- pita because of Eq
-applyFunc :: Eq a => (RegExp a -> RegExp a -> Maybe (RegExp a)) -> [RegExp a] -> [RegExp a]
+applyFunc :: (Show a, Eq a) => (RegExp a -> RegExp a -> Maybe (RegExp a)) -> [RegExp a] -> [RegExp a]
 applyFunc f [] = []
 applyFunc f (x:xs) =
         if all isNothing res then

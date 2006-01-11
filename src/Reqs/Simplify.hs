@@ -6,6 +6,7 @@ import Hite
 import Reqs.Type
 import RegExp.Type
 import RegExp.Prop
+import RegExp.Simplify
 import Pred.Type
 import Pred.Simplify
 
@@ -16,11 +17,11 @@ import List
 
 
 simplifyReqs :: Hite -> Reqs -> Reqs
-simplifyReqs hite x = simplifyPred
+simplifyReqs hite x = mapPredLit ruleReg $ simplifyPred
         [RuleAssoc ruleOr1, Rule ruleOr2]
         [Rule ruleAnd1]
         [RuleOne ruleDel1]
-        x
+        x -- (mapPredLit ruleReg x)
     where
         ruleAnd1 (Req a1 b1 c1) (Req a2 b2 c2)
             | a1 == a2 && c1 == c2
@@ -48,6 +49,8 @@ simplifyReqs hite x = simplifyPred
             | (map ctorName $ ctors $ getDataFromCtor (head c1) hite) `setEq` c1
             = Just predTrue
         ruleDel1 _ = Nothing
+        
+        ruleReg (Req a b c) = PredLit $ Req a (simplifyRegExp b) c
         
 
 
