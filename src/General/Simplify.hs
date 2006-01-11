@@ -8,6 +8,9 @@ import Maybe
 data Rule a = Rule (a -> a -> Maybe a)
             | RuleAssoc (a -> a -> Maybe a)
             | RuleOne (a -> Maybe a)
+{-            | RuleDel (a -> Bool)
+too dangerous for the moment, removing might not mean [], it might be short circuiting
+-}
 
 
 
@@ -18,7 +21,7 @@ simplifyList rules xs = f vals
         (vals, r) = prepare rules xs
         
         f (x:y:zs) = case r x y of
-                        Just a  -> f (a:zs)
+                        Just a  -> f (a ++ zs)
                         Nothing -> x : f (y:zs)
         f x = x
     
@@ -39,37 +42,38 @@ simplifySet rules xs = f [] vals
                 res = map (r x) xs
 
         g ((Nothing,y):ys) = y : g ys
-        g ((Just a ,y):ys) = a : map snd ys
+        g ((Just a ,y):ys) = a ++ map snd ys
         g _ = error "applyFunc failed, logic error"
 
 
 
-prepare :: [Rule a] -> [a] -> ([a], a -> a -> Maybe a)
-prepare rules xs = (map allOne xs, allBoth)
+prepare :: [Rule a] -> [a] -> ([a], a -> a -> Maybe [a])
+prepare rules xs = (concatMap allOne xs, allBoth)
     where
-        (one, many) = partition isOne (concatMap remAssoc rules)
-        allOne = collapseOne one
+        rul = concatMap remAssoc rules
+        one = [x | RuleOne x <- rul]
+        many = [x | Rule x <- rul]
+        del = [] -- [x | RuleDel x <- rul]
+    
+        allOne = collapseDel del . collapseOne one
         allMany = collapseMany many
         
         allBoth a b = do x <- allMany a b
                          return $ allOne x
+                         
+        collapseDel xs a = if or (map (\f -> f a) xs) then [] else [a]
         
         collapseOne orig a = f orig a
             where
                 f [] a = a
-                f (RuleOne x:xs) a = case x a of
+                f (x:xs) a = case x a of
                                 Nothing -> f xs a
                                 Just a  -> f orig a 
 
         collapseMany [] a b = Nothing
-        collapseMany (Rule x:xs) a b = case x a b of
+        collapseMany (x:xs) a b = case x a b of
                                       Nothing -> collapseMany xs a b
                                       Just a -> Just a
         
         remAssoc (RuleAssoc f) = [Rule f, Rule (flip f)]
         remAssoc x = [x]
-        
-        isOne (RuleOne _) = True
-        isOne _ = False
-        
-

@@ -16,15 +16,25 @@ isRuleOr  (RuleOr  _) = True; isRuleOr  _ = False
 
 
 
-simplifyPred :: [Rule a] -> [Rule a] -> Pred a -> Pred a
-simplifyPred ror rand x = mapPred f x
+simplifyPred :: [Rule a] -> [Rule a] -> [Rule (Pred a)] -> Pred a -> Pred a
+simplifyPred ror rand rone x = mapPred f x
     where
         f (PredAnd xs) = predAnd $ g rand xs
         f (PredOr  xs) = predOr  $ g ror  xs
         f x = x
         
-        g rs xs = no ++ (map predLit$ simplifySet rs $ map fromPredLit yes)
+        g rs xs = no ++ simplifySet (rone ++ map h rs) yes
             where (yes, no) = partition isPredLit xs
+        
+        h (Rule f) = Rule (prom2 f)
+        h (RuleAssoc f) = RuleAssoc (prom2 f)
+        h (RuleOne f) = RuleOne (prom1 f)
+        
+        prom1 f (PredLit a) = do {x <- f a; return $ PredLit x}
+        prom1 f _ = Nothing
+        
+        prom2 f (PredLit a) (PredLit b) = do {x <- f a b; return $ PredLit x}
+        prom2 f _ _ = Nothing
         
         fromPredLit (PredLit x) = x
 

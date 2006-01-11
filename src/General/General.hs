@@ -55,3 +55,26 @@ splitEither [] = ([], [])
 
 fromJustNote msg (Just a) = a
 fromJustNote msg Nothing = error $ "fromJust2: Nothing (" ++ msg ++ ")"
+
+
+-- | Are two sets eq, given the appropriate equality test.
+setEqBy :: (a -> a -> Bool) -> [a] -> [a] -> Bool
+setEqBy f (x:xs) ys = case remElem f x ys of
+                          Just a -> setEqBy f xs a
+                          Nothing -> False
+setEqBy f [] [] = True
+setEqBy _ _ _ = False
+
+
+-- | Remove an element from a set, using the given equality test.
+--   Returns Nothing if the element was not in the set
+remElem :: (a -> a -> Bool) -> a -> [a] -> Maybe [a]
+remElem f a xs = g [] xs
+    where
+        g _ [] = Nothing
+        g done (x:xs) | f x a = Just (done++xs)
+                      | otherwise = g (x:done) xs
+
+
+setEq :: Eq a => [a] -> [a] -> Bool
+setEq = setEqBy (==)
