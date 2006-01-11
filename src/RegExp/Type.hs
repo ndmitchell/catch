@@ -28,7 +28,6 @@ module RegExp.Type(
 
 import List
 import RegExp.General
-import General.Similar
 
 ---------------------------------------------------------------------
 -- DATA STRUCTURE
@@ -108,7 +107,7 @@ regConcat xs = if any isOmega res then regOmega else regCU RegConcat regLambda r
 
 -- | a+a -> a, a+0 -> a
 regUnion :: Eq a => [RegExp a] -> RegExp a
-regUnion xs = regCU RegUnion regOmega (nubBy (~=) (concatMap f xs))
+regUnion xs = regCU RegUnion regOmega (nub (concatMap f xs))
     where
         f (RegUnion x) = x
         f (RegOmega  ) = []
@@ -136,14 +135,14 @@ reduceRegExp x = mapRegExp f x
 -- SIMILARITY
 
 -- | Operator shorthand for 'similar'
-instance Eq a => Similar (RegExp a) where
-    (RegKleene a) ~= (RegKleene b) = a ~= b
-    (RegConcat a) ~= (RegConcat b) = length a == length b && and (zipWith (~=) a b)
-    (RegUnion  a) ~= (RegUnion  b) = length a == length b && setEqBy (~=) a b
-    (RegOmega   ) ~= (RegOmega   ) = True
-    (RegLit    a) ~= (RegLit    b) = a == b
-    _ ~= _ = False
-
+instance Eq a => Eq (RegExp a) where
+    (RegKleene a) == (RegKleene b) = a == b
+    (RegConcat a) == (RegConcat b) = a == b
+    (RegUnion  a) == (RegUnion  b) = length a == length b && setEqBy (==) a b
+    (RegOmega   ) == (RegOmega   ) = True
+    (RegLit    a) == (RegLit    b) = a == b
+    _ == _ = False
+    
 
 
 ---------------------------------------------------------------------

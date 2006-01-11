@@ -23,10 +23,3 @@ import RegExp.Parse
 import RegExp.Prop
 import RegExp.Enum
 import RegExp.Blur
-
-
-import General.Similar
-
-
-instance Eq x => Eq (RegExp x) where
-    a == b = a ~= b

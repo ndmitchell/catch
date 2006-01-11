@@ -2,7 +2,6 @@
 module RegExp.Enum where
 
 import RegExp.Type
-import General.Similar
 
 
 regExpEnum :: Eq a => [a] -> Int -> [RegExp a]
@@ -24,7 +23,7 @@ bisimilarStream :: Eq a => [RegExp a] -> [RegExp a]
 bisimilarStream xs = f [] xs
     where
         f _ [] = []
-        f done (x:xs) | any (~= x) done = f done xs
+        f done (x:xs) | any (== x) done = f done xs
                       | otherwise = x : f (x:done) xs
                       
 

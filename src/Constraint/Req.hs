@@ -10,7 +10,6 @@ import Char
 
 import Hite
 import General
-import General.Similar
 
 
 data Req = Req Expr (RegExp String) [CtorName]

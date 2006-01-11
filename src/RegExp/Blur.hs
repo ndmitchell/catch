@@ -2,7 +2,6 @@
 module RegExp.Blur(blur) where
 
 import RegExp.Type
-import General.Similar
 
 -- the output of blur must be a finite set
 -- assuming a finite input
@@ -14,12 +13,12 @@ blur x = f x
         f (RegConcat x) = regConcat (g x)
         f x = x
         
-        g (a : RegKleene b : c) | a ~= b = g (RegKleene b : a : c)
+        g (a : RegKleene b : c) | a == b = g (RegKleene b : a : c)
         
-        g (RegKleene a : b : c : d : e) | a ~= b && b ~= c && c ~= d =
+        g (RegKleene a : b : c : d : e) | a == b && b == c && c == d =
             g (RegKleene a : c : d : e)
         
-        g (a:b:c:d) | a ~= b && b ~= c =
+        g (a:b:c:d) | a == b && b == c =
             g (RegKleene a : b : c : d)
 
         g (x:xs) = x : g xs
