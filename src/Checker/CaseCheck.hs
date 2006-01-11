@@ -27,7 +27,7 @@ caseCheck bad_hite = putStrLn $ f 10000 output res
         (res,output) = solves hite [] (generate hite)
         hite = annotate bad_hite
         
-        f _ [] res = "\nRESULT: " ++ show (simplifyReqs res)
+        f _ [] res = "\nRESULT: " ++ show (simplifyReqs hite res)
         f 0 _ res = "\nNON TERMINATION"
         f n (x:xs) res = x ++ "\n" ++ f (n-1) xs res
 

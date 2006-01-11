@@ -159,6 +159,10 @@ getDataFromCtor name hite = head $ filter f (datas hite)
     where f (Data _ ctors) = name `elem` (map ctorName ctors)
 
 
+getCtorFromArg :: CtorArg -> Hite -> Ctor
+getCtorFromArg name hite = head [c | d <- datas hite, c <- ctors d, name `elem` ctorArgs c]
+
+
 -- 1 based
 getArgPos :: FuncName -> FuncArg -> Hite -> Int
 getArgPos func arg hite = fromJust $ lookup arg $ zip (funcArgs (getFunc func hite)) [1..]

@@ -11,7 +11,8 @@ module RegExp.Type(
     textLambda, textOmega,
     
     -- ** Basic pattern match tests
-    isOmega, isLambda,
+    isOmega, isLambda, isRegLit,
+    fromConcat, fromRegLit,
     
     -- * Creation Functions
     -- A set of creation functions, that do basic minimization
@@ -69,7 +70,19 @@ mapRegExp f x = f $ case x of
         x -> x
     where
         fs = map (mapRegExp f)
-    
+
+
+fromConcat :: (Eq a, Show a) => RegExp a -> [RegExp a]
+fromConcat (RegKleene RegOmega) = []
+fromConcat (RegConcat xs) = xs
+fromConcat x = [x]
+
+fromRegLit :: (Eq a, Show a) => RegExp a -> a
+fromRegLit (RegLit x) = x
+
+isRegLit :: (Eq a, Show a) => RegExp a -> Bool
+isRegLit (RegLit _) = True
+isRegLit _ = False
 
 ---------------------------------------------------------------------
 -- COMPOSITION AND REDUCING FORMULA

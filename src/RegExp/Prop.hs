@@ -111,4 +111,16 @@ quotient y (RegKleene x) = regConcat [quotient y x, regKleene x]
 quotient y (RegOmega   ) = regOmega
 
 
+-- what are the next possible items
+nextChar :: (Eq a, Show a) => RegExp a -> [a]
+nextChar (RegLit x) = [x]
 
+nextChar (RegConcat [x]) = nextChar x
+nextChar (RegConcat (x:xs))
+            | isEwp x = nextChar x ++ nextChar (RegConcat xs)
+            | otherwise = nextChar x
+
+nextChar (RegUnion xs) = concatMap nextChar xs
+nextChar (RegKleene x) = nextChar x
+
+nextChar (RegOmega   ) = []
