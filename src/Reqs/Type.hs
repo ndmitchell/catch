@@ -1,6 +1,6 @@
 
 module Reqs.Type(
-    Req(..), reduceReq, Reqs
+    Req(..), Reqs
     ) where
 
 import Pred.Type
@@ -21,9 +21,6 @@ instance Show Req where
             inline x = case lines x of
                             [x] -> x
                             xs -> "{" ++ (concat $ intersperse "; " $ map (dropWhile isSpace) xs) ++ "}"
-
-
-reduceReq (Req a b c) = Req a (reduceRegExp b) c
 
 
 instance Eq Req where
