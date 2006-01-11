@@ -3,6 +3,7 @@ module Checker.CaseCheck(caseCheck) where
 
 import Hite
 import General.General
+import General.Simplify
 import List
 import Maybe
 
@@ -34,7 +35,7 @@ caseCheck bad_hite = putStrLn $ f 10000 output res
 
 
 
-reduceReqs x = simplifyPred [RuleAnd ruleAnd] x
+reduceReqs x = simplifyPred [] [Rule ruleAnd] x
     where
         ruleAnd (Req a1 b1 c1) (Req a2 b2 c2)
             | a1 == a2 && c1 == c2 =

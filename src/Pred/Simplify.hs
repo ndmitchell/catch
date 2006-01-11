@@ -4,6 +4,7 @@ module Pred.Simplify(simplifyPred, PredRule(..)) where
 import Pred.Type
 import List
 import Maybe
+import General.Simplify
 
 
 data PredRule a = RuleAnd (a -> a -> Maybe a)
@@ -13,6 +14,21 @@ data PredRule a = RuleAnd (a -> a -> Maybe a)
 isRuleAnd (RuleAnd _) = True; isRuleAnd _ = False
 isRuleOr  (RuleOr  _) = True; isRuleOr  _ = False
 
+
+
+simplifyPred :: [Rule a] -> [Rule a] -> Pred a -> Pred a
+simplifyPred ror rand x = mapPred f x
+    where
+        f (PredAnd xs) = predAnd $ g rand xs
+        f (PredOr  xs) = predOr  $ g ror  xs
+        f x = x
+        
+        g rs xs = no ++ (map predLit$ simplifySet rs $ map fromPredLit yes)
+            where (yes, no) = partition isPredLit xs
+        
+        fromPredLit (PredLit x) = x
+
+{-
 
 simplifyPred :: [PredRule a] -> Pred a -> Pred a
 simplifyPred rules x = mapPred f x
@@ -61,4 +77,4 @@ applyFunc f (x:xs) =
         g ((Just a ,y):ys) = a : map snd ys
         g _ = error "applyFunc failed, logic error"
 
-        
+  -}      
