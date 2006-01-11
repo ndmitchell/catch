@@ -4,7 +4,7 @@ module RegExp.Enum where
 import RegExp.Type
 
 
-regExpEnum :: Eq a => [a] -> Int -> [RegExp a]
+regExpEnum :: (Eq a, Show a) => [a] -> Int -> [RegExp a]
 regExpEnum terms 0 = [regOmega]
 regExpEnum terms 1 = regLambda : map regLit terms ++ map (regKleene . regLit) terms
 regExpEnum terms n = both ++ map regKleene both
@@ -19,7 +19,7 @@ regExpEnum terms n = both ++ map regKleene both
 
 
 
-bisimilarStream :: Eq a => [RegExp a] -> [RegExp a]
+bisimilarStream :: (Eq a, Show a) => [RegExp a] -> [RegExp a]
 bisimilarStream xs = f [] xs
     where
         f _ [] = []
@@ -29,7 +29,7 @@ bisimilarStream xs = f [] xs
 
 
 
-groupyBy :: (a -> a -> Bool) -> [a] -> [[a]]
+groupyBy :: (Eq a, Show a) => (a -> a -> Bool) -> [a] -> [[a]]
 groupyBy f [] = []
 groupyBy f (x:xs) = g (groupyBy f xs)
     where

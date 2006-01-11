@@ -5,7 +5,7 @@ import RegExp.Type
 
 -- the output of blur must be a finite set
 -- assuming a finite input
-blur :: Eq a => RegExp a -> RegExp a
+blur :: (Eq a, Show a) => RegExp a -> RegExp a
 blur x = f x
     where
         f (RegKleene x) = regKleene (f x)
@@ -23,4 +23,4 @@ blur x = f x
 
         g (x:xs) = x : g xs
         g [] = []
-
+        

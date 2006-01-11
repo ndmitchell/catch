@@ -33,7 +33,8 @@ import RegExp.General
 -- DATA STRUCTURE
 
 -- | The main regular expression data structure
-data RegExp a = RegKleene (RegExp a)
+data (Eq a, Show a) => RegExp a
+              = RegKleene (RegExp a)
               | RegConcat [RegExp a]
               | RegUnion  [RegExp a]
               | RegOmega
@@ -43,11 +44,11 @@ data RegExp a = RegKleene (RegExp a)
 type RegExpChar = RegExp Char
 
 -- | Is the regular expression exactly 'RegOmega', for equal to use 'isEmpty'
-isOmega :: RegExp a -> Bool
+isOmega :: (Eq a, Show a) => RegExp a -> Bool
 isOmega RegOmega = True; isOmega _ = False
 
 -- | Is the regular expression exactly lambda, for equal to use 'isEwp' and 'isNonEmpty'
-isLambda :: RegExp a -> Bool
+isLambda :: (Eq a, Show a) => RegExp a -> Bool
 isLambda (RegKleene RegOmega) = True; isLambda _ = False
 
 
@@ -60,7 +61,7 @@ textOmega :: String
 textOmega = "0"
 
 -- | And a play class
-mapRegExp :: Eq a => (RegExp a -> RegExp a) -> RegExp a -> RegExp a
+mapRegExp :: (Eq a, Show a) => (RegExp a -> RegExp a) -> RegExp a -> RegExp a
 mapRegExp f x = f $ case x of
         RegKleene y -> regKleene (f y)
         RegConcat ys -> regConcat (fs ys)
@@ -74,19 +75,19 @@ mapRegExp f x = f $ case x of
 -- COMPOSITION AND REDUCING FORMULA
 
 -- | Performs no simplification
-regLit :: a -> RegExp a
+regLit :: (Eq a, Show a) => a -> RegExp a
 regLit  x = RegLit x
 
 -- | Performs no simplification
-regOmega :: RegExp a
+regOmega :: (Eq a, Show a) => RegExp a
 regOmega  = RegOmega
 
 -- | Performs no simplification
-regLambda :: RegExp a
+regLambda :: (Eq a, Show a) => RegExp a
 regLambda = RegKleene RegOmega
 
 -- | a** -> a*, (a*+b)* -> (a+b)*
-regKleene :: Eq a => RegExp a -> RegExp a
+regKleene :: (Eq a, Show a) => RegExp a -> RegExp a
 regKleene (RegUnion  x) = RegKleene $ regUnion $ map f x
     where
         f (RegKleene x) = x
@@ -96,7 +97,7 @@ regKleene (RegKleene x) = RegKleene x
 regKleene x             = RegKleene x
 
 -- | a.0 -> 0, a.^ -> a
-regConcat :: Eq a => [RegExp a] -> RegExp a
+regConcat :: (Eq a, Show a) => [RegExp a] -> RegExp a
 regConcat xs = if any isOmega res then regOmega else regCU RegConcat regLambda res
     where
         res = concatMap f xs
@@ -106,7 +107,7 @@ regConcat xs = if any isOmega res then regOmega else regCU RegConcat regLambda r
         f x                    = [x]
 
 -- | a+a -> a, a+0 -> a
-regUnion :: Eq a => [RegExp a] -> RegExp a
+regUnion :: (Eq a, Show a) => [RegExp a] -> RegExp a
 regUnion xs = regCU RegUnion regOmega (nub (concatMap f xs))
     where
         f (RegUnion x) = x
@@ -121,7 +122,7 @@ regCU f g xs  = f xs
 
 -- | Rebuilds a regular expression using the simplification creation functions.
 --   Incorporates all the simplifications of the basic constructors, but no more.
-reduceRegExp :: Eq a => RegExp a -> RegExp a
+reduceRegExp :: (Eq a, Show a) => RegExp a -> RegExp a
 reduceRegExp x = mapRegExp f x
     where
         f (RegKleene x) = regKleene x
@@ -135,7 +136,7 @@ reduceRegExp x = mapRegExp f x
 -- SIMILARITY
 
 -- | Operator shorthand for 'similar'
-instance Eq a => Eq (RegExp a) where
+instance (Eq a, Show a) => Eq (RegExp a) where
     (RegKleene a) == (RegKleene b) = a == b
     (RegConcat a) == (RegConcat b) = a == b
     (RegUnion  a) == (RegUnion  b) = length a == length b && setEqBy (==) a b
@@ -152,7 +153,7 @@ instance Eq a => Eq (RegExp a) where
 --   If there are many items in a level, return all but one.
 --   If there is only one item, then promote it.
 --   Every returned regular expression must be smaller, but unlikely to be equivalent.
-smaller :: RegExp a -> [RegExp a]
+smaller :: (Eq a, Show a) => RegExp a -> [RegExp a]
 smaller (RegKleene x) = x : [RegKleene y | y <- smaller x]
 smaller (RegLit    x) = []
 smaller (RegOmega   ) = []
@@ -161,7 +162,7 @@ smaller (RegUnion  x) = smallerList RegUnion  x
 
 
 -- | Given a list and a ctor, figure out the smaller expressions
-smallerList :: ([RegExp a] -> RegExp a) -> [RegExp a] -> [RegExp a]
+smallerList :: (Eq a, Show a) => ([RegExp a] -> RegExp a) -> [RegExp a] -> [RegExp a]
 smallerList ctor [x] = x : [ctor [y] | y <- smaller x]
 smallerList ctor xs  = concatMap f (init $ divisions xs)
     where f (done, t:odo) = ctor (done ++ odo) : [ctor (done ++ [y] ++ odo) | y <- smaller t]

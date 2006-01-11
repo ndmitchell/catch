@@ -16,7 +16,7 @@ import RegExp.General
 ---------------------------------------------------------------------
 -- SHOW SUPPORT
 
-instance Show a => Show (RegExp a) where
+instance (Eq a, Show a) => Show (RegExp a) where
     show x = showBy showNoQuote x
 
 
@@ -26,7 +26,7 @@ data Order =  OUnion | OConcat | OKleene
 
 -- | Show a regular expression, using a particular output for each atom.
 --   The standard 'show' is defined as 'showBy' 'showNoChar'
-showBy :: (a -> String) -> RegExp a -> String
+showBy :: (Eq a, Show a) => (a -> String) -> RegExp a -> String
 showBy showme x = f OUnion x
     where
         f p (RegLit           x) = showme x
