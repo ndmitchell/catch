@@ -10,7 +10,7 @@ import List
 import Maybe
 
 
-simplifyStar x = starToRegExp $ error $ show $ regExpToStar x
+simplifyStar x = starToRegExp $ regExpToStar $ factorise $ factorise $ factorise x
 
 
 sample = regUnion [regConcat [regKleene (regLit 'x'), regLit 'x', regLit 'x'], regLit 'x']
@@ -146,17 +146,29 @@ sumRan (Ran a1 b1 : Ran a2 b2 : xs) = sumRan (Ran (f a1 a2) (f b1 b2) : xs)
 
 
 uni :: [Factor] -> Factor
-uni xs = case reduceListAssoc f xs of
+uni xs = case rans ran ++ other of
             [x] -> x
             xs -> Uni xs
     where
-        f (Ran a1 b1) (Ran a2 b2) | a1 <<= a2 && b1 >>= b2 = Just (Ran a1 b1)
-        f _ _ = Nothing
+        (ran, other) = partition isRan xs
+        isRan (Ran _ _) = True; isRan _ = False
+
+
+rans :: [Factor] -> [Factor]
+rans [] = []
+rans xs = map g $ f vals
+    where
+        mx = 1 + maximum (concatMap (\(Ran a b) -> [a,b]) xs)
+        fromInf x = if x == inf then mx else x
+        toRanInf x = if x == mx then inf else x
         
-        x >>= y = g x >= g y
-        x <<= y = g x <= g y
+        vals = map (\x -> Ran x x) $ sort $ concatMap (\(Ran a b) -> [fromInf a .. fromInf b]) xs
         
-        g x = if inf == x then maxBound else x
+        f (Ran a1 a2 : Ran b1 b2 : xs) | a2 + 1 >= b1 = f (Ran a1 b2 : xs)
+        f (x:xs) = x : f xs
+        f [] = []
+
+        g (Ran a b) = Ran (toRanInf a) (toRanInf b)
         
 
 

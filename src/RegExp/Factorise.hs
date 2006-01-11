@@ -17,22 +17,19 @@ factorise x = mapRegExp f x
 factorList :: (Show a, Eq a) => [RegExp a] -> [RegExp a]
 factorList x = applyFunc f x
     where
-        f a b = factorPair (g a) (g b)
-        
-        g (RegConcat x) = x
-        g x = [x]
+        f a b = factorPair (fromConcat a) (fromConcat b)
 
 
 
 factorPair :: (Show a, Eq a) => [RegExp a] -> [RegExp a] -> Maybe (RegExp a)
 factorPair xs ys = if mx == 0 then Nothing else Just combine
     where
-        mx = maximum (map fst res)
+        mx = maximum (0 : map fst res)
         (x2,y2) = snd $ head $ filter ((==) mx . fst) res
     
         res = [(matchLen (drop x xs) (drop y ys),(x,y)) |
             x <- [0 .. length xs - 1],
-            y <- [0 .. length xs - 1]]
+            y <- [0 .. length ys - 1]]
         
         combine = regConcat [
                         f (take x2 xs) (take y2 ys),
