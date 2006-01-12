@@ -76,6 +76,7 @@ backward hite a = error $ "Backward: " ++ show a
 blurExpr :: Expr -> Expr
 blurExpr x = mapExpr f x
     where
+        -- no more paths
         -- f (Path a b) = Path a (blur b)
         f x@(Make name bs) = blurMake x
         f x = x
