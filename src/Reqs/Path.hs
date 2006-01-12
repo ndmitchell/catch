@@ -3,7 +3,6 @@ module Reqs.Path(
     Path,
     pathIntegrate,
     pathQuotient,
-    pathSimplify,
     pathBlur,
     pathLambda,
     pathIsEmpty,
@@ -23,7 +22,6 @@ type Path a = RegExp a
 pathIntegrate a b = regConcat [regLit a, b]
 
 pathQuotient x = quotient x
-pathSimplify = error "todo"
 
 pathBlur x = blur x
 
