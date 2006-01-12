@@ -2,6 +2,7 @@
 module Pred.Type where
 
 import List
+import General.General
 
 -- * Data type definition
 data Pred a = PredOr  [Pred a]
@@ -26,6 +27,13 @@ instance Show a => Show (Pred a) where
             disp sym xs = "(" ++ mid ++ ")"
                 where mid = concat $ intersperse [' ',sym,' '] (map show xs)
 
+
+instance Eq a => Eq (Pred a) where
+    (PredLit a) == (PredLit b) = a == b
+    (PredOr  a) == (PredOr  b) = a `setEq` b
+    (PredAnd a) == (PredAnd b) = a `setEq` b
+    _ == _ = False
+    
 
 -- * Play instances
 
@@ -78,6 +86,16 @@ allPredLit x = concatMap f (allPred x)
 
 
 -- * Construction and simplification
+
+
+nubPred :: Eq a => Pred a -> Pred a
+nubPred x = mapPred f x
+    where
+        f (PredAnd x) = predAnd $ nub x
+        f (PredOr  x) = predOr  $ nub x
+        f x = x
+        
+
 
 predBool :: Bool -> Pred a
 predBool True  = predTrue
