@@ -1,6 +1,11 @@
 
 module Reqs.Simplify(simplifyReqs, simplifyReq) where
 
+simplifyReqs = const id
+simplifyReq = id
+
+{-
+
 import Hite
 
 import Reqs.Type
@@ -74,3 +79,4 @@ dropPrefix a b = f (fromConcat a) (fromConcat b)
 
 simplifyReq x = x
 
+-}

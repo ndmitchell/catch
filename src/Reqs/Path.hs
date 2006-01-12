@@ -1,6 +1,6 @@
 
 module Reqs.Path(
-    module Reqs.PathRegExp
+    module Reqs.PathStar
     ) where
 
-import Reqs.PathRegExp
+import Reqs.PathStar

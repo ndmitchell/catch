@@ -1,9 +1,5 @@
 
-module Star.Type(
-    integrate,
-    quotient,
-    isEwp
-    ) where
+module Star.Type where
 
 import List
 import General.General
@@ -29,6 +25,21 @@ data (Show a, Eq a) =>
            | StarInt [Star a]
            | StarCon [Star a]
            | StarLit a
+           deriving Show
+
+
+
+mapStar :: (Show a, Eq a) => (Star a -> Star a) -> Star a -> Star a
+mapStar f x = f $ case x of
+        Star x z b -> star (g x) z b
+        StarUni x -> starUni (gs x)
+        StarCon x -> starCon (gs x)
+        StarInt x -> starInt (gs x)
+        x -> x
+    where
+        g x = mapStar f x
+        gs = map g
+        
 
 
 
@@ -71,6 +82,7 @@ instance (Eq a, Show a) => Eq (Star a) where
     (StarInt x) == (StarInt y) = x `setEq` y
     (StarUni x) == (StarUni y) = x `setEq` y
     (StarLit x) == (StarLit y) = x == y
+    a == b = False
 
 
 -- useful internal methods
@@ -97,8 +109,20 @@ multisetBy f (x:xs) = (x:yes) : multisetBy f no
 
 
 -- and the biggest internal one
+-- rules, and what it does
+--    remove all that are less than 0
+--    sort, nub
+--    if inf is set, then (n,n+1) -> n at the top end
+--    if [1] False, then just return item
+-- note: doesn't currently lift if x is a star
 star :: (Show a, Eq a) => Star a -> [Int] -> Bool -> Star a
-star = error "todo"
+star x z b = if res2 == [1] && b then x else Star x res2 b
+    where
+        res2 = if b then reverse $ dropNext $ reverse res else res
+        res = map head $ group $ sort $ filter (>= 0) z
+        
+        dropNext (a:b:c) | a - b == 1 = dropNext (b:c)
+        dropNext x = x
 
 
 starLit :: (Show a, Eq a) => a -> Star a
@@ -145,12 +169,15 @@ starCon xs = if Omega `elem` res then Omega
              else if null res then Lambda
              else makeOne StarCon res2
     where
-        res2 = map unwrapStar (join res)
+        res2 = map unwrapStar $ join $ map wrapStar res
         res = filter (/= Lambda) $ concatMap explode xs
         
         join (Star x1 z1 b1 : Star x2 z2 b2 : xs)
-            | x1 == x2 = join (wrapStar (star x1 (z1 ++ z2) (b1 || b2)) : xs)
+            | x1 == x2 = join (wrapStar (star x1 (z1 `plus` z2) (b1 || b2)) : xs)
         join (x:xs) = x : join xs
+        join [] = []
+        
+        plus as bs = [a+b | a <- as, b <- bs]
         
         explode (StarCon xs) = xs
         explode x = [x]
