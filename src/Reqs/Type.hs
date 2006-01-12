@@ -4,7 +4,7 @@ module Reqs.Type(
     ) where
 
 import Pred.Type
-import RegExp.Type
+import Reqs.Path
 
 import Hite
 import General.General
@@ -12,7 +12,7 @@ import Char
 import List
 
 
-data Req = Req Expr (RegExp String) [CtorName]
+data Req = Req Expr (Path String) [CtorName]
 
 instance Show Req where
     show (Req expr regs opts) =
