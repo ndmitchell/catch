@@ -39,7 +39,7 @@ simpler x = mapPredLit (predLit . simpReq) (reducePred x)
 simpReq = blurReq . simplifyReq
 
 
-blurReq (Req a b c) = Req a (blur b) c
+blurReq (Req a b c) = Req a (pathBlur b) c
 
 
 
@@ -55,7 +55,7 @@ addOut msg (r, o) = (r, msg:o)
 solve :: Hite -> [Req] -> Req -> State
 solve hite pending r | r `elem` pending = (predTrue, [])
 
-solve hite pending r@(Req _ path opts) | isEmpty path = (predTrue, [])
+solve hite pending r@(Req _ path opts) | pathIsEmpty path = (predTrue, [])
 
 solve hite pending r@(Req (CallFunc "_") path opts) = (predFalse, [])
 
@@ -199,7 +199,7 @@ solveCase hite out c = do out $ "Initial: " ++ show c
 
 generate :: Hite -> Reqs
 generate hite = predAnd [predLit $
-        Req on regLambda opts |
+        Req on pathLambda opts |
         c@(Case on alts) <- allExpr hite,
         opts <- [fsts alts],
         allOpts <- [map ctorName $ ctors $ getDataFromCtor (head opts) hite],

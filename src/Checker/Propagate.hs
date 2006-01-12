@@ -26,7 +26,7 @@ propagate hite r@(Req (Var arg name) path set) =
         f hist (Case on alts) = concatMap g alts
             where
                 allCtor = map ctorName $ ctors $ getDataFromCtor (fst $ head alts) hite
-                g (typ, expr) = f (predOr [hist, predLit $ Req on regLambda (allCtor \\ [typ])]) expr
+                g (typ, expr) = f (predOr [hist, predLit $ Req on pathLambda (allCtor \\ [typ])]) expr
                 
         
         f hist x = concatMap (f hist) $ case x of

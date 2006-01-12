@@ -12,9 +12,11 @@ backward :: Hite -> Req -> Reqs
 
 backward hite (Req (Var a b) path opts) = predLit $ Req (Var a b) path opts
 
-backward hite (Req (Sel a b) path opts) = predLit $ Req a (regConcat [regLit b, path]) opts
+backward hite (Req (Sel a b) path opts) = predLit $ Req a (pathIntegrate b path) opts
 
+{-
 backward hite (Req (Path a p1) p2 opts) = predLit $ Req a (regConcat [p1, p2]) opts
+-}
 
 backward hite (Req (Call (CallFunc name) params) path opts) =
         if length params == length args then
@@ -25,7 +27,7 @@ backward hite (Req (Call (CallFunc name) params) path opts) =
         (Func _ args body _) = getFunc name hite
         
         rename = zip args params
-        res = blurExpr $ selToPath $ mapExpr f body
+        res = blurExpr $ {- selToPath $ -} mapExpr f body
         
         f (Var a _) = fromJustNote "backward" $ lookup a rename
         f x = x
@@ -37,7 +39,7 @@ backward hite (Req (Case on alts) path opts) = predAnd $ map f alts
         others = map ctorName $ ctors $ getDataFromCtor (fst $ head alts) hite
         
         f (ctor, expr) = predOr [
-                predLit $ Req on regLambda (others \\ [ctor]),
+                predLit $ Req on pathLambda (others \\ [ctor]),
                 predLit $ Req expr path opts
             ]
 
@@ -46,9 +48,9 @@ backward hite (Req (Make x ys) path opts) = predAnd $ pre : zipWith f cArgs ys
     where
         cArgs = ctorArgs $ getCtor x hite
 
-        f arg e = predLit $ Req e (quotient arg path) opts
+        f arg e = predLit $ Req e (pathQuotient arg path) opts
         
-        pre = if isEwp path then
+        pre = if pathIsEwp path then
                   predBool (x `elem` opts)
               else
                   predTrue
@@ -74,7 +76,7 @@ backward hite a = error $ "Backward: " ++ show a
 blurExpr :: Expr -> Expr
 blurExpr x = mapExpr f x
     where
-        f (Path a b) = Path a (blur b)
+        -- f (Path a b) = Path a (blur b)
         f x@(Make name bs) = blurMake x
         f x = x
         

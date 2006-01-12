@@ -37,6 +37,8 @@ data Expr = Call {callFunc :: Expr, callArgs :: [Expr]}
           | CallFunc {callName :: FuncName}
           | Make {makeName :: CtorName, makeArgs :: [Expr]}
           | Case Expr [(CtorName, Expr)] -- case x of Cons a b, Nil -> Case "x" (Cons, ["a", "b"]), (Nil, [])
+          
+          -- temporarily unused, lets kill regular expressions!
           | Path {expr :: Expr, pathPath :: RegExp CtorArg}
           | Htap CtorName [Maybe Expr] Expr -- backward path
           -- constructor, list of arguments (nothing is recurse), expr is alt
@@ -99,13 +101,14 @@ instance PlayFunc Hite where
     mapFunc f x = x{funcs = mapFunc f (funcs x)}
 
 
-
+{-
 selToPath :: Expr -> Expr
 selToPath x = mapExpr f x
     where
         f (Sel (Path a b) c) = Path a (regConcat [b,regLit c])
         f (Sel a b) = Path a (regLit b)
         f x = x
+-}
 
 {-
 
