@@ -1,5 +1,9 @@
 
-module Star.Type where
+module Star.Type(
+    integrate,
+    quotient,
+    isEwp
+    ) where
 
 import List
 import General.General
@@ -37,6 +41,10 @@ isEwp (StarInt x) = all isEwp x
 isEwp (StarUni x) = any isEwp x
 isEwp (StarLit x) = False
 
+
+
+integrate :: (Show a, Eq a) => a -> Star a -> Star a
+integrate x y = starCon [starLit x, y]
 
 
 quotient :: (Show a, Eq a) => a -> Star a -> Star a
