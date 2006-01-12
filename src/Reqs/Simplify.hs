@@ -19,7 +19,7 @@ import List
 simplifyReqs :: Hite -> Reqs -> Reqs
 simplifyReqs hite x = mapPredLit ruleReg $ simplifyPred
         [RuleAssoc ruleOr1, Rule ruleOr2]
-        [Rule ruleAnd1]
+        [Rule ruleAnd1, Rule ruleAnd2]
         [RuleOne ruleDel1]
         x -- (mapPredLit ruleReg x)
     where
@@ -28,6 +28,11 @@ simplifyReqs hite x = mapPredLit ruleReg $ simplifyPred
             = Just (Req a1 (regUnion [b1,b2]) c1)
         ruleAnd1 _ _ = Nothing
         
+        ruleAnd2 (Req a1 b1 c1) (Req a2 b2 c2)
+            | a1 == a2 && b1 == b2 && isFinite b1
+            = Just (Req a1 b1 (c1 `intersect` c2))
+        ruleAnd2 _ _ = Nothing
+
         
         ruleOr1 (Req a1 b1 c1) (Req a2 b2 c2)
             | a1 == a2 && isFinite b1 && isJust res &&
@@ -45,6 +50,10 @@ simplifyReqs hite x = mapPredLit ruleReg $ simplifyPred
             = Just (Req a1 b1 (nub $ c1 ++ c2))
         ruleOr2 _ _ = Nothing
         
+
+        ruleDel1 (PredLit (Req a1 b1 c1))
+            | null c1
+            = Just predFalse
         ruleDel1 (PredLit (Req a1 b1 c1))
             | (map ctorName $ ctors $ getDataFromCtor (head c1) hite) `setEq` c1
             = Just predTrue
