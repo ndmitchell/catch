@@ -38,7 +38,7 @@ instance Eq a => Eq (Pred a) where
 -- * Play instances
 
 -- ** Play on the predicate
-mapPred :: (Pred a -> Pred a) -> Pred a -> Pred a
+mapPred :: Eq a=> (Pred a -> Pred a) -> Pred a -> Pred a
 mapPred f x = f $ case x of
         PredOr  xs -> predOr  (fs xs)
         PredAnd xs -> predAnd (fs xs)
@@ -47,7 +47,7 @@ mapPred f x = f $ case x of
         fs = map (mapPred f)
 
 
-mapPredM :: Monad m => (Pred a -> m (Pred a)) -> Pred a -> m (Pred a)
+mapPredM :: (Eq a, Monad m) => (Pred a -> m (Pred a)) -> Pred a -> m (Pred a)
 mapPredM f x = do y <- case x of
                       PredOr xs  -> do ys <- fs xs
                                        return $ predOr  xs
@@ -67,13 +67,13 @@ allPred x = x : concatMap allPred (case x of
         )
 
 -- ** Play on the literal
-mapPredLit :: (a -> Pred a) -> Pred a -> Pred a
+mapPredLit :: Eq a => (a -> Pred a) -> Pred a -> Pred a
 mapPredLit f x = mapPred g x
     where
         g (PredLit a) = f a
         g a = a
 
-mapPredLitM :: Monad m => (a -> m (Pred a)) -> Pred a -> m (Pred a)
+mapPredLitM :: (Eq a, Monad m) => (a -> m (Pred a)) -> Pred a -> m (Pred a)
 mapPredLitM f x = mapPredM g x
     where
         g (PredLit a) = f a
@@ -110,8 +110,8 @@ predTrue :: Pred a
 predTrue = PredAnd []
 
 
-predOr :: [Pred a] -> Pred a
-predOr xs = case filter (not . isFalse) $ concatMap f xs of
+predOr :: Eq a => [Pred a] -> Pred a
+predOr xs = case nub $ filter (not . isFalse) $ concatMap f xs of
                 [x] -> x
                 xs | any isTrue xs -> predTrue
                    | otherwise -> PredOr xs
@@ -119,8 +119,8 @@ predOr xs = case filter (not . isFalse) $ concatMap f xs of
         f (PredOr x) = x
         f x = [x]
 
-predAnd :: [Pred a] -> Pred a
-predAnd xs = case filter (not . isTrue) $ concatMap f xs of
+predAnd :: Eq a => [Pred a] -> Pred a
+predAnd xs = case nub $ filter (not . isTrue) $ concatMap f xs of
                  [x] -> x
                  xs | any isFalse xs -> predFalse
                     | otherwise -> PredAnd xs
@@ -134,7 +134,7 @@ predLit x = PredLit x
 
 
 
-reducePred :: Pred a -> Pred a
+reducePred :: Eq a => Pred a -> Pred a
 reducePred x = mapPred f x
     where
         f (PredAnd x) = predAnd x

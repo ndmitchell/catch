@@ -16,7 +16,7 @@ simplifyPred ror rand rone x = {- simp $ dnf $ -} simp $ dnf $ simp x
 
 
 
-simplifyPred2 :: [Rule a] -> [Rule a] -> [Rule (Pred a)] -> Pred a -> Pred a
+simplifyPred2 :: Eq a => [Rule a] -> [Rule a] -> [Rule (Pred a)] -> Pred a -> Pred a
 simplifyPred2 ror rand rone x = mapPred f x
     where
         f (PredAnd xs) = predAnd $ g rand xs

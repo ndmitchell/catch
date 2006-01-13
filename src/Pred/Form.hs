@@ -4,7 +4,7 @@ module Pred.Form(cnf, dnf) where
 import Pred.Type
 
 
-dnf :: Pred a -> Pred a
+dnf :: Eq a => Pred a -> Pred a
 dnf = swap . cnf . swap
     where
         swap (PredOr  xs) = PredAnd (map swap xs)
@@ -12,7 +12,7 @@ dnf = swap . cnf . swap
         swap x = x
 
 
-cnf :: Pred a -> Pred a
+cnf :: Eq a => Pred a -> Pred a
 cnf x = mapPred f x
     where
         f (PredOr xs) = predAnd $ map predOr $ permute $ map liftAnd xs
