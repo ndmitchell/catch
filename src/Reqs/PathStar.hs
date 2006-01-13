@@ -6,7 +6,8 @@ module Reqs.PathStar(
     pathBlur,
     pathLambda,
     pathIsEmpty,
-    pathIsEwp
+    pathIsEwp,
+    pathIsSingle
     ) where
 
 import Star.Type
@@ -28,3 +29,5 @@ pathLambda = Lambda
 pathIsEmpty x = x == Omega
 
 pathIsEwp x = isEwp x
+
+pathIsSingle x = isSingle x

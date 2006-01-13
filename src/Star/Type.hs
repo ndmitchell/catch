@@ -41,8 +41,19 @@ mapStar f x = f $ case x of
         gs = map g
         
 
+-- is #L(r) = 1
+-- conservative
+isSingle :: (Show a, Eq a) => Star a -> Bool
+isSingle (StarLit _) = True
+isSingle Lambda      = True
+isSingle Omega       = False
+isSingle (StarInt x) = any isSingle x
+isSingle (StarUni x) = all isSingle x
+isSingle (StarCon x) = False
+isSingle (Star z b x) = False
 
 
+-- is Lambda `elem` L(r)
 isEwp :: (Show a, Eq a) => Star a -> Bool
 isEwp (Star x z b) = (0 `elem` z) || isEwp x
 isEwp Lambda = True

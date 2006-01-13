@@ -1,17 +1,10 @@
 
 module Reqs.Simplify(simplifyReqs, simplifyReq) where
 
-simplifyReqs = const id
-simplifyReq = id
-
-{-
-
 import Hite
 
 import Reqs.Type
-import RegExp.Type
-import RegExp.Prop
-import RegExp.Simplify
+import Reqs.Path
 import Pred.Type
 import Pred.Simplify
 
@@ -22,12 +15,13 @@ import List
 
 
 simplifyReqs :: Hite -> Reqs -> Reqs
-simplifyReqs hite x = mapPredLit ruleReg $ simplifyPred
-        [RuleAssoc ruleOr1, Rule ruleOr2]
-        [Rule ruleAnd1, Rule ruleAnd2]
-        [RuleOne ruleDel1]
-        x -- (mapPredLit ruleReg x)
+simplifyReqs hite x = simplifyPred
+        [Rule ruleSingleOr ]
+        [Rule ruleSingleAnd]
+        [RuleOne ruleDel]
+        x
     where
+        {-
         ruleAnd1 (Req a1 b1 c1) (Req a2 b2 c2)
             | a1 == a2 && c1 == c2
             = Just (Req a1 (regUnion [b1,b2]) c1)
@@ -54,29 +48,39 @@ simplifyReqs hite x = mapPredLit ruleReg $ simplifyPred
             | a1 == a2 && b1 == b2 && isFinite b1
             = Just (Req a1 b1 (nub $ c1 ++ c2))
         ruleOr2 _ _ = Nothing
+        -}
+        
+        
+        ruleSingleOr (Req a1 b1 c1) (Req a2 b2 c2)
+            | a1 == a2 && b1 == b2 && pathIsSingle b1
+            = Just (Req a1 b1 (c1 `union` c2))
+        ruleSingleOr _ _ = Nothing
+        
+        
+        ruleSingleAnd (Req a1 b1 c1) (Req a2 b2 c2)
+            | a1 == a2 && b1 == b2 && pathIsSingle b1
+            = Just (Req a1 b1 (c1 `intersect` c2))
+        ruleSingleAnd _ _ = Nothing
         
 
-        ruleDel1 (PredLit (Req a1 b1 c1))
+        ruleDel (PredLit (Req a1 b1 c1))
             | null c1
             = Just predFalse
-        ruleDel1 (PredLit (Req a1 b1 c1))
+        ruleDel (PredLit (Req a1 b1 c1))
             | (map ctorName $ ctors $ getDataFromCtor (head c1) hite) `setEq` c1
             = Just predTrue
-        ruleDel1 _ = Nothing
-        
-        ruleReg (Req a b c) = PredLit $ Req a (simplifyRegExp b) c
+        ruleDel _ = Nothing
         
 
-
+{-
 dropPrefix :: (Eq a, Show a) => RegExp a -> RegExp a -> Maybe (RegExp a)
 dropPrefix a b = f (fromConcat a) (fromConcat b)
     where
         f (a:as) (b:bs) | a == b = f as bs
         f [] xs = Just $ regConcat xs
         f _ _ = Nothing
-
+-}
 
 
 simplifyReq x = x
 
--}
