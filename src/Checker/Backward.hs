@@ -66,15 +66,6 @@ backward hite (Req orig@(Htap name args alt) path opts) = predAnd $
         f (Just x) = x
 
 
-backward hite (Req orig@(Htap name args alt) path opts) = predAnd $
-    [
-        predLit $ Req alt path opts,
-        predLit $ Req (Make name (map f args)) path opts
-    ]
-    where
-        f Nothing = orig
-        f (Just x) = x
-
 backward hite (Req orig@(Repeat expr alt) path opts) = predAnd $
     [
         predLit $ Req alt path opts,
