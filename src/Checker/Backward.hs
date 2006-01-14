@@ -71,6 +71,7 @@ backward hite (Req orig@(Htap name args alt) path opts) = predAnd $
 
 backward hite a = error $ "Backward: " ++ show a
 
+{-
 
 
 blurExpr :: Expr -> Expr
@@ -147,7 +148,8 @@ blurMake orig@(Make name args) =
         
         ignore n xs = take n xs ++ drop (n+1) xs
         replace n xs rep = take n xs ++ [rep] ++ drop (n+1) xs
-        
+       -}
+       
         {-
         
         makeBound 0 (Make name bs) = Bottom
