@@ -41,6 +41,8 @@ instance Show Expr where
             f b i (Var name ""  ) = name
             f b i (Var name pare) = pare ++ "@" ++ name
             f b i (Bottom) = "_|_"
+            f b i (RepeatNow) = "***"
+            f b i (Repeat expr alt) = brack b $ f b i expr ++ " | " ++ f b i alt
             f b i (Htap name args alt) = brack b $ concat $ intersperse " " $
                                          (name : map (h i alt) args)
             f b i (Sel expr arg) = f True i expr ++ "." ++ arg

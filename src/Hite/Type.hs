@@ -41,7 +41,10 @@ data Expr = Call {callFunc :: Expr, callArgs :: [Expr]}
           -- temporarily unused, lets kill regular expressions!
           | Path {expr :: Expr, pathPath :: RegExp CtorArg}
           | Htap CtorName [Maybe Expr] Expr -- backward path
+          
           -- constructor, list of arguments (nothing is recurse), expr is alt
+          | Repeat {expr :: Expr, alt :: Expr}
+          | RepeatNow
           | Bottom
           deriving Eq
 
