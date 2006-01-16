@@ -192,3 +192,9 @@ starCon xs = if Omega `elem` res then Omega
         
         explode (StarCon xs) = xs
         explode x = [x]
+
+
+starRev x = mapStar f x
+    where
+        f (StarCon xs) = StarCon $ reverse xs
+        f x = x

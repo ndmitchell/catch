@@ -9,7 +9,8 @@ module Reqs.PathStar(
     pathIsEwp,
     pathIsSingle,
     pathUnion,
-    pathIntersect
+    pathIntersect,
+    pathReverse
     ) where
 
 import Star.Type
@@ -37,3 +38,5 @@ pathIsSingle x = isSingle x
 pathUnion a b = starUni [a, b]
 
 pathIntersect a b = starInt [a, b]
+
+pathReverse a = starRev a
