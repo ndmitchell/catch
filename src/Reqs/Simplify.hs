@@ -13,10 +13,12 @@ import General.General
 import Maybe
 import List
 
+import Star.Type
+
 
 simplifyReqs :: Hite -> Reqs -> Reqs
 simplifyReqs hite x = simplifyPred
-        [Rule ruleSingleOr , Rule ruleSameCondOr ]
+        [Rule ruleSingleOr , Rule ruleSameCondOr , RuleAssoc ruleImplies]
         [Rule ruleSingleAnd, Rule ruleSameCondAnd]
         [RuleOne ruleDel]
         x
@@ -81,6 +83,39 @@ simplifyReqs hite x = simplifyPred
             = Just predTrue
         ruleDel _ = Nothing
         
+
+        ruleImplies (Req a1 b1 c1) (Req a2 b2 c2)
+            | a1 == a2 && (b1 `elem` diffs)
+            = Just $ Req a2 b2 c2
+            where
+                diffs = f [] (map (`rdiff` b2) iargs)
+                ictors = (map ctorName $ ctors $ getDataFromCtor (head c1) hite) \\ c1
+                iargs = concatMap (\x -> ctorArgs $ getCtor x hite) ictors
+
+                rdiff x reg = pathReverse (pathQuotient x (pathReverse reg))
+
+                f done [] = done
+                f done (t:odo) | t `elem` done = f done odo
+                               | otherwise = f (t:done) (t2 ++ odo)
+                    where t2 = map (`rdiff` t) iargs
+
+{-
+        ruleImplies r1@(Req a1 b1 c1) r2@(Req a2 b2 c2)
+            | b1 == Lambda && c1 == ["[]"]
+            = error $ show ("here", r1, r2, iargs, diffs)
+            where
+                diffs = f [] (map (`rdiff` b2) iargs)
+                ictors = (map ctorName $ ctors $ getDataFromCtor (head c1) hite) \\ c1
+                iargs = concatMap (\x -> ctorArgs $ getCtor x hite) ictors
+
+                rdiff x reg = pathReverse (pathQuotient x (pathReverse reg))
+
+                f done [] = done
+                f done (t:odo) | t `elem` done = f done odo
+                               | otherwise = f (t:done) (t2 ++ odo)
+                    where t2 = map (`rdiff` t) iargs
+-}
+        ruleImplies _ _ = Nothing
 
 {-
 dropPrefix :: (Eq a, Show a) => RegExp a -> RegExp a -> Maybe (RegExp a)
