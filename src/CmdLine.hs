@@ -49,10 +49,9 @@ exec args = do execEither Nothing args
 execEither :: Maybe String -> [String] -> IO CmdDat
 execEither inp args = 
     do
-        allFiles <- collectFiles files
         inp2 <- case inp of
                    Just a -> return $ DatString a
-                   Nothing -> do x <- collectFiles files
+                   Nothing -> do x <- {- collectFiles -} return files
                                  return $ DatInputs x
         
         if null normals || (null files && isNothing inp) || showHelp

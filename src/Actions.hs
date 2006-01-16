@@ -28,6 +28,7 @@ cmdLine = [
             CmdLine "data" OptHite OptHite mergeData "Merge in some data definitions",
             CmdLine "preamble" OptCore OptHite (const preamble) "Add preamble definitions",
             CmdLine "prepare" OptCore OptHite (const prepare) "Prepare a file for checking",
+            CmdLine "example" OptInputs OptHite (const example) "Read in an example",
             CmdLine "case" OptHite OptAction (const runCaseCheck) "Case check a file"
         ]
     where
@@ -86,3 +87,8 @@ runCaseCheck (DatHite h) =
     do
         caseCheck h
         return (DatAction "")
+
+
+example (DatInputs [x]) = 
+    do src <- readFile $ "Example/" ++ x ++ ".hs.core"
+       prepare (DatCore (readCore src))
