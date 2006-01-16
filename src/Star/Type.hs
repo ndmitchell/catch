@@ -127,7 +127,9 @@ multisetBy f (x:xs) = (x:yes) : multisetBy f no
 --    if [1] False, then just return item
 -- note: doesn't currently lift if x is a star
 star :: (Show a, Eq a) => Star a -> [Int] -> Bool -> Star a
-star x z b = if res2 == [1] && (not b) then x else Star x res2 b
+star x z b = if res2 == [1] && (not b) then x
+             else if null res2 then (if b then Lambda else Omega)
+             else Star x res2 b
     where
         res2 = if b then reverse $ dropNext $ reverse res else res
         res = map head $ group $ sort $ filter (>= 0) z
