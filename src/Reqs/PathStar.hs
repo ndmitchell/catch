@@ -22,7 +22,7 @@ type Path a = Star a
 
 pathIntegrate a b = starCon [starLit a, b]
 
-pathQuotient x = quotient x
+pathQuotient a b = quotient a b
 
 pathBlur x = blur x
 
