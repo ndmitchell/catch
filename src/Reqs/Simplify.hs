@@ -17,7 +17,7 @@ import List
 simplifyReqs :: Hite -> Reqs -> Reqs
 simplifyReqs hite x = simplifyPred
         [Rule ruleSingleOr ]
-        [Rule ruleSingleAnd]
+        [Rule ruleSingleAnd] -- , Rule ruleSameCondAnd]
         [RuleOne ruleDel]
         x
     where
@@ -49,6 +49,12 @@ simplifyReqs hite x = simplifyPred
             = Just (Req a1 b1 (nub $ c1 ++ c2))
         ruleOr2 _ _ = Nothing
         -}
+        
+        
+        ruleSameCondAnd (Req a1 b1 c1) (Req a2 b2 c2)
+            | a1 == a2 && c1 `setEq` c2
+            = Just (Req a1 (b1 `pathUnion` b2) c1)
+        ruleSameCondAnd _ _ = Nothing
         
         
         ruleSingleOr (Req a1 b1 c1) (Req a2 b2 c2)
