@@ -1,5 +1,5 @@
 
-module General.Simplify(Rule(..), simplifyList, simplifySet) where
+module General.Simplify(Rule(..), simplifyList, simplifySet, factor) where
 
 import List
 import Maybe
@@ -77,3 +77,18 @@ prepare rules xs = (concatMap allOne xs, allBoth)
         
         remAssoc (RuleAssoc f) = [Rule f, Rule (flip f)]
         remAssoc x = [x]
+
+
+
+factor :: Eq a => [a] -> [a] -> Maybe ([a], ([a], [a]), [a])
+factor as bs = if null pre && null post then Nothing
+               else Just (pre, (reverse a3, reverse b3), reverse post)
+    where
+        (pre, (a2, b2)) = facSide as bs
+        (post, (a3, b3)) = facSide (reverse as) (reverse bs)
+
+
+        -- :: [a] -> [a] -> ([a], ([a], [a]))
+        facSide (a:as) (b:bs) | a == b = (a:pre, (a2, b2))
+            where (pre, (a2, b2)) = facSide as bs
+        facSide as bs = ([], (as, bs))

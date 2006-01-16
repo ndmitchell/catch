@@ -3,6 +3,7 @@ module Star.Type where
 
 import List
 import General.General
+import General.Simplify
 
 {-
 RULES:
@@ -113,6 +114,10 @@ makeOne f xs  = f xs
 (Star a _ _) =*= (Star b _ _) = a == b
 
 
+fromStarCon (StarCon xs) = xs
+fromStarCon x = [x]
+
+
 multisetBy :: (a -> a -> Bool) -> [a] -> [[a]]
 multisetBy f [] = []
 multisetBy f (x:xs) = (x:yes) : multisetBy f no
@@ -145,7 +150,7 @@ starLit x = StarLit x
 starUni :: (Show a, Eq a) => [Star a] -> Star a
 starUni xs = if null res then Omega
              else if null res2 then Lambda
-             else makeOne StarUni res3
+             else makeOne StarUni $ starFact starUni res3
     where
         res3 = map (unwrapStar . join) $ multisetBy (=*=) res2
         res2 = map (if Lambda `elem` res then joinLambda else id) $
@@ -164,7 +169,7 @@ starUni xs = if null res then Omega
 starInt :: (Show a, Eq a) => [Star a] -> Star a
 starInt xs = if Omega `elem` res then Omega
              else if Lambda `elem` res then Lambda
-             else makeOne StarInt res2
+             else makeOne StarInt $ starFact starInt res2
     where
         res2 = map (unwrapStar . join) $ multisetBy (=*=) $
                map wrapStar res
@@ -200,3 +205,9 @@ starRev x = mapStar f x
     where
         f (StarCon xs) = StarCon $ reverse xs
         f x = x
+
+starFact :: (Show a, Eq a) => ([Star a] -> Star a) -> [Star a] -> [Star a]
+starFact join xs = simplifySet [Rule f] xs
+    where
+        f a b = do (pre, (as, bs), post) <- factor (fromStarCon a) (fromStarCon b)
+                   return $ starCon $ pre ++ [join [starCon as, starCon bs]] ++ post
