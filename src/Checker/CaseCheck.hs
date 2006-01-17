@@ -84,11 +84,11 @@ solves hite pending x =
                 reqs = nub $ allPredLit xs
                 mids = map (solve hite pending) reqs
                 rens = zip reqs (map fst mids)
-                res = {- simplifyReqs hite $ -} simpler $ mapPredLit (g rens) xs
+                res = simplifyReqs hite $ simpler $ mapPredLit (g rens) xs
             
                 outF = "> " ++ show xs
                 outM = concatMap h (zip reqs mids)
-                outL = "< " ++ show res
+                outL = "= " ++ show res
 
 
         g ren r = case lookup r ren of
