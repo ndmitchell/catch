@@ -71,7 +71,7 @@ hasLetter c (Star x z b) | 0 `elem` z = False
 allStarLit (StarLit x) = [x]
 allStarLit (StarUni x) = concatMap allStarLit x
 allStarLit (StarInt x) = concatMap allStarLit x
-allStarLit (StarUni x) = concatMap allStarLit x
+allStarLit (StarCon x) = concatMap allStarLit x
 allStarLit (Star x z b) = allStarLit x
 allStarLit _ = []
 
@@ -191,7 +191,7 @@ starUni xs = if null res then Omega
 starInt :: (Show a, Eq a) => [Star a] -> Star a
 starInt xs = if Omega `elem` res then Omega
              else if Lambda `elem` res then Lambda
-          --   else if disjoint res2 then trace ("{{{" ++ show res2 ++ "}}}") Omega
+             else if disjoint res2 then {- trace ("{{{" ++ show res2 ++ "}}}")-} Omega
              else makeOne StarInt $ starFact starInt res2
     where
         res2 = map (unwrapStar . join) $ multisetBy (=*=) $
