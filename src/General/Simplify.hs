@@ -85,7 +85,7 @@ factor as bs = if null pre && null post then Nothing
                else Just (pre, (reverse a3, reverse b3), reverse post)
     where
         (pre, (a2, b2)) = facSide as bs
-        (post, (a3, b3)) = facSide (reverse as) (reverse bs)
+        (post, (a3, b3)) = facSide (reverse a2) (reverse b2)
 
 
         -- :: [a] -> [a] -> ([a], ([a], [a]))

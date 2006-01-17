@@ -10,7 +10,7 @@ import General.Simplify
 
 
 simplifyPred :: (Show a, Eq a) => [Rule a] -> [Rule a] -> [Rule (Pred a)] -> Pred a -> Pred a
-simplifyPred ror rand rone x = {- simp $ dnf $ -}  simp $ dnf $ simp x
+simplifyPred ror rand rone x = {- simp $ dnf $ simp $ dnf $ -}  simp x
     where
         simp x = simplifyPred2 ror rand rone (nubPred x)
 

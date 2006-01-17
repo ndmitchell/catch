@@ -81,6 +81,9 @@ simplifyReqs hite x = simplifyPred
         ruleDel (PredLit (Req a1 b1 c1))
             | (map ctorName $ ctors $ getDataFromCtor (head c1) hite) `setEq` c1
             = Just predTrue
+        ruleDel (PredLit (Req a1 b1 c1))
+            | pathIsOmega b1
+            = Just predTrue
         ruleDel _ = Nothing
         
 

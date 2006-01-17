@@ -5,6 +5,8 @@ import List
 import General.General
 import General.Simplify
 
+import Debug.Trace
+
 {-
 RULES:
 A well constructed Star will have the following properties
@@ -52,6 +54,26 @@ isSingle (StarInt x) = any isSingle x
 isSingle (StarUni x) = all isSingle x
 isSingle (StarCon x) = False
 isSingle (Star z b x) = False
+
+
+-- is \forall l \in L(r), h `elem` l
+-- conservative - output true if in doubt
+hasLetter c Lambda = False
+hasLetter c Omega  = False
+hasLetter c (StarLit x) = c == x
+hasLetter c (StarInt x) = all (hasLetter c) x
+hasLetter c (StarUni x) = any (hasLetter c) x
+hasLetter c (StarCon x) = any (hasLetter c) x
+hasLetter c (Star x z b) | 0 `elem` z = False
+                         | otherwise  = hasLetter c x
+
+
+allStarLit (StarLit x) = [x]
+allStarLit (StarUni x) = concatMap allStarLit x
+allStarLit (StarInt x) = concatMap allStarLit x
+allStarLit (StarUni x) = concatMap allStarLit x
+allStarLit (Star x z b) = allStarLit x
+allStarLit _ = []
 
 
 -- is Lambda `elem` L(r)
@@ -169,6 +191,7 @@ starUni xs = if null res then Omega
 starInt :: (Show a, Eq a) => [Star a] -> Star a
 starInt xs = if Omega `elem` res then Omega
              else if Lambda `elem` res then Lambda
+          --   else if disjoint res2 then trace ("{{{" ++ show res2 ++ "}}}") Omega
              else makeOne StarInt $ starFact starInt res2
     where
         res2 = map (unwrapStar . join) $ multisetBy (=*=) $
@@ -180,6 +203,12 @@ starInt xs = if Omega `elem` res then Omega
         
         explode (StarInt xs) = xs
         explode x = [x]
+        
+        disjoint xs = or [f a b | a <- xs, b <- xs]
+
+        f a b = any (`hasLetter` a) $ nub (allStarLit a) \\ nub (allStarLit b)
+        
+        
 
 
 starCon :: (Show a, Eq a) => [Star a] -> Star a

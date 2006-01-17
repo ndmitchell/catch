@@ -11,6 +11,11 @@ import Checker.Backward
 
 import Constraint
 
+
+import Debug.Trace
+
+traceThis x = x -- trace ("{O{" ++ show x ++ "}C}") x
+
 {-
 
 import Checker.Propagate
@@ -79,7 +84,7 @@ solves hite pending x =
                 reqs = nub $ allPredLit xs
                 mids = map (solve hite pending) reqs
                 rens = zip reqs (map fst mids)
-                res = simpler $ mapPredLit (g rens) xs
+                res = {- simplifyReqs hite $ -} simpler $ mapPredLit (g rens) xs
             
                 outF = "> " ++ show xs
                 outM = concatMap h (zip reqs mids)
