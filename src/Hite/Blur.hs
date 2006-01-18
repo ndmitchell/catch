@@ -2,6 +2,7 @@
 module Hite.Blur(blurExpr, unrollExpr) where
 
 import Hite.Type
+import Options
 
 
 unrollExpr :: Expr -> Expr
@@ -56,11 +57,11 @@ blurBlur r@(Rep m n xs)
         | otherwise   = Raw $ Repeat expr alt
     where
         expr = blurToExpr $ Rep m n (replace pos xs (Raw RepeatNow))
-        alt  = blurToExpr $ drill (depth-1) r
+        alt  = blurToExpr $ drill (depth-hiteBlurTo) r
         poss = [0 .. length xs - 1]
     
         (pos, depth) = head depths -- maybe max on this one?
-        depths = [(pos, depth) | pos <- poss, depth <- [blurDepth r pos], depth >= 3]
+        depths = [(pos, depth) | pos <- poss, depth <- [blurDepth r pos], depth >= hiteBlurFrom]
 
         drill 0 r = r
         drill d (Rep m n xs) = drill (d-1) (xs !! pos)
