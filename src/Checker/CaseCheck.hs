@@ -10,6 +10,7 @@ import Checker.Propagate
 import Checker.Backward
 
 import Constraint
+import Options
 
 
 import Debug.Trace
@@ -27,14 +28,14 @@ type Output = [String]
 
 
 caseCheck :: Hite -> IO ()
-caseCheck bad_hite = putStrLn $ f 100000 output res 
+caseCheck bad_hite = putStrLn $ f 0 output res 
     where
         (res,output) = solves hite [] (generate hite)
         hite = annotate bad_hite
         
-        f _ [] res = "\nRESULT: " ++ show (simplifyReqs hite res)
-        f 0 _ res = "\nNON TERMINATION"
-        f n (x:xs) res = x ++ "\n" ++ f (n-1) xs res
+        f n [] res = "\nRESULT(" ++ show n ++ "): " ++ show (simplifyReqs hite res)
+        f n (x:xs) res | n > maxCompute = "\nNON TERMINATION"
+                       | otherwise = x ++ "\n" ++ f (n+1) xs res
 
 
 
