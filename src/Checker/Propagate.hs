@@ -5,10 +5,11 @@ module Checker.Propagate(propagate) where
 import Hite
 import Constraint
 import List
+import Options
 
 
 propagate :: Hite -> Req -> Reqs
---propagate a b = propagateSimple a b
+propagate a b | propagateSimp = propagateSimple a b
 
 propagate hite r@(Req (Var arg name) path set) = 
         predAnd $ concatMap (f predFalse . body) $ funcs $ callOne hite

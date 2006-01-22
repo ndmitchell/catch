@@ -22,3 +22,6 @@ hiteBlurTo = 1 :: Int
 -- | Maximum number of lines of computation
 maxCompute = 100000 :: Int
 
+
+-- | Should the propagation step take into account the branches
+propagateSimp = True
