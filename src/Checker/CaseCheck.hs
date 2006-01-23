@@ -59,7 +59,7 @@ addOut msg (r, o) = (r, msg:o)
 
 
 solve :: Hite -> [Req] -> Req -> State
-solve hite pending r | r `elem` pending = (predTrue, [])
+solve hite pending r | r `elem` pending = (predLit r, [])
 
 solve hite pending r@(Req _ path opts) | pathIsEmpty path = (predTrue, [])
 
@@ -67,10 +67,32 @@ solve hite pending r@(Req (CallFunc "_") path opts) = (predFalse, [])
 
 solve hite pending r@(Req (Var a b) path opts) 
     | b == "main" = (predLit r, [])
-    | otherwise   = solves hite (r:pending) $ propagate hite r
+    | otherwise   = solvePending hite r pending $ propagate hite r
 
-solve hite pending r = solves hite (r:pending) $ backward hite r
+solve hite pending r = solvePending hite r pending $ backward hite r
 
+
+solvePending :: Hite -> Req -> [Req] -> Reqs -> State
+solvePending hite p pending x
+        | pl == rs = (rs, os ++ [error "Failure, circular inference, logic bug"])
+        | p `elem` allPredLit rs = f rs
+        | otherwise = s
+    where
+        pl = predLit p
+        s@(rs, os) = solves hite (p:pending) x
+        
+        f rs = case rs of 
+            PredAnd xs -> g $ predAnd $ filter (/= pl) xs
+            PredOr  xs -> g $ predOr  $ filter (/= pl) xs
+        
+        
+        -- g x = trace (show (p,x)) x
+        
+        g x | p `elem` allPredLit x = error $ show ("solvePending",p, rs)
+            | otherwise = trace ("PENDING: " ++ show p ++ "\nORIGINAL: " ++ show rs ++ "\nFIXED: " ++ show x) (x, os)
+
+
+simplifyMid hite x = if simplifyRegular then simplifyReqs hite x else x
 
 
 solves :: Hite -> [Req] -> Reqs -> State
@@ -85,7 +107,7 @@ solves hite pending x =
                 reqs = nub $ allPredLit xs
                 mids = map (solve hite pending) reqs
                 rens = zip reqs (map fst mids)
-                res = simplifyReqs hite $ simpler $ mapPredLit (g rens) xs
+                res = simplifyMid hite $ simpler $ mapPredLit (g rens) xs
             
                 outF = "> " ++ show xs
                 outM = concatMap h (zip reqs mids)
