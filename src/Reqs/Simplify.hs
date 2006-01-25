@@ -16,10 +16,10 @@ import List
 import Star.Type
 
 
-simplifyReqs :: Hite -> Reqs -> Reqs
-simplifyReqs hite x = simplifyPred
-        [Rule ruleSingleOr , Rule ruleSameCondOr , RuleAssoc ruleImplies]
-        [Rule ruleSingleAnd, Rule ruleSameCondAnd]
+simplifyReqs :: Bool -> Hite -> Reqs -> Reqs
+simplifyReqs b hite x = (if b then simplifyPredFull else simplifyPred)
+        [Rule ruleSingleOr , RuleAssoc ruleSubsetOr, RuleAssoc ruleImplies]
+        [Rule ruleSingleAnd, Rule ruleSameCondAnd, RuleAssoc ruleImplies2]
         [RuleOne ruleDel]
         x
     where
@@ -52,16 +52,23 @@ simplifyReqs hite x = simplifyPred
         ruleOr2 _ _ = Nothing
         -}
         
+        {-
+        -- VERY WRONG
         ruleSameCondOr (Req a1 b1 c1) (Req a2 b2 c2)
             | a1 == a2 && c1 `setEq` c2
             = Just (Req a1 (b1 `pathIntersect` b2) c1)
         ruleSameCondOr _ _ = Nothing
+        -}
         
         ruleSameCondAnd (Req a1 b1 c1) (Req a2 b2 c2)
             | a1 == a2 && c1 `setEq` c2
             = Just (Req a1 (b1 `pathUnion` b2) c1)
         ruleSameCondAnd _ _ = Nothing
         
+        ruleSubsetOr (Req a1 b1 c1) (Req a2 b2 c2)
+            | a1 == a2 && b1 `pathSubset` b2 && c1 `setEq` c2
+            = Just (Req a1 b1 c1)
+        ruleSubsetOr _ _ = Nothing
         
         ruleSingleOr (Req a1 b1 c1) (Req a2 b2 c2)
             | a1 == a2 && b1 == b2 && pathIsSingle b1
@@ -74,10 +81,10 @@ simplifyReqs hite x = simplifyPred
             = Just (Req a1 b1 (c1 `intersect` c2))
         ruleSingleAnd _ _ = Nothing
         
-
+        
         ruleDel (PredLit (Req a1 b1 c1))
             | null c1
-            = Just predFalse
+            = Just predFalse -- not true, what if none defined - to fix
         ruleDel (PredLit (Req a1 b1 c1))
             | (map ctorName $ ctors $ getDataFromCtor (head c1) hite) `setEq` c1
             = Just predTrue
@@ -101,6 +108,13 @@ simplifyReqs hite x = simplifyPred
                 f done (t:odo) | t `elem` done = f done odo
                                | otherwise = f (t:done) (t2 ++ odo)
                     where t2 = map (`rdiff` t) iargs
+        ruleImplies _ _ = Nothing
+
+
+        ruleImplies2 (Req a1 b1 c1) (Req a2 b2 c2)
+            | a1 == a2 && (b1 `pathSubset` b2) && (c1 == (c1 \\ c2))
+            = Just (Req a1 b1 [])
+        ruleImplies2 _ _ = Nothing
 
 {-
         ruleImplies r1@(Req a1 b1 c1) r2@(Req a2 b2 c2)
@@ -118,7 +132,6 @@ simplifyReqs hite x = simplifyPred
                                | otherwise = f (t:done) (t2 ++ odo)
                     where t2 = map (`rdiff` t) iargs
 -}
-        ruleImplies _ _ = Nothing
 
 {-
 dropPrefix :: (Eq a, Show a) => RegExp a -> RegExp a -> Maybe (RegExp a)
