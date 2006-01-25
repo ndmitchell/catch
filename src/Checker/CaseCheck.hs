@@ -33,7 +33,7 @@ caseCheck bad_hite = putStrLn $ f 0 output res
         (res,output) = solves hite [] (generate hite)
         hite = annotate bad_hite
         
-        f n [] res = "\nRESULT(" ++ show n ++ "): " ++ show (simplifyReqs hite res)
+        f n [] res = "\nRESULT(" ++ show n ++ "): " ++ show (simplifyReqs True hite res)
         f n (x:xs) res | n > maxCompute = "\nNON TERMINATION"
                        | otherwise = x ++ "\n" ++ f (n+1) xs res
 
@@ -74,12 +74,18 @@ solve hite pending r = solvePending hite r pending $ backward hite r
 
 solvePending :: Hite -> Req -> [Req] -> Reqs -> State
 solvePending hite p pending x
-        | pl == rs = (rs, os ++ [error "Failure, circular inference, logic bug"])
-        | p `elem` allPredLit rs = f rs
+        | predLit p == x = error $ "Circular reasoning, " ++ show p
+        | p `elem` allPredLit rs = addOut ("@ " ++ show (p, rs, rs2)) (rs2, os)
         | otherwise = s
     where
-        pl = predLit p
+        f r | r == p = predTrue
+        f x = predLit x
+        
         s@(rs, os) = solves hite (p:pending) x
+        rs2 = mapPredLit f rs
+    
+    {-
+        pl = predLit p
         
         f rs = case rs of 
             PredAnd xs -> g $ predAnd $ filter (/= pl) xs
@@ -88,11 +94,12 @@ solvePending hite p pending x
         
         -- g x = trace (show (p,x)) x
         
-        g x | p `elem` allPredLit x = error $ show ("solvePending",p, rs)
+        g x | False = - p `elem` allPredLit x = - error $ show ("solvePending",p, rs)
             | otherwise = trace ("PENDING: " ++ show p ++ "\nORIGINAL: " ++ show rs ++ "\nFIXED: " ++ show x) (x, os)
+      -}
 
 
-simplifyMid hite x = if simplifyRegular then simplifyReqs hite x else x
+simplifyMid hite x = if simplifyRegular then simplifyReqs False hite x else x
 
 
 solves :: Hite -> [Req] -> Reqs -> State
@@ -107,11 +114,12 @@ solves hite pending x =
                 reqs = nub $ allPredLit xs
                 mids = map (solve hite pending) reqs
                 rens = zip reqs (map fst mids)
-                res = simplifyMid hite $ simpler $ mapPredLit (g rens) xs
+                res1 = simpler $ mapPredLit (g rens) xs
+                res = simplifyMid hite $ res1
             
                 outF = "> " ++ show xs
                 outM = concatMap h (zip reqs mids)
-                outL = "= " ++ show res
+                outL = "= " ++ show res ++ " was (" ++ show res1 ++ ")"
 
 
         g ren r = case lookup r ren of
