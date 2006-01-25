@@ -12,7 +12,7 @@ import Char
 import List
 
 
-data Req = Req Expr (Path String) [CtorName]
+data Req = Req {reqExpr :: Expr, reqPath :: Path String, reqCtors :: [CtorName]}
 
 instance Show Req where
     show (Req expr regs opts) =
