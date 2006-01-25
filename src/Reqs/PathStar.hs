@@ -11,7 +11,8 @@ module Reqs.PathStar(
     pathUnion,
     pathIntersect,
     pathReverse,
-    pathIsOmega
+    pathIsOmega,
+    pathSubset
     ) where
 
 import Star.Type
@@ -43,3 +44,5 @@ pathIntersect a b = starInt [a, b]
 pathReverse a = starRev a
 
 pathIsOmega x = x == Omega
+
+pathSubset a b = starSubset a b
