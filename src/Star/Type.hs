@@ -172,7 +172,7 @@ starLit x = StarLit x
 starUni :: (Show a, Eq a) => [Star a] -> Star a
 starUni xs = if null res then Omega
              else if null res2 then Lambda
-             else makeOne StarUni $ starFact starUni res3
+             else makeOne StarUni $ starFact starUni $ concatMap starUnfact res3
     where
         res3 = map (unwrapStar . join) $ multisetBy (=*=) res2
         res2 = map (if Lambda `elem` res then joinLambda else id) $
@@ -236,7 +236,69 @@ starRev x = mapStar f x
         f x = x
 
 starFact :: (Show a, Eq a) => ([Star a] -> Star a) -> [Star a] -> [Star a]
-starFact join xs = simplifySet [Rule f] xs
+starFact join xs = simplifyStep (nub xs)
     where
+        simplifyStep xs = if null poss then
+                              xs
+                          else --if length poss == 1 then
+                              simplifyStep (r1 : [x | x <- xs, x /= a1, x /= b1])
+                          --else
+                          --    error $ show $ sortBy g poss
+                             
+            where
+                ((s1,r1,a1,b1):_) = sortBy g poss
+                poss = [(score, res, a, b) |
+                        an <- [0..n-1], bn <- [an+1..n-1], a <- [xs !! an], b <- [xs !! bn],
+                        Just (score, res) <- [f a b]]
+                n = length xs
+                
+                g (a,_,_,_) (b,_,_,_) = compare b a
+    
+    
         f a b = do (pre, (as, bs), post) <- factor (fromStarCon a) (fromStarCon b)
-                   return $ starCon $ pre ++ [join [starCon as, starCon bs]] ++ post
+                   let res = starCon $ pre ++ [join [starCon as, starCon bs]] ++ post
+                       score = (length (show a) + length (show b)) - length (show res)
+                   return (score :: Int, res)
+
+
+
+
+
+
+starUnfact :: (Show a, Eq a) => Star a -> [Star a]
+starUnfact (StarCon xs) = f [] xs
+    where
+        f done (x:xs) | length ys > 1 = map (\a -> starCon $ reverse done ++ [a] ++ xs) ys
+            where ys = deUnion x
+        f done (x:xs) = f (x:done) xs
+        f done [] = [StarCon xs]
+starUnfact xs = [xs]
+
+
+deUnion (StarUni xs) = xs
+deUnion (Star x [0,1] False) = [x,Lambda]
+deUnion x = [x]
+
+
+
+starSubset :: (Show a, Eq a) => Star a -> Star a -> Bool
+starSubset a (StarUni bs) | any (a `starSubset`) bs = True
+starSubset a (StarCon bs) | any (a `starSubset`) (dropAnyEwp bs) = True
+starSubset a (Star x z b) | head z <= 1 && a `starSubset` x = True
+starSubset a b = a == b
+
+
+-- return a list of all the terms which consist of dropping one ewp element
+dropAnyEwp xs = concatMap f (splits2 xs)
+    where
+        f (pre, p:ost) | isEwp p = [starCon (pre++ost)]
+                       | otherwise = []
+    
+    
+
+splits2 xs = ([], xs) : splits xs
+
+splits :: [a] -> [([a], [a])]
+splits [] = []
+splits [x] = []
+splits (x:ys) = ([x],ys) : [(x:ys1, ys2) | (ys1, ys2) <- splits ys]
