@@ -1,5 +1,5 @@
 
-module Pred.Simplify(simplifyPred) where
+module Pred.Simplify(simplifyPred, simplifyPredFull) where
 
 import Pred.Type
 import Pred.Form
@@ -7,6 +7,12 @@ import List
 import Maybe
 import General.Simplify
 
+
+
+simplifyPredFull :: (Show a, Eq a) => [Rule a] -> [Rule a] -> [Rule (Pred a)] -> Pred a -> Pred a
+simplifyPredFull ror rand rone x = {- simp $ cnf $ simp $ dnf $ simp $ cnf $ -} simp $ dnf $ simp x
+    where
+        simp x = simplifyPred2 ror rand rone (nubPred x)
 
 
 simplifyPred :: (Show a, Eq a) => [Rule a] -> [Rule a] -> [Rule (Pred a)] -> Pred a -> Pred a
