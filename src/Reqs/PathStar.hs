@@ -12,12 +12,14 @@ module Reqs.PathStar(
     pathIntersect,
     pathReverse,
     pathIsOmega,
-    pathSubset
+    pathSubset,
+    pathPretty
     ) where
 
 import Star.Type
 import Star.Show
 import Star.Blur
+import Star.Convert
 
 type Path a = Star a
 
@@ -46,3 +48,5 @@ pathReverse a = starRev a
 pathIsOmega x = x == Omega
 
 pathSubset a b = starSubset a b
+
+pathPretty x = show $ starToRegExp x

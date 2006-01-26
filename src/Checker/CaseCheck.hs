@@ -33,7 +33,7 @@ caseCheck bad_hite = putStrLn $ f 0 output res
         (res,output) = solves hite [] (generate hite)
         hite = annotate bad_hite
         
-        f n [] res = "\nRESULT(" ++ show n ++ "): " ++ prettyPred (simplifyReqs True hite res)
+        f n [] res = "\nRESULT(" ++ show n ++ "):\n" ++ prettyReqs (simplifyReqs True hite res)
         f n (x:xs) res | n > maxCompute = "\nNON TERMINATION"
                        | otherwise = x ++ "\n" ++ f (n+1) xs res
 
