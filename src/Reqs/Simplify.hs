@@ -1,5 +1,5 @@
 
-module Reqs.Simplify(simplifyReqs, simplifyReq) where
+module Reqs.Simplify(simplifyReqs) where
 
 import Hite
 
@@ -142,7 +142,4 @@ dropPrefix a b = f (fromConcat a) (fromConcat b)
         f [] xs = Just $ regConcat xs
         f _ _ = Nothing
 -}
-
-
-simplifyReq x = x
 
