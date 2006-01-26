@@ -32,7 +32,10 @@ prettyReqs reqs = unlines (map g rens) ++
         rens = zip exprs vars
     
         f :: Req -> String
-        f (Req expr regs opts) = (fromJust $ lookup expr rens) ++ "." ++ pathPretty regs ++ strSet opts
+        f (Req expr regs opts) =
+            (fromJust $ lookup expr rens) ++
+            (if pathIsLambda regs then "" else "." ++ pathPretty regs) ++
+            strSet opts
     
     
         g (expr, var) = "var " ++ var ++ " := " ++ show expr
