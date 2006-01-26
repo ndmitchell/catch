@@ -24,12 +24,17 @@ instance Show Req where
 
 
 prettyReqs :: Reqs -> String
-prettyReqs reqs = unlines (map g rens) ++
+prettyReqs reqs = unlines (map g reps) ++
                   prettyPredBy id (mapPredLitChange f reqs)
     where
-        exprs = nub $ map reqExpr $ allPredLit reqs
+        exprs = map reqExpr $ allPredLit reqs
+        (keepexpr, repexpr) = partition h (nub exprs)
         vars = map (:[]) (['x'..'z'] ++ ['a'..'v']) ++ map (\x -> 'w' : show x) [2..]
-        rens = zip exprs vars
+        reps = zip repexpr vars
+        rens = [(x, show x) | x <- keepexpr] ++ reps
+        
+        h x = null (exprs \\ [x])
+
     
         f :: Req -> String
         f (Req expr regs opts) =
