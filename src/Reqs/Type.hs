@@ -4,6 +4,7 @@ module Reqs.Type(
     ) where
 
 import Pred.Type
+import Pred.Show
 import Reqs.Path
 
 import Hite

@@ -16,17 +16,6 @@ isPredOr  (PredOr  _) = True; isPredOr  _ = False
 
 
 -- * Show instance
-instance Show a => Show (Pred a) where
-    show x = case x of
-            PredOr  [] -> "False"
-            PredAnd [] -> "True"
-            PredLit  a -> show a
-            PredOr  xs -> disp 'v' xs
-            PredAnd xs -> disp '^' xs
-        where
-            disp sym xs = "(" ++ mid ++ ")"
-                where mid = concat $ intersperse [' ',sym,' '] (map show xs)
-
 
 instance Eq a => Eq (Pred a) where
     (PredLit a) == (PredLit b) = a == b
@@ -67,6 +56,16 @@ allPred x = x : concatMap allPred (case x of
         )
 
 -- ** Play on the literal
+mapPredLitChange :: (a -> b) -> Pred a -> Pred b
+mapPredLitChange f x =
+    case x of
+        PredOr  x -> PredOr  $ g x
+        PredAnd x -> PredAnd $ g x
+        PredLit x -> PredLit $ f x
+    where
+        g = map (mapPredLitChange f)
+
+
 mapPredLit :: Eq a => (a -> Pred a) -> Pred a -> Pred a
 mapPredLit f x = mapPred g x
     where
