@@ -5,6 +5,7 @@ import Hite
 
 import Reqs.Type
 import Reqs.Path
+import Reqs.Show
 import Pred.Type
 import Pred.Simplify
 
