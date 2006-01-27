@@ -1,5 +1,5 @@
 
-module Reqs.Simplify(simplifyReqs) where
+module Reqs.Simplify(simplifyReqs, simplifyReqsFull) where
 
 import Hite
 
@@ -8,6 +8,7 @@ import Reqs.Path
 import Reqs.Show
 import Pred.Type
 import Pred.Simplify
+import Pred.Form
 
 import General.Simplify
 import General.General
@@ -15,6 +16,12 @@ import Maybe
 import List
 
 import Star.Type
+
+
+
+simplifyReqsFull :: Hite -> Reqs -> Reqs
+simplifyReqsFull hite x = error $ prettyReqs $ dnf x
+
 
 
 simplifyReqs :: Bool -> Hite -> Reqs -> Reqs
