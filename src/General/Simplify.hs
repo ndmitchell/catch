@@ -1,5 +1,5 @@
 
-module General.Simplify(Rule(..), simplifyList, simplifySet, factor) where
+module General.Simplify(Rule(..), simplifyList, simplifySet, factor, makeAssoc) where
 
 import List
 import Maybe
@@ -12,6 +12,14 @@ data Rule a = Rule (a -> a -> Maybe a)
 too dangerous for the moment, removing might not mean [], it might be short circuiting
 -}
 
+
+
+
+makeAssoc :: (a -> a -> Maybe a) -> (a -> a -> Maybe a)
+makeAssoc f a b =
+    case f a b of
+        Just x -> Just x
+        Nothing -> f b a
 
 
 
