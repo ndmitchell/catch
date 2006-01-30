@@ -20,7 +20,138 @@ import Star.Type
 
 
 simplifyReqsFull :: Hite -> Reqs -> Reqs
-simplifyReqsFull hite x = error $ prettyReqs $ dnf x
+simplifyReqsFull hite x = error $ prettyReqs $
+        orPairsAs orSubsetCollapse $
+        mapPredLit atomNullCtors $
+        andPairs andEqPathCollapse $
+        andPairsAs andSubsetCollapse $
+        dnf x
+    where
+        x2 = dnf x
+        --x3 = predOr $ simplifySet rOr $ map (predAnd . simplifySet rAnd . fromAnd) $ fromOr x2
+        
+        
+        
+        andPairsAs f xs = andPairs (makeAssoc f) xs
+        orPairsAs  f xs = orPairs  (makeAssoc f) xs
+
+        andPairs :: (Req -> Req -> Maybe Req) -> Reqs -> Reqs
+        andPairs g xs = mapPred f xs
+            where
+                f (PredAnd xs) = predAnd $ nots ++ map predLit (simplifySet [Rule g] (map fromPredLit lits))
+                    where (lits, nots) = partition isPredLit xs
+                f x = x
+        
+        
+        orPairs :: ([Req] -> [Req] -> Maybe [Req]) -> Reqs -> Reqs
+        orPairs g xs = mapPred f xs
+            where
+                f (PredOr xs) | all isPredLit (concat items)
+                              = predOr $ map (predAnd . map predLit) $ simplifySet [Rule g] $ map (map fromPredLit) items
+                    where items = map fromAnd xs
+                f x = x
+        
+        
+        
+        andSubsetCollapse a b | a ==> b = Just a
+        andSubsetCollapse _ _ = Nothing
+        
+        orSubsetCollapse as bs | all (\a -> any (\b -> b ==> a) bs) as = Just as
+        orSubsetCollapse _ _ = Nothing
+
+
+        andEqPathCollapse (Req a1 b1 c1) (Req a2 b2 c2)
+            | a1 == a2 && b1 == b2
+            = Just $ Req a1 b1 (c1 `intersect` c2)
+        andEqPathCollapse _ _ = Nothing
+
+        
+        atomNullCtors (Req a1 b1 c1)
+            | null c1
+            = predAnd [f (map ctorName ctrs \\ [cn]) alt |
+                              Data dn ctrs <- datas hite, Ctor cn alts <- ctrs, alt <- alts]
+                where
+                    f cns an = if pathIsOmega b2 then predTrue
+                               else predLit (Req a1 b2 cns)
+                        where b2 = an `pathQuotient` b1
+        atomNullCtors x = predLit x
+        
+        
+        
+        -- does a imply b
+        (==>) :: Req -> Req -> Bool
+        (Req a1 b1 c1) ==> (Req a2 b2 c2)
+            | a1 /= a2 = False
+            | b2 `pathSubset` b1 && null (c1 \\ c2) = True
+            | b1 == b2 && c1 `setEq` c2 = True -- should be redundant, if pathSubset is == implies
+            | otherwise = False
+        
+        
+        -- which regular expressions are sufficient to imply b
+        implySet :: Req -> [Req]
+        implySet 
+        
+                ruleImplies (Req a1 b1 c1) (Req a2 b2 c2)
+                    | a1 == a2 && (b1 `elem` diffs)
+                    = Just $ Req a2 b2 c2
+                    where
+                        diffs = f [] (map (`rdiff` b2) iargs)
+                        ictors = (map ctorName $ ctors $ getDataFromCtor (head c1) hite) \\ c1
+                        iargs = concatMap (\x -> ctorArgs $ getCtor x hite) ictors
+        
+                        rdiff x reg = pathReverse (pathQuotient x (pathReverse reg))
+        
+                        f done [] = done
+                        f done (t:odo) | t `elem` done = f done odo
+                                       | otherwise = f (t:done) (t2 ++ odo)
+                            where t2 = map (`rdiff` t) iargs
+                ruleImplies _ _ = Nothing
+
+        
+{-        
+        
+        
+        
+        
+        rOr = [Rule ruleOrAs]
+        rAnd = [Rule ruleAnd, RuleAssoc ruleAndAs]
+        
+        
+        ruleAnd (PredLit (Req a1 b1 c1)) (PredLit (Req a2 b2 c2))
+            | a1 == a2 && b1 == b2
+            = if null c3
+            then Just $ predAnd [f (map ctorName ctrs \\ [cn]) alt |
+                                 Data dn ctrs <- datas hite, Ctor cn alts <- ctrs, alt <- alts]
+            else Just $ PredLit $ Req a1 b1 c3
+                where
+                    c3 = c1 `intersect` c2
+                    
+                    dns = [x | Data x _ <- datas hite]
+                    f cns an = if pathIsOmega b3 then predTrue
+                               else predLit (Req a1 b3 cns)
+                        where b3 = an `pathQuotient` b1
+        ruleAnd _ _ = Nothing
+        
+        
+        ruleAndAs (PredLit (Req a1 b1 c1)) (PredLit (Req a2 b2 c2))
+            | a1 == a2 && c1 `setEq` c2 && b1 `pathSubset` b2
+            = Just $ PredLit $ Req a1 b2 c2
+        
+        ruleAndAs _ _ = Nothing
+        
+        
+        ruleOrAs xs ys 
+            | allIsLit xs2 && allIsLit ys2 && all f xs2
+            = Just xs
+            where
+                (xs2, ys2) = (fromAnd xs, fromAnd ys)
+                f (PredLit (Req a1 b1 c1)) = or [b1 `pathSubset` b2 && a1 == a2 && c1 == c2 | PredLit (Req a2 b2 c2) <- ys2]
+            
+        ruleOrAs _ _ = Nothing
+        
+        
+        allIsLit x = all isPredLit x
+-}
 
 
 
