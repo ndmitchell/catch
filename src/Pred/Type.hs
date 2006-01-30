@@ -109,24 +109,32 @@ predTrue :: Pred a
 predTrue = PredAnd []
 
 
+fromOr :: Pred a -> [Pred a]
+fromOr (PredOr x) = x
+fromOr x = [x]
+
+
+fromAnd :: Pred a -> [Pred a]
+fromAnd (PredAnd x) = x
+fromAnd x = [x]
+
+
+fromPredLit :: Pred a -> a
+fromPredLit (PredLit x) = x
+
+
 predOr :: Eq a => [Pred a] -> Pred a
-predOr xs = case nub $ filter (not . isFalse) $ concatMap f xs of
+predOr xs = case nub $ filter (not . isFalse) $ concatMap fromOr xs of
                 [x] -> x
                 xs | any isTrue xs -> predTrue
                    | otherwise -> PredOr xs
-    where
-        f (PredOr x) = x
-        f x = [x]
 
 predAnd :: Eq a => [Pred a] -> Pred a
-predAnd xs = case nub $ filter (not . isTrue) $ concatMap f xs of
+predAnd xs = case nub $ filter (not . isTrue) $ concatMap fromAnd xs of
                  [x] -> x
                  xs | any isFalse xs -> predFalse
                     | otherwise -> PredAnd xs
-    where
-        f (PredAnd x) = x
-        f x = [x]
-        
+
 
 predLit :: a -> Pred a
 predLit x = PredLit x
