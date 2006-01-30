@@ -284,7 +284,9 @@ deUnion x = [x]
 starSubset :: (Show a, Eq a) => Star a -> Star a -> Bool
 starSubset a (StarUni bs) | any (a `starSubset`) bs = True
 starSubset a (StarCon bs) | any (a `starSubset`) (dropAnyEwp bs) = True
+starSubset (StarCon as) (StarCon bs) | length as == length bs && and (zipWith starSubset as bs) = True
 starSubset a (Star x z b) | head z <= 1 && a `starSubset` x = True
+starSubset Lambda x | isEwp x = True
 starSubset a b = a == b
 
 
