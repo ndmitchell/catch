@@ -76,17 +76,36 @@ simplifyReqsFull hite x = error $ prettyReqs $
                         where b2 = an `pathQuotient` b1
         atomNullCtors x = predLit x
         
-        
-        
+
         -- does a imply b
         (==>) :: Req -> Req -> Bool
         (Req a1 b1 c1) ==> (Req a2 b2 c2)
             | a1 /= a2 = False
             | b2 `pathSubset` b1 && null (c1 \\ c2) = True
             | b1 == b2 && c1 `setEq` c2 = True -- should be redundant, if pathSubset is == implies
+            | pathIsFinite b1 && superImply b1 c1 b2 = True
             | otherwise = False
+            
+        
+        superImply :: Path String -> [CtorName] -> Path String -> Bool
+        superImply b1 c1 b2 = all (\l2 -> any (f l2) b1s) b2s
+            where
+                b1s = pathEnumerate b1
+                b2s = pathEnumerate (pathMakeFinite b2)
+                
+                f l2 l1 = length l1 < length l2 &&
+                          l1 `isPrefixOf` l2 &&
+                          not (ctorName ctr `elem` c1)
+                    where
+                        c = head (drop (length l1) l2)
+                        ctr = getCtorFromArg c hite
+                
+            
+            
         
         
+        
+        {-
         -- which regular expressions are sufficient to imply b
         implySet :: Req -> [Req]
         implySet 
@@ -106,7 +125,7 @@ simplifyReqsFull hite x = error $ prettyReqs $
                                        | otherwise = f (t:done) (t2 ++ odo)
                             where t2 = map (`rdiff` t) iargs
                 ruleImplies _ _ = Nothing
-
+-}
         
 {-        
         
