@@ -328,6 +328,7 @@ starEnumerate x = case x of
         Omega -> []
         StarLit x -> [[x]]
         StarUni x -> concatMap starEnumerate x
+        StarCon [] -> [[]]
         StarCon [x] -> starEnumerate x
         StarCon (x:xs) -> [a ++ b | a <- starEnumerate x, b <- starEnumerate (StarCon xs)]
         Star _ _ True -> error "starEnumerate: Cannot enumerate an infinite language!"
