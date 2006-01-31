@@ -56,6 +56,14 @@ isSingle (StarCon x) = False
 isSingle (Star z b x) = False
 
 
+isFinite :: (Show a, Eq a) => Star a -> Bool
+isFinite (StarInt x) = all isFinite x
+isFinite (StarCon x) = all isFinite x
+isFinite (StarUni x) = all isFinite x
+isFinite (Star x z b) = not b && isFinite x
+isFinite _ = True
+
+
 -- is \forall l \in L(r), h `elem` l
 -- conservative - output true if in doubt
 hasLetter c Lambda = False
@@ -304,3 +312,23 @@ splits :: [a] -> [([a], [a])]
 splits [] = []
 splits [x] = []
 splits (x:ys) = ([x],ys) : [(x:ys1, ys2) | (ys1, ys2) <- splits ys]
+
+
+
+starMakeFinite :: (Show a, Eq a) => Star a -> Star a
+starMakeFinite x = mapStar f x
+    where
+        f (Star x z True) = star x z False
+        f x = x
+
+
+starEnumerate :: (Show a, Eq a) => Star a -> [[a]]
+starEnumerate x = case x of
+        Lambda -> [[]]
+        Omega -> []
+        StarLit x -> [[x]]
+        StarUni x -> concatMap starEnumerate x
+        StarCon [x] -> starEnumerate x
+        StarCon (x:xs) -> [a ++ b | a <- starEnumerate x, b <- starEnumerate (StarCon xs)]
+        Star _ _ True -> error "starEnumerate: Cannot enumerate an infinite language!"
+        Star x z False -> starEnumerate (StarUni [StarCon (replicate n x) | n <- z])

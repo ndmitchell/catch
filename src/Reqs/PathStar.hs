@@ -14,7 +14,10 @@ module Reqs.PathStar(
     pathIsOmega,
     pathIsLambda,
     pathSubset,
-    pathPretty
+    pathPretty,
+    pathIsFinite,
+    pathMakeFinite,
+    pathEnumerate
     ) where
 
 import Star.Type
@@ -53,3 +56,10 @@ pathIsLambda x = x == Lambda
 pathSubset a b = starSubset a b
 
 pathPretty x = show $ starToRegExp x
+
+
+pathIsFinite x = isFinite x
+
+pathMakeFinite x = starMakeFinite x
+
+pathEnumerate x = starEnumerate
