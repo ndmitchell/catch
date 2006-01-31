@@ -62,4 +62,4 @@ pathIsFinite x = isFinite x
 
 pathMakeFinite x = starMakeFinite x
 
-pathEnumerate x = starEnumerate
+pathEnumerate x = starEnumerate x
