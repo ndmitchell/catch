@@ -21,10 +21,12 @@ import Star.Type
 
 simplifyReqsFull :: Hite -> Reqs -> Reqs
 simplifyReqsFull hite x = error $ prettyReqs $
+        andPairs finalMerge $
         orPairsAs orSubsetCollapse $
         mapPredLit atomNullCtors $
         andPairs andEqPathCollapse $
         andPairsAs andSubsetCollapse $
+        mapPredLit addFinite $
         dnf x
     where
         x2 = dnf x
@@ -52,6 +54,11 @@ simplifyReqsFull hite x = error $ prettyReqs $
                 f x = x
         
         
+        addFinite (Req a b c)
+            | not (pathIsFinite b)
+            = predAnd [predLit $ Req a b c, predLit $ Req a (pathMakeFinite b) c]
+        addFinite x = predLit x
+        
         
         andSubsetCollapse a b | a ==> b = Just a
         andSubsetCollapse _ _ = Nothing
@@ -75,6 +82,13 @@ simplifyReqsFull hite x = error $ prettyReqs $
                                else predLit (Req a1 b2 cns)
                         where b2 = an `pathQuotient` b1
         atomNullCtors x = predLit x
+        
+        
+        finalMerge (Req a1 b1 c1) (Req a2 b2 c2)
+            | a1 == a2 && c1 `setEq` c2
+            = Just $ Req a1 (b1 `pathUnion` b2) c1
+        finalMerge _ _ = Nothing
+        
         
 
         -- does a imply b
