@@ -1,17 +1,15 @@
 
 module Preamble where
 
-import Prelude hiding (
-    -- standard
-    map, head, reverse, foldr, (||), null
-    )
+import qualified Prelude
+import Prelude( []((:),[]) , Bool(True,False) )
 
 
 -- SPECIAL FUNCTIONS
 
 -- yhc bottoms out if some of these are not imported
 
-preamble_undefined = preamble_undefined
+undefined = undefined
 
 _apply1 f x = f x
 
@@ -46,3 +44,65 @@ null _ = False
 
 True || _ = True
 False || a = a
+
+flip f x y  = f y x
+
+
+
+class Eq a  where
+    (==), (/=)      :: a -> a -> Bool
+
+    x /= y      =  not (x == y)
+    x == y      =  not (x /= y)
+
+
+not True = False
+not False = True
+
+
+class  (Eq a) => Ord a  where
+    compare     :: a -> a -> Ordering
+    (<), (<=), (>=), (>):: a -> a -> Bool
+    max, min        :: a -> a -> a
+
+    compare x y = case x == y of
+                    True -> EQ
+                    False -> case x <= y of
+                            True -> LT
+                            False -> GT
+
+    x <= y      = compare x y /= GT
+    x <  y      = compare x y == LT
+    x >= y      = compare x y /= LT
+    x >  y      = compare x y == GT
+
+    max x y = case x >= y of
+                True -> y
+                False -> x
+
+    min x y = case x >= y of
+                True -> x
+                False -> y
+
+
+
+data Ordering = LT | EQ | GT
+
+
+instance Eq Ordering where
+    LT == LT = True
+    EQ == EQ = True
+    GT == GT = True
+    _ == _ = False
+
+
+
+data Int = Int
+
+
+instance Eq Int where
+    a == b = undefined
+
+
+instance Ord Int where
+    compare a b = undefined
