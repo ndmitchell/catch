@@ -39,7 +39,7 @@ letExpand x = mapCore f x
 
 
 
-convFunc :: CoreFunc -> [Func]
+convFunc :: CoreItem -> [Func]
 convFunc (CoreFunc (CoreApp orig_name orig_args) bad_body) =
         if null complexCases then
             [Func name args (convExpr ren body) Star]

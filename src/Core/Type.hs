@@ -1,12 +1,19 @@
 
 module Core.Type where
 
+-- stuff below copied from Yhc.Core
 
-data Core = Core [CoreFunc]
+data Core = Core [CoreItem]
             deriving (Show, Read)
 
 
-data CoreFunc = CoreFunc CoreExpr CoreExpr
+data CoreItem = CoreFunc CoreExpr CoreExpr
+              | CoreData String [CoreCtor]
+                deriving (Show, Read, Eq)
+
+
+-- Name, then list of maybe field names
+data CoreCtor = CoreCtor String [Maybe String]
                 deriving (Show, Read, Eq)
 
 
@@ -14,12 +21,15 @@ data CoreExpr = CoreCon String
               | CoreVar String
               | CoreApp CoreExpr [CoreExpr]
               | CoreInt Int
+              | CoreInteger Integer
               | CoreChr Char
               | CoreStr String
               | CoreCase CoreExpr [(CoreExpr,CoreExpr)]
-              | CoreLet [CoreFunc] CoreExpr
+              | CoreLet [CoreItem] CoreExpr
               | CorePos String CoreExpr
                 deriving (Show, Read, Eq)
+
+-- stop copied
 
 
 class PlayCore a where
@@ -37,9 +47,12 @@ instance PlayCore Core where
     allCore (Core x) = allCore x
 
 
-instance PlayCore CoreFunc where
+instance PlayCore CoreItem where
     mapCore f (CoreFunc x y) = CoreFunc (mapCore f x) (mapCore f y)
+    mapCore f x = x
+    
     allCore (CoreFunc x y) = allCore x ++ allCore y
+    allCore x = []
 
 
 instance PlayCore CoreExpr where
