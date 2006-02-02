@@ -3,19 +3,26 @@ module Core.Reduce(reduce) where
 
 import Core.Type
 import List
+import Maybe
+import General.TextUtil
+import Numeric
+import Char
+
 
 reduce (Core x) = Core $ map f x
 
-f (CoreFunc a b) = CoreFunc (red a) (red b)
-f x = x
+f (CoreFunc a b) = CoreFunc (mapCore g a) (mapCore g b)
+    where
+        g (CoreCon x) = CoreCon (redName x)
+        g (CoreVar x) = CoreCon (redName x)
+        g x = x
 
-red (CoreCon x) = CoreCon (redName x)
-red (CoreVar x) = CoreVar (redName x)
-red (CoreApp x y) = CoreApp (red x) (map red y)
-red (CoreCase x y) = CoreCase (red x) (map (\(a,b) -> (red a, red b)) y)
-red (CoreLet x y) = CoreLet (map f x) (red y)
-red (CorePos x y) = CorePos x (red y)
-red x = x
+f (CoreData n x) = CoreData (redName n) (map g x)
+    where
+        g (CoreCtor n xs) = CoreCtor (redName n) (map h xs)
+        
+        h Nothing = Nothing
+        h (Just x) = Just (redName x)
 
 
 aliases = [
@@ -29,8 +36,19 @@ aliases = [
     ("Preamble.","")
     ]
 
-redName x = g aliases
+
+redName x | "YHC.Internal." `isPrefixOf` x = drop 13 x
+          | otherwise = concat $ intersperse "." $ mapMaybe g $ splitList "." x
     where
-        g ((find,rep):xs) | find `isPrefixOf` x = rep ++ drop (length find) x
-                          | otherwise = g xs
-        g [] = x
+        g "Preamble" = Nothing
+        g "Prelude" = Nothing
+        g "catch_any" = Just "_"
+        g x | "Preamble_Hex_" `isPrefixOf` x = Just $ makeHexStr $ drop 13 x
+        g x | "Preamble_" `isPrefixOf` x = Just $ drop 9 x
+        g x = Just x
+
+        makeHexStr [] = []
+        makeHexStr (a:b:c) = makeHexChr a b : makeHexStr c
+        
+        makeHexChr a b = chr x
+            where [(x,"")] = readHex [a,b]
