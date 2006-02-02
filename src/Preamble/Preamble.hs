@@ -43,7 +43,21 @@ catch_any = catch_any
 
 
 prim_STRING x = x
+
 prim_str = catch_any
+prim_EQ_W a b = catch_any
+prim_ORD a b = catch_any
+
+
+data Tup1 a1 = Tup1 {tup1_1 :: a1}
+data Tup2 a1 a2 = Tup2 {tup2_1 :: a1, tup2_2 :: a2}
+data Tup3 a1 a2 a3 = Tup3 {tup3_1 :: a1, tup3_2 :: a2, tup3_3 :: a3}
+data Tup4 a1 a2 a3 a4 = Tup4 {tup4_1 :: a1, tup4_2 :: a2, tup4_3 :: a3, tup4_4 :: a4}
+data Tup5 a1 a2 a3 a4 a5 = Tup5 {tup5_1 :: a1, tup5_2 :: a2, tup5_3 :: a3, tup5_4 :: a4, tup5_5 :: a5}
+data Tup6 a1 a2 a3 a4 a5 a6 = Tup6 {tup6_1 :: a1, tup6_2 :: a2, tup6_3 :: a3, tup6_4 :: a4, tup6_5 :: a5, tup6_6 :: a6}
+data Tup7 a1 a2 a3 a4 a5 a6 a7 = Tup7 {tup7_1 :: a1, tup7_2 :: a2, tup7_3 :: a3, tup7_4 :: a4, tup7_5 :: a5, tup7_6 :: a6, tup7_7 :: a7}
+data Tup8 a1 a2 a3 a4 a5 a6 a7 a8 = Tup8 {tup8_1 :: a1, tup8_2 :: a2, tup8_3 :: a3, tup8_4 :: a4, tup8_5 :: a5, tup8_6 :: a6, tup8_7 :: a7, tup8_8 :: a8}
+data Tup9 a1 a2 a3 a4 a5 a6 a7 a8 a9 = Tup9 {tup9_1 :: a1, tup9_2 :: a2, tup9_3 :: a3, tup9_4 :: a4, tup9_5 :: a5, tup9_6 :: a6, tup9_7 :: a7, tup9_8 :: a8, tup9_9 :: a9}
 
 
 
@@ -99,6 +113,8 @@ null _ = False
 -- Prelude.Bool
 --
 -- everything to do with booleans
+
+data Preamble_Bool = Preamble_False | Preamble_True
 
 True  || _ = True
 False || a = a
