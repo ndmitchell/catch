@@ -71,7 +71,7 @@ flip f x y  = f y x
 -- the List constructor is considered to be internal, and is special cased
 -- it really doesn't seem possible to write a custom one for MANY reasons
 
---   Preamble     [] 
+--   [] a = [] | : a [a]
 data Preamble_Hex_5B5D a = Preamble_Hex_5B5D | Preamble_Hex_3A {hd :: a, tl :: [a]}
 
 
