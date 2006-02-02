@@ -14,7 +14,7 @@ reduce (Core x) = Core $ map f x
 f (CoreFunc a b) = CoreFunc (mapCore g a) (mapCore g b)
     where
         g (CoreCon x) = CoreCon (redName x)
-        g (CoreVar x) = CoreCon (redName x)
+        g (CoreVar x) = CoreVar (redName x)
         g x = x
 
 f (CoreData n x) = CoreData (redName n) (map g x)
@@ -45,6 +45,7 @@ redName x | "YHC.Internal." `isPrefixOf` x = drop 13 x
         g "catch_any" = Just "_"
         g x | "Preamble_Hex_" `isPrefixOf` x = Just $ makeHexStr $ drop 13 x
         g x | "Preamble_" `isPrefixOf` x = Just $ drop 9 x
+        g ('(':xs) | last xs == ')' && all (== ',') (init xs) = Just $ "Tup" ++ show (length xs)
         g x = Just x
 
         makeHexStr [] = []
