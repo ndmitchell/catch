@@ -72,7 +72,7 @@ flip f x y  = f y x
 -- it really doesn't seem possible to write a custom one for MANY reasons
 
 --   Preamble     [] 
-data Preamble_Hex_5B5D a = Preamble_Hex_5B5D | Preamble_Hex_58 {hd :: a, tl :: [a]}
+data Preamble_Hex_5B5D a = Preamble_Hex_5B5D | Preamble_Hex_3A {hd :: a, tl :: [a]}
 
 
 head (x:xs) = x
