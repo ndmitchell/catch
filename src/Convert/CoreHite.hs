@@ -9,9 +9,15 @@ import Maybe
 
 
 coreHite :: Core -> Hite
-coreHite (Core xs) = Hite [] (concatMap convFunc xs)
+coreHite (Core xs) = fixData $ Hite (map convData datas) (concatMap convFunc funcs)
+    where (datas, funcs) = partition isCoreData xs
+
+
+isCoreData (CoreData _ _) = True
+isCoreData _ = False
 
 getName (CoreVar x) = x
+getName x = error $ "Convert.CoreHite.getName: pattern match failure, " ++ show x
 
 
 
@@ -37,6 +43,13 @@ letExpand x = mapCore f x
 
 
 
+convData :: CoreItem -> Data
+convData (CoreData dname ctors) = Data dname (map f ctors)
+    where
+        f (CoreCtor cname args) = Ctor cname (zipWith g [1..] args)
+            where
+                g n (Just x) = x
+                g n Nothing = dname ++ "_" ++ cname ++ "_" ++ show n
 
 
 convFunc :: CoreItem -> [Func]
