@@ -7,6 +7,7 @@ import List
 reduce (Core x) = Core $ map f x
 
 f (CoreFunc a b) = CoreFunc (red a) (red b)
+f x = x
 
 red (CoreCon x) = CoreCon (redName x)
 red (CoreVar x) = CoreVar (redName x)
