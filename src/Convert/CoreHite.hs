@@ -29,14 +29,12 @@ allReplace ren x = mapCore f x
                   Just a -> a
 
 
-
+-- Perform let expansion
 letExpand :: CoreExpr -> CoreExpr
 letExpand x = mapCore f x
     where
         f (CoreLet (x:xs) y) = f $ allReplace [g x] (CoreLet xs y)
         f (CoreLet []     y) = y
-        
---        error $ show (map g x) ++ "\n\n" ++ showCoreExpr y ++ "\n\n" ++ showCoreExpr (allReplace (map g x) y)
         f x = x
         
         g (CoreFunc (CoreApp x []) y) = (x,y)
@@ -52,17 +50,92 @@ convData (CoreData dname ctors) = Data dname (map f ctors)
                 g n Nothing = dname ++ "_" ++ cname ++ "_" ++ show n
 
 
+-- make all case on simple variables
+simpleCases :: CoreItem -> [CoreItem]
+simpleCases (CoreFunc (CoreApp name args) body) =
+        CoreFunc (CoreApp name args) r : rs
+    where
+        (r,rs) = f args body
+    
+        -- variables, expr
+        f :: [CoreExpr] -> CoreExpr -> (CoreExpr, [CoreItem])
+        f vars (CoreCase on opts) | isComplex on =
+                (CoreApp newCall (on:vars)
+                ,CoreFunc (CoreApp newCall (newArg:vars)) res
+                :rest)
+            where
+                (res,rest) = f (newArg:vars) (mapCore g $ CoreCase on opts)
+            
+                newCall = CoreVar $ getName name ++ "_CASE_" ++ show n
+                newArg = CoreVar $ "_case_" ++ show n
+                n = fromJust $ lookup on complexCases
+                
+                g x | x == on = newArg
+                    | otherwise = x
+        
+        f vars (CorePos _ x) = f vars x
+        
+        f vars (CoreCase on opts) = (CoreCase on (map fst res), concatMap snd res)
+            where
+                res = map g opts
+                
+                g (when,body) = ((when,a),b)
+                    where (a,b) = f ([x | x@(CoreVar _) <- allCore when] ++ vars) body
+        
+        f vars (CoreApp x xs) = (CoreApp x2 xs2, concatMap snd res)
+            where
+                x2:xs2 = map fst res
+                res = map (f vars) (x:xs)
+            
+        f vars x = (x, [])
+        
+        
+        complexCases = (`zip` [1..]) $ nub [on | CoreCase on _ <-  allCore body, isComplex on]
+        
+        isComplex (CoreVar _) = False
+        isComplex _ = True
+
+
+
+
 convFunc :: CoreItem -> [Func]
-convFunc (CoreFunc (CoreApp orig_name orig_args) bad_body) =
-        if null complexCases then
+convFunc (CoreFunc def body) = map f res
+    where
+        res = simpleCases (CoreFunc def (letExpand body))
+        
+        f (CoreFunc (CoreApp name args) body) =
+            Func (getName name) (map getName args) (convExpr (map g args) body) Star
+            
+        g (CoreVar x) = (x, Var x "")
+        
+
+{-        if null complexCases then
             [Func name args (convExpr ren body) Star]
         else
             [Func name args newBody Star,
-             Func newName allArgs (convExpr ren2 body2) Star]
-    where
-        body = letExpand bad_body
+             Func newName allArgs (convExpr ren2 body2) Star] -}
+{-    where
+        -- variables, expr
+        f :: (CoreExpr -> Func) -> [String] -> CoreExpr -> [Func]
+        f inClose vars (CoreCase on opts) | isComplex on =
+                inClose (Call (CallFunc newCall) (map (`Var` "") (newArg:vars))) :
+                f (\x -> Func newCall (newArg:vars) x Star) (newArg:vars) (convExpr $ mapCore g $ CoreCase on opts)
+            where
+                newCall = name ++ "_CASE_" ++ show n
+                newArg = "_case_" ++ show n
+                n = fromJust $ lookup on complexCases
+                
+                g x | True = Var newArg ""
+                    | otherwise = x
+        
+        body = letExpand orig_body
         name = getName orig_name
-        args = map getName orig_args
+        args = map getName orig_args -}
+        
+        {-
+        newName n = name ++ "_CASE"
+        
+    
         newName = name ++ "_CASE"
         newBody =
             Call (CallFunc newName)
@@ -75,11 +148,13 @@ convFunc (CoreFunc (CoreApp orig_name orig_args) bad_body) =
         
         newArgs = ["case_" ++ show n | n <- [1..length complexCases]]
         allArgs = args ++ newArgs
-        complexCases = nub $ concatMap g (allCore body)
+        -}
+        {-
+        complexCases = (`zip` [1..]) $ nub [on | CoreCase on _ <-  allCore body, isComplex on]
         
-        g (CoreCase (CoreVar _) _) = []
-        g (CoreCase x _) = [x]
-        g _ = []
+        isComplex (CoreVar _) = False
+        isComplex _ = True
+-}
 
 
 
