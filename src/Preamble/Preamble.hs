@@ -76,6 +76,7 @@ error msg = case [] of
 -- Just general small functions
 
 flip f x y  = f y x
+undefined = error ""
 
 
 
