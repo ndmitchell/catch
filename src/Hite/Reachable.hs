@@ -13,8 +13,10 @@ reachable name hite@(Hite datas funcs) = Hite aliveDatas aliveFuncs
     where
         aliveFuncNames = fixSet f [name]
         aliveFuncs = [x | x <- funcs, funcName x `elem` aliveFuncNames]
-        
-        aliveCtorNames = nub $ concat [fsts alts | y <- aliveFuncs, Case _ alts <- allExpr (body y)]
+
+        -- still misses data which is only used as a field selector        
+        aliveCtorNames = nub $ [x | y <- aliveFuncs, Make x _ <- allExpr (body y)] ++
+            concat [fsts alts | y <- aliveFuncs, Case _ alts <- allExpr (body y)]
         aliveDatas = [x | x <- datas, any (`elem` aliveCtorNames) (map ctorName (ctors x))]
         
         f x = [y | CallFunc y <- allExpr $ body $ getFunc x hite]
