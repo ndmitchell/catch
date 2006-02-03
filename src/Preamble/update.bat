@@ -1,1 +1,1 @@
-yhc Preamble.hs -corep 2> ../preamble.core
+yhc Preamble.hs -corep 2> Preamble.core
