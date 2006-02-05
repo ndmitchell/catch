@@ -1,6 +1,6 @@
 
 module Reqs.Type(
-    Req(..), Reqs
+    Req(..), Reqs, blurReqPath
     ) where
 
 import Pred.Type
@@ -18,3 +18,7 @@ data Req = Req {reqExpr :: Expr, reqPath :: Path String, reqCtors :: [CtorName],
 
 
 type Reqs = Pred Req
+
+
+blurReqPath :: Req -> Req
+blurReqPath (Req a b c d) = Req a (pathBlur b) c d

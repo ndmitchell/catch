@@ -34,10 +34,7 @@ caseCheck bad_hite = putStrLn $ f 0 output res
 
 
 
-simpler x = mapPredLit (predLit . blurReq) (reducePred x)
-
-
-blurReq (Req a b c Nothing) = Req a (pathBlur b) c Nothing
+simpler x = mapPredLit (predLit . blurReqPath) (reducePred x)
 
 
 
