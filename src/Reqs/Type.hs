@@ -13,11 +13,8 @@ import Char
 import List
 
 
-data Req = Req {reqExpr :: Expr, reqPath :: Path String, reqCtors :: [CtorName]}
-
-
-instance Eq Req where
-    (Req a1 b1 c1) == (Req a2 b2 c2) = (a1 == a2) && (b1 == b2) && (c1 == c2)
+data Req = Req {reqExpr :: Expr, reqPath :: Path String, reqCtors :: [CtorName], reqIn :: Maybe Expr}
+           deriving Eq
 
 
 type Reqs = Pred Req

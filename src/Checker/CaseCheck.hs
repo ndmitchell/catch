@@ -42,7 +42,7 @@ caseCheck bad_hite = putStrLn $ f 0 output res
 simpler x = mapPredLit (predLit . blurReq) (reducePred x)
 
 
-blurReq (Req a b c) = Req a (pathBlur b) c
+blurReq (Req a b c Nothing) = Req a (pathBlur b) c Nothing
 
 
 
@@ -58,11 +58,11 @@ addOut msg (r, o) = (r, msg:o)
 solve :: Hite -> [Req] -> Req -> State
 solve hite pending r | r `elem` pending = (predLit r, [])
 
-solve hite pending r@(Req _ path opts) | pathIsEmpty path = (predTrue, [])
+solve hite pending r@(Req _ path opts Nothing) | pathIsEmpty path = (predTrue, [])
 
-solve hite pending r@(Req (CallFunc "_") path opts) = (predFalse, [])
+solve hite pending r@(Req (CallFunc "_") path opts Nothing) = (predFalse, [])
 
-solve hite pending r@(Req (Var a b) path opts) 
+solve hite pending r@(Req (Var a b) path opts Nothing) 
     | b == "main" = (predLit r, [])
     | otherwise   = solvePending hite r pending $ propagate hite r
 
@@ -232,7 +232,7 @@ solveCase hite out c = do out $ "Initial: " ++ show c
 
 generate :: Hite -> Reqs
 generate hite = predAnd [predLit $
-        Req on pathLambda opts |
+        Req on pathLambda opts Nothing |
         c@(Case on alts) <- allExpr hite,
         opts <- [fsts alts],
         allOpts <- [map ctorName $ ctors $ getDataFromCtor (head opts) hite],
