@@ -57,32 +57,3 @@ instance Show Expr where
             
             h i alt Nothing = "( *** | " ++ f True i alt ++ ")"
             h i alt (Just x) = f True i x
-
-{-
-showData x = "data = " ++ concat (intersperse " | " x)
-
-showFunc (name, expr) = "\n" ++ name ++ " = " ++ showExpr id expr
-
-
-brack x = "(" ++ x ++ ")"
-
-
-showExpr b (Var name sels) = "#" ++ show name ++ concatMap (\x -> '.':show x) sels
-
-showExpr b (Call name args) = showExpr b (Make (showExpr brack name) args)
-
-showExpr b (Make name args) =
-    (if null args then id else b) $
-    name ++ concatMap (\x -> ' ': showExpr brack x) args
-    
-showExpr b (Case expr alts) =
-    "case " ++ showExpr brack expr ++ " of" ++
-    indent (concatMap (\(opt, val) -> "\n" ++ opt ++ " -> " ++ showExpr id val) alts)
-
-showExpr b (CallFunc x) = x
-    
-indent [] = []
-indent ('\n':xs) = '\n':'\t': indent xs
-indent (x   :xs) = x        : indent xs
-
--}
