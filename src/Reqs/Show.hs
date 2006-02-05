@@ -8,6 +8,8 @@ import Pred.Show
 import Pred.Type
 import General.General
 
+import RegExp.Parse -- why? i don't know why this is needed...
+
 import List
 import Maybe
 import Char

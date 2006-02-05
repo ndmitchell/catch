@@ -3,7 +3,6 @@ module Hite.Show() where
 
 import Hite.Type
 import List
-import RegExp.Parse
 
 
 instance Show Hite where
@@ -43,10 +42,8 @@ instance Show Expr where
             f b i (Bottom) = "_|_"
             f b i (RepeatNow) = "***"
             f b i (Repeat expr alt) = brack b $ f b i expr ++ " | " ++ f b i alt
-            f b i (Htap name args alt) = brack b $ concat $ intersperse " " $
-                                         (name : map (h i alt) args)
+
             f b i (Sel expr arg) = f True i expr ++ "." ++ arg
-            f b i (Path expr args) = f True i expr ++ "." ++ show args
             f b i (Make name args) = f b i (Call (CallFunc name) args)
             f b i (CallFunc name) = name
             f b i (Call (CallFunc name) []) = name

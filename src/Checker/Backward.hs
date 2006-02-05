@@ -51,17 +51,6 @@ backward hite (Req (Make x ys) path opts Nothing) = predAnd $ pre : zipWith f cA
               else
                   predTrue
 
-
-backward hite (Req orig@(Htap name args alt) path opts Nothing) = predAnd $
-    [
-        predLit $ Req alt path opts Nothing,
-        predLit $ Req (Make name (map f args)) path opts Nothing
-    ]
-    where
-        f Nothing = orig
-        f (Just x) = x
-
-
 backward hite (Req orig@(Repeat expr alt) path opts Nothing) = predAnd $
     [
         predLit $ Req alt path opts Nothing,

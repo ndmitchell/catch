@@ -7,7 +7,6 @@ module Hite.Type where
 
 import General.General
 import Maybe
-import RegExp.Type
 
 
 type FuncName = String
@@ -38,10 +37,6 @@ data Expr = Call {callFunc :: Expr, callArgs :: [Expr]}
           | Make {makeName :: CtorName, makeArgs :: [Expr]}
           | Case Expr [(CtorName, Expr)] -- case x of Cons a b, Nil -> Case "x" (Cons, ["a", "b"]), (Nil, [])
           
-          -- temporarily unused, lets kill regular expressions!
-          | Path {expr :: Expr, pathPath :: RegExp CtorArg}
-          | Htap CtorName [Maybe Expr] Expr -- backward path
-          
           -- constructor, list of arguments (nothing is recurse), expr is alt
           | Repeat {expr :: Expr, alt :: Expr}
           | RepeatNow
@@ -70,7 +65,6 @@ instance PlayExpr Expr where
         Make a bs -> Make a             (mapExpr f bs)
         Case a bs -> Case (mapExpr f a) (map (\(d,e) -> (d,mapExpr f e)) bs)
         Sel  a b  -> Sel  (mapExpr f a) b
-        Path a b  -> Path (mapExpr f a) b
         _ -> x
     
     allExpr x = x : concatMap allExpr (case x of
@@ -78,7 +72,6 @@ instance PlayExpr Expr where
             Make _ xs -> xs
             Case x xs -> x : map snd xs
             Sel  x _  -> [x]
-            Path x _  -> [x]
             _ -> []
         )
 
