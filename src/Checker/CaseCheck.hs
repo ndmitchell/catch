@@ -107,13 +107,9 @@ solves hite pending x =
         
         h (from, (final, out)) =
             (indent $ "+ " ++ show from) :
-            (indents $ indents $ out) ++
-            [indent $ indent $ show final]
+            (indent2 $ out) ++
+            [indent2 $ show final]
 
-
-
-indent x = "  " ++ x
-indents = map indent
 
 
 generate :: Hite -> Reqs

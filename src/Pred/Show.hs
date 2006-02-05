@@ -3,6 +3,7 @@ module Pred.Show where
 
 import Pred.Type
 import List
+import General.General
 
 instance Show a => Show (Pred a) where
     show x = showPred x
@@ -39,9 +40,7 @@ prettyPredBy showItem x = unlines $ f x
             PredAnd xs -> g '^' xs
 
         g sym xs | all isAtom xs = ["(" ++ (concat $ intersperse [' ',sym,' '] $ map (head . f) xs) ++ ")"]
-                 | otherwise = ["("] ++ (map indent $ concat $ intersperse [[sym]] $ map f xs) ++ [")"]
-        
-        indent x = "  " ++ x
+                 | otherwise = ["("] ++ (indent $ concat $ intersperse [[sym]] $ map f xs) ++ [")"]
         
         isAtom (PredOr  []) = True
         isAtom (PredAnd []) = True

@@ -78,3 +78,16 @@ remElem f a xs = g [] xs
 
 setEq :: Eq a => [a] -> [a] -> Bool
 setEq = setEqBy (==)
+
+
+
+class Indent a where
+    indent :: a -> a
+
+instance Indent String where
+    indent x = "  " ++ x
+
+instance Indent [String] where
+    indent x = map indent x
+
+indent2 x = indent (indent x)
