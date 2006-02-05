@@ -25,8 +25,8 @@ type Output = [String]
 caseCheck :: Hite -> IO ()
 caseCheck bad_hite = putStrLn $ f 0 output res 
     where
-        (res,output) = solves hite [] (generate hite)
-        hite = annotate bad_hite
+        (res,output) = solves hite [] (generateEnv hite $ generate hite)
+        hite = annotate $ normalise bad_hite
         
         f n [] res = "\nRESULT(" ++ show n ++ "):\n" ++ prettyReqs (simplifyReqsFull hite res)
         f n (x:xs) res | n > maxCompute = "\nNON TERMINATION"
@@ -56,7 +56,7 @@ solve hite pending r@(Req (CallFunc "_") path opts Nothing) = (predFalse, [])
 
 solve hite pending r@(Req (Var a b) path opts Nothing) 
     | b == "main" = (predLit r, [])
-    | otherwise   = solvePending hite r pending $ propagate hite r
+    | otherwise   = solvePending hite r pending $ generateEnv hite (predAnd [predLit r])
 
 solve hite pending r = solvePending hite r pending $ backward hite r
 
@@ -104,8 +104,8 @@ solves hite pending x =
         
         h (from, (final, out)) =
             (indent $ "+ " ++ show from) :
-            (indent2 $ out) ++
-            [indent2 $ show final]
+            (indents $ indents $ out) ++
+            [indent $ indent $ show final]
 
 
 
@@ -116,6 +116,16 @@ generate hite = predAnd [predLit $
         opts <- [fsts alts],
         allOpts <- [map ctorName $ ctors $ getDataFromCtor (head opts) hite],
         not $ null $ allOpts \\ opts]
+
+
+generateEnv :: Hite -> Reqs -> Reqs
+generateEnv hite xs = res
+    where
+        res = predAnd [predLit $ Req on path opts (Just (f name args)) |
+                    PredLit (Req on path opts _) <- fromAnd xs,
+                    Func name args _ _ <- funcs hite]
+        
+        f name args = Call (CallFunc name) (map (`Var` name) args) 
 
 
 
