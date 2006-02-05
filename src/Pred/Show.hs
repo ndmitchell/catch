@@ -40,7 +40,7 @@ prettyPredBy showItem x = unlines $ f x
             PredAnd xs -> g '^' xs
 
         g sym xs | all isAtom xs = ["(" ++ (concat $ intersperse [' ',sym,' '] $ map (head . f) xs) ++ ")"]
-                 | otherwise = ["("] ++ (indent $ concat $ intersperse [[sym]] $ map f xs) ++ [")"]
+                 | otherwise = ["("] ++ (indents $ concat $ intersperse [[sym]] $ map f xs) ++ [")"]
         
         isAtom (PredOr  []) = True
         isAtom (PredAnd []) = True
