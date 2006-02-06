@@ -48,7 +48,7 @@ addOut msg (r, o) = (r, msg:o)
 
 
 solve :: Hite -> [Req] -> Req -> State
-solve hite pending r | r `elem` pending = (predLit r, [])
+solve hite pending r | r `elem` pending = (predTrue, [])
 
 solve hite pending r@(Req _ path opts Nothing) | pathIsEmpty path = (predTrue, [])
 
@@ -62,10 +62,11 @@ solve hite pending r = solvePending hite r pending $ backward hite r
 
 
 solvePending :: Hite -> Req -> [Req] -> Reqs -> State
-solvePending hite p pending x
+solvePending hite p pending x -- addOut "here" s
         | predLit p == x = error $ "Circular reasoning, " ++ show p
-        | p `elem` allPredLit rs = addOut ("@ " ++ show (p, rs, rs2)) (rs2, os)
         | otherwise = s
+        -- | p `elem` allPredLit rs = addOut ("@ " ++ show (p, rs, rs2)) (rs2, os)
+        -- | otherwise = s
     where
         f r | r == p = predTrue
         f x = predLit x
