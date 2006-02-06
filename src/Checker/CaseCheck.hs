@@ -58,6 +58,9 @@ solve hite pending r@(Req (Var a b) path opts Nothing)
     | b == "main" = (predLit r, [])
     | otherwise   = solvePending hite r pending $ generateEnv hite (predAnd [predLit r])
 
+solve hite pending r@(Req (Call (Var a b) params) path opts Nothing) =
+    error $ "solve, todo: " ++ show r
+
 solve hite pending r = solvePending hite r pending $ backward hite r
 
 
