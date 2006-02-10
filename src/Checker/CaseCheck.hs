@@ -39,7 +39,11 @@ caseCheck bad_hite = putStrLn $ f 0 output res
 
 
 del_underscore :: Hite -> Hite
-del_underscore x = x{funcs = filter ((/= "_") . funcName) (funcs x)}
+del_underscore x = mapExpr f $ x{funcs = filter ((/= "_") . funcName) (funcs x)}
+    where
+        f (Call (CallFunc "_") []) = Bottom
+        f (CallFunc "_") = Bottom
+        f x = x
 
 
 simpler x = mapPredLit (predLit . blurReq) (reducePred x)
@@ -63,7 +67,7 @@ solve hite pending r | r `elem` pending = (predTrue, [])
 
 solve hite pending r@(Req _ path opts) | pathIsEmpty path = (predTrue, [])
 
-solve hite pending r@(Req (CallFunc "_") path opts) = (predFalse, [])
+solve hite pending r@(Req Bottom path opts) = (predFalse, [])
 
 solve hite pending r@(Req (Var a b) path opts) 
     | b == "main" = (predLit r, [])
