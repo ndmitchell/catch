@@ -48,7 +48,6 @@ prim_str = catch_any
 prim_EQ_W a b = catch_any
 prim_ORD a b = catch_any
 
-{-
 
 data Tup1 a1 = Tup1 {tup1_1 :: a1}
 data Tup2 a1 a2 = Tup2 {tup2_1 :: a1, tup2_2 :: a2}
@@ -60,7 +59,6 @@ data Tup7 a1 a2 a3 a4 a5 a6 a7 = Tup7 {tup7_1 :: a1, tup7_2 :: a2, tup7_3 :: a3,
 data Tup8 a1 a2 a3 a4 a5 a6 a7 a8 = Tup8 {tup8_1 :: a1, tup8_2 :: a2, tup8_3 :: a3, tup8_4 :: a4, tup8_5 :: a5, tup8_6 :: a6, tup8_7 :: a7, tup8_8 :: a8}
 data Tup9 a1 a2 a3 a4 a5 a6 a7 a8 a9 = Tup9 {tup9_1 :: a1, tup9_2 :: a2, tup9_3 :: a3, tup9_4 :: a4, tup9_5 :: a5, tup9_6 :: a6, tup9_7 :: a7, tup9_8 :: a8, tup9_9 :: a9}
 
--}
 
 ---------------------------------------------------------------------
 -- Prelude
@@ -126,7 +124,6 @@ not True = False
 not False = True
 
 
-{-
 
 ---------------------------------------------------------------------
 -- Prelude.Comparison
@@ -178,4 +175,3 @@ instance Prelude.Eq Int where
 
 instance Prelude.Ord Int where
     compare a b = catch_any
--}
