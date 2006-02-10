@@ -4,6 +4,86 @@ module Hite.Defunc(defunc) where
 import Hite.Type
 import Hite.Normalise
 
+import List
+import Maybe
+
+
+defunc :: Hite -> Hite
+defunc bad_hite = Hite (newData:datas) (newFuncs ++ oldFuncs)
+    where
+        newData = generateData hite items
+        oldFuncs = mapExpr f funcs
+        items = collectArities hite
+        hite@(Hite datas funcs) = arityRaise (normalise bad_hite)
+
+        f (Call (CallFunc x) xs) | lxs < args
+                = Make ("%Ap_" ++ x ++ "_" ++ show lxs) xs
+            where
+                args = length $ funcArgs $ getFunc x hite
+                lxs = length xs
+        f x@(Call (CallFunc _) _) = x
+        f (Call x xs) = Call (CallFunc $ "%ap" ++ show (length xs)) (x:xs)
+        f x = x
+        
+        
+        reqFuncs = [read xs :: Int | CallFunc ('%':'a':'p':xs) <- allExpr oldFuncs]
+        newFuncs = map g reqFuncs
+        
+        g n = Func ("%ap" ++ show n) ("f":args) (Case (Var "f" "") (concatMap f items)) Star
+            where
+                args = map (('x':) . show) [1..n]
+                
+                f (name,arity) | diff <= n = [("%Ap_" ++ name ++ "_" ++ show arity,
+                                   (if diff == n then
+                                       Call (CallFunc name) (map (`Var` "") args)
+                                   else
+                                       Bottom
+                                   ))]
+                    where
+                        real = length $ funcArgs $ getFunc name hite
+                        diff = real - arity
+                f _ = []
+        
+
+
+generateData :: Hite -> [(FuncName, Int)] -> Data
+generateData hite xs = Data "%Ap" (map f xs)
+    where
+        f (name, size) = Ctor t [t ++ "_" ++ show i | i <- [1..size]]
+            where t = "%Ap_" ++ name ++ "_" ++ show size
+
+
+
+-- find out which arities need generating
+collectArities :: Hite -> [(FuncName, Int)]
+collectArities hite = nub $ concatMap f items
+    where
+        items = nub $ [(x, length xs) | Call (CallFunc x) xs <- allExpr hite]
+        funs = [(x,length xs) | Func x xs _ _ <- funcs hite]
+        
+        f (name, args) = [(name, x) | x <- [args..i-1]]
+            where i = fromJust $ lookup name funs
+
+
+
+
+-- never Call (CallFunc x) args
+-- with more args than x expects
+-- can decurry these instances
+arityRaise :: Hite -> Hite
+arityRaise hite = mapExpr f hite
+    where
+        f (Call (CallFunc x) xs) | length xs > args
+                = Call (Call (CallFunc x) (take args xs)) (drop args xs)
+            where args = length $ funcArgs $ getFunc x hite
+        f x = x
+
+
+
+{-
+VERSION 1:
+Total defunctionalisation: good
+defunc's things that don't need to be: bad
 
 defunc :: Hite -> Hite
 defunc bad_hite = Hite (newData:datas) (newFuncs ++ mapExpr f funcs)
@@ -15,6 +95,7 @@ defunc bad_hite = Hite (newData:datas) (newFuncs ++ mapExpr f funcs)
         f (Call x xs ) = Call (CallFunc ("^ap" ++ show (length xs))) (x:xs)
         f (CallFunc x) = Make ("^Ap_" ++ x) []
         f x = x
+
 
 
 newItems :: Hite -> (Data, [Func])
@@ -45,3 +126,4 @@ newItems (Hite datas funcs) = (newData, newFunc : baseFunc : map stdFunc [2..mx+
             where
                 args = ['x' : show n | n <- [1..i+1]]
                 params = map (`Var` "") args
+-}
