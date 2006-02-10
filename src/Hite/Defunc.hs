@@ -26,7 +26,7 @@ defunc bad_hite = Hite (newData ++ datas) (newFuncs ++ oldFuncs)
         f x = x
         
         
-        reqFuncs = [read xs :: Int | CallFunc ('%':'a':'p':xs) <- allExpr oldFuncs]
+        reqFuncs = sort $ nub [read xs :: Int | CallFunc ('%':'a':'p':xs) <- allExpr oldFuncs]
         newFuncs = map g reqFuncs
         
         g n = Func ("%ap" ++ show n) ("f":args) (Case (Var "f" "") (concatMap f items)) Star
