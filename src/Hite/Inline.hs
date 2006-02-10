@@ -2,28 +2,34 @@
 module Hite.Inline(inline) where
 
 import Hite.Type
+import Hite.Normalise
+import Maybe
 
 
 inline :: Hite -> Hite
 inline hite = mapExpr f hite
     where
-        res = inlineable hite
+        res = inlineable (normalise hite)
         
-        f (CallFunc x) = case lookup x res of
-                             Just k -> CallFunc k
-                             Nothing -> CallFunc x
+        f (Call (CallFunc x) xs)
+                | x `elem` res && length xs == length args
+                = mapExpr g body
+            where
+                Func _ args body _ = getFunc x hite
+                ren = zip args xs
+                g (Var x _) = fromJust $ lookup x ren
+                g x = x
+
         f x = x
 
 
-
-inlineable :: Hite -> [(FuncName, FuncName)]
-inlineable hite = concatMap f (funcs hite)
+inlineable :: Hite -> [FuncName]
+inlineable hite = map funcName $ filter (f . body) (funcs hite)
     where
-        f (Func name args1 (Call (CallFunc x) args2) _)
-            | (length args1 == length args2) && and (zipWith g args1 args2) = [(name, x)]
-        f _ = []
+        f (Call (CallFunc _) xs) = all g xs
+        f (Call x xs) = all g (x:xs)
+        f x = g x
         
-        g s1 (Var s2 _) = s1 == s2
-        g _ _ = False
-
-
+        g (Var _ _) = True
+        g (Sel x _) = g x
+        g _ = False
