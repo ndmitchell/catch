@@ -18,7 +18,7 @@ unrollExpr r@(Repeat expr alt) =
 
 
 blurExpr :: Expr -> Expr
-blurExpr x = mapExpr f x
+blurExpr x = boundExpr hiteBlurMax $ mapExpr f x
     where
         f = blurToExpr . blurBlur . exprToBlur
 
@@ -31,6 +31,19 @@ data Blur = Raw Expr
           | Rep Mode String [Blur]
           deriving Eq
 
+
+boundExpr :: Int -> Expr -> Expr
+boundExpr 0 _ = Bottom
+boundExpr n x = case x of
+        (Call x xs) -> Call (f x) (fs xs)
+        (Make x xs) -> Make x (fs xs)
+        (Case on xs) -> Case on (map (\(a,b) -> (a, f b)) xs)
+        (Sel x y) -> Sel (f x) y
+        (Repeat x y) -> Repeat (f x) (f y)
+        x -> x
+    where
+        f x = boundExpr (n-1) x
+        fs = map f
 
 
 exprToBlur :: Expr -> Blur
