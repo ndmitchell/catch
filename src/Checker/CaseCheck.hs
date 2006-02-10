@@ -67,8 +67,6 @@ solve hite pending r | r `elem` pending = (predTrue, [])
 
 solve hite pending r@(Req _ path opts) | pathIsEmpty path = (predTrue, [])
 
-solve hite pending r@(Req Bottom path opts) = (predFalse, [])
-
 solve hite pending r@(Req (Var a b) path opts) 
     | b == "main" = (predLit r, [])
     | otherwise   = solvePending hite r pending $ propagate hite r

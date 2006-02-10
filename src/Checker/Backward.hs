@@ -14,11 +14,8 @@ backward hite (Req (Var a b) path opts) = predLit $ Req (Var a b) path opts
 
 backward hite (Req (Sel a b) path opts) = predLit $ Req a (pathIntegrate b path) opts
 
-backward hite (Req (Call (CallFunc "_") []) path opts) = predFalse
-
-{-
-backward hite (Req (Path a p1) p2 opts) = predLit $ Req a (regConcat [p1, p2]) opts
--}
+backward hite (Req Bottom path opts) = predFalse
+backward hite (Req (Call Bottom []) path opts) = predFalse
 
 backward hite (Req (Call (CallFunc name) params) path opts) =
         if length params == length args then
@@ -67,6 +64,12 @@ backward hite (Req orig@(Repeat expr alt) path opts) = predAnd $
         
 -- backward hite (Req Bottom path opts) = predTrue
 
+
+backward hite all@(Req a b c) = error $ show all ++ ": " ++ case a of
+    Call x xs -> "call" ++ show (x,xs)
+    CallFunc x -> "callfunc"
+    Make x xs -> "make"
+    _ -> "other"
 
 backward hite a = error $ "Backward: " ++ show a
 
