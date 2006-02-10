@@ -15,12 +15,19 @@ reachable name hite@(Hite datas funcs) = Hite aliveDatas aliveFuncs
         aliveFuncs = [x | x <- funcs, funcName x `elem` aliveFuncNames]
 
         -- still misses data which is only used as a field selector        
-        aliveCtorNames = nub $ [x | y <- aliveFuncs, Make x _ <- allExpr (body y)] ++
-            concat [fsts alts | y <- aliveFuncs, Case _ alts <- allExpr (body y)]
-        aliveDatas = [x | x <- datas, any (`elem` aliveCtorNames) (map ctorName (ctors x))]
+        aliveCtorNames = nub $ concatMap g $ concatMap (allExpr . body) aliveFuncs
+        
+        g (Make x _) = [x]
+        g (Case _ alts) = fsts alts
+        g (Sel _ path) = [ctorName $ getCtorFromArg path hite]
+        g _ = []
+        
+        aliveDatas = concatMap h datas
+        
+        h (Data x xs) = if null xs2 then [] else [Data x xs2]
+            where xs2 = filter (\y -> ctorName y `elem` aliveCtorNames) xs
         
         f x = [y | CallFunc y <- allExpr $ body $ getFunc x hite]
-
 
 
 
