@@ -14,6 +14,8 @@ backward hite (Req (Var a b) path opts) = predLit $ Req (Var a b) path opts
 
 backward hite (Req (Sel a b) path opts) = predLit $ Req a (pathIntegrate b path) opts
 
+backward hite (Req (Call (CallFunc "_") []) path opts) = predFalse
+
 {-
 backward hite (Req (Path a p1) p2 opts) = predLit $ Req a (regConcat [p1, p2]) opts
 -}
