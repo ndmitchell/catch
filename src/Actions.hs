@@ -30,6 +30,7 @@ cmdLine = [
             CmdLine "preamble" OptCore OptCore (const preamble) "Add preamble definitions",
             CmdLine "prepare" OptCore OptHite (const prepare) "Prepare a file for checking",
             CmdLine "example" OptInputs OptHite (const example) "Read in an example",
+            CmdLine "active" OptInputs OptHite (const active) "Perform standard transformations",
             CmdLine "case" OptHite OptAction (const runCaseCheck) "Case check a file"
         ]
     where
@@ -92,3 +93,20 @@ runCaseCheck (DatHite h) =
 example (DatInputs [x]) = 
     do src <- readFile $ "Example/" ++ x ++ ".hs.core"
        prepare (DatCore (readCore src))
+
+
+active (DatInputs [x]) = 
+    do src <- readFile $ "Example/" ++ x ++ ".hs.core"
+       DatCore a <- preamble (DatCore (readCore src))
+       return $
+                wrap (reachable "main") $
+                wrap defunc $
+                wrap (reachable "main") $
+                wrap inline $ 
+                wrap (reachable "main") $
+                wrap errorFail $
+                wrap shortName $
+                DatHite (coreHite a)
+    where
+        wrap f (DatHite x) = DatHite (f x)
+
