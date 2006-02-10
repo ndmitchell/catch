@@ -31,12 +31,15 @@ caseCheck :: Hite -> IO ()
 caseCheck bad_hite = putStrLn $ f 0 output res 
     where
         (res,output) = solves hite [] (generate hite)
-        hite = annotate bad_hite
+        hite = annotate $ del_underscore bad_hite
         
         f n [] res = "\nRESULT(" ++ show n ++ "):\n" ++ prettyReqs (simplifyReqsFull hite res)
         f n (x:xs) res | n > maxCompute = "\nNON TERMINATION"
                        | otherwise = x ++ "\n" ++ f (n+1) xs res
 
+
+del_underscore :: Hite -> Hite
+del_underscore x = x{funcs = filter ((/= "_") . funcName) (funcs x)}
 
 
 simpler x = mapPredLit (predLit . blurReq) (reducePred x)
