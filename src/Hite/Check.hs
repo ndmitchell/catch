@@ -2,6 +2,7 @@
 module Hite.Check(check) where
 
 import Hite.Type
+import Hite.Show
 import List
 import General.General
 
