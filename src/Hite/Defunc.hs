@@ -9,9 +9,9 @@ import Maybe
 
 
 defunc :: Hite -> Hite
-defunc bad_hite = Hite (newData:datas) (newFuncs ++ oldFuncs)
+defunc bad_hite = Hite (newData ++ datas) (newFuncs ++ oldFuncs)
     where
-        newData = generateData hite items
+        newData = if null items then [] else [generateData hite items]
         oldFuncs = mapExpr f funcs
         items = collectArities hite
         hite@(Hite datas funcs) = arityRaise (normalise bad_hite)
