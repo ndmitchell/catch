@@ -16,15 +16,13 @@ import Char
 
 
 instance Show Req where
-    show (Req expr regs opts within) =
-        "<" ++ inline (show expr) ++ "," ++ show regs ++ "," ++ strSet opts ++ ">" ++ f within
+    show r = case r of
+            (Req expr regs opts) -> "<" ++ inline (show expr) ++ "," ++ show regs ++ "," ++ strSet opts ++ ">"
+            (ReqEnv expr regs opts within) -> show (Req expr regs opts) ++ "(" ++ inline (show within) ++ ")"
         where
             inline x = case lines x of
                             [x] -> x
                             xs -> "{" ++ (concat $ intersperse "; " $ map (dropWhile isSpace) xs) ++ "}"
-
-            f Nothing = ""
-            f (Just x) = "(" ++ inline (show x) ++ ")"
 
 
 
@@ -43,7 +41,7 @@ prettyReqs reqs = unlines (map g reps) ++
 
     
         f :: Req -> String
-        f (Req expr regs opts Nothing) =
+        f (Req expr regs opts) =
             (fromJust $ lookup expr rens) ++
             (if pathIsLambda regs then "" else "." ++ pathPretty regs) ++
             strSet opts

@@ -11,7 +11,7 @@ import Options
 propagate :: Hite -> Req -> Reqs
 propagate a b | propagateSimp = propagateSimple a b
 
-propagate hite r@(Req (Var arg name) path set Nothing) = 
+propagate hite r@(Req (Var arg name) path set) = 
         predAnd $ concatMap (f predFalse . body) $ funcs $ callOne hite
     where
         pos = getArgPos name arg hite
@@ -22,12 +22,12 @@ propagate hite r@(Req (Var arg name) path set Nothing) =
                 concatMap (f hist) args ++
                 case callArg c pos of
                     Nothing -> error $ "unsaturated: " ++ show (length args, c) -- [predOr [hist, predFalse]] -- unsaturued use of partial app
-                    Just x -> [predOr [hist, predLit $ Req x path set Nothing]]
+                    Just x -> [predOr [hist, predLit $ Req x path set]]
                     
         f hist (Case on alts) = concatMap g alts
             where
                 allCtor = map ctorName $ ctors $ getDataFromCtor (fst $ head alts) hite
-                g (typ, expr) = f (predOr [hist, predLit $ Req on pathLambda (allCtor \\ [typ]) Nothing]) expr
+                g (typ, expr) = f (predOr [hist, predLit $ Req on pathLambda (allCtor \\ [typ])]) expr
                 
         
         f hist x = concatMap (f hist) $ case x of
@@ -53,7 +53,7 @@ callOne hite = mapExpr f hite
 
 
 propagateSimple :: Hite -> Req -> Reqs
-propagateSimple hite (Req (Var arg name) path set Nothing) = 
+propagateSimple hite (Req (Var arg name) path set) = 
         predAnd $ concatMap f $ allExpr $ callOne hite
     where
         pos = getArgPos name arg hite
@@ -62,7 +62,7 @@ propagateSimple hite (Req (Var arg name) path set Nothing) =
                 case callArg c pos of
                     Nothing -> [predFalse ] {- $ "Unsaturated use of partial function, " ++ name ++
                                            " (wanted " ++ show pos ++ ")"] -}
-                    Just x -> [predLit $ Req x path set Nothing]
+                    Just x -> [predLit $ Req x path set]
 
         f _ = []
 

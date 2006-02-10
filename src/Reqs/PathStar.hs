@@ -25,6 +25,8 @@ import Star.Show
 import Star.Blur
 import Star.Convert
 
+import RegExp.Parse
+
 type Path a = Star a
 
 
