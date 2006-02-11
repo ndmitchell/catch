@@ -46,10 +46,7 @@ del_underscore x = mapExpr f $ x{funcs = filter ((/= "_") . funcName) (funcs x)}
         f x = x
 
 
-simpler x = mapPredLit (predLit . blurReq) (reducePred x)
-
-
-blurReq (Req a b c) = Req a (pathBlur b) c
+simpler x = blurReqsPath (reducePred x)
 
 
 
@@ -69,7 +66,25 @@ solve hite pending r@(Req _ path opts) | pathIsEmpty path = (predTrue, [])
 
 solve hite pending r@(Req (Var a b) path opts) 
     | b == "main" = (predLit r, [])
+    | b == "*"    = (predLit r, [])
     | otherwise   = solvePending hite r pending $ propagate hite r
+
+solve hite pending (ReqAll on within) = (r2, o2 ++ o)
+        -- ( {- if allStar then propagateAll destar else -} propagate hite destar, o)
+    where
+        (r2,o2) = solves hite pending destar
+    
+        (r,o) = solves hite pending within
+        allStar = all f (allPredLit r)
+        
+        f (Req (Var _ "*") _ _) = True
+        f _ = False
+        
+        destar = mapPredLit (predLit . g) r
+        
+        g (Req (Var x "*") y z) = Req (Var x on) y z
+        g x = x
+    
 
 solve hite pending r = solvePending hite r pending $ backward hite r
 
@@ -235,25 +250,27 @@ generate = if propagateSimp then generateSimp else generateComplex
 
 
 generateComplex :: Hite -> Reqs
-generateComplex hite = predAnd $ concatMap (f predFalse . body) $ funcs hite
+generateComplex hite = predAnd $ concatMap (\(Func name _ body _) -> f name predFalse (mapExpr str body)) $ funcs hite
     where
-        f :: Reqs -> Expr -> [Reqs]
-        f hist (Case on alts) = newItem ++ concatMap g alts
+        f :: FuncName -> Reqs -> Expr -> [Reqs]
+        f name hist (Case on alts) = newItem ++ concatMap g alts
             where
                 allCtor = map ctorName $ ctors $ getDataFromCtor (fst $ head alts) hite
                 
                 newItem = if map fst alts `setEq` allCtor then [] else
-                          [predOr [hist, predLit $ Req on pathLambda (map fst alts)]]
+                          [predLit $ ReqAll name $ predOr [hist, predLit $ Req on pathLambda (map fst alts)]]
                 
-                g (typ, expr) = f (predOr [hist, predLit $ Req on pathLambda (allCtor \\ [typ])]) expr
+                g (typ, expr) = f name (predOr [hist, predLit $ Req on pathLambda (allCtor \\ [typ])]) expr
                 
         
-        f hist x = concatMap (f hist) $ case x of
+        f name hist x = concatMap (f name hist) $ case x of
             Call x xs -> x : xs
             Make _ xs -> xs
             Sel x _ -> [x]
             _ -> []
 
+        str (Var x y) = Var x "*"
+        str x = x
 
 
 generateSimp :: Hite -> Reqs

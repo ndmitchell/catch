@@ -19,6 +19,7 @@ instance Show Req where
     show r = case r of
             (Req expr regs opts) -> "<" ++ inline (show expr) ++ "," ++ show regs ++ "," ++ strSet opts ++ ">"
             (ReqEnv expr regs opts within) -> show (Req expr regs opts) ++ "(" ++ inline (show within) ++ ")"
+            (ReqAll on within) -> "(\\forall " ++ on ++ ", " ++ show within ++ ")"
         where
             inline x = case lines x of
                             [x] -> x
