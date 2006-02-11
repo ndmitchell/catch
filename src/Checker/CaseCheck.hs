@@ -231,7 +231,33 @@ solveCase hite out c = do out $ "Initial: " ++ show c
 
 
 generate :: Hite -> Reqs
-generate hite = predAnd [predLit $
+generate = if propagateSimp then generateSimp else generateComplex
+
+
+generateComplex :: Hite -> Reqs
+generateComplex hite = predAnd $ concatMap (f predFalse . body) $ funcs hite
+    where
+        f :: Reqs -> Expr -> [Reqs]
+        f hist (Case on alts) = newItem ++ concatMap g alts
+            where
+                allCtor = map ctorName $ ctors $ getDataFromCtor (fst $ head alts) hite
+                
+                newItem = if map fst alts `setEq` allCtor then [] else
+                          [predOr [hist, predLit $ Req on pathLambda (map fst alts)]]
+                
+                g (typ, expr) = f (predOr [hist, predLit $ Req on pathLambda (allCtor \\ [typ])]) expr
+                
+        
+        f hist x = concatMap (f hist) $ case x of
+            Call x xs -> x : xs
+            Make _ xs -> xs
+            Sel x _ -> [x]
+            _ -> []
+
+
+
+generateSimp :: Hite -> Reqs
+generateSimp hite = predAnd [predLit $
         Req on pathLambda opts |
         c@(Case on alts) <- allExpr hite,
         opts <- [fsts alts],
