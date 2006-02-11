@@ -13,36 +13,50 @@ import Constraint
 import Options
 
 
-import Debug.Trace
-
-traceThis x = x -- trace ("{O{" ++ show x ++ "}C}") x
-
-
 type Output = [String]
 
 
+
+---------------------------------------------------------------------
+-- DRIVER
 
 caseCheck :: Hite -> IO ()
 caseCheck bad_hite = putStrLn $ f 0 output res 
     where
         (res,output) = solves hite [] (generate hite)
-        hite = annotate $ del_underscore bad_hite
+        hite = annotateVar $ removeUnderscore bad_hite
         
         f n [] res = "\nRESULT(" ++ show n ++ "):\n" ++ prettyReqs (simplifyReqsFull hite res)
         f n (x:xs) res | n > maxCompute = "\nNON TERMINATION"
                        | otherwise = x ++ "\n" ++ f (n+1) xs res
 
 
-del_underscore :: Hite -> Hite
-del_underscore x = mapExpr f $ x{funcs = filter ((/= "_") . funcName) (funcs x)}
+---------------------------------------------------------------------
+-- HITE MANIPULATORS
+
+-- remove all _ calls, replace them with _|_ instead
+removeUnderscore :: Hite -> Hite
+removeUnderscore x = mapExpr f $ x{funcs = filter ((/= "_") . funcName) (funcs x)}
     where
         f (Call (CallFunc "_") []) = Bottom
         f (CallFunc "_") = Bottom
         f x = x
 
 
-simpler x = blurReqsPath (reducePred x)
+-- and annotations as to which function each variable is in
+annotateVar :: Hite -> Hite
+annotateVar h = mapFunc f h
+    where
+        f (Func name args body k) = Func name args (mapExpr (g name) body) k
+        g name (Var x y) = Var x name
+        g name x = x
 
+
+---------------------------------------------------------------------
+-- UTILITY FUNCTIONS
+
+
+simpler x = blurReqsPath (reducePred x)
 
 
 type State = (
@@ -52,6 +66,10 @@ type State = (
 
 addOut :: String -> State -> State
 addOut msg (r, o) = (r, msg:o)
+
+
+---------------------------------------------------------------------
+-- CORE FUNCTIONS
 
 
 solve :: Hite -> [Req] -> Req -> State
@@ -145,6 +163,8 @@ solves hite pending x =
             [indent $ indent $ show final]
 
 
+---------------------------------------------------------------------
+-- GENERATION FUNCTIONS
 
 generate :: Hite -> Reqs
 generate = if propagateSimp then generateSimp else generateComplex
@@ -182,13 +202,4 @@ generateSimp hite = predAnd [predLit $
         allOpts <- [map ctorName $ ctors $ getDataFromCtor (head opts) hite],
         not $ null $ allOpts \\ opts]
 
-
-
--- and annotations as to which function each variable is in
-annotate :: Hite -> Hite
-annotate h = mapFunc f h
-    where
-        f (Func name args body k) = Func name args (mapExpr (g name) body) k
-        g name (Var x y) = Var x name
-        g name x = x
 
