@@ -72,6 +72,66 @@ addOut msg (r, o) = (r, msg:o)
 -- CORE FUNCTIONS
 
 
+data Trace = Trace String | Indent | Outdent
+
+
+
+
+-- take a bit Reqs, and a function for solving a single Req
+-- and piece it all together
+solveReqsWith :: Hite -> (Req -> (Reqs, [Trace])) -> Reqs -> (Reqs, [Trace])
+solveReqsWith hite func xs =
+        case simpler xs of
+             PredLit x -> let (a,b) = func x in (a, Trace ("* " ++ show x) : b)
+             x | null (allPredLit x) -> (x, [])
+             xs -> f xs
+    where
+        f xs = (res, outF ++ outM ++ outL)
+            where
+                reqs = nub $ allPredLit xs
+                mids = map func reqs
+                rens = zip reqs (map fst mids)
+                res1 = simpler $ mapPredLit (g rens) xs
+                res = simplifyMid hite res1
+            
+                outF = [Trace ("+ " ++ show xs), Indent]
+                outM = concatMap h (zip reqs mids)
+                outL = [Outdent, Trace ("- " ++ show res)]  -- ++ " was (" ++ show res1 ++ ")"
+
+
+        g ren r = case lookup r ren of
+                      Just x -> x
+                      Nothing -> predLit r -- has already been replaced once
+                              -- sometimes mapPredLit traverses twice
+        
+        h (from, (final, out)) =
+            [Trace ("+ " ++ show from), Indent] ++ out ++ [Outdent, Trace ("- " ++ show final)]
+
+
+
+
+-- take a Reqs on anything, replace it with one whose only literals
+-- are Var's, and possible ReqAll's
+solveReqsToVar :: Hite -> [Req] -> Reqs -> (Reqs, [Trace])
+solveReqsToVar hite pending xs = solveReqsWith hite (solveReqToVar hite pending) xs
+
+solveReqToVar :: Hite -> [Req] -> Req -> (Reqs, [Trace])
+solveReqToVar hite pending x = case x of
+    (Req (Var a b) _ _) -> (predLit x, [])
+    (ReqAll on within) -> let (a,b) = solveReqsToVar hite pending within in (predLit $ ReqAll on a, b)
+    (Req _ path opts) | pathIsEmpty path -> (predTrue, [])
+    r | r `elem` pending -> (predTrue, [])
+    r -> let (a,b) = solveReqsToVar hite (r:pending) (backward hite r) in (a, b)
+    
+    
+        
+
+solveReqOnVar :: Hite -> [Req] -> Reqs
+
+
+
+
+
 solve :: Hite -> [Req] -> Req -> State
 solve hite pending r | r `elem` pending = (predTrue, [])
 
