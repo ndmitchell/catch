@@ -21,15 +21,19 @@ type Output = [String]
 -- DRIVER
 
 caseCheck :: Hite -> IO ()
-caseCheck bad_hite = putStrLn $ f 0 output res 
+caseCheck bad_hite = do res <- reduce hite (generate hite)
+                        putStrLn $ "\nRESULT:\n" ++
+                                   prettyReqs (simplifyReqsFull hite res)
     where
-        (res,output) = solves hite [] (generate hite)
         hite = annotateVar $ removeUnderscore bad_hite
+
+{-
+        (res,output) = solves hite [] (generate hite)
         
-        f n [] res = "\nRESULT(" ++ show n ++ "):\n" ++ prettyReqs (simplifyReqsFull hite res)
+        f n [] res = 
         f n (x:xs) res | n > maxCompute = "\nNON TERMINATION"
                        | otherwise = x ++ "\n" ++ f (n+1) xs res
-
+-}
 
 ---------------------------------------------------------------------
 -- HITE MANIPULATORS
@@ -73,6 +77,119 @@ addOut msg (r, o) = (r, msg:o)
 
 
 data Trace = Trace String | Indent | Outdent
+
+
+type Depth = Int
+
+output :: Depth -> String -> IO ()
+output depth msg = putStrLn $ replicate (depth*2) ' ' ++ msg
+
+
+reduce :: Hite -> Reqs -> IO Reqs
+reduce hite x = reduceMany hite [] 0 x
+
+
+reduceOne :: Hite -> [Req] -> Bool -> Depth -> Req -> IO Reqs
+reduceOne hite pending supress depth x =
+    do
+        if supress then return () else output depth (show x)
+        case x of
+            r | r `elem` pending -> do output depth "True -- Pending tied back"
+                                       return predTrue
+
+            (Req (Var a b) _ _) -> 
+                if b == "*" || b == "main" then
+                    return $ predLit x
+                else
+                    onwards $ propagate hite x
+
+            (Req _ path opts) | pathIsEmpty path -> return predTrue
+    
+            
+            (ReqAll on within) -> do x <- reduceMany hite pending depth within
+                                     if on == "main" then
+                                         return $ mapPredLit starToMain x
+                                      else
+                                         reduceMany hite (allPredLit x ++ pending) depth $ propagateAll hite on within
+
+            r -> onwards $ backward hite r
+    where
+        onwards = reduceMany hite p2 depth
+            where
+                p2 = case x of
+                    Req _ _ _ -> x : pending
+                    _ -> pending
+
+        starToMain (Req on path opts) = predLit $ Req (mapExpr f on) path opts
+        f (Var x "*") = Var x "main"
+        f x = x
+
+
+
+reduceMany :: Hite -> [Req] -> Depth -> Reqs -> IO Reqs
+reduceMany hite pending depth xs =
+        case simpler xs of
+             PredLit x -> reduceOne hite pending False depth x
+             x | null (allPredLit x) -> return x
+             xs -> f xs
+    where
+        f xs =
+            do
+                let reqs = nub $ allPredLit xs
+                output depth ("+ " ++ show xs)
+                reqs2 <- mapM g reqs
+                let ren = zip reqs reqs2
+                    res = simplifyMid hite $ simpler $ mapPredLit (rename ren) xs
+                output depth ("- " ++ show res)
+                return res
+
+        g x = do output (depth+1) ("+ " ++ show x)
+                 res <- reduceOne hite pending True (depth+2) x
+                 output (depth+1) ("- " ++ show res)
+                 return res
+
+
+        rename ren r = case lookup r ren of
+                          Just x -> x
+                          Nothing -> predLit r -- has already been replaced once
+                                  -- sometimes mapPredLit traverses twice
+
+simplifyMid hite x = if simplifyRegular then simplifyReqs False hite x else x
+
+
+{-
+
+-- reduce and reduces
+-- both change so resulting predicate is only on Var main and *
+
+-- perform all required
+reduce :: Hite -> [Req] -> Depth -> Req -> IO Reqs
+reduce hite pending depth x = case x of
+    
+    (Req _ path opts) | pathIsEmpty path -> predTrue
+    
+    r | r `elem` pending -> do output depth "* True -- Pending tied back"
+                               return predTrue
+    
+    r -> do 
+    
+    let (a,b) = solveReqsToVar hite (r:pending) (backward hite r) in (a, b)
+
+
+
+-- perform exactly one reduction step
+reduceOne :: Hite -> Req -> OutputMonad Reqs
+solveReqToVar :: Hite -> [Req] -> Req -> (Reqs, [Trace])
+solveReqToVar hite pending x = case x of
+    (Req (Var a b) _ _) -> (predLit x, [])
+    (ReqAll on within) -> let (a,b) = solveReqsToVar hite pending within in (predLit $ ReqAll on a, b)
+    (Req _ path opts) | pathIsEmpty path -> (predTrue, [])
+    r | r `elem` pending -> (predTrue, [])
+    r -> let (a,b) = solveReqsToVar hite (r:pending) (backward hite r) in (a, b)
+
+
+
+
 
 
 
@@ -127,7 +244,7 @@ solveReqToVar hite pending x = case x of
         
 
 solveReqOnVar :: Hite -> [Req] -> Reqs
-
+solveReqOnVar = undefined
 
 
 
@@ -143,7 +260,7 @@ solve hite pending r@(Req (Var a b) path opts)
     | otherwise   = solvePending hite r pending $ propagate hite r
 
 solve hite pending (ReqAll on within) = (r2, o2 ++ o)
-        -- ( {- if allStar then propagateAll destar else -} propagate hite destar, o)
+        -- ( - if allStar then propagateAll destar else - propagate hite destar, o)
     where
         (r2,o2) = solves hite pending destar
     
@@ -173,7 +290,7 @@ solvePending hite p pending x
         
         s@(rs, os) = solves hite (p:pending) x
         rs2 = mapPredLit f rs
-    
+    -}
     {-
         pl = predLit p
         
@@ -188,8 +305,7 @@ solvePending hite p pending x
             | otherwise = trace ("PENDING: " ++ show p ++ "\nORIGINAL: " ++ show rs ++ "\nFIXED: " ++ show x) (x, os)
       -}
 
-
-simplifyMid hite x = if simplifyRegular then simplifyReqs False hite x else x
+{-
 
 
 solves :: Hite -> [Req] -> Reqs -> State
@@ -221,13 +337,14 @@ solves hite pending x =
             (indent $ "+ " ++ show from) :
             (indents $ indents $ out) ++
             [indent $ indent $ show final]
+-}
 
 
 ---------------------------------------------------------------------
 -- GENERATION FUNCTIONS
 
 generate :: Hite -> Reqs
-generate = if propagateSimp then generateSimp else generateComplex
+generate = if propagateSimp || True then generateSimp else generateComplex
 
 
 generateComplex :: Hite -> Reqs

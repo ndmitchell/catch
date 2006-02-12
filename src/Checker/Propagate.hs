@@ -1,11 +1,40 @@
 
 
-module Checker.Propagate(propagate) where
+module Checker.Propagate(propagate, propagateAll) where
 
 import Hite
 import Constraint
 import List
 import Options
+
+import Maybe
+
+
+
+findCallsHistory :: Hite -> (Expr -> Maybe Reqs) -> [Reqs]
+findCallsHistory hite check = concatMap (f predFalse . body) $ funcs hite
+    where
+        f :: Reqs -> Expr -> [Reqs]
+        f hist x = newItem ++ g x
+        
+        
+            where
+                newItem = case check x of
+                              Nothing -> []
+                              Just y -> [predOr [hist, y]]
+            
+                g (Case on alts) = concatMap h alts
+                    where
+                        allCtor = map ctorName $ ctors $ getDataFromCtor (fst $ head alts) hite
+                        h (typ, expr) = f (predOr [hist, predLit $ Req on pathLambda (allCtor \\ [typ])]) expr
+
+                g x = concatMap (f hist) $ case x of
+                        Call x xs -> x : xs
+                        Make _ xs -> xs
+                        Sel x _ -> [x]
+                        _ -> []
+
+
 
 
 propagate :: Hite -> Req -> Reqs
@@ -39,6 +68,30 @@ propagate hite r@(Req (Var arg name) path set) =
 
 
 propagate hite req = error $ "Internal error, complex pattern as subject of req: " ++ show req
+
+
+propagateAll :: Hite -> FuncName -> Reqs -> Reqs
+propagateAll hite on reqs =
+        predAnd $ map reAll $ findCallsHistory hite f
+    where
+        f c@(Call (CallFunc n) args) | n == on = Just $ mapPredLit g reqs
+            where
+                g (Req (Var n "*") path opts) = predLit $ Req (fromJust $ callArg c pos) path opts
+                    where pos = getArgPos on n hite
+                g x = predLit x
+        f _ = Nothing
+
+        reAll x | null names = x
+                | otherwise = predLit $ ReqAll (head names) (mapPredLit f x)
+            where
+                names = [y | Req xs _ _ <- allPredLit x, Var _ y <- allExpr xs]
+            
+                f (Req a b c) = predLit $ Req (mapExpr g a) b c
+
+                g (Var x y) = Var x "*"
+                g x = x
+
+
 
 
 

@@ -10,8 +10,6 @@ import General.General
 
 backward :: Hite -> Req -> Reqs
 
-backward hite (Req (Var a b) path opts) = predLit $ Req (Var a b) path opts
-
 backward hite (Req (Sel a b) path opts) = predLit $ Req a (pathIntegrate b path) opts
 
 backward hite (Req Bottom path opts) = predFalse
@@ -61,8 +59,6 @@ backward hite (Req orig@(Repeat expr alt) path opts) = predAnd $
         predLit $ Req (unrollExpr orig) path opts
     ]
 
-        
--- backward hite (Req Bottom path opts) = predTrue
 
 
 backward hite all@(Req a b c) = error $ show all ++ ": " ++ case a of
