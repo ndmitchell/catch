@@ -11,6 +11,7 @@ unrollExpr r@(Repeat expr alt) =
         Make x xs -> Make x (map f xs)
         Call x xs -> Call x (map f xs)
         Sel  x y  -> Sel  (f x) y
+        Bottom -> Bottom
     where
         f RepeatNow = r
         f x = x
@@ -99,12 +100,15 @@ blurDepth (Rep m n xs) pos =
 isRepeat :: Blur -> Int -> Bool
 isRepeat (Rep m n xs) pos =
     case xs !! pos of
-        Raw (Repeat expr alt) | m == m2 && n == n2 && length xs == length xs2 &&
-                                (xs2 !! pos) == Raw RepeatNow && all f (zip xs xs2)
-                              -> True
-                where
-                    (Rep m2 n2 xs2) = exprToBlur expr
-
-                    f (a, Raw RepeatNow) = True
-                    f (a, b) = a == b
+        Raw (Repeat expr alt) ->
+            case exprToBlur expr of
+                (Rep m2 n2 xs2) 
+                    | m == m2 && n == n2 && length xs == length xs2 &&
+                      (xs2 !! pos) == Raw RepeatNow && all f (zip xs xs2)
+                    -> True
+                _ -> False
         _ -> False
+
+    where
+        f (a, Raw RepeatNow) = True
+        f (a, b) = a == b

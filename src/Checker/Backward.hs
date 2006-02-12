@@ -15,7 +15,7 @@ backward hite (Req (Var a b) path opts) = predLit $ Req (Var a b) path opts
 backward hite (Req (Sel a b) path opts) = predLit $ Req a (pathIntegrate b path) opts
 
 backward hite (Req Bottom path opts) = predFalse
-backward hite (Req (Call Bottom []) path opts) = predFalse
+backward hite (Req (Call Bottom _) path opts) = predFalse
 
 backward hite (Req (Call (CallFunc name) params) path opts) =
         if length params == length args then
