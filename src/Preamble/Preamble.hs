@@ -124,6 +124,14 @@ not True = False
 not False = True
 
 
+---------------------------------------------------------------------
+-- Prelude.Char
+--
+-- everything to do with booleans
+
+data Char = Char_O | Char_X | Char_Else
+
+
 
 ---------------------------------------------------------------------
 -- Prelude.Comparison
