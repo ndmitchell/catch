@@ -6,6 +6,7 @@ import Hite
 
 import List
 import Maybe
+import Char
 
 
 coreHite :: Core -> Hite
@@ -166,7 +167,7 @@ convExpr subs x = f subs x
                 CoreCon x -> Make x []
                 CoreApp x xs -> Call (f subs x) (map (f subs) xs)
                 CoreInt x -> CallFunc "prim_int"
-                CoreChr x -> CallFunc "prim_chr"
+                CoreChr x -> Make (asChar x) []
                 CoreStr x -> CallFunc "prim_str"
                 
                 CoreVar x -> rep x
@@ -186,7 +187,11 @@ convExpr subs x = f subs x
                 g (CoreApp (CoreCon con) args, x) = (con, f (zipWith h [0..] args ++ subs) x)
                     where h n (CoreVar arg) = (arg, Sel rSwitch (getCtor con n))
                 g (CoreCon con, x) = g (CoreApp (CoreCon con) [], x)
+                g (CoreChr x, y) = (asChar x, f subs y)
                    
                 g x = error $ "Convert.CoreHite.g: " ++ show x
 
                 getCtor con n = con ++ "$" ++ show n
+
+
+                asChar c = "Char_" ++ (if isAlphaNum c then [c] else show (ord c))
