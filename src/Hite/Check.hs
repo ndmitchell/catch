@@ -9,7 +9,7 @@ import General.General
 -- in reality either return True, or crash
 check :: Hite -> Bool
 check (Hite datas funcs) = 
-        unique allCtorName && unique allCtorArg && unique allFuncName &&
+        unique "CtorName" allCtorName && unique "CtorArg" allCtorArg && unique "FuncName" allFuncName &&
         all checkFunc funcs
     where
         allFuncName = map funcName funcs
@@ -17,7 +17,7 @@ check (Hite datas funcs) =
         allCtorArg  = concatMap (concatMap ctorArgs . ctors) datas
     
         checkFunc :: Func -> Bool
-        checkFunc (Func name args expr kind) = unique args && checkExpr expr
+        checkFunc (Func name args expr kind) = unique ("FuncArgs(" ++ name ++ ")") args && checkExpr expr
             where
                 checkExpr (Var x "") = x `elm` args
                 checkExpr (Sel x path) = checkExpr x && path `elm` allCtorArg
@@ -37,9 +37,9 @@ check (Hite datas funcs) =
 
         
 
-unique :: [String] -> Bool
-unique (x:xs) | x `elem` xs = error $ "Repeated name: " ++ show x
-              | otherwise = unique xs
-unique [] = True
+unique :: String -> [String] -> Bool
+unique msg (x:xs) | x `elem` xs = error $ "Repeated name (" ++ msg ++ "): " ++ show x
+                  | otherwise = unique msg xs
+unique msg [] = True
 
 
