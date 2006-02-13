@@ -45,7 +45,12 @@ backward hite (Req (Make x ys) path opts) = predAnd $ pre : zipWith f cArgs ys
     where
         cArgs = ctorArgs $ getCtor x hite
 
-        f arg e = predLit $ Req e (pathQuotient arg path) opts
+        f arg e = if pathIsEmpty q then
+                      predTrue
+                  else
+                      predLit $ Req e q opts
+            where q = pathQuotient arg path
+            
         
         pre = if pathIsEwp path then
                   predBool (x `elem` opts)
