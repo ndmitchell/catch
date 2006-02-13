@@ -194,4 +194,6 @@ convExpr subs x = f subs x
                 getCtor con n = con ++ "$" ++ show n
 
 
-                asChar c = "Char_" ++ (if isAlphaNum c then [c] else show (ord c))
+                asChar c = "Char_" ++ (if isAlphaNum c then [c] else pad3 (show (ord c)))
+                
+                pad3 x = replicate (3 - length x) '0' ++ x
