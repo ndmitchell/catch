@@ -115,7 +115,9 @@ getCtor name hite = getWith name ctorName (concatMap ctors (datas hite))
 
 
 getDataFromCtor :: CtorName -> Hite -> Data
-getDataFromCtor name hite = head $ filter f (datas hite)
+getDataFromCtor name hite = case filter f (datas hite) of
+        [x] -> x
+        _ -> error $ "Hite.Type.getDataFromCtor, could not find type with ctor name: " ++ name
     where f (Data _ ctors) = name `elem` (map ctorName ctors)
 
 
