@@ -26,7 +26,8 @@ reachable name hite@(Hite datas funcs) = Hite aliveDatas aliveFuncs
         
         h (Data x xs) = if null xs2 then []
                         else if x == "%Ap" then [Data x xs2]
-                        else [Data x xs]
+                        else if length xs == length xs2 then [Data x xs]
+                        else [Data x (Ctor (x ++ "_?") [] : xs2)]
             where xs2 = filter (\y -> ctorName y `elem` aliveCtorNames) xs
         
         f x = [y | CallFunc y <- allExpr $ body $ getFunc x hite]
