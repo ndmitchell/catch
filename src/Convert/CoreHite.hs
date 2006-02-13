@@ -81,7 +81,7 @@ simpleCases (CoreFunc (CoreApp name args) body) =
                 res = map g opts
                 
                 g (when,body) = ((when,a),b)
-                    where (a,b) = f ([x | x@(CoreVar _) <- allCore when] ++ vars) body
+                    where (a,b) = f ([x | x@(CoreVar y) <- allCore when, y /= "_"] ++ vars) body
         
         f vars (CoreApp x xs) = (CoreApp x2 xs2, concatMap snd res)
             where
