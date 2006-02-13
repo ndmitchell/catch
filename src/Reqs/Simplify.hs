@@ -20,7 +20,7 @@ import Star.Type
 
 -- Must all be Nothing as their within property
 simplifyReqsFull :: Hite -> Reqs -> Reqs
-simplifyReqsFull hite x = error $ prettyReqs $
+simplifyReqsFull hite x = 
         andPairs finalMerge $
         orPairsAs orSubsetCollapse $
         mapPredLit atomNullCtors $
