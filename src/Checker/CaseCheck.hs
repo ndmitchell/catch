@@ -110,7 +110,7 @@ reduceOne hite pending supress depth x =
                                      if on == "main" then
                                          return $ mapPredLit starToMain x
                                       else
-                                         reduceMany hite (allPredLit x ++ pending) depth $ propagateAll hite on within
+                                         reduceMany hite (allPredLit x ++ pending) depth $ propagateAll hite on x
 
             r -> onwards $ backward hite r
     where
@@ -344,7 +344,7 @@ solves hite pending x =
 -- GENERATION FUNCTIONS
 
 generate :: Hite -> Reqs
-generate = if propagateSimp || True then generateSimp else generateComplex
+generate = if propagateSimp then generateSimp else generateComplex
 
 
 generateComplex :: Hite -> Reqs
