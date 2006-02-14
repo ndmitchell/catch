@@ -22,7 +22,7 @@ type Output = [String]
 
 caseCheck :: Hite -> IO ()
 caseCheck bad_hite = do res <- reduce hite (generate hite)
-                        putStrLn $ "\nRESULT:\n" ++
+                        error $ "\nRESULT:\n" ++
                                    prettyReqs (simplifyReqsFull hite res)
     where
         hite = annotateVar $ removeUnderscore bad_hite
