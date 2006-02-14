@@ -85,6 +85,25 @@ output :: Depth -> String -> IO ()
 output depth msg = putStrLn $ replicate (depth*2) ' ' ++ msg
 
 
+
+-- small reduce - only reduce as far as call's
+-- or var's or repeat's
+-- will take a bounded (hopefully small) amount of time
+
+reduceOneSmall :: Hite -> Req -> Reqs
+reduceOneSmall hite x = case x of
+        (Req (Var a b) _ _ ) -> predLit x
+        (Req (Repeat _ _) _ _) -> predLit x
+        (Req (Call _ _) _ _) -> predLit x
+        (ReqAll on within) -> predLit $ ReqAll on (reduceManySmall hite within)
+        x -> reduceManySmall hite (backward hite x)
+
+
+reduceManySmall :: Hite -> Reqs -> Reqs
+reduceManySmall hite x = mapPredLit (reduceOneSmall hite) x
+
+
+
 reduce :: Hite -> Reqs -> IO Reqs
 reduce hite x = reduceMany hite [] 0 x
 
@@ -125,10 +144,9 @@ reduceOne hite pending supress depth x =
         f x = x
 
 
-
 reduceMany :: Hite -> [Req] -> Depth -> Reqs -> IO Reqs
 reduceMany hite pending depth xs =
-        case simpler xs of
+        case simpler (reduceManySmall hite xs) of
              PredLit x -> reduceOne hite pending False depth x
              x | null (allPredLit x) -> return x
              xs -> f xs
