@@ -1,3 +1,6 @@
+
+module Adjoxo where
+
 -- Adjudicator for noughts-and-crosses positions
 -- See *.in for example inputs.
 -- Colin Runciman
@@ -103,7 +106,11 @@ opp :: Char -> Char
 opp 'O' = 'X'
 opp 'X' = 'O'
 
+{-
 main =
   do
      input <- getContents
      putStr (adjudicate (parsed input))
+-}
+
+main x = adjudicate x
