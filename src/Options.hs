@@ -17,7 +17,7 @@ pathBlurTo = 1 :: Int
 -- At x^{hiteBlurFrom}, set it to x^{hiteBlurTo..\inf}
 hiteBlurFrom = 2 :: Int
 hiteBlurTo = 1 :: Int
-hiteBlurMax = 6 :: Int
+hiteBlurMax = 100 :: Int
 
 -- | Maximum number of lines of computation
 maxCompute = 100000 :: Int
