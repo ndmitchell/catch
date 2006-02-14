@@ -33,13 +33,12 @@ defunc bad_hite = Hite (newData ++ datas) (newFuncs ++ oldFuncs)
             where
                 args = map (('x':) . show) [1..n]
                 
-                f (name,arity) | diff >= n = [("%Ap_" ++ name ++ "_" ++ show arity,
-                                   (if diff == n then
-                                       Call (CallFunc name) (map (`Var` "") args)
-                                   else
-                                       error $ show (real, arity, n)
-                                   ))]
+                f (name,arity) | diff >= n = [(nam,
+                                   (if diff == n then Call (CallFunc name) else Make ("%Ap_" ++ name ++ "_" ++ show (arity+n)))
+                                   (map (\x -> Sel (Var "f" "") (nam ++ "_" ++ show x)) [1..arity] ++ map (`Var` "") args)
+                                   )]
                     where
+                        nam = "%Ap_" ++ name ++ "_" ++ show arity
                         real = length $ funcArgs $ getFunc name hite
                         diff = real - arity
                 f _ = []
