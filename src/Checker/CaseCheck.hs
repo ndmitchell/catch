@@ -21,11 +21,22 @@ type Output = [String]
 -- DRIVER
 
 caseCheck :: Hite -> IO ()
-caseCheck bad_hite = do res <- reduce hite (generate hite)
-                        error $ "\nRESULT:\n" ++
-                                   prettyReqs (simplifyReqsFull hite res)
+caseCheck bad_hite = do putStrLn $ "Initial conditions:\n" ++ (unlines $ map ((++) "? " . show) reqs)
+                        res <- mapM f reqs
+                        let (msg, r) = (map fst res, map snd res)
+                        error $ "\n" ++ unlines msg ++
+                                "\n? " ++ show (predAnd reqs) ++
+                                "\n=\n" ++ prettyReqs (simp $ predAnd r)
     where
+        reqs = generate hite
         hite = annotateVar $ removeUnderscore bad_hite
+        simp = simplifyReqsFull hite
+        
+        f x = do putStrLn $ "\n? " ++ show x
+                 y <- reduce hite x
+                 let yy = simp y
+                 putStrLn $ "=\n" ++ prettyReqs y
+                 return ("? " ++ show x ++ "\n= \n" ++ prettyReqs y, y)
 
 {-
         (res,output) = solves hite [] (generate hite)
@@ -105,7 +116,7 @@ reduceManySmall hite x = mapPredLit (reduceOneSmall hite) x
 
 
 reduce :: Hite -> Reqs -> IO Reqs
-reduce hite x = reduceMany hite [] 0 x
+reduce hite x = reduceMany hite [] 1 x
 
 
 reduceOne :: Hite -> [Req] -> Bool -> Depth -> Req -> IO Reqs
@@ -361,12 +372,12 @@ solves hite pending x =
 ---------------------------------------------------------------------
 -- GENERATION FUNCTIONS
 
-generate :: Hite -> Reqs
+generate :: Hite -> [Reqs]
 generate = if propagateSimp then generateSimp else generateComplex
 
 
-generateComplex :: Hite -> Reqs
-generateComplex hite = predAnd $ concatMap (\(Func name _ body _) -> f name predFalse (mapExpr str body)) $ funcs hite
+generateComplex :: Hite -> [Reqs]
+generateComplex hite = concatMap (\(Func name _ body _) -> f name predFalse (mapExpr str body)) $ funcs hite
     where
         f :: FuncName -> Reqs -> Expr -> [Reqs]
         f name hist (Case on alts) = newItem ++ concatMap g alts
@@ -389,8 +400,8 @@ generateComplex hite = predAnd $ concatMap (\(Func name _ body _) -> f name pred
         str x = x
 
 
-generateSimp :: Hite -> Reqs
-generateSimp hite = predAnd [predLit $
+generateSimp :: Hite -> [Reqs]
+generateSimp hite = [predLit $
         Req on pathLambda opts |
         c@(Case on alts) <- allExpr hite,
         opts <- [fsts alts],
