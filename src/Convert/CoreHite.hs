@@ -108,54 +108,6 @@ convFunc (CoreFunc def body) = map f res
             Func (getName name) (map getName args) (convExpr (map g args) body) Star
             
         g (CoreVar x) = (x, Var x "")
-        
-
-{-        if null complexCases then
-            [Func name args (convExpr ren body) Star]
-        else
-            [Func name args newBody Star,
-             Func newName allArgs (convExpr ren2 body2) Star] -}
-{-    where
-        -- variables, expr
-        f :: (CoreExpr -> Func) -> [String] -> CoreExpr -> [Func]
-        f inClose vars (CoreCase on opts) | isComplex on =
-                inClose (Call (CallFunc newCall) (map (`Var` "") (newArg:vars))) :
-                f (\x -> Func newCall (newArg:vars) x Star) (newArg:vars) (convExpr $ mapCore g $ CoreCase on opts)
-            where
-                newCall = name ++ "_CASE_" ++ show n
-                newArg = "_case_" ++ show n
-                n = fromJust $ lookup on complexCases
-                
-                g x | True = Var newArg ""
-                    | otherwise = x
-        
-        body = letExpand orig_body
-        name = getName orig_name
-        args = map getName orig_args -}
-        
-        {-
-        newName n = name ++ "_CASE"
-        
-    
-        newName = name ++ "_CASE"
-        newBody =
-            Call (CallFunc newName)
-            (map (`Var` "") args ++ map (convExpr ren) complexCases)
-
-        ren =  [(x, Var x "") | x <- args]
-        ren2 = [(x, Var x "") | x <- allArgs]
-        
-        body2 = allReplace (zip complexCases (map CoreVar newArgs)) body
-        
-        newArgs = ["case_" ++ show n | n <- [1..length complexCases]]
-        allArgs = args ++ newArgs
-        -}
-        {-
-        complexCases = (`zip` [1..]) $ nub [on | CoreCase on _ <-  allCore body, isComplex on]
-        
-        isComplex (CoreVar _) = False
-        isComplex _ = True
--}
 
 
 
