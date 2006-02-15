@@ -7,6 +7,7 @@ module Hite.Type where
 
 import General.General
 import Maybe
+import List
 
 
 type FuncName = String
@@ -97,41 +98,48 @@ instance PlayFunc Hite where
     mapFunc f x = x{funcs = mapFunc f (funcs x)}
 
 
-
+-- Generic with function
 getWith :: String -> (a -> String) -> [a] -> a
 getWith name f xs = case filter (\x -> f x == name) xs of
                         [x] -> x
                         [] -> error $ "getWith: Could not find " ++ name ++ " in " ++ strSet (map f xs)
                         _ -> error $ "getWith: Repetition of " ++ name ++ " in " ++ strSet (map f xs)
 
-getFunc :: FuncName -> Hite -> Func
-getFunc name hite = getWith name funcName (funcs hite)
+-- Get simple items, travel down the tree
+getFunc :: Hite -> FuncName -> Func
+getFunc hite name = getWith name funcName (funcs hite)
 
-getData :: DataName -> Hite -> Data
-getData name hite = getWith name dataName (datas hite)
+getData :: Hite -> DataName -> Data
+getData hite name = getWith name dataName (datas hite)
 
-getCtor :: CtorName -> Hite -> Ctor
-getCtor name hite = getWith name ctorName (concatMap ctors (datas hite))
-
-
-getDataFromCtor :: CtorName -> Hite -> Data
-getDataFromCtor name hite = case filter f (datas hite) of
-        [x] -> x
-        _ -> error $ "Hite.Type.getDataFromCtor, could not find type with ctor name: " ++ name
-    where f (Data _ ctors) = name `elem` (map ctorName ctors)
+getCtor :: Hite -> CtorName -> Ctor
+getCtor hite name = getWith name ctorName (concatMap ctors (datas hite))
 
 
-getCtorFromArg :: CtorArg -> Hite -> Ctor
-getCtorFromArg name hite = head [c | d <- datas hite, c <- ctors d, name `elem` ctorArgs c]
+-- More complex, travel up the tree
+getDataFromCtor :: Hite -> CtorName -> Data
+getDataFromCtor hite name = head [d | d <- datas hite, c <- ctors d, name == ctorName c]
+
+getCtorFromArg :: Hite -> CtorArg -> Ctor
+getCtorFromArg hite name = head [c | d <- datas hite, c <- ctors d, name `elem` ctorArgs c]
 
 
+-- Compound, do common operations
+getCtorsFromCtor :: Hite -> CtorName -> [CtorName]
+getCtorsFromCtor hite name = map ctorName $ ctors $ getDataFromCtor hite name
+
+getOtherCtors :: Hite -> CtorName -> [CtorName]
+getOtherCtors hite name = delete name (getCtorsFromCtor hite name)
+
+
+-- Argument functions (these are a bit dubious)
 -- 1 based
 getArgPos :: FuncName -> FuncArg -> Hite -> Int
-getArgPos func arg hite = fromJust $ lookup arg $ zip (funcArgs (getFunc func hite)) [1..]
+getArgPos func arg hite = fromJust $ lookup arg $ zip (funcArgs (getFunc hite func)) [1..]
 
 
 getArgName :: FuncName -> Int -> Hite -> FuncArg
-getArgName func arg hite = funcArgs (getFunc func hite) !! (arg - 1)
+getArgName func arg hite = funcArgs (getFunc hite func) !! (arg - 1)
 
 
 callArg :: Expr -> Int -> Maybe Expr

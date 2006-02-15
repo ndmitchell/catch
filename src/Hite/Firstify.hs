@@ -14,7 +14,7 @@ specialise :: Hite -> (FuncName, FuncArg) -> Hite
 specialise hite (name, arg) = hite{funcs = oldfuncs ++ newfuncs}
     where
         pos = getArgPos name arg hite
-        (Func _ funcArgs funcBody _) = getFunc name hite
+        (Func _ funcArgs funcBody _) = getFunc hite name
         
         
         oldfuncs = map (\x -> x{body = mapExpr bind (body x)}) (funcs hite)
@@ -61,7 +61,7 @@ getHigherOrder hite = nub [(funcName f, arg) | f <- funcs hite, Call (Var arg []
 
 
 canSpecialise :: Hite -> (FuncName, FuncArg) -> Bool
-canSpecialise hite (name, arg) = sum (map f $ allExpr $ body $ getFunc name hite) == 0
+canSpecialise hite (name, arg) = sum (map f $ allExpr $ body $ getFunc hite name) == 0
     where
         pos = getArgPos name arg hite
         
@@ -74,7 +74,7 @@ canSpecialise hite (name, arg) = sum (map f $ allExpr $ body $ getFunc name hite
 
 recursiveCalls :: Hite -> FuncName -> [Expr]
 recursiveCalls hite func = [x |
-    x@(Call (CallFunc name) args) <- allExpr $ body $ getFunc func hite,
+    x@(Call (CallFunc name) args) <- allExpr $ body $ getFunc hite func,
     name == func]
 
 

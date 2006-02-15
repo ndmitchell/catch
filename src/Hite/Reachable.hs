@@ -19,7 +19,7 @@ reachable name hite@(Hite datas funcs) = Hite aliveDatas aliveFuncs
         
         g (Make x _) = [x]
         g (Case _ alts) = fsts alts
-        g (Sel _ path) = [ctorName $ getCtorFromArg path hite]
+        g (Sel _ path) = [ctorName $ getCtorFromArg hite path]
         g _ = []
         
         aliveDatas = concatMap h datas
@@ -30,7 +30,7 @@ reachable name hite@(Hite datas funcs) = Hite aliveDatas aliveFuncs
                         else [Data x (Ctor (x ++ "_?") [] : xs2)]
             where xs2 = filter (\y -> ctorName y `elem` aliveCtorNames) xs
         
-        f x = [y | CallFunc y <- allExpr $ body $ getFunc x hite]
+        f x = [y | CallFunc y <- allExpr $ body $ getFunc hite x]
 
 
 

@@ -139,7 +139,7 @@ generate hite i@((func, pos), rep) = Func newname newargs newbody Star
         newbody = mapExpr f body
     
         rename = [(args !! n, name) | (n,name) <- zip pos rep]
-        Func _ args body k = getFunc func hite
+        Func _ args body k = getFunc hite func
         
         f (Var x y) = case lookup x rename of
                            Just z -> CallFunc z

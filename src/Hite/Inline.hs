@@ -15,7 +15,7 @@ inline hite = mapExpr f hite
                 | x `elem` res && length xs == length args
                 = mapExpr g body
             where
-                Func _ args body _ = getFunc x hite
+                Func _ args body _ = getFunc hite x
                 ren = zip args xs
                 g (Var x _) = fromJust $ lookup x ren
                 g x = x

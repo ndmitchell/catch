@@ -21,7 +21,7 @@ backward hite (Req (Call (CallFunc name) params) path opts) =
         else
             error $ "Backward: unsaturated " ++ name
     where
-        (Func _ args body _) = getFunc name hite
+        (Func _ args body _) = getFunc hite name
         
         rename = zip args params
         res = blurExpr $ {- selToPath $ -} mapExpr f body
@@ -33,7 +33,7 @@ backward hite (Req (Call (CallFunc name) params) path opts) =
 
 backward hite (Req (Case on alts) path opts) = predAnd $ map f alts
     where
-        others = map ctorName $ ctors $ getDataFromCtor (fst $ head alts) hite
+        others = getCtorsFromCtor hite (fst $ head alts)
         
         f (ctor, expr) = predOr [
                 predLit $ Req on pathLambda (others \\ [ctor]),
@@ -43,7 +43,7 @@ backward hite (Req (Case on alts) path opts) = predAnd $ map f alts
 
 backward hite (Req (Make x ys) path opts) = predAnd $ pre : zipWith f cArgs ys
     where
-        cArgs = ctorArgs $ getCtor x hite
+        cArgs = ctorArgs $ getCtor hite x
 
         f arg e = if pathIsEmpty q then
                       predTrue

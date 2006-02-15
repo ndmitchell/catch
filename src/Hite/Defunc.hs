@@ -19,7 +19,7 @@ defunc bad_hite = Hite (newData ++ datas) (newFuncs ++ oldFuncs)
         f (Call (CallFunc x) xs) | lxs < args
                 = Make ("%Ap_" ++ x ++ "_" ++ show lxs) xs
             where
-                args = length $ funcArgs $ getFunc x hite
+                args = length $ funcArgs $ getFunc hite x
                 lxs = length xs
         f x@(Call (CallFunc _) _) = x
         f (Call x xs) = Call (CallFunc $ "%ap" ++ show (length xs)) (x:xs)
@@ -39,7 +39,7 @@ defunc bad_hite = Hite (newData ++ datas) (newFuncs ++ oldFuncs)
                                    )]
                     where
                         nam = "%Ap_" ++ name ++ "_" ++ show arity
-                        real = length $ funcArgs $ getFunc name hite
+                        real = length $ funcArgs $ getFunc hite name
                         diff = real - arity
                 f _ = []
         
@@ -74,7 +74,7 @@ arityRaise hite = mapExpr f hite
     where
         f (Call (CallFunc x) xs) | length xs > args
                 = Call (Call (CallFunc x) (take args xs)) (drop args xs)
-            where args = length $ funcArgs $ getFunc x hite
+            where args = length $ funcArgs $ getFunc hite x
         f x = x
 
 

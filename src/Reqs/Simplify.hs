@@ -112,7 +112,7 @@ simplifyReqsFull hite x =
                           not (ctorName ctr `elem` c1)
                     where
                         c = head (drop (length l1) l2)
-                        ctr = getCtorFromArg c hite
+                        ctr = getCtorFromArg hite c
                 
             
             
@@ -258,7 +258,7 @@ simplifyReqs b hite x = (if b then simplifyPredFull else simplifyPred)
             | null c1
             = Just predFalse -- not true, what if none defined - to fix
         ruleDel (PredLit (Req a1 b1 c1))
-            | (map ctorName $ ctors $ getDataFromCtor (head c1) hite) `setEq` c1
+            | getCtorsFromCtor hite (head c1) `setEq` c1
             = Just predTrue
         ruleDel (PredLit (Req a1 b1 c1))
             | pathIsOmega b1
@@ -271,8 +271,8 @@ simplifyReqs b hite x = (if b then simplifyPredFull else simplifyPred)
             = Just $ Req a2 b2 c2
             where
                 diffs = f [] (map (`rdiff` b2) iargs)
-                ictors = (map ctorName $ ctors $ getDataFromCtor (head c1) hite) \\ c1
-                iargs = concatMap (\x -> ctorArgs $ getCtor x hite) ictors
+                ictors = getOtherCtors hite (head c1)
+                iargs = concatMap (\x -> ctorArgs $ getCtor hite x) ictors
 
                 rdiff x reg = pathReverse (pathQuotient x (pathReverse reg))
 

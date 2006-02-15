@@ -25,7 +25,7 @@ findCallsHistory hite check = concatMap (f predFalse . body) $ funcs hite
             
                 g (Case on alts) = concatMap h alts
                     where
-                        allCtor = map ctorName $ ctors $ getDataFromCtor (fst $ head alts) hite
+                        allCtor = getCtorsFromCtor hite (fst $ head alts)
                         h (typ, expr) = f (predOr [hist, predLit $ Req on pathLambda (allCtor \\ [typ])]) expr
 
                 g x = concatMap (f hist) $ case x of
@@ -55,7 +55,7 @@ propagate hite r@(Req (Var arg name) path set) =
                     
         f hist (Case on alts) = concatMap g alts
             where
-                allCtor = map ctorName $ ctors $ getDataFromCtor (fst $ head alts) hite
+                allCtor = getCtorsFromCtor hite (fst $ head alts)
                 g (typ, expr) = f (predOr [hist, predLit $ Req on pathLambda (allCtor \\ [typ])]) expr
                 
         

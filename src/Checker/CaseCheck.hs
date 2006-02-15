@@ -382,7 +382,7 @@ generateComplex hite = concatMap (\(Func name _ body _) -> f name predFalse (map
         f :: FuncName -> Reqs -> Expr -> [Reqs]
         f name hist (Case on alts) = newItem ++ concatMap g alts
             where
-                allCtor = map ctorName $ ctors $ getDataFromCtor (fst $ head alts) hite
+                allCtor = getCtorsFromCtor hite (fst $ head alts)
                 
                 newItem = if map fst alts `setEq` allCtor then [] else
                           [predLit $ ReqAll name $ predOr [hist, predLit $ Req on pathLambda (map fst alts)]]
@@ -405,7 +405,7 @@ generateSimp hite = [predLit $
         Req on pathLambda opts |
         c@(Case on alts) <- allExpr hite,
         opts <- [fsts alts],
-        allOpts <- [map ctorName $ ctors $ getDataFromCtor (head opts) hite],
+        allOpts <- [getCtorsFromCtor hite (head opts)],
         not $ null $ allOpts \\ opts]
 
 

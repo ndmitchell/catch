@@ -36,12 +36,12 @@ readData x = map f $ join $ map (:[]) $ filter (not . isBlank) $ lines x
 fixData :: Hite -> Hite
 fixData h = mapExpr f h
     where
-        f (Sel x arg) | '$' `elem` arg = Sel x (ctorArgs (getCtor a h) !! read b)
+        f (Sel x arg) | '$' `elem` arg = Sel x (ctorArgs (getCtor h a) !! read b)
             where (a,_:b) = break (== '$') arg
         
         f (Case x alts) = Case x (concatMap g alts)
             where
-                allCtors = map ctorName $ ctors $ getDataFromCtor (headNote "Hite.Data.fixData" myCtors) h
+                allCtors = getCtorsFromCtor h (headNote "Hite.Data.fixData" myCtors)
                 myCtors = filter (/= "_") $ map fst alts
                 
                 g ("_", b) = zip (allCtors \\ myCtors) (repeat b)
