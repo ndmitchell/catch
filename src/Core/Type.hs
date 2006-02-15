@@ -31,6 +31,11 @@ data CoreExpr = CoreCon String
 
 -- stop copied
 
+isCoreData (CoreData {}) = True
+isCoreData _ = False
+
+isCoreFunc = not . isCoreData
+
 
 class PlayCore a where
     mapCore :: (CoreExpr -> CoreExpr) -> a -> a

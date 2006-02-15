@@ -61,11 +61,11 @@ mergeData file (DatHite (Hite d f)) =
         return $ DatHite $ fixData $ Hite (readData src ++ d) f
 
 
-preamble (DatCore (Core x)) =
+preamble (DatCore x) =
     do
         src <- readFile "Preamble/Preamble.core"
-        let Core y = readCore src
-        return $ DatCore $ Core (y ++ x)
+        let y = readCore src
+        return $ DatCore $ mergeCore x y
 
 
 prepare x =

@@ -14,9 +14,6 @@ coreHite (Core xs) = fixData $ Hite (map convData datas) (concatMap convFunc fun
     where (datas, funcs) = partition isCoreData xs
 
 
-isCoreData (CoreData _ _) = True
-isCoreData _ = False
-
 getName (CoreVar x) = x
 getName x = error $ "Convert.CoreHite.getName: pattern match failure, " ++ show x
 
