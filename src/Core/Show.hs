@@ -19,7 +19,8 @@ indent = map ("    " ++)
 
 
 showCore2 :: Core -> [String]
-showCore2 (Core xs) = concat $ intersperse [[]] $ map showItem xs
+showCore2 (Core xs) = if null res then [] else tail res
+    where res = concat $ map (([] :) . showItem) xs
 
 showItem :: CoreItem -> [String]
 showItem (CoreData name ctors) =
