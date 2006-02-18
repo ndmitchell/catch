@@ -9,14 +9,14 @@ import Char
 
 readCore :: String -> Core
 readCore ('=':xs) =  readCore $ tail $ dropWhile (/= '\n') xs
-readCore xs = reduce $ lambdaFix $ readSpecial xs
+readCore xs = reduce $ lambdaFix $ removeTup $ readSpecial xs
 
 
 -- A special version of Read Core
 -- While only operates on Yhc generated Core
 -- But can be more lazy
 readSpecial :: String -> Core
-readSpecial xs = Core $ concatMap f (lines xs)
+readSpecial xs = read xs -- Core $ concatMap f (lines xs)
     where
         f "Core []" = []
         f "Core" = []
@@ -24,6 +24,14 @@ readSpecial xs = Core $ concatMap f (lines xs)
         f "" = []
         f x = [read $ tail $ dropWhile isSpace x]
 
+
+-- efficiency hack!
+removeTup :: Core -> Core
+removeTup (Core c) = Core $ filter f c
+    where
+        f (CoreFunc (CoreApp (CoreVar x) _) _) | "Preamble.tup" `isPrefixOf` x = False
+        f _ = True
+        
 
 -- fix LAMBDA to be Module.LAMBDA
 lambdaFix :: Core -> Core
