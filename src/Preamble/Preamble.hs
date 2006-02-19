@@ -341,3 +341,31 @@ instance Preamble_Enum Int where
 
 
 _fromEnum x = catch_any
+
+
+---------------------------------------------------------------------
+-- Prelude.Monad
+--
+
+class Preamble_Monad m where
+    return :: a -> m a
+    (>>=)  :: m a -> (a -> m b) -> m b
+    (>>)   :: m a -> m b -> m b
+    fail   :: String -> m a
+
+    -- Minimal complete definition: (>>=), return
+    p >> q  = p >>= \ _ -> q
+    fail s  = error s
+
+
+data IO a = IO {io :: a}
+
+
+instance Preamble_Monad IO where
+    return x = IO x
+    IO a >>= f = f a
+
+
+getContents = IO catch_any
+
+putStr x = IO ()
