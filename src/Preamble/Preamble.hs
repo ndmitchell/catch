@@ -381,6 +381,7 @@ instance Preamble_Monad IO where
 getContents = IO catch_any
 
 putStr x = IO ()
+putStrLn x = IO ()
 
 sequence []     = return []
 sequence (c:cs) = do x  <- c
