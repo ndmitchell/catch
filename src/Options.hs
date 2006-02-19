@@ -28,3 +28,6 @@ propagateSimp = False
 
 
 simplifyRegular = True
+
+
+maxCheckDepth = 30 :: Int

@@ -156,6 +156,9 @@ reduceOne hite pending supress depth x =
 
 
 reduceMany :: Hite -> [Req] -> Depth -> Reqs -> IO Reqs
+reduceMany hite pending depth xs | depth > maxCheckDepth = do putStrLn "Lazy, giving up (False)"
+                                                              return predFalse
+
 reduceMany hite pending depth xs =
         case simpler (reduceManySmall hite xs) of
              PredLit x -> reduceOne hite pending False depth x
