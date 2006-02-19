@@ -63,7 +63,7 @@ mergeData file (DatHite (Hite d f)) =
 
 preamble (DatCore x) =
     do
-        src <- readFile "Preamble/Preamble.core"
+        src <- readFile "Preamble/Preamble.hs.core"
         let y = readCore src
         return $ DatCore $ {- coreReachable $ -} mergeCore x y
 
