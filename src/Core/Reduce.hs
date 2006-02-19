@@ -25,22 +25,11 @@ f (CoreData n x) = CoreData (redName n) (map g x)
         h (Just x) = Just (redName x)
 
 
-aliases = [
-    ("Prelude.undefined", "_"),
-    ("Preamble.preamble_undefined", "_"),
-    ("Prelude.Prelude.Eq.Prelude.", ""),
-    ("Prelude.Prelude.Num.Prelude.", ""),
-    ("Prelude.",""),
-    ("YHC.Internal.",""),
-    ("Preamble.preamble_",""),
-    ("Preamble.","")
-    ]
-
-
-redName x | "YHC.Internal." `isPrefixOf` x = drop 13 x
-          | otherwise = concat $ intersperse "." $ mapMaybe g $ splitList "." x
+redName x = concat $ intersperse "." $ mapMaybe g $ splitList "." x
     where
         g "Preamble" = Nothing
+        g "YHC" = Nothing
+        g "Internal" = Nothing -- only valid if YHC is first
         g "Prelude" = Nothing
         g "catch_any" = Just "_"
         g x | "Preamble_Hex_" `isPrefixOf` x = Just $ makeHexStr $ drop 13 x
