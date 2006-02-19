@@ -65,7 +65,7 @@ preamble (DatCore x) =
     do
         src <- readFile "Preamble/Preamble.core"
         let y = readCore src
-        return $ DatCore $ coreReachable $ mergeCore x y
+        return $ DatCore $ {- coreReachable $ -} mergeCore x y
 
 
 prepare x =
