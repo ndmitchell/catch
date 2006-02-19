@@ -114,4 +114,4 @@ main =
      putStr (adjudicate (parsed input))
 -}
 
-main x = adjudicate x
+main x = adjudicate (parsed x)
