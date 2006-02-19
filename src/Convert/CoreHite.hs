@@ -150,7 +150,7 @@ convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) =
             
 
         -- case expressions, always translate, some are complex and need new functions
-        f path vars (CoreCase on opts) | isComplex on =
+        f path vars (CoreCase on opts) | isComplex vars on =
                 makeNewCall path vars "case" [on] (\[x] -> CoreCase x opts)
 
 
@@ -183,8 +183,8 @@ convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) =
         f path vars x = error $ "Convert.CoreHite.convFunc.f, " ++ show x
 
         
-        isComplex (CoreVar _) = False
-        isComplex _ = True
+        isComplex vars (CoreVar x) | x `elem` map fst vars = False
+        isComplex _ _ = True
 
 {-                
                 
