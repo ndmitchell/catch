@@ -376,8 +376,12 @@ generate :: Hite -> [Reqs]
 generate = if propagateSimp then generateSimp else generateComplex
 
 
+userFuncs :: Hite -> [Func]
+userFuncs hite = filter f $ funcs hite
+    where f x = not $ "%ap" `isPrefixOf` funcName x
+
 generateComplex :: Hite -> [Reqs]
-generateComplex hite = concatMap (\(Func name _ body _) -> f name predFalse (mapExpr str body)) $ funcs hite
+generateComplex hite = concatMap (\(Func name _ body _) -> f name predFalse (mapExpr str body)) $ userFuncs hite
     where
         f :: FuncName -> Reqs -> Expr -> [Reqs]
         f name hist (Case on alts) = newItem ++ concatMap g alts
