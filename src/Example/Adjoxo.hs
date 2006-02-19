@@ -106,11 +106,7 @@ opp :: Char -> Char
 opp 'O' = 'X'
 opp 'X' = 'O'
 
-{-
 main =
   do
      input <- getContents
      putStr (adjudicate (parsed input))
--}
-
-main x = adjudicate x
