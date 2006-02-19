@@ -94,7 +94,8 @@ flip f x y  = f y x
 undefined = error ""
 otherwise = True
 (.) f g x = f (g x)
-
+fst (a,b) = a
+snd (a,b) = b
 
 
 ---------------------------------------------------------------------
@@ -109,8 +110,16 @@ data Preamble_Hex_5B5D a = Preamble_Hex_5B5D | Preamble_Hex_3A {hd :: a, tl :: [
 
 head (x:xs) = x
 
+tail (x:xs) = xs
+
 map f [] = []
 map f (x:xs) = f x : map f xs
+
+filter f [] = []
+filter f (x:xs) = if f x then x:res else res
+    where res = filter f xs
+
+concat = foldr (++) []
 
 -- Hugs implementation that I don't understand :)
 -- reverse = foldl (flip (:)) []
@@ -121,6 +130,9 @@ reverse xs = reverse_acc xs []
 
 foldr f z []      = z
 foldr f z (x:xs)  = f x (foldr f z xs)
+
+_foldr f z []      = z
+_foldr f z (x:xs)  = f x (_foldr f z xs)
 
 foldr1 f [x]      = x
 foldr1 f (x:xs)   = f x (foldr1 f xs)
@@ -369,3 +381,13 @@ instance Preamble_Monad IO where
 getContents = IO catch_any
 
 putStr x = IO ()
+
+sequence []     = return []
+sequence (c:cs) = do x  <- c
+                     xs <- sequence cs
+                     return (x:xs)
+
+sequence_         = foldr (>>) (return ())
+mapM f            = sequence . map f
+mapM_ f           = sequence_ . map f
+f =<< x           = x >>= f
