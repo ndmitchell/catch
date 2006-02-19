@@ -120,18 +120,18 @@ reduce hite x = reduceMany hite [] 1 x
 
 
 reduceOne :: Hite -> [Req] -> Bool -> Depth -> Req -> IO Reqs
-reduceOne hite pending supress depth x =
+reduceOne hite pending supress depth orig_req =
     do
-        if supress then return () else output depth (show x)
-        case x of
+        if supress then return () else output depth (show orig_req)
+        case orig_req of
             r | r `elem` pending -> do output depth "True -- Pending tied back"
                                        return predTrue
 
             (Req (Var a b) _ _) -> 
                 if b == "*" || b == "main" then
-                    return $ predLit x
+                    return $ predLit orig_req
                 else
-                    onwards $ propagate hite x
+                    onwards $ propagate hite orig_req
 
             (Req _ path opts) | pathIsEmpty path -> return predTrue
     
@@ -140,14 +140,14 @@ reduceOne hite pending supress depth x =
                                      if on == "main" then
                                          return $ mapPredLit starToMain x
                                       else
-                                         reduceMany hite (allPredLit x ++ pending) depth $ propagateAll hite on x
+                                         reduceMany hite (orig_req:pending) depth $ propagateAll hite on x
 
             r -> onwards $ backward hite r
     where
         onwards = reduceMany hite p2 depth
             where
-                p2 = case x of
-                    Req _ _ _ -> x : pending
+                p2 = case orig_req of
+                    Req _ _ _ -> orig_req : pending
                     _ -> pending
 
         starToMain (Req on path opts) = predLit $ Req (mapExpr f on) path opts
@@ -159,8 +159,8 @@ reduceMany :: Hite -> [Req] -> Depth -> Reqs -> IO Reqs
 reduceMany hite pending depth xs | depth > maxCheckDepth = do putStrLn "Lazy, giving up (False)"
                                                               return predFalse
 
-reduceMany hite pending depth xs =
-        case simpler (reduceManySmall hite xs) of
+reduceMany hite pending depth orig_xs =
+        case simpler (reduceManySmall hite orig_xs) of
              PredLit x -> reduceOne hite pending False depth x
              x | null (allPredLit x) -> return x
              xs -> f xs
@@ -168,7 +168,8 @@ reduceMany hite pending depth xs =
         f xs =
             do
                 let reqs = nub $ allPredLit xs
-                output depth ("+ " ++ show xs)
+                output depth ("+ " ++ show orig_xs)
+                output depth ("  " ++ show xs)
                 reqs2 <- mapM g reqs
                 let ren = zip reqs reqs2
                     res = simplifyMid hite $ simpler $ mapPredLit (rename ren) xs
