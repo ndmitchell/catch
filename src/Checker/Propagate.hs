@@ -11,9 +11,12 @@ import Maybe
 
 
 
-findCallsHistory :: Hite -> (Expr -> Maybe Reqs) -> [Reqs]
-findCallsHistory hite check = concatMap (f predFalse . body) $ funcs hite
+findCallsHistory :: Hite -> (Expr -> Maybe Reqs) -> [(FuncName, Reqs)]
+findCallsHistory hite check = concatMap ff $ funcs hite
     where
+        ff :: Func -> [(FuncName, Reqs)]
+        ff func = map ((,) (funcName func)) (f predFalse (body func))
+    
         f :: Reqs -> Expr -> [Reqs]
         f hist x = newItem ++ g x
         
@@ -81,11 +84,8 @@ propagateAll hite on reqs =
                 g x = predLit x
         f _ = Nothing
 
-        reAll x | null names = x
-                | otherwise = predLit $ ReqAll (head names) (mapPredLit f x)
+        reAll (name, x) = predLit $ ReqAll name (mapPredLit f x)
             where
-                names = [y | Req xs _ _ <- allPredLit x, Var _ y <- allExpr xs]
-            
                 f (Req a b c) = predLit $ Req (mapExpr g a) b c
 
                 g (Var x y) = Var x "*"
