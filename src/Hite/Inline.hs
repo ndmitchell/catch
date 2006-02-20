@@ -7,7 +7,7 @@ import Maybe
 
 
 inline :: Hite -> Hite
-inline bad_hite = mapExpr f hite
+inline bad_hite = normalise $ mapExpr f $ mapExpr f $ mapExpr f hite
     where
         hite = normalise bad_hite
         res = inlineable hite
@@ -25,8 +25,10 @@ inline bad_hite = mapExpr f hite
 
 
 inlineable :: Hite -> [FuncName]
-inlineable hite = map funcName $ filter (f . body) (funcs hite)
+inlineable hite = map funcName $ filter canInline (funcs hite)
     where
+        canInline func = f (body func) || funcName func == "o"
+    
         f (Call (CallFunc _) xs) = all g xs
         f (Call x xs) = all g (x:xs)
         f (Make x xs) = all g xs
