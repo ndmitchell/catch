@@ -38,7 +38,8 @@ check (Hite datas funcs) =
         
 
 unique :: String -> [String] -> Bool
-unique msg (x:xs) | x `elem` xs = error $ "Repeated name (" ++ msg ++ "): " ++ show x
+unique msg (x:xs) | null x = error $ "Blank name (" ++ msg ++ ")"
+                  | x `elem` xs = error $ "Repeated name (" ++ msg ++ "): " ++ show x
                   | otherwise = unique msg xs
 unique msg [] = True
 
