@@ -34,6 +34,7 @@ redName x = concat $ intersperse "." $ mapMaybe g $ splitList "." x
         g "catch_any" = Just "_"
         g x | "Preamble_Hex_" `isPrefixOf` x = Just $ makeHexStr $ drop 13 x
         g x | "Preamble_" `isPrefixOf` x = Just $ drop 9 x
+        g "()" = Just $ "Tup0"
         g ('(':xs) | last xs == ')' && all (== ',') (init xs) = Just $ "Tup" ++ show (length xs)
         g "_" | x /= "_" = Just "Default" -- _ in a module name is a default class method
         g x = Just x

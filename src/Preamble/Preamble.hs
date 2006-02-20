@@ -54,6 +54,7 @@ prim_ADD_W a b = catch_any
 prim_LE_W a b = catch_any
 
 
+data Tup0 = Tup0
 data Tup1 a1 = Tup1 {tup1_1 :: a1}
 data Tup2 a1 a2 = Tup2 {tup2_1 :: a1, tup2_2 :: a2}
 data Tup3 a1 a2 a3 = Tup3 {tup3_1 :: a1, tup3_2 :: a2, tup3_3 :: a3}
