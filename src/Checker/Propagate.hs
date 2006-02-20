@@ -24,12 +24,12 @@ findCallsHistory hite check = concatMap ff $ funcs hite
             where
                 newItem = case check x of
                               Nothing -> []
-                              Just y -> [predOr [hist, y]]
+                              Just y -> [predOr [y, hist]]
             
                 g (Case on alts) = concatMap h alts
                     where
                         allCtor = getCtorsFromCtor hite (fst $ head alts)
-                        h (typ, expr) = f (predOr [hist, predLit $ Req on pathLambda (allCtor \\ [typ])]) expr
+                        h (typ, expr) = f (predOr [predLit $ Req on pathLambda (allCtor \\ [typ]), hist]) expr
 
                 g x = concatMap (f hist) $ case x of
                         Call x xs -> x : xs
