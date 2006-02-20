@@ -100,12 +100,12 @@ active (DatInputs [x]) =
     do src <- readFile $ "Example/" ++ x ++ ".hs.core"
        DatCore a <- preamble (DatCore (readCore src))
        return $
-                wrap caseLift $
                 wrap (reachable "main") $
                 wrap defunc $
                 wrap (reachable "main") $
                 wrap inline $ 
                 wrap arityRaise $ 
+                wrap caseLift $
                 wrap (reachable "main") $
                 wrap errorFail $
                 wrap shortName $
