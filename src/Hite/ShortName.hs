@@ -23,6 +23,7 @@ shortName hite = mapFunc h $ mapExpr g hite
         h func = func{funcName = fromJust $ lookup (funcName func) rename}
         
         
+        makeShort "." = "."
         makeShort x | '.' `elem` x = reverse $ takeWhile (/= '.') $ reverse x
         makeShort x = x
 
