@@ -6,7 +6,8 @@ module Hite
     module Hite.Forward, module Hite.Check, module Hite.Inline, module Hite.Reachable,
     module Hite.Firstify, module Hite.Specialise, module Hite.ShortName,
     module Hite.Data, module Hite.ErrorFail, module Hite.Kind, module Hite.DeadArgs,
-    module Hite.Blur, module Hite.Normalise, module Hite.Defunc, module Hite.CaseLift
+    module Hite.Blur, module Hite.Normalise, module Hite.Defunc, module Hite.CaseLift,
+    module Hite.ArityRaise
     )
     where
 
@@ -29,3 +30,4 @@ import Hite.Blur
 import Hite.Normalise
 import Hite.Defunc
 import Hite.CaseLift
+import Hite.ArityRaise

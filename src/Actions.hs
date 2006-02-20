@@ -24,6 +24,7 @@ cmdLine = [
             f "check" (\x -> if check x then x else undefined) "Check some hite is valid",
             g "reachable" (defMain reachable) "Do reachable analysis",
             f "firstify" firstify "Perform firstification",
+            f "arity" arityRaise "Perform firstification",
             f "defunc" defunc "Perform defunctionalisation",
             CmdLine "merge" OptHite OptHite mergeHite "Merge in some hite code",
             CmdLine "data" OptHite OptHite mergeData "Merge in some data definitions",
@@ -104,6 +105,7 @@ active (DatInputs [x]) =
                 wrap defunc $
                 wrap (reachable "main") $
                 wrap inline $ 
+                wrap arityRaise $ 
                 wrap (reachable "main") $
                 wrap errorFail $
                 wrap shortName $
