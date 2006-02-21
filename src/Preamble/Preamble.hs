@@ -377,20 +377,37 @@ data IO a = IO {io :: a}
 instance Preamble_Monad IO where
     return x = IO x
     IO a >>= f = f a
+    a >> b = b
 
 
 getContents = IO catch_any
 
 putChar x = IO ()
-putStr x = mapM_ putChar x
+
+putStr []     = IO ()
+putStr (x:xs) = putChar x >> putStr xs
+
 putStrLn x = putStr (x ++ "\n")
 
+
+-- these functions can be defined as higher order, but are not
+-- pragmatic reasons :)
 sequence []     = return []
 sequence (c:cs) = do x  <- c
                      xs <- sequence cs
                      return (x:xs)
 
-sequence_         = foldr (>>) (return ())
-mapM f            = sequence . map f
-mapM_ f           = sequence_ . map f
+sequence_ []     = return ()
+sequence_ (c:cs) = do c
+                      sequence_ cs
+
+mapM f []     = return []
+mapM f (c:cs) = do x <- f c
+                   xs <- mapM f cs
+                   return (x:xs)
+
+mapM_ f []     = return ()
+mapM_ f (c:cs) = do f c
+                    mapM_ f cs
+
 f =<< x           = x >>= f
