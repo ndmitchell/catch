@@ -76,6 +76,11 @@ data Tup18 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18 = Tup1
 data Tup19 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18 a19 = Tup19 {tup19_1 :: a1, tup19_2 :: a2, tup19_3 :: a3, tup19_4 :: a4, tup19_5 :: a5, tup19_6 :: a6, tup19_7 :: a7, tup19_8 :: a8, tup19_9 :: a9, tup19_10 :: a10, tup19_11 :: a11, tup19_12 :: a12, tup19_13 :: a13, tup19_14 :: a14, tup19_15 :: a15, tup19_16 :: a16, tup19_17 :: a17, tup19_18 :: a18, tup19_19 :: a19}
 data Tup20 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18 a19 a20 = Tup20 {tup20_1 :: a1, tup20_2 :: a2, tup20_3 :: a3, tup20_4 :: a4, tup20_5 :: a5, tup20_6 :: a6, tup20_7 :: a7, tup20_8 :: a8, tup20_9 :: a9, tup20_10 :: a10, tup20_11 :: a11, tup20_12 :: a12, tup20_13 :: a13, tup20_14 :: a14, tup20_15 :: a15, tup20_16 :: a16, tup20_17 :: a17, tup20_18 :: a18, tup20_19 :: a19, tup20_20 :: a20}
 
+instance Preamble_Eq Tup2 where
+    a == b = catch_any
+
+instance Preamble_Ord Tup2 where
+    compare a b = catch_any
 
 ---------------------------------------------------------------------
 -- Prelude
@@ -107,6 +112,7 @@ snd (a,b) = b
 
 --   [] a = [] | : a [a]
 data Preamble_Hex_5B5D a = Preamble_Hex_5B5D | Preamble_Hex_3A {hd :: a, tl :: [a]}
+                           deriving (Prelude.Eq, Prelude.Ord)
 
 
 head (x:xs) = x
@@ -119,6 +125,10 @@ map f (x:xs) = f x : map f xs
 filter f [] = []
 filter f (x:xs) = if f x then x:res else res
     where res = filter f xs
+
+_filter f [] = []
+_filter f (x:xs) = if f x then x:res else res
+    where res = _filter f xs
 
 concat = foldr (++) []
 
@@ -175,6 +185,7 @@ all p      = and . map p
 elem              = any . (==)
 notElem           = all . (/=)
 
+repeat x          = x : repeat x
 
 ---------------------------------------------------------------------
 -- Prelude.Bool
@@ -196,7 +207,7 @@ not False = True
 ---------------------------------------------------------------------
 -- Prelude.Char
 --
--- everything to do with booleans
+-- everything to do with characters
 
 data Char = Char_000 | Char_001 | Char_002 | Char_003 | Char_004 | Char_005 | Char_006 | Char_007 | Char_008 | Char_009
           | Char_010 | Char_011 | Char_012 | Char_013 | Char_014 | Char_015 | Char_016 | Char_017 | Char_018 | Char_019 | Char_020 | Char_021 | Char_022 | Char_023 | Char_024 | Char_025 | Char_026 | Char_027 | Char_028 | Char_029 | Char_030 | Char_031 | Char_032 | Char_033 | Char_034 | Char_035 | Char_036 | Char_037 | Char_038 | Char_039 | Char_040 | Char_041 | Char_042 | Char_043 | Char_044 | Char_045 | Char_046 | Char_047 | Char_058 | Char_059 | Char_060 | Char_061 | Char_062 | Char_063 | Char_064 | Char_091 | Char_092 | Char_093 | Char_094 | Char_095 | Char_096
@@ -204,8 +215,7 @@ data Char = Char_000 | Char_001 | Char_002 | Char_003 | Char_004 | Char_005 | Ch
           | Char_0 | Char_1 | Char_2 | Char_3 | Char_4 | Char_5 | Char_6 | Char_7 | Char_8 | Char_9
           | Char_a | Char_b | Char_c | Char_d | Char_e | Char_f | Char_g | Char_h | Char_i | Char_j | Char_k | Char_l | Char_m | Char_n | Char_o | Char_p | Char_q | Char_r | Char_s | Char_t | Char_u | Char_v | Char_w | Char_x | Char_y | Char_z
           | Char_A | Char_B | Char_C | Char_D | Char_E | Char_F | Char_G | Char_H | Char_I | Char_J | Char_K | Char_L | Char_M | Char_N | Char_O | Char_P | Char_Q | Char_R | Char_S | Char_T | Char_U | Char_V | Char_W | Char_X | Char_Y | Char_Z
-          deriving Prelude.Eq
-
+          deriving (Prelude.Eq, Prelude.Ord)
 
 
 ---------------------------------------------------------------------
@@ -237,6 +247,9 @@ class Preamble_Show a where
             showl (x:xs) = showChar (ignore ',') . shows x . showl xs
 
 instance Preamble_Show Int where
+    show x = catch_any
+
+instance Preamble_Show Integer where
     show x = catch_any
 
 
@@ -314,6 +327,20 @@ instance Preamble_Ord Int where
     compare a b = catch_any
 
 instance Preamble_Num Int where
+    (+) a b = catch_any
+    (-) a b = catch_any
+    (*) a b = catch_any
+    abs a = catch_any
+    fromInteger x = catch_any
+    signum a = catch_any
+
+instance Preamble_Eq Integer where
+    a == b = catch_any
+
+instance Preamble_Ord Integer where
+    compare a b = catch_any
+
+instance Preamble_Num Integer where
     (+) a b = catch_any
     (-) a b = catch_any
     (*) a b = catch_any
