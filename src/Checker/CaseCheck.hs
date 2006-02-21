@@ -160,7 +160,7 @@ reduceMany hite pending depth xs | depth > maxCheckDepth = do putStrLn "Lazy, gi
                                                               return predFalse
 
 reduceMany hite pending depth orig_xs =
-        case simpler (reduceManySmall hite orig_xs) of
+        case simp (reduceManySmall hite orig_xs) of
              PredLit x -> reduceOne hite pending False depth x
              x | null (allPredLit x) -> return x
              xs -> f xs
@@ -170,22 +170,27 @@ reduceMany hite pending depth orig_xs =
                 let reqs = nub $ allPredLit xs
                 output depth ("+ " ++ show orig_xs)
                 output depth ("  " ++ show xs)
-                reqs2 <- mapM g reqs
-                let ren = zip reqs reqs2
-                    res = simplifyMid hite $ simpler $ mapPredLit (rename ren) xs
+                res <- g xs reqs
                 output depth ("- " ++ show res)
                 return res
 
-        g x = do output (depth+1) ("+ " ++ show x)
-                 res <- reduceOne hite pending True (depth+2) x
-                 output (depth+1) ("- " ++ show res)
-                 return res
+        simp = simplifyMid hite . simpler
+
+        g reqs [] = return reqs
+        g reqs (x:xs) = do output (depth+1) ("+ " ++ show x)
+                           res <-
+                               if x `elem` allPredLit reqs then
+                                   do r <- reduceOne hite pending True (depth+2) x
+                                      output (depth+1) ("- " ++ show r)
+                                      return $ simp $ mapPredLit (replace x r) reqs
+                               else
+                                   do output (depth+1) ("- ignored for now")
+                                      return reqs
+                           g res xs
+
+        replace from to x = if x == from then to else predLit x
 
 
-        rename ren r = case lookup r ren of
-                          Just x -> x
-                          Nothing -> predLit r -- has already been replaced once
-                                  -- sometimes mapPredLit traverses twice
 
 simplifyMid hite x = if simplifyRegular then simplifyReqs False hite x else x
 
