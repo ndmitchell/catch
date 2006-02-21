@@ -111,6 +111,7 @@ convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) =
         f path vars (CorePos _ x) = f path vars x
         f path vars (CoreCon x) = (Make x [], [])
         f path vars (CoreInt x) = (CallFunc "prim_int", [])
+        f path vars (CoreInteger x) = (CallFunc "prim_int", [])
         f path vars (CoreChr x) = (Make (asChar x) [], [])
         f path vars (CoreStr x) = (CallFunc "prim_str", [])
         
@@ -128,7 +129,7 @@ convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) =
         -- let expressions, expand out
         f path vars (CoreLet binds body) =
                 if null topbinds then
-                    error "Convert.CoreHite, mutually recursive let"
+                    error $ "Convert.CoreHite, mutually recursive let in " ++ name
                 else
                     makeNewCall path vars "let" (map getBody topbinds) rename
             where
@@ -168,6 +169,8 @@ convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) =
                 dealMatch (CoreApp (CoreCon con) args) = (con,
                         [(v, Sel newOn x) | (CoreVar v, x) <- zip args sels])
                     where (Ctor _ sels) = getCtor (Hite datas []) con
+                
+                dealMatch x = error $ "Convert.CoreHite.dealMatch, " ++ show x
                 
                 givenCtors = filter (/= "_") $ map (fst . dealMatch . fst) opts
                 underCtors = getCtorsFromCtor (Hite datas []) (head givenCtors) \\ givenCtors
