@@ -14,7 +14,7 @@ transpose ((x:xs) : xss) = (x : [h | (h:t) <- xss]) : transpose (xs : [ t | (h:t
 
 
 
-main = mapM (putStr.find) hidden
+main = putStr (concat (map find hidden)) -- mapM (putStr.find) hidden
     where
     find word = word ++ " " ++ concat dirs ++ "\n"
         where
