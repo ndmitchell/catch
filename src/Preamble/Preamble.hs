@@ -156,6 +156,11 @@ length _ = catch_any
 []     ++ ys      = ys
 (x:xs) ++ ys      = x : (xs ++ ys)
 
+take n _  | n <= 0  = []
+take _ []           = []
+take n (x:xs)       = x : take (n-1) xs
+
+
 takeWhile           :: (a -> Bool) -> [a] -> [a]
 takeWhile p []       = []
 takeWhile p (x:xs)
