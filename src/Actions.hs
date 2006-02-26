@@ -21,10 +21,12 @@ cmdLine = [
             f "kind" kind "Add kind annotations",
             f "dead" deadArgs "Remove dead arguments",
             f "specialise" specialise "Perform specialisation",
+            f "evaluate" evaluate "Perform partial evaluation",
             f "check" (\x -> if check x then x else undefined) "Check some hite is valid",
             g "reachable" (defMain reachable) "Do reachable analysis",
             f "firstify" firstify "Perform firstification",
             f "arity" arityRaise "Perform firstification",
+            f "caselift" caseLift "Perform firstification",
             f "defunc" defunc "Perform defunctionalisation",
             CmdLine "merge" OptHite OptHite mergeHite "Merge in some hite code",
             CmdLine "data" OptHite OptHite mergeData "Merge in some data definitions",
@@ -100,10 +102,12 @@ active (DatInputs [x]) =
     do src <- readFile $ "Example/" ++ x ++ ".hs.core"
        DatCore a <- preamble (DatCore (readCore src))
        return $
-                wrap (reachable "main") $
                 wrap defunc $
                 wrap (reachable "main") $
                 wrap inline $ 
+                wrap arityRaise $
+                wrap (reachable "main") $
+                wrap evaluate $ 
                 wrap arityRaise $ 
                 wrap caseLift $
                 wrap (reachable "main") $
