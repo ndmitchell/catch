@@ -3,7 +3,7 @@ module Hite.Normalise(normalise) where
 
 import Hite.Type
 
-normalise :: Hite -> Hite
+normalise :: PlayExpr a => a -> a
 normalise hite = mapExpr f hite
     where
         f (CallFunc x) = Call (CallFunc x) []
