@@ -25,8 +25,11 @@ f (CoreData n x) = CoreData (redName n) (map g x)
         h (Just x) = Just (redName x)
 
 
+redName "Preamble.." = "o"
+redName "Prelude.." = "o"
 redName x = concat $ intersperse "." $ mapMaybe g $ splitList "." x
     where
+        g "" = error $ "Core.Reduce.redName, " ++ show x
         g "Preamble" = Nothing
         g "YHC" = Nothing
         g "Internal" = Nothing -- only valid if YHC is first
