@@ -29,7 +29,7 @@ caseCheck bad_hite = do putStrLn $ "Initial conditions:\n" ++ (unlines $ map ((+
                                 "\n=\n" ++ prettyReqs (simp $ predAnd r)
     where
         reqs = generate hite
-        hite = annotateVar $ removeUnderscore bad_hite
+        hite = annotateVar $ fixBottom $ removeUnderscore bad_hite
         simp = simplifyReqsFull hite
         
         f x = do putStrLn $ "\n? " ++ show x
@@ -55,6 +55,16 @@ removeUnderscore x = mapExpr f $ x{funcs = filter ((/= "_") . funcName) (funcs x
     where
         f (Call (CallFunc "_") []) = Bottom
         f (CallFunc "_") = Bottom
+        f x = x
+
+
+fixBottom :: Hite -> Hite
+fixBottom hite = hite{funcs = map f (funcs hite), datas = newData : datas hite}
+    where
+        newData = Data "Internal" [Ctor "InternalA" [], Ctor "InternalB" []]
+        newBody = Case (Make "InternalA" []) [("InternalB", Call (CallFunc "_") [])]
+        
+        f (Func "catch_bot" args body star) = Func "catch_bot" args newBody star
         f x = x
 
 
