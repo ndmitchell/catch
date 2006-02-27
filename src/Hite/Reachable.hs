@@ -11,7 +11,7 @@ import General.General
 reachable :: FuncName -> Hite -> Hite
 reachable name hite@(Hite datas funcs) = Hite aliveDatas aliveFuncs
     where
-        aliveFuncNames = fixSet f [name]
+        aliveFuncNames = fixSet f [name,"catch_bot"]
         aliveFuncs = [x | x <- funcs, funcName x `elem` aliveFuncNames]
 
         -- still misses data which is only used as a field selector        
