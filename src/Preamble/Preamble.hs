@@ -40,6 +40,7 @@ _id x = x
 -- used to encode non-determinism
 -- treated specially by the checker
 catch_any = catch_any
+catch_bot = catch_bot
 ignore x = catch_any
 
 
@@ -87,9 +88,7 @@ instance Preamble_Ord Tup2 where
 --
 -- Special functions, which have a different semantics in CATCH
 
-error msg = case [] of
-    (_:_) -> catch_any
-
+error msg = catch_bot
 
 ---------------------------------------------------------------------
 -- Prelude.General
@@ -156,9 +155,10 @@ length _ = catch_any
 []     ++ ys      = ys
 (x:xs) ++ ys      = x : (xs ++ ys)
 
-take n _  | n <= 0  = []
+take :: Int -> [a] -> [a]
+take n _  | n <= zero_int  = []
 take _ []           = []
-take n (x:xs)       = x : take (n-1) xs
+take n (x:xs)       = x : take (n-one_int) xs
 
 
 takeWhile           :: (a -> Bool) -> [a] -> [a]
@@ -424,22 +424,28 @@ putStrLn x = putStr (x ++ "\n")
 
 -- these functions can be defined as higher order, but are not
 -- pragmatic reasons :)
+
+-- if type signatures are NOT given then the type is wrong
+-- it generates two dictionaries!
+
+sequence :: Preamble_Monad a => [a b] -> a [b]
 sequence []     = return []
-sequence (c:cs) = do x  <- c
-                     xs <- sequence cs
-                     return (x:xs)
+sequence (c:cs) = c >>= \x ->
+                  sequence cs >>= \xs ->
+                  return (x:xs)
 
+sequence_ :: Preamble_Monad a => [a b] -> a ()
 sequence_ []     = return ()
-sequence_ (c:cs) = do c
-                      sequence_ cs
+sequence_ (c:cs) = c >> sequence_ cs
 
+mapM :: Preamble_Monad a => (b -> a c) -> [b] -> a [c]
 mapM f []     = return []
-mapM f (c:cs) = do x <- f c
-                   xs <- mapM f cs
-                   return (x:xs)
+mapM f (c:cs) = f c >>= \x ->
+                mapM f cs >>= \xs -> 
+                return (x:xs)
 
+mapM_ :: Preamble_Monad a => (b -> a c) -> [b] -> a ()
 mapM_ f []     = return ()
-mapM_ f (c:cs) = do f c
-                    mapM_ f cs
+mapM_ f (c:cs) = f c >> mapM_ f cs
 
 f =<< x           = x >>= f
