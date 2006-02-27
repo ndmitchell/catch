@@ -2,6 +2,7 @@
 module Hite.Evaluate(evaluate) where
 
 import Hite.Type
+import Hite.Show
 import Hite.Normalise
 
 import List
@@ -40,7 +41,7 @@ evaluate bad_hite = hite{funcs = mapExpr g allFuncs}
                 poss = sortBy cmp [(funcName func, pargs) | ((n2, pargs),func) <- res, n2 == name, all check pargs]
                 
                 check (pos,val) = length args > pos && (args !! pos) == val
-                cmp a b = compare (length (snd a)) (length (snd b))
+                cmp a b = compare (length (snd b)) (length (snd a)) -- sort in reverse order
                 
         
         g x = x
@@ -80,7 +81,9 @@ canEvaluate hite funcs = concatMap f (allExpr funcs)
 
 
 genEvaluate :: Hite -> (FuncName, [(Int, Expr)]) -> String -> Func
-genEvaluate hite (name, pargs) newName = Func newName newArgs newBody Star
+genEvaluate hite (name, pargs) newName = 
+        (if newName == "  mapM_SPEC_1_15" then error . show else id) $
+        Func newName newArgs newBody Star
     where
         Func _ args body _ = getFunc hite name
         
@@ -90,7 +93,7 @@ genEvaluate hite (name, pargs) newName = Func newName newArgs newBody Star
         
         newBody = partialEval hite $ mapExpr f body
         
-        f (Var x _) | isJust res = fromJust res
+        f (Var x _) | isJust res = fromJustNote "genEvaluate" res
             where res = lookup x rename
         f x = x
 
@@ -100,11 +103,21 @@ genEvaluate hite (name, pargs) newName = Func newName newArgs newBody Star
 partialEval :: Hite -> Expr -> Expr
 partialEval hite expr = normalise $ mapExpr f $ mapExpr f $ mapExpr f $ normalise expr
     where
-        f (Sel (Call (CallFunc name) args) path) | all varFree args = Sel (expand hite name args) path
+        f (Sel (Call (CallFunc name) args) path) | all varFree args =
+                if len /= length args then
+                    error $ show ("partialEval", expr, (Sel (Call (CallFunc name) args) path))
+                else
+                    Sel (expand hite name args) path
+            where len = length $ funcArgs $ getFunc hite name
+        
         f (Sel (Make name args) path) | name == name2 = args !! pos
             where
                 Ctor name2 args2 = getCtorFromArg hite path
                 pos = head [i | (i,a) <- zip [0..] args2, a == path]
+                
+        f (Case (Make name _) opts) = if null o then Call (CallFunc "catch_bot") [] else snd (head o)
+            where o = filter ((==) name . fst) opts
+                
         f x = x
         
         
@@ -118,5 +131,5 @@ expand hite name params = mapExpr f body
         
         rename = zip args params
 
-        f (Var a _) = fromJust $ lookup a rename
+        f (Var a _) = fromJustNote (show ("expand",name,params)) $ lookup a rename
         f x = x
