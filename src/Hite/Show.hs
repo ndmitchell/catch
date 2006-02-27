@@ -51,6 +51,7 @@ instance Show Expr where
                                      map (f True i) (name:args)
 
             f b i (Case cond opts) = "case " ++ show cond ++ " of\n" ++
+                                     if null opts then "    {- NO OPTIONS! -}" else
                                      (init $ unlines $ map (g (i+4)) opts)
 
             g i (a,b) = replicate i ' ' ++ a ++ " -> " ++ f False i b
