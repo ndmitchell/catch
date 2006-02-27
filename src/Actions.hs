@@ -108,6 +108,7 @@ active (DatInputs [x]) =
                 wrap arityRaise $
                 wrap (reachable "main") $
                 wrap evaluate $ 
+                wrap inline $
                 wrap arityRaise $ 
                 wrap caseLift $
                 wrap (reachable "main") $
