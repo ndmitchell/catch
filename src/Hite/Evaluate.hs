@@ -27,10 +27,10 @@ evaluate bad_hite = hite{funcs = mapExpr g allFuncs}
         allFuncs = funcs hite ++ map snd res
         res = f 1 (funcs hite) []
     
-        f 5 todo done = done
+        f 9 todo done = done
         f n todo done = f (n+1) (map snd newFuns) (done ++ newFuns)
             where
-                newDone = (nub (canEvaluate hite todo) \\ map fst done) \\ map fst done
+                newDone = nub (canEvaluate hite todo) \\ map fst done
                 newFuns = [(x, genEvaluate hite x name) | (i,x@(n2,_)) <- zip [1..] newDone,
                            name <- [n2 ++ "_SPEC_" ++ show n ++ "_" ++ show i]]
 
@@ -105,7 +105,7 @@ partialEval hite expr = normalise $ mapExpr f $ mapExpr f $ mapExpr f $ normalis
     where
         f (Sel (Call (CallFunc name) args) path) | all varFree args =
                 if len /= length args then
-                    error $ show ("partialEval", expr, (Sel (Call (CallFunc name) args) path))
+                    error $ show ("partialEval", expr, (Sel (Call (CallFunc name) args) path), len, getFunc hite name)
                 else
                     Sel (expand hite name args) path
             where len = length $ funcArgs $ getFunc hite name
@@ -121,7 +121,7 @@ partialEval hite expr = normalise $ mapExpr f $ mapExpr f $ mapExpr f $ normalis
         f x = x
         
         
-varFree x = null [() | Var _ _ <- allExpr x]
+varFree x = null [() | Var _ _ <- allExpr x] && length (allExpr x) < 15
 
 
 expand :: Hite -> FuncName -> [Expr] -> Expr
