@@ -28,7 +28,7 @@ consts bad_hite = hite{funcs = mapExpr g allFuncs}
         res = f 1 (funcs hite) []
     
         f n [] done = done
-        f n todo done = trace (show newDone) $
+        f n todo done = -- trace (show newDone) $
                     f (n+1) (map snd newFuns) (done ++ newFuns)
             where
                 newEval = concatMap slices $ nub (canEvaluate hite todo)
