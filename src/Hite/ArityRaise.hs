@@ -2,6 +2,8 @@
 module Hite.ArityRaise(arityRaise) where
 
 import Hite.Type
+import Hite.Normalise
+
 import General.General
 import Maybe
 
@@ -9,8 +11,9 @@ import Maybe
 -- fix it up properly
 
 arityRaise :: Hite -> Hite
-arityRaise hite = hite{funcs = map f (funcs hite)}
+arityRaise bad_hite = hite{funcs = map f (funcs hite)}
     where
+        hite = normalise bad_hite
         ars = getArity hite
         
         f func@(Func name args body star) | ar == 0 = func

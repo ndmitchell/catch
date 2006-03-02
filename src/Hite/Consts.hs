@@ -28,7 +28,7 @@ consts bad_hite = hite{funcs = mapExpr g allFuncs}
         res = f 1 (funcs hite) []
     
         f n [] done = done
-        f n todo done = -- trace (show newDone) $
+        f n todo done = trace (show newDone) $
                     f (n+1) (map snd newFuns) (done ++ newFuns)
             where
                 newDone = filter (\x -> not $ any (covered x) (map fst done)) $ nub (canEvaluate hite todo)
@@ -84,7 +84,7 @@ canEvaluate hite funcs = concatMap f (allExpr funcs)
     where
         f (Call (CallFunc name) args) = if null poss then [] else [(name, poss)]
             where
-                poss = [(pos,arg) | (pos,arg) <- zip [0..max_arg] args, varFree arg]
+                poss = [(pos,arg) | (pos,arg) <- zip [0..max_arg-1] args, varFree arg]
                 max_arg = length $ funcArgs $ getFunc hite name
         f _ = []
 
