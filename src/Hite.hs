@@ -7,7 +7,7 @@ module Hite
     module Hite.Firstify, module Hite.Specialise, module Hite.ShortName,
     module Hite.Data, module Hite.ErrorFail, module Hite.Kind, module Hite.DeadArgs,
     module Hite.Blur, module Hite.Normalise, module Hite.Defunc, module Hite.CaseLift,
-    module Hite.ArityRaise, module Hite.Evaluate
+    module Hite.ArityRaise, module Hite.Evaluate, module Hite.Consts
     )
     where
 
@@ -32,3 +32,4 @@ import Hite.Defunc
 import Hite.CaseLift
 import Hite.ArityRaise
 import Hite.Evaluate
+import Hite.Consts

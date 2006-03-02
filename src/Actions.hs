@@ -22,6 +22,7 @@ cmdLine = [
             f "dead" deadArgs "Remove dead arguments",
             f "specialise" specialise "Perform specialisation",
             f "evaluate" evaluate "Perform partial evaluation",
+            f "consts" consts "Perform partial evaluation",
             f "check" (\x -> if check x then x else undefined) "Check some hite is valid",
             g "reachable" (defMain reachable) "Do reachable analysis",
             f "firstify" firstify "Perform firstification",
@@ -102,12 +103,13 @@ active (DatInputs [x]) =
     do src <- readFile $ "Example/" ++ x ++ ".hs.core"
        DatCore a <- preamble (DatCore (readCore src))
        return $
-                wrap defunc $
-                wrap (reachable "main") $
-                wrap inline $ 
-                wrap arityRaise $
-                wrap (reachable "main") $
-                wrap evaluate $ 
+                --wrap defunc $
+                --wrap (reachable "main") $
+                --wrap inline $ 
+                --wrap arityRaise $
+                --wrap (reachable "main") $
+                --wrap evaluate $ 
+                wrap consts $
                 wrap inline $
                 wrap arityRaise $ 
                 wrap caseLift $
