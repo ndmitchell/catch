@@ -1,1 +1,1 @@
-for %%i in (*.hs) do yhc %%i -corep 2> %%i.core
+for %%i in (*.hs) do yhc-blessed %%i -corep 2> %%i.core
