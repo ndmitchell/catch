@@ -28,6 +28,7 @@ cmdLine = [
             f "firstify" firstify "Perform firstification",
             f "arity" arityRaise "Perform firstification",
             f "caselift" caseLift "Perform firstification",
+            f "makemove" makeMove "Perform firstification",
             f "defunc" defunc "Perform defunctionalisation",
             CmdLine "merge" OptHite OptHite mergeHite "Merge in some hite code",
             CmdLine "data" OptHite OptHite mergeData "Merge in some data definitions",
@@ -103,14 +104,14 @@ active (DatInputs [x]) =
     do src <- readFile $ "Example/" ++ x ++ ".hs.core"
        DatCore a <- preamble (DatCore (readCore src))
        return $
-                --wrap defunc $
-                --wrap (reachable "main") $
-                --wrap inline $ 
-                --wrap arityRaise $
-                --wrap (reachable "main") $
-                --wrap evaluate $ 
-                wrap consts $
+                wrap defunc $
+                wrap (reachable "main") $
+                wrap inline $ 
+                wrap arityRaise $
                 wrap inline $
+                wrap makeMove $
+                wrap (reachable "main") $
+                wrap consts $
                 wrap arityRaise $ 
                 wrap caseLift $
                 wrap (reachable "main") $
