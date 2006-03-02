@@ -403,20 +403,20 @@ class Preamble_Monad m where
     fail s  = error s
 
 
-data IO a = IO {io :: a}
+data IO a = OI {io :: a}
 
 
 instance Preamble_Monad IO where
-    return x = IO x
-    IO a >>= f = f a
+    return x = OI x
+    OI a >>= f = f a
     a >> b = b
 
 
-getContents = IO catch_any
+getContents = OI catch_any
 
-putChar x = IO ()
+putChar x = OI ()
 
-putStr []     = IO ()
+putStr []     = OI ()
 putStr (x:xs) = putChar x >> putStr xs
 
 putStrLn x = putStr (x ++ "\n")
