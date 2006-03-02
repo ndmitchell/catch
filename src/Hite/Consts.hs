@@ -31,7 +31,8 @@ consts bad_hite = hite{funcs = mapExpr g allFuncs}
         f n todo done = trace (show newDone) $
                     f (n+1) (map snd newFuns) (done ++ newFuns)
             where
-                newDone = filter (\x -> not $ any (covered x) (map fst done)) $ nub (canEvaluate hite todo)
+                newEval = concatMap slices $ nub (canEvaluate hite todo)
+                newDone = filter (\x -> not $ any (covered x) (map fst done)) newEval
                 newFuns = [(x, genEvaluate hite x name) | (i,x@(n2,_)) <- zip [1..] newDone,
                            name <- [n2 ++ "_SPEC_" ++ show n ++ "_" ++ show i]]
 
@@ -40,8 +41,10 @@ consts bad_hite = hite{funcs = mapExpr g allFuncs}
                 covered (a,as) (b,bs) = a == b && length as == length bs && and (zipWith (=<=) as bs)
                     where
                         (a1,a2) =<= (b1,b2) = a1 == b1 && any (b2==) (allExpr a2)
-                    
-
+                
+                slices :: (FuncName, [(Int, Expr)]) -> [(FuncName, [(Int, Expr)])]
+                slices (x, xs) = map ((,) x) (filter (not . null) $ selections xs)
+                
 
         g (Call (CallFunc name) args) | not (null poss) = Call (CallFunc newName) callArgs
             where
@@ -54,6 +57,10 @@ consts bad_hite = hite{funcs = mapExpr g allFuncs}
                 
         
         g x = x
+
+
+selections (x:xs) = selections xs ++ map (x:) (selections xs)
+selections [] = [[]]
 
 {-
 
