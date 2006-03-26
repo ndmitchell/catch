@@ -1,11 +1,16 @@
 
-module Hite.ArityRaise(arityRaise) where
+module Hite.ArityRaise(cmd, arityRaise) where
 
 import Hite.Type
 import Hite.Normalise
 
 import General.General
 import Maybe
+
+
+cmd = cmdHitePure (const arityRaise) "arity-raise"
+            "Remove point free programming"
+
 
 -- if a function is being deliberate called in a point free style
 -- fix it up properly

@@ -1,11 +1,14 @@
 
-module Hite.Defunc(defunc) where
+module Hite.Defunc(cmd, defunc) where
 
 import Hite.Type
 import Hite.Normalise
 
 import List
 import Maybe
+
+cmd = cmdHitePure (const defunc) "defunc"
+            "Perform Reynold's style defunctionalisation"
 
 
 defunc :: Hite -> Hite

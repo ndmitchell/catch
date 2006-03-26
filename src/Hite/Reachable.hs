@@ -1,11 +1,15 @@
 
 
-module Hite.Reachable(reachable) where
+module Hite.Reachable(cmd, reachable) where
 
 import Hite.Type
 import List
 import Maybe
 import General.General
+
+
+cmd = cmdHitePure reachable "reachable"
+            "Reachability analysis, from a root function (default=main) figure out which functions can be used"
 
 
 reachable :: FuncName -> Hite -> Hite

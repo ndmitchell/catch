@@ -1,0 +1,36 @@
+v
+	verbose
+?
+	help
+h
+	help
+
+help Show this help list
+verbose Show the Hite at each step
+version Show version information
+
+prepare Prepare a Hite program from analysis
+	short-name
+	error-fail
+	reachable=main
+	case-lift
+	arity-raise
+	consts
+	reachable=main
+	make-move
+	inline
+	reachable=main
+	defunc
+
+case *Try to prove a program is free from pattern match errors
+	prepare
+	safe-patterns
+
+ncase *Find the circumstances under which a program will definately crash
+	prepare
+	unsafe-patterns
+
+stats *Generate statistics about a Haskell program
+	short-name
+	reachable=main
+	statistics

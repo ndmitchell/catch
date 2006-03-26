@@ -1,15 +1,19 @@
 
 module Hite
     (
+    cmds,
     module Hite.Type,
     module Hite.Read, module Hite.Show, module Hite.Eq,
-    module Hite.Forward, module Hite.Check, module Hite.Inline, module Hite.Reachable,
-    module Hite.Firstify, module Hite.Specialise, module Hite.ShortName,
-    module Hite.Data, module Hite.ErrorFail, module Hite.Kind, module Hite.DeadArgs,
-    module Hite.Blur, module Hite.Normalise, module Hite.Defunc, module Hite.CaseLift,
-    module Hite.ArityRaise, module Hite.Evaluate, module Hite.Consts, module Hite.MakeMove
+    module Hite.Forward, module Hite.Check,
+    module Hite.Firstify, module Hite.Specialise,
+    module Hite.Data, module Hite.Kind, module Hite.DeadArgs,
+    module Hite.Blur, module Hite.Normalise,
+    module Hite.Evaluate, module Hite.Consts
     )
     where
+
+
+import General.Commands
 
 import Hite.Type
 import Hite.Read
@@ -34,3 +38,9 @@ import Hite.ArityRaise
 import Hite.Evaluate
 import Hite.Consts
 import Hite.MakeMove
+
+
+cmds :: [Command Hite]
+cmds = [Hite.Reachable.cmd, Hite.ShortName.cmd, Hite.ErrorFail.cmd, Hite.CaseLift.cmd,
+        Hite.ArityRaise.cmd, Hite.Consts.cmd, Hite.MakeMove.cmd, Hite.Inline.cmd,
+        Hite.Defunc.cmd]

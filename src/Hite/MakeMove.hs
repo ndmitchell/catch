@@ -1,5 +1,5 @@
     
-module Hite.MakeMove(makeMove) where
+module Hite.MakeMove(cmd, makeMove) where
 
 -- Move make's around a bit
 -- case Make of can be taken out (provided it won't error)
@@ -9,6 +9,9 @@ import Hite.Type
 import Hite.Show
 import Maybe
 import General.General
+
+cmd = cmdHitePure (const makeMove) "make-move"
+            "Move constructors to the best place"
 
 
 

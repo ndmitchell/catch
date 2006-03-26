@@ -1,9 +1,13 @@
 
-module Hite.Inline(inline) where
+module Hite.Inline(cmd, inline) where
 
 import Hite.Type
 import Hite.Normalise
 import Maybe
+
+
+cmd = cmdHitePure (const inline) "inline"
+            "Perform inlining"
 
 
 inline :: Hite -> Hite

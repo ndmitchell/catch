@@ -1,5 +1,5 @@
     
-module Hite.Consts(consts) where
+module Hite.Consts(cmd, consts) where
 
 import Hite.Type
 import Hite.Show
@@ -10,6 +10,11 @@ import General.General
 import Maybe
 
 import Debug.Trace
+
+
+cmd = cmdHitePure (const consts) "consts"
+            "Partially evaluate non-dependant arguments"
+
 
 
 {-

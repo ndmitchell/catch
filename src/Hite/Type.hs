@@ -6,9 +6,15 @@
 module Hite.Type where
 
 import General.General
+import General.Commands
 import Maybe
 import List
 
+
+cmdHite :: (String -> Hite -> IO Hite) -> String -> String -> Command Hite
+cmdHite f name desc = Command f name desc
+
+cmdHitePure f = cmdHite (\a b -> return (f a b))
 
 type FuncName = String
 type DataName = String

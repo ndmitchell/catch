@@ -1,9 +1,14 @@
 
-module Hite.ShortName(shortName) where
+module Hite.ShortName(cmd, shortName) where
 
 import Hite.Type
 import List
 import Maybe
+
+cmd = cmdHitePure (const shortName) "short-name"
+            "Shorten names, if the module name is not required for disambiguation"
+
+
 
 shortName :: Hite -> Hite
 shortName hite = mapFunc h $ mapExpr g hite
