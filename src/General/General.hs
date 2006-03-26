@@ -89,3 +89,8 @@ indents x = map indent x
 fix :: Eq a => (a -> a) -> a -> a
 fix f x = if x == x2 then x else fix f x2
     where x2 = f x
+
+
+
+class Output x where
+    output :: x -> String

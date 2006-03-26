@@ -102,8 +102,8 @@ data Trace = Trace String | Indent | Outdent
 
 type Depth = Int
 
-output :: Depth -> String -> IO ()
-output depth msg = putStrLn $ replicate (depth*2) ' ' ++ msg
+out :: Depth -> String -> IO ()
+out depth msg = putStrLn $ replicate (depth*2) ' ' ++ msg
 
 
 
@@ -132,9 +132,9 @@ reduce hite x = reduceMany hite [] 1 x
 reduceOne :: Hite -> [Req] -> Bool -> Depth -> Req -> IO Reqs
 reduceOne hite pending supress depth orig_req =
     do
-        if supress then return () else output depth (show orig_req)
+        if supress then return () else out depth (show orig_req)
         case orig_req of
-            r | r `elem` pending -> do output depth "True -- Pending tied back"
+            r | r `elem` pending -> do out depth "True -- Pending tied back"
                                        return predTrue
 
             (Req (Var a b) _ _) -> 
@@ -178,23 +178,23 @@ reduceMany hite pending depth orig_xs =
         f xs =
             do
                 let reqs = nub $ allPredLit xs
-                output depth ("+ " ++ show orig_xs)
-                output depth ("  " ++ show xs)
+                out depth ("+ " ++ show orig_xs)
+                out depth ("  " ++ show xs)
                 res <- g xs reqs
-                output depth ("- " ++ show res)
+                out depth ("- " ++ show res)
                 return res
 
         simp = simplifyMid hite . simpler
 
         g reqs [] = return reqs
-        g reqs (x:xs) = do output (depth+1) ("+ " ++ show x)
+        g reqs (x:xs) = do out (depth+1) ("+ " ++ show x)
                            res <-
                                if x `elem` allPredLit reqs then
                                    do r <- reduceOne hite pending True (depth+2) x
-                                      output (depth+1) ("- " ++ show r)
+                                      out (depth+1) ("- " ++ show r)
                                       return $ simp $ mapPredLit (replace x r) reqs
                                else
-                                   do output (depth+1) ("- ignored for now")
+                                   do out (depth+1) ("- ignored for now")
                                       return reqs
                            g res xs
 
