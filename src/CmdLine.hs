@@ -18,6 +18,7 @@ import System
 import Monad
 
 import Checker.CaseCheck
+import Checker.Statistics
 
 
 import General.Commands
@@ -43,15 +44,16 @@ isTerminal (Terminal{}) = True; isTerminal _ = False
 specials = [("verbose",Verbose),("help",Help),("version",Version)]
 
 -- Terminal functions
-terminals = [("safe-patterns",showCaseCheck),
-             ("unsafe-patterns",term "unsafe-patterns"),
-             ("statistics",term "statistics")]
+terminals = [("safe-patterns",term "safe-patterns" showCaseCheck),
+             ("unsafe-patterns",term "unsafe-patterns" undefined),
+             ("statistics",term "statistics" statistics)]
 
 showCaseCheck h = do outputHite "safe-patterns" h
                      caseCheck h
 
-term :: String -> Hite -> IO ()
-term s h = putStrLn $ "Terminal: " ++ s
+term :: String -> (Hite -> IO ()) -> Hite -> IO ()
+term s f h = do outputHite s h
+                f h
 
 
 verboseOut :: String -> Command Hite
