@@ -33,4 +33,5 @@ ncase *Find the circumstances under which a program will definately crash
 stats *Generate statistics about a Haskell program
 	short-name
 	reachable=main
+	error-fail
 	statistics

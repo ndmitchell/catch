@@ -5,7 +5,9 @@ module Hite
     module Hite.Type,
     module Hite.Show, module Hite.Eq,
     
-    module Hite.Blur
+    module Hite.Blur, module Hite.Cache,
+    
+    shortName, reachable
     )
     where
 
@@ -15,6 +17,7 @@ import General.Commands
 import Hite.Type
 import Hite.Show
 import Hite.Eq
+import Hite.Cache
 
 import Hite.Check
 import Hite.Inline

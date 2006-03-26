@@ -23,14 +23,16 @@ type CtorArg  = String
 type FuncArg  = String
 
 data Hite = Hite {datas :: [Data], funcs :: [Func]}
+            deriving (Show, Read)
 
 data Data = Data {dataName :: DataName, ctors :: [Ctor]}
+            deriving (Show, Read)
 
 data Ctor = Ctor {ctorName :: CtorName, ctorArgs :: [CtorArg]}
-          deriving Eq
+          deriving (Eq, Show, Read)
 
 data Func = Func {funcName :: FuncName, funcArgs :: [FuncArg], body :: Expr}
-          deriving Eq
+          deriving (Eq, Show, Read)
 
 data Expr = Call {callFunc :: Expr, callArgs :: [Expr]}
           | Var {varArg :: FuncArg, scope :: FuncName}
@@ -43,7 +45,7 @@ data Expr = Call {callFunc :: Expr, callArgs :: [Expr]}
           | Repeat {expr :: Expr, alt :: Expr}
           | RepeatNow
           | Bottom
-          deriving Eq
+          deriving (Eq, Show, Read)
 
 
 isVar (Var{}) = True; isVar _ = False

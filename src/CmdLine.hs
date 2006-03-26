@@ -17,6 +17,7 @@ import Directory
 import System
 import Monad
 import CPUTime
+import Time
 
 import Checker.CaseCheck
 import Checker.Statistics
@@ -46,12 +47,9 @@ isTerminal (Terminal{}) = True; isTerminal _ = False
 specials = [("verbose",Verbose),("help",Help),("version",Version),("profile",Profile)]
 
 -- Terminal functions
-terminals = [("safe-patterns",term "safe-patterns" showCaseCheck),
+terminals = [("safe-patterns",term "safe-patterns" caseCheck),
              ("unsafe-patterns",term "unsafe-patterns" undefined),
              ("statistics",term "statistics" statistics)]
-
-showCaseCheck h = do outputHite "safe-patterns" h
-                     caseCheck h
 
 term :: String -> (Hite -> IO ()) -> Hite -> IO ()
 term s f h = do outputHite s h
@@ -237,6 +235,7 @@ runArgs file acts = do hite <- readFileHite file
 
         f hite [Terminal act] = act hite
 
+{-
 
 readFileHiteRaw :: String -> IO Core
 readFileHiteRaw x = do src <- readAny possFiles
@@ -267,12 +266,58 @@ readFileHiteRaw x = do src <- readAny possFiles
                              if not b then
                                 error "Core file not created, do you have Yhc?"
                                 else readFile cr
+-}
+
+pickFile :: FilePath -> IO FilePath
+pickFile x = f [x, "Example/" ++ x, "Example/" ++ x ++ ".hs"]
+    where
+        f [] = error $ "File not found, " ++ x
+        f (x:xs) = do b <- doesFileExist x
+                      if b then return x else f xs
 
 
 readFileHite :: String -> IO Hite
-readFileHite x = do preamble <- readFileHiteRaw "Preamble/Preamble.hs"
-                    self <- readFileHiteRaw x
-                    return $ error $ output $ coreHite (mergeCore preamble self)
+readFileHite x = do hs <- pickFile x
+                    hsd <- getModificationTime hs
+                    let hite = hs ++ ".hite"
+                    
+                    mhite <- isModified hsd hite
+                    if not mhite then do
+                        putStrLn $ "Reading hite from cache: " ++ hs
+                        readCacheHite hite
+                     else do
+                        hp <- readFileCore "Preamble/Preamble.hs"
+                        hs <- readFileCore hs
+                        let h2 = reachable "main" $ shortName $ coreHite $ mergeCore hp hs
+                        writeCacheHite h2 hite
+                        return h2
+
+
+readFileCore :: FilePath -> IO Core
+readFileCore hs = do hsd <- getModificationTime hs
+                     let core = hs ++ ".core"
+                     
+                     mcore <- isModified hsd core
+                     if mcore
+                        then createCore hs core
+                        else putStrLn $ "Reading core from cache: " ++ hs
+                     
+                     src <- readFile core
+                     return $ readCore src
+    where
+        createCore hs cr = do putStrLn $ "Compiling core file for: " ++ hs
+                              system $ "yhc " ++ hs ++ " -corep 2> " ++ cr
+                              b <- doesFileExist cr
+                              when (not b) $ error "Core file not created, do you have Yhc?"
+
+
+isModified :: ClockTime -> FilePath -> IO Bool
+isModified ct file = do b <- doesFileExist file
+                        if b then
+                            do ct2 <- getModificationTime file
+                               return $ ct > ct2
+                         else
+                            return True
 
 {-
 
