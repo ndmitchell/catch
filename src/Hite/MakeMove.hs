@@ -69,7 +69,7 @@ expand hite name params = mapExpr f body
         
         rename = zip args params
 
-        f (Var a _) = fromJustNote (show ("expand",name,params)) $ lookup a rename
+        f (Var a _) = fromJustNote (show ("expand",name)) $ lookup a rename
         f x = x
 
 

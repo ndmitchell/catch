@@ -3,24 +3,25 @@ module Hite.Show() where
 
 import Hite.Type
 import List
+import General.General
 
 
-instance Show Hite where
-    show (Hite datas funcs) = unlines (map show datas ++ map show funcs)
+instance Output Hite where
+    output (Hite datas funcs) = unlines (map output datas ++ map output funcs)
     
-instance Show Data where
-    show (Data name ctors) = "data " ++ name ++ " = " ++ concat (intersperse " | " $ map show ctors)
+instance Output Data where
+    output (Data name ctors) = "data " ++ name ++ " = " ++ concat (intersperse " | " $ map output ctors)
     
-instance Show Ctor where
-    show (Ctor name args) = name ++ concatMap (' ':) args
+instance Output Ctor where
+    output (Ctor name args) = name ++ concatMap (' ':) args
     
-instance Show Func where
-    show (Func name args expr) =
+instance Output Func where
+    output (Func name args expr) =
         "\n" ++ name ++ concatMap (' ':) args ++
-        " = " ++ show expr
+        " = " ++ output expr
 
-instance Show Expr where
-    show x = f False 0 x
+instance Output Expr where
+    output x = f False 0 x
         where
             brack True x = "(" ++ x ++ ")"
             brack False x = x
@@ -38,7 +39,7 @@ instance Show Expr where
             f b i (Call name args) = brack b $ concat $ intersperse " " $
                                      map (f True i) (name:args)
 
-            f b i (Case cond opts) = "case " ++ show cond ++ " of\n" ++
+            f b i (Case cond opts) = "case " ++ output cond ++ " of\n" ++
                                      if null opts then "    {- NO OPTIONS! -}" else
                                      (init $ unlines $ map (g (i+4)) opts)
 

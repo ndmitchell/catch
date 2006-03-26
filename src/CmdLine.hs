@@ -23,6 +23,7 @@ import Checker.Statistics
 
 
 import General.Commands
+import General.General
 
 
 data Arg = File String
@@ -66,7 +67,7 @@ verboseOut msg = Command (const f) undefined undefined
 
 outputHite :: String -> Hite -> IO ()
 outputHite msg h = do putStrLn $ "== " ++ msg
-                      print h
+                      putStrLn $ output h
                       putStrLn "================================================"
 
 
@@ -143,7 +144,7 @@ exec args = do comp <- composite
                 f sing@(Single _ (Command _ name _)) = [Single "" (Command (prof name) "" ""), sing]
                 
                 prof s arg hite = do c <- getCPUTime
-                                     print $ if length (show hite) > 0 then c else 0
+                                     print $ if length (output hite) > 0 then c else 0
                                      putStrLn s
                                      return hite
                                      
@@ -271,7 +272,7 @@ readFileHiteRaw x = do src <- readAny possFiles
 readFileHite :: String -> IO Hite
 readFileHite x = do preamble <- readFileHiteRaw "Preamble/Preamble.hs"
                     self <- readFileHiteRaw x
-                    return $ error $ show $ coreHite (mergeCore preamble self)
+                    return $ error $ output $ coreHite (mergeCore preamble self)
 
 {-
 

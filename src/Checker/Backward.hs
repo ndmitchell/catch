@@ -67,7 +67,7 @@ backward hite (Req orig@(Repeat expr alt) path opts) = predAnd $
 
 
 backward hite all@(Req a b c) = error $ show all ++ ": " ++ case a of
-    Call x xs -> "call" ++ show (x,xs)
+    Call x xs -> "call" ++ show (output x, map output xs)
     CallFunc x -> "callfunc"
     Make x xs -> "make"
     _ -> "other"

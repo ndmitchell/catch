@@ -8,6 +8,7 @@ import List
 import Options
 
 import Maybe
+import General.General
 
 
 
@@ -53,7 +54,7 @@ propagate hite r@(Req (Var arg name) path set) =
         f hist c@(Call (CallFunc n) args) | n == name =
                 concatMap (f hist) args ++
                 case callArg c pos of
-                    Nothing -> error $ "unsaturated: " ++ show (length args, c) -- [predOr [hist, predFalse]] -- unsaturued use of partial app
+                    Nothing -> error $ "unsaturated: " ++ show (length args, output c) -- [predOr [hist, predFalse]] -- unsaturued use of partial app
                     Just x -> [predOr [hist, predLit $ Req x path set]]
                     
         f hist (Case on alts) = concatMap g alts

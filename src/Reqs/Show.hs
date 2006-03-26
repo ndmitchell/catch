@@ -17,8 +17,8 @@ import Char
 
 instance Show Req where
     show r = case r of
-            (Req expr regs opts) -> "<" ++ inline (show expr) ++ "," ++ pathPretty regs ++ "," ++ strSet opts ++ ">"
-            (ReqEnv expr regs opts within) -> show (Req expr regs opts) ++ "(" ++ inline (show within) ++ ")"
+            (Req expr regs opts) -> "<" ++ inline (output expr) ++ "," ++ pathPretty regs ++ "," ++ strSet opts ++ ">"
+            (ReqEnv expr regs opts within) -> show (Req expr regs opts) ++ "(" ++ inline (output within) ++ ")"
             (ReqAll on within) -> "(\\forall " ++ on ++ ", " ++ show within ++ ")"
         where
             inline x = case lines x of
@@ -36,7 +36,7 @@ prettyReqs reqs = unlines (map g reps) ++
         (keepexpr, repexpr) = partition h (nub exprs)
         vars = map (:[]) (['x'..'z'] ++ ['a'..'v']) ++ map (\x -> 'w' : show x) [2..]
         reps = zip repexpr vars
-        rens = [(x, show x) | x <- keepexpr] ++ reps
+        rens = [(x, output x) | x <- keepexpr] ++ reps
         
         h x = null (exprs \\ [x])
 
@@ -48,4 +48,4 @@ prettyReqs reqs = unlines (map g reps) ++
             strSet opts
     
     
-        g (expr, var) = "var " ++ var ++ " := " ++ show expr
+        g (expr, var) = "var " ++ var ++ " := " ++ output expr
