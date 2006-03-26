@@ -17,7 +17,7 @@ reachable name2 hite@(Hite datas funcs) = Hite aliveDatas aliveFuncs
     where
         name = if null name2 then "main" else name2
         
-        aliveFuncNames = fixSet f [name,"catch_bot"]
+        aliveFuncNames = fixSet f [name]
         aliveFuncs = [x | x <- funcs, funcName x `elem` aliveFuncNames]
 
         -- still misses data which is only used as a field selector        
