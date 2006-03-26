@@ -16,6 +16,7 @@ import General.TextUtil
 import Directory
 import System
 import Monad
+import CPUTime
 
 import Checker.CaseCheck
 import Checker.Statistics
@@ -30,7 +31,7 @@ data Arg = File String
          | Single String (Command Hite)
          | Unknown String
 
-data SpecialArg = Verbose | Help | Version
+data SpecialArg = Verbose | Help | Version | Profile
                   deriving Eq
 
 data Composite = Composite String String [String]
@@ -41,7 +42,7 @@ isFile (File{}) = True; isFile _ = False
 isTerminal (Terminal{}) = True; isTerminal _ = False
 
 -- Special functions
-specials = [("verbose",Verbose),("help",Help),("version",Version)]
+specials = [("verbose",Verbose),("help",Help),("version",Version),("profile",Profile)]
 
 -- Terminal functions
 terminals = [("safe-patterns",term "safe-patterns" showCaseCheck),
@@ -112,25 +113,43 @@ exec args = do comp <- composite
                     do putStrLn $ "Expected one file, found " ++ show (length files)
                        exitWith (ExitFailure 1)
 
-               let vargs = if Verbose `elem` specs
-                    then addVerbose farg
-                    else farg
+               args <- return farg
+               args <- return $ if Verbose `elem` specs
+                    then addVerbose args
+                    else args
                
-               when (not (null vargs) && any isTerminal (init vargs)) $
+               args <- return $ if Profile `elem` specs
+                    then addProfile args
+                    else args
+               
+               when (not (null args) && any isTerminal (init args)) $
                     do putStrLn "A terminal action is used not as the last item"
                        exitWith (ExitFailure 1)
                
-               let oargs = if null vargs || not (isTerminal (last vargs))
-                           then vargs ++ [Terminal (outputHite "final")]
-                           else vargs
+               args <- return $ if null args || not (isTerminal (last args))
+                           then args ++ [Terminal (outputHite "final")]
+                           else args
                
                let [File file] = files
-               runArgs file oargs
+               runArgs file args
     where
         addVerbose [] = []
         addVerbose [x] = [x]
         addVerbose (s@(Single _ (Command _ name _)) : xs) = s : Single "" (verboseOut ("verbose, " ++ name)) : addVerbose xs
         addVerbose (x:xs) = x : addVerbose xs
+        
+        addProfile xs = (concatMap f $ filter (not.isTerminal) xs) ++ [Terminal profEnd]
+            where
+                f sing@(Single _ (Command _ name _)) = [Single "" (Command (prof name) "" ""), sing]
+                
+                prof s arg hite = do c <- getCPUTime
+                                     print $ if length (show hite) > 0 then c else 0
+                                     putStrLn s
+                                     return hite
+                                     
+                profEnd h = do prof "end" "" h 
+                               return ()
+                                        
 
 
 parseArgs :: [Composite] -> [String] -> [Arg]
