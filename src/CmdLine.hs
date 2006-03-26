@@ -86,6 +86,8 @@ composite = do src <- readFile "catch.txt"
         
 
 exec :: [String] -> IO ()
+exec [] = putStrLn "Error, no arguments specified, try -help for options"
+
 exec args = do comp <- composite
                let (spec,rarg) = partition isSpecial (parseArgs comp args)
                    specs = [x | Special x <- spec]
