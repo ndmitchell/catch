@@ -13,8 +13,10 @@ cmd = cmdHitePure reachable "reachable"
 
 
 reachable :: FuncName -> Hite -> Hite
-reachable name hite@(Hite datas funcs) = Hite aliveDatas aliveFuncs
+reachable name2 hite@(Hite datas funcs) = Hite aliveDatas aliveFuncs
     where
+        name = if null name2 then "main" else name2
+        
         aliveFuncNames = fixSet f [name,"catch_bot"]
         aliveFuncs = [x | x <- funcs, funcName x `elem` aliveFuncNames]
 
