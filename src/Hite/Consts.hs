@@ -94,7 +94,7 @@ applyEvaluate n hite = partialEval $ normalise $ mapExpr f (hite{funcs = funcs h
 canEvaluate :: Hite -> [Func] -> [(FuncName, [(Int, Expr)])]
 canEvaluate hite funcs = concatMap f (allExpr funcs)
     where
-        f (Call (CallFunc name) args) = if null poss then [] else [(name, poss)]
+        f (Call (CallFunc name) args) = if null poss || name == "error" then [] else [(name, poss)]
             where
                 poss = [(pos,arg) | (pos,arg) <- zip [0..max_arg-1] args, varFree arg]
                 max_arg = length $ funcArgs $ getFunc hite name

@@ -40,7 +40,7 @@ _id x = x
 -- used to encode non-determinism
 -- treated specially by the checker
 catch_any = catch_any
-catch_bot = catch_bot
+catch_bot = error ""
 ignore x = catch_any
 
 
@@ -88,7 +88,7 @@ instance Preamble_Ord Tup2 where
 --
 -- Special functions, which have a different semantics in CATCH
 
-error msg = catch_bot
+error msg = error msg
 
 ---------------------------------------------------------------------
 -- Prelude.General

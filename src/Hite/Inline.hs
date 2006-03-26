@@ -36,6 +36,7 @@ inlineable hite = map funcName $ filter canInline (funcs hite)
         f (Call (CallFunc _) xs) = all g xs
         f (Call x xs) = all g (x:xs)
         f (Make x xs) = all g xs
+        f (Msg x) = True
         f x = g x
         
         g (Var _ _) = True

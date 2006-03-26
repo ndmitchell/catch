@@ -13,9 +13,6 @@ import Constraint
 import Options
 
 
-type Output = [String]
-
-
 
 ---------------------------------------------------------------------
 -- DRIVER
@@ -83,14 +80,6 @@ annotateVar h = mapFunc f h
 
 simpler x = blurReqsPath (reducePred x)
 
-
-type State = (
-                Reqs, -- the current value
-                Output -- the output to give
-             )
-
-addOut :: String -> State -> State
-addOut msg (r, o) = (r, msg:o)
 
 
 ---------------------------------------------------------------------

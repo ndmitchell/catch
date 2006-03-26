@@ -31,6 +31,7 @@ instance Output Expr where
             f b i (Bottom) = "_|_"
             f b i (RepeatNow) = "***"
             f b i (Repeat expr alt) = brack b $ f b i expr ++ " | " ++ f b i alt
+            f b i (Msg s) = show s
 
             f b i (Sel expr arg) = f True i expr ++ "." ++ arg
             f b i (Make name args) = f b i (Call (CallFunc name) args)

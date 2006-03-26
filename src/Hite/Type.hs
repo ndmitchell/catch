@@ -40,6 +40,7 @@ data Expr = Call {callFunc :: Expr, callArgs :: [Expr]}
           | CallFunc {callName :: FuncName}
           | Make {makeName :: CtorName, makeArgs :: [Expr]}
           | Case Expr [(CtorName, Expr)] -- case x of Cons a b, Nil -> Case "x" (Cons, ["a", "b"]), (Nil, [])
+          | Msg String
           
           -- constructor, list of arguments (nothing is recurse), expr is alt
           | Repeat {expr :: Expr, alt :: Expr}

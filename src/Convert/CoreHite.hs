@@ -113,7 +113,7 @@ convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) =
         f path vars (CoreInt x) = (CallFunc "prim_int", [])
         f path vars (CoreInteger x) = (CallFunc "prim_int", [])
         f path vars (CoreChr x) = (Make (asChar x) [], [])
-        f path vars (CoreStr x) = (CallFunc "prim_str", [])
+        f path vars (CoreStr x) = (Msg x, [])
         
         -- application, need sequencing
         f path vars (CoreApp x xs) = (Call x2 xs2, concatMap snd res)
