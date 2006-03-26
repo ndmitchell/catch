@@ -33,7 +33,7 @@ data Arg = File String
          | Single String (Command Hite)
          | Unknown String
 
-data SpecialArg = Verbose | Help | Version | Profile
+data SpecialArg = Verbose | Help | Version | Profile | Clean | Reclean
                   deriving Eq
 
 data Composite = Composite String String [String]
@@ -44,7 +44,8 @@ isFile (File{}) = True; isFile _ = False
 isTerminal (Terminal{}) = True; isTerminal _ = False
 
 -- Special functions
-specials = [("verbose",Verbose),("help",Help),("version",Version),("profile",Profile)]
+specials = [("verbose",Verbose),("help",Help),("version",Version),
+            ("profile",Profile),("clean",Clean),("reclean",Reclean)]
 
 -- Terminal functions
 terminals = [("safe-patterns",term "safe-patterns" caseCheck),
@@ -130,6 +131,15 @@ exec args = do comp <- composite
                            else args
                
                let [File file] = files
+               
+               when (Clean `elem` specs) $
+                    do x <- pickFile file
+                       removeExist $ x ++ ".hite"
+               when (Reclean `elem` specs) $
+                    do x <- pickFile file
+                       removeExist "Preamble/Preamble.hs.core"
+                       removeExist (x ++ ".core")
+               
                runArgs file args
     where
         addVerbose [] = []
@@ -149,6 +159,10 @@ exec args = do comp <- composite
                 profEnd h = do prof "end" "" h 
                                return ()
                                         
+
+removeExist :: FilePath -> IO ()
+removeExist file = do b <- doesFileExist file
+                      when b $ removeFile file
 
 
 parseArgs :: [Composite] -> [String] -> [Arg]
@@ -286,29 +300,48 @@ readFileHite x = do hs <- pickFile x
                         putStrLn $ "Reading hite from cache: " ++ hs
                         readCacheHite hite
                      else do
-                        hp <- readFileCore "Preamble/Preamble.hs"
-                        hs <- readFileCore hs
+                        hp <- readFileCore True "Preamble/Preamble.hs"
+                        hs <- readFileCore False hs
                         let h2 = reachable "main" $ shortName $ coreHite $ mergeCore hp hs
                         writeCacheHite h2 hite
                         return h2
 
 
-readFileCore :: FilePath -> IO Core
-readFileCore hs = do hsd <- getModificationTime hs
-                     let core = hs ++ ".core"
-                     
-                     mcore <- isModified hsd core
-                     if mcore
-                        then createCore hs core
-                        else putStrLn $ "Reading core from cache: " ++ hs
-                     
-                     src <- readFile core
-                     return $ readCore src
+readFileCore :: Bool -> FilePath -> IO Core
+readFileCore prel hs = do hsd <- getModificationTime hs
+                          let core = hs ++ ".core"
+
+                          mcore <- isModified hsd core
+                          if mcore
+                             then createCore hs core
+                             else putStrLn $ "Reading core from cache: " ++ hs
+
+                          src <- readFile core
+                          return $ readCore src
     where
         createCore hs cr = do putStrLn $ "Compiling core file for: " ++ hs
-                              system $ "yhc " ++ hs ++ " -corep 2> " ++ cr
-                              b <- doesFileExist cr
+                              let cr2 = cr ++ ['2'|prel]
+                              system $ "yhc " ++ hs ++ " -corep 2> " ++ cr2
+                              b <- doesFileExist cr2
                               when (not b) $ error "Core file not created, do you have Yhc?"
+                              when prel $ do
+                                    src <- readFile (cr ++ "2")
+                                    writeFile cr (stripPreamble src)
+                                    
+
+
+stripPreamble src = strip src                             
+    where
+        tupStart = ",CoreFunc (CoreApp (CoreVar \"Preamble.tup"
+        tupEnd = ")])"
+
+        strip x | tupStart `isPrefixOf` x = strip (dropTup x)
+        strip (x:xs) = x : strip xs
+        strip [] = []
+
+
+        dropTup x | tupEnd `isPrefixOf` x = drop (length tupEnd) x
+        dropTup (x:xs) = dropTup xs
 
 
 isModified :: ClockTime -> FilePath -> IO Bool
