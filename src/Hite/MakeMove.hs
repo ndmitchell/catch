@@ -49,7 +49,7 @@ getValue hite (Call (CallFunc name) params)
         | length params == length args
         = expand hite name params
     where
-        Func _ args body _ = getFunc hite name
+        Func _ args body = getFunc hite name
 getValue hite x = x
 
 
@@ -65,7 +65,7 @@ pickSel hite x path = params !! pos
 expand :: Hite -> FuncName -> [Expr] -> Expr
 expand hite name params = mapExpr f body
     where
-        (Func _ args body _) = getFunc hite name
+        (Func _ args body) = getFunc hite name
         
         rename = zip args params
 

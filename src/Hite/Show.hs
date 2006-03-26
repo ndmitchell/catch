@@ -15,21 +15,9 @@ instance Show Ctor where
     show (Ctor name args) = name ++ concatMap (' ':) args
     
 instance Show Func where
-    show (Func name args expr kind) =
+    show (Func name args expr) =
         "\n" ++ name ++ concatMap (' ':) args ++
-        " :: " ++ show kind ++ " = " ++ show expr
-
-instance Show Kind where
-    show Star = "*"
-    show (Arrow xs) = concat $ intersperse "->" $ map f xs
-        where
-            f x@(Arrow _) = "(" ++ show x ++ ")"
-            f x = show x
-    
-    show (Kinded as) = "{" ++ concat (intersperse ", " (map f as)) ++ "}"
-        where
-            f (name, arg) = concatMap (++ ".") name ++ show arg
-
+        " = " ++ show expr
 
 instance Show Expr where
     show x = f False 0 x

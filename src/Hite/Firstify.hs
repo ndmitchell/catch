@@ -14,7 +14,7 @@ specialise :: Hite -> (FuncName, FuncArg) -> Hite
 specialise hite (name, arg) = hite{funcs = oldfuncs ++ newfuncs}
     where
         pos = getArgPos name arg hite
-        (Func _ funcArgs funcBody _) = getFunc hite name
+        (Func _ funcArgs funcBody) = getFunc hite name
         
         
         oldfuncs = map (\x -> x{body = mapExpr bind (body x)}) (funcs hite)

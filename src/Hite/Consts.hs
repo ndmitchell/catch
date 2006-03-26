@@ -103,9 +103,9 @@ canEvaluate hite funcs = concatMap f (allExpr funcs)
 
 genEvaluate :: Hite -> (FuncName, [(Int, Expr)]) -> String -> Func
 genEvaluate hite (name, pargs) newName = 
-        Func newName newArgs newBody Star
+        Func newName newArgs newBody
     where
-        Func _ args body _ = getFunc hite name
+        Func _ args body = getFunc hite name
         
         poss = map fst pargs
         newArgs = [x | (n,x) <- zip [0..] args, not (n `elem` poss)]

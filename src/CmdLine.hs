@@ -271,7 +271,7 @@ readFileHiteRaw x = do src <- readAny possFiles
 readFileHite :: String -> IO Hite
 readFileHite x = do preamble <- readFileHiteRaw "Preamble/Preamble.hs"
                     self <- readFileHiteRaw x
-                    return $ coreHite (mergeCore preamble self)
+                    return $ error $ show $ coreHite (mergeCore preamble self)
 
 {-
 

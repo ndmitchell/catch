@@ -64,7 +64,7 @@ fixBottom hite = hite{funcs = map f (funcs hite), datas = newData : datas hite}
         newData = Data "Internal" [Ctor "InternalA" [], Ctor "InternalB" []]
         newBody = Case (Make "InternalA" []) [("InternalB", Call (CallFunc "_") [])]
         
-        f (Func "catch_bot" args body star) = Func "catch_bot" args newBody star
+        f (Func "catch_bot" args body) = Func "catch_bot" args newBody
         f x = x
 
 
@@ -72,7 +72,7 @@ fixBottom hite = hite{funcs = map f (funcs hite), datas = newData : datas hite}
 annotateVar :: Hite -> Hite
 annotateVar h = mapFunc f h
     where
-        f (Func name args body k) = Func name args (mapExpr (g name) body) k
+        f (Func name args body) = Func name args (mapExpr (g name) body)
         g name (Var x y) = Var x name
         g name x = x
 
@@ -400,7 +400,7 @@ userFuncs hite = filter f $ funcs hite
     where f x = not $ "%ap" `isPrefixOf` funcName x
 
 generateComplex :: Hite -> [Reqs]
-generateComplex hite = concatMap (\(Func name _ body _) -> f name predFalse (mapExpr str body)) $ userFuncs hite
+generateComplex hite = concatMap (\(Func name _ body) -> f name predFalse (mapExpr str body)) $ userFuncs hite
     where
         f :: FuncName -> Reqs -> Expr -> [Reqs]
         f name hist (Case on alts) = newItem ++ concatMap g alts

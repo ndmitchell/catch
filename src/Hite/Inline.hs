@@ -20,7 +20,7 @@ inline bad_hite = normalise $ mapExpr f $ mapExpr f $ mapExpr f hite
                 | x `elem` res && length xs == length args
                 = mapExpr g body
             where
-                Func _ args body _ = getFunc hite x
+                Func _ args body = getFunc hite x
                 ren = zip args xs
                 g (Var x _) = fromJust $ lookup x ren
                 g x = x
