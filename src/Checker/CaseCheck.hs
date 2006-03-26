@@ -25,7 +25,8 @@ caseCheck bad_hite = do putStrLn $ "Initial conditions:\n" ++ (unlines $ map ((+
                                 "\n? " ++ show (predAnd reqs) ++
                                 "\n=\n" ++ prettyReqs (simp $ predAnd r)
     where
-        reqs = generate hite
+        reqs = fromAnd $ propagateAll hite "error" predFalse
+        
         hite = annotateVar $ fixBottom $ removeUnderscore bad_hite
         simp = simplifyReqsFull hite
         
@@ -61,7 +62,7 @@ fixBottom hite = hite{funcs = map f (funcs hite), datas = newData : datas hite}
         newData = Data "Internal" [Ctor "InternalA" [], Ctor "InternalB" []]
         newBody = Case (Make "InternalA" []) [("InternalB", Call (CallFunc "_") [])]
         
-        f (Func "catch_bot" args body) = Func "catch_bot" args newBody
+        f (Func "error" args body) = Func "error" args newBody
         f x = x
 
 
