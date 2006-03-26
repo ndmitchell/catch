@@ -3,7 +3,7 @@ module Hite
     (
     cmds,
     module Hite.Type,
-    module Hite.Read, module Hite.Show, module Hite.Eq,
+    module Hite.Show, module Hite.Eq,
     
     module Hite.Blur
     )
@@ -13,7 +13,6 @@ module Hite
 import General.Commands
 
 import Hite.Type
-import Hite.Read
 import Hite.Show
 import Hite.Eq
 
