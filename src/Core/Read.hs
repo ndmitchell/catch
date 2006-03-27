@@ -9,7 +9,7 @@ import Char
 
 readCore :: String -> Core
 readCore ('=':xs) =  readCore $ tail $ dropWhile (/= '\n') xs
-readCore xs = reduce $ lambdaFix $ removeTup $ readSpecial xs
+readCore xs = reduce $ moduleNaming $ removeTup $ readSpecial xs
 
 
 -- A special version of Read Core
@@ -34,11 +34,13 @@ removeTup (Core c) = Core $ filter f c
         
 
 -- fix LAMBDA to be Module.LAMBDA
-lambdaFix :: Core -> Core
-lambdaFix (Core c) = Core $ mapCore f c
+-- add Module. to position information
+moduleNaming :: Core -> Core
+moduleNaming (Core c) = Core $ mapCore f c
     where
         modName = reverse $ dropWhile (/= '.') $ reverse $ head
             [x | CoreFunc (CoreApp (CoreVar x) _) _ <- c, '.' `elem` x]
         
         f (CoreVar x) | "LAMBDA" `isPrefixOf` x = CoreVar (modName ++ x)
+        f (CorePos p x) = CorePos (modName ++ p) x
         f x = x

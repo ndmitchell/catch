@@ -99,10 +99,14 @@ simpleCases (CoreFunc (CoreApp name args) body) =
 
 convFunc :: [Data] -> CoreItem -> [Func]
 convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) = 
-        Func name [x | CoreVar x <- args] res "" : rest
+        Func name [x | CoreVar x <- args] res (getPos body) : rest
     where
         (res, rest) = f [] (map asVar args) body
         asVar (CoreVar x) = (x, Var x "")
+        
+        
+        getPos (CorePos p x) = p
+        getPos _ = ""
         
     
         f :: [Int] -> [(String, Expr)] -> CoreExpr -> (Expr, [Func])
