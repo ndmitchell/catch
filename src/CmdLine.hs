@@ -18,6 +18,7 @@ import System
 import Monad
 import CPUTime
 import Time
+import IO
 
 import Checker.CaseCheck
 import Checker.Statistics
@@ -29,7 +30,7 @@ import General.General
 
 data Arg = File String
          | Special SpecialArg
-         | Terminal (Hite -> IO ())
+         | Terminal (FilePath -> Hite -> IO ())
          | Single String (Command Hite)
          | Unknown String
 
@@ -48,13 +49,19 @@ specials = [("verbose",Verbose),("help",Help),("version",Version),
             ("profile",Profile),("clean",Clean),("reclean",Reclean)]
 
 -- Terminal functions
-terminals = [("safe-patterns",term "safe-patterns" caseCheck),
+terminals = [("safe-patterns",term "safe-patterns" (const caseCheck)),
              ("unsafe-patterns",term "unsafe-patterns" undefined),
-             ("statistics",term "statistics" statistics)]
+             ("statistics",const statistics)]
 
-term :: String -> (Hite -> IO ()) -> Hite -> IO ()
-term s f h = do outputHite s h
-                f h
+term :: String -> (Handle -> Hite -> IO ()) -> FilePath -> Hite -> IO ()
+term s f out hite = do handle <- openFile (out ++ ".log") WriteMode
+                       putStrLn "Generating reduced Haskell"
+                       hPutStrLn handle $ "== " ++ s
+                       hPutStrLn handle $ output hite
+                       hPutStrLn handle $ "================================================"
+                       putStrLn $ "Begining analysis: " ++ s
+                       f handle hite
+                       hClose handle
 
 
 verboseOut :: String -> Command Hite
@@ -127,7 +134,7 @@ exec args = do comp <- composite
                        exitWith (ExitFailure 1)
                
                args <- return $ if null args || not (isTerminal (last args))
-                           then args ++ [Terminal (outputHite "final")]
+                           then args ++ [Terminal (const (outputHite "final"))]
                            else args
                
                let [File file] = files
@@ -156,8 +163,8 @@ exec args = do comp <- composite
                                      putStrLn s
                                      return hite
                                      
-                profEnd h = do prof "end" "" h 
-                               return ()
+                profEnd hs h = do prof "end" "" h 
+                                  return ()
                                         
 
 removeExist :: FilePath -> IO ()
@@ -240,14 +247,15 @@ splitWidth norig xs = f norig [] (words xs)
         
 
 runArgs :: String -> [Arg] -> IO ()
-runArgs file acts = do hite <- readFileHite file
-                       f hite acts
+runArgs file acts = do hs <- pickFile file
+                       hite <- readFileHite file
+                       f hs hite acts
     where
-        f hite (Single param (Command act _ _) : acts) =
+        f hs hite (Single param (Command act _ _) : acts) =
             do h2 <- act param hite
-               f h2 acts
+               f hs h2 acts
 
-        f hite [Terminal act] = act hite
+        f hs hite [Terminal act] = act hs hite
 
 {-
 
