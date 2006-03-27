@@ -11,14 +11,14 @@ version Show version information
 
 prepare Prepare a Hite program from analysis
 	short-name
-	reachable=main
+	reachable
 	case-lift
 	arity-raise
 	consts
-	reachable=main
+	reachable
 	make-move
 	inline
-	reachable=main
+	reachable
 	defunc
 
 case *Try to prove a program is free from pattern match errors
@@ -31,6 +31,7 @@ ncase *Find the circumstances under which a program will definately crash
 
 stats *Generate statistics about a Haskell program
 	short-name
-	reachable=main
+	reachable
 	error-fail
+	reachable
 	statistics
