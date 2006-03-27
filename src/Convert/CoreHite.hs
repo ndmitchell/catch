@@ -50,18 +50,36 @@ convData (CoreData dname ctors) = Data dname (map f ctors)
                 g n Nothing = dname ++ "_" ++ cname ++ "_" ++ show n
 
 
+
+getPos :: CoreExpr -> Maybe String
+getPos (CorePos p x) = Just p
+getPos _ = Nothing
+
+getPosStr :: CoreExpr -> String
+getPosStr x = case getPos x of
+                    Just x -> x
+                    Nothing -> ""
+
+appPos :: Maybe String -> CoreExpr -> CoreExpr
+appPos (Just p) x = CorePos p x
+appPos Nothing  x = x
+
+
+
 -- make all case on simple variables
 simpleCases :: CoreItem -> [CoreItem]
 simpleCases (CoreFunc (CoreApp name args) body) =
-        CoreFunc (CoreApp name args) r : rs
+        CoreFunc (CoreApp name args) (appPos pos r) : rs
     where
+        pos = getPos body
+    
         (r,rs) = f args body
     
         -- variables, expr
         f :: [CoreExpr] -> CoreExpr -> (CoreExpr, [CoreItem])
         f vars (CoreCase on opts) | isComplex on =
                 (CoreApp newCall (on:vars)
-                ,CoreFunc (CoreApp newCall (newArg:vars)) res
+                ,CoreFunc (CoreApp newCall (newArg:vars)) (appPos pos res)
                 :rest)
             where
                 (res,rest) = f (newArg:vars) (mapCore g $ CoreCase on opts)
@@ -99,14 +117,12 @@ simpleCases (CoreFunc (CoreApp name args) body) =
 
 convFunc :: [Data] -> CoreItem -> [Func]
 convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) = 
-        Func name [x | CoreVar x <- args] res (getPos body) : rest
+        Func name [x | CoreVar x <- args] res pos : rest
     where
         (res, rest) = f [] (map asVar args) body
         asVar (CoreVar x) = (x, Var x "")
         
-        
-        getPos (CorePos p x) = p
-        getPos _ = ""
+        pos = getPosStr body
         
     
         f :: [Int] -> [(String, Expr)] -> CoreExpr -> (Expr, [Func])
@@ -247,7 +263,7 @@ convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) =
         makeNewCall path vars mode args body = 
                 (
                     Call (CallFunc newName) (map fst res ++ map snd reqVars),
-                    Func newName (newArgs ++ map fst reqVars) newBody "" : newFuncs ++ concatMap snd res
+                    Func newName (newArgs ++ map fst reqVars) newBody pos : newFuncs ++ concatMap snd res
                 )
             where
                 res = zipWith (\n x -> f (n:path) vars x) [0..] args
