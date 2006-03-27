@@ -32,7 +32,7 @@ defunc bad_hite = Hite (newData ++ datas) (newFuncs ++ oldFuncs)
         reqFuncs = sort $ nub [read xs :: Int | CallFunc ('%':'a':'p':xs) <- allExpr oldFuncs]
         newFuncs = map g reqFuncs
         
-        g n = Func ("%ap" ++ show n) ("f":args) (Case (Var "f" "") (concatMap f items))
+        g n = Func ("%ap" ++ show n) ("f":args) (Case (Var "f" "") (concatMap f items)) ""
             where
                 args = map (('x':) . show) [1..n]
                 
@@ -61,7 +61,7 @@ collectArities :: Hite -> [(FuncName, Int)]
 collectArities hite = nub $ concatMap f items
     where
         items = nub $ [(x, length xs) | Call (CallFunc x) xs <- allExpr hite]
-        funs = [(x,length xs) | Func x xs _ <- funcs hite]
+        funs = [(x,length xs) | Func x xs _ _ <- funcs hite]
         
         f (name, args) = [(name, x) | x <- [args..i-1]]
             where i = fromJust $ lookup name funs

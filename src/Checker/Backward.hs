@@ -21,7 +21,7 @@ backward hite (Req (Call (CallFunc name) params) path opts) =
         else
             error $ "Backward: unsaturated " ++ name
     where
-        (Func _ args body) = getFunc hite name
+        (Func _ args body _) = getFunc hite name
         
         rename = zip args params
         res = blurExpr $ {- selToPath $ -} mapExpr f body

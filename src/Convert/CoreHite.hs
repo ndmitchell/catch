@@ -99,7 +99,7 @@ simpleCases (CoreFunc (CoreApp name args) body) =
 
 convFunc :: [Data] -> CoreItem -> [Func]
 convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) = 
-        Func name [x | CoreVar x <- args] res : rest
+        Func name [x | CoreVar x <- args] res "" : rest
     where
         (res, rest) = f [] (map asVar args) body
         asVar (CoreVar x) = (x, Var x "")
@@ -243,7 +243,7 @@ convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) =
         makeNewCall path vars mode args body = 
                 (
                     Call (CallFunc newName) (map fst res ++ map snd reqVars),
-                    Func newName (newArgs ++ map fst reqVars) newBody : newFuncs ++ concatMap snd res
+                    Func newName (newArgs ++ map fst reqVars) newBody "" : newFuncs ++ concatMap snd res
                 )
             where
                 res = zipWith (\n x -> f (n:path) vars x) [0..] args

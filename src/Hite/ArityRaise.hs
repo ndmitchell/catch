@@ -21,8 +21,8 @@ arityRaise bad_hite = hite{funcs = map f (funcs hite)}
         hite = normalise bad_hite
         ars = getArity hite
         
-        f func@(Func name args body) | ar == 0 = func
-            | otherwise = Func name (args ++ newArgs) (g body)
+        f func@(Func name args body pos) | ar == 0 = func
+            | otherwise = Func name (args ++ newArgs) (g body) pos
             where
                 ar = fromJust (lookup name ars) - length args
                 newArgs = ["_new" ++ show x | x <- [1..ar]]
@@ -42,7 +42,7 @@ getArity hite = fix f (initArity hite)
 initArity :: Hite -> [(FuncName, Int)]
 initArity hite = map f (funcs hite)
     where
-        f (Func name args body) = (name, length args)
+        f (Func name args body _) = (name, length args)
 
 
 calcArity :: Hite -> [(FuncName, Int)] -> Func -> Int

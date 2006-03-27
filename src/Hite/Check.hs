@@ -17,7 +17,7 @@ check (Hite datas funcs) =
         allCtorArg  = concatMap (concatMap ctorArgs . ctors) datas
     
         checkFunc :: Func -> Bool
-        checkFunc (Func name args expr) = unique ("FuncArgs(" ++ name ++ ")") args && checkExpr expr
+        checkFunc (Func name args expr _) = unique ("FuncArgs(" ++ name ++ ")") args && checkExpr expr
             where
                 checkExpr (Var x "") = x `elm` args
                 checkExpr (Sel x path) = checkExpr x && path `elm` allCtorArg

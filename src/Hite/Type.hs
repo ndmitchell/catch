@@ -31,7 +31,7 @@ data Data = Data {dataName :: DataName, ctors :: [Ctor]}
 data Ctor = Ctor {ctorName :: CtorName, ctorArgs :: [CtorArg]}
           deriving (Eq, Show, Read)
 
-data Func = Func {funcName :: FuncName, funcArgs :: [FuncArg], body :: Expr}
+data Func = Func {funcName :: FuncName, funcArgs :: [FuncArg], body :: Expr, pos :: String}
           deriving (Eq, Show, Read)
 
 data Expr = Call {callFunc :: Expr, callArgs :: [Expr]}

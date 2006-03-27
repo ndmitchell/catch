@@ -16,8 +16,9 @@ instance Output Ctor where
     output (Ctor name args) = name ++ concatMap (' ':) args
     
 instance Output Func where
-    output (Func name args expr) =
+    output (Func name args expr pos) =
         "\n" ++ name ++ concatMap (' ':) args ++
+        " @(" ++ pos ++ ")" ++
         " = " ++ output expr
 
 instance Output Expr where

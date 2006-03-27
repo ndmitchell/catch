@@ -8,7 +8,13 @@ import Monad
 
 readCacheHite :: FilePath -> IO Hite
 readCacheHite file = do src <- readFile file
-                        return $ read src
+                        return $ safeRead "Failed while reading cached hite" src
+
+
+safeRead msg s = case reads s of
+                    [(x,"")] -> x
+                    _ -> error msg
+                    
 
 
 writeCacheHite :: Hite -> FilePath -> IO ()
