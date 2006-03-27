@@ -40,7 +40,6 @@ _id x = x
 -- used to encode non-determinism
 -- treated specially by the checker
 catch_any = catch_any
-catch_bot = error ""
 ignore x = catch_any
 
 
