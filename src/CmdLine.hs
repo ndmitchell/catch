@@ -333,7 +333,7 @@ readFileCore prel hs = do hsd <- getModificationTime hs
 stripPreamble src = strip src                             
     where
         tupStart = ",CoreFunc (CoreApp (CoreVar \"Preamble.tup"
-        tupEnd = ")])"
+        tupEnd = ")]))"
 
         strip x | tupStart `isPrefixOf` x = strip (dropTup x)
         strip (x:xs) = x : strip xs
