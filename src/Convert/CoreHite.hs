@@ -122,7 +122,7 @@ convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) =
         (res, rest) = f [] (map asVar args) body
         asVar (CoreVar x) = (x, Var x "")
         
-        pos = getPosStr body
+        pos = name ++ ", " ++ getPosStr body
         
     
         f :: [Int] -> [(String, Expr)] -> CoreExpr -> (Expr, [Func])

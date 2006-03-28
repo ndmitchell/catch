@@ -111,11 +111,11 @@ prepareHites bad_hite = map (\(a,b) -> (Hite (datas hite) a, b)) $ f (funcs hite
                 errCall (Call (CallFunc "error") _) = True
                 errCall _ = False
                 
-                f i = (func{body = newBody}, msg)
+                f i = (func{body = newBody}, pos func ++ msg)
                     where
                         newBody = mutateId expr i (Call (CallFunc "error!") [])
                         msg = case callArgs (extractId expr i) of
-                                  [Msg x] -> x
+                                  [Msg x] -> ", " ++ x
                                   _ -> ""
 
 
