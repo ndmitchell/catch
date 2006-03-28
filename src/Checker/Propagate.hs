@@ -76,7 +76,9 @@ propagate hite req = error $ "Internal error, complex pattern as subject of req:
 
 propagateAll :: Hite -> FuncName -> Reqs -> Reqs
 propagateAll hite on reqs =
-        predAnd $ map reAll $ findCallsHistory hite f
+        if isTrue reqs
+        then predTrue 
+        else predAnd $ map reAll $ findCallsHistory hite f
     where
         f c@(Call (CallFunc n) args) | n == on = Just $ mapPredLit g reqs
             where
