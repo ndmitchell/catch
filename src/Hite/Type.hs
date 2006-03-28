@@ -148,3 +148,60 @@ getArgName func arg hite = funcArgs (getFunc hite func) !! (arg - 1)
 
 callArg :: Expr -> Int -> Maybe Expr
 callArg (Call _ args) n = if length args >= n then Just (args !! (n - 1)) else Nothing
+
+
+
+-- Id based methods
+
+type Id = [Int]
+
+
+exprToList :: Expr -> [Expr]
+exprToList x = case x of
+    Call x xs -> x : xs
+    Make _ xs -> xs
+    Case x xs -> x : map snd xs
+    Sel  x _  -> [x]
+    _         -> []
+
+
+exprFromList :: Expr -> [Expr] -> Expr
+exprFromList x ys = case x of
+    Call _ _ -> Call (head ys) (tail ys)
+    Make n _ -> Make n ys
+    Case _ q -> Case (head ys) (zip (map fst q) (tail ys))
+    Sel  _ p -> let [y] = ys in Sel y p
+    n        -> if null ys then n else error "exprFromList, non-empty list"
+
+
+zipId :: Expr -> [(Id, Expr)]
+zipId x = f [] x
+    where
+        f i x = (i,x) : g i (exprToList x)
+        
+        g i xs = concatMap (uncurry f) res
+            where res = zipWith (\a b -> (a:i,b)) [0..] xs
+
+
+filterId :: (Expr -> Bool) -> Expr -> [Id]
+filterId f x = map fst $ filter (f.snd) $ zipId x
+
+
+extractId :: Expr -> Id -> Expr
+extractId x i = f (reverse i) x
+    where
+        f [] x = x
+        f (i:is) x = f is (exprToList x !! i)
+
+
+mutateId :: Expr -> Id -> Expr -> Expr
+mutateId x i y = f (reverse i) x
+    where
+        f [] x = y
+        f (i:is) x = exprFromList x (rep i res rest)
+            where
+                res = exprToList x
+                rest = f is (res !! i)
+        
+        rep 0 (x:xs) y = y:xs
+        rep n (x:xs) y = x : rep (n-1) xs y
