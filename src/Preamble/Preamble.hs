@@ -130,6 +130,9 @@ _filter f (x:xs) = if f x then x:res else res
 
 concat = foldr (++) []
 
+concatMap f [] = []
+concatMap f (x:xs) = f x ++ concatMap f xs
+
 -- Hugs implementation that I don't understand :)
 -- reverse = foldl (flip (:)) []
 reverse xs = reverse_acc xs []
