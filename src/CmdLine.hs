@@ -49,7 +49,7 @@ specials = [("verbose",Verbose),("help",Help),("version",Version),
             ("profile",Profile),("clean",Clean),("reclean",Reclean)]
 
 -- Terminal functions
-terminals = [("safe-patterns",term "safe-patterns" (const caseCheck)),
+terminals = [("safe-patterns",term "safe-patterns" caseCheck),
              ("unsafe-patterns",term "unsafe-patterns" undefined),
              ("statistics",const statistics)]
 
