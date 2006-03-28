@@ -32,7 +32,7 @@ reachable name2 hite@(Hite datas funcs) = Hite aliveDatas aliveFuncs
         
         h (Data x xs) = if null xs2 then []
                         else if x == "%Ap" then [Data x xs2]
-                        else if length xs >= length xs2 - 1 then [Data x xs]
+                        else if length xs - length xs2 <= 1 then [Data x xs]
                         else [Data x (Ctor (x ++ "_?") [] : xs2)]
             where xs2 = filter (\y -> ctorName y `elem` aliveCtorNames) xs
         
