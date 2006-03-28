@@ -25,6 +25,7 @@ check (Hite datas funcs) =
                 checkExpr (Make name args) = name `elm` allCtorName && all checkExpr args
                 checkExpr (Call name args) = all checkExpr (name:args)
                 checkExpr (Case on alts) = checkExpr on && all checkAlt alts
+                checkExpr (Msg x) = True
                 
                 checkExpr x = error $ "Disallowed language element, " ++ output x
                 
