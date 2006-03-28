@@ -3,7 +3,7 @@ module Core.Type where
 
 -- stuff below copied from Yhc.Core
 
-data Core = Core [CoreItem]
+data Core = Core String [CoreItem]
             deriving (Show, Read)
 
 
@@ -48,8 +48,8 @@ instance PlayCore a => PlayCore [a] where
 
 
 instance PlayCore Core where
-    mapCore f (Core x) = Core $ mapCore f x
-    allCore (Core x) = allCore x
+    mapCore f (Core n x) = Core n $ mapCore f x
+    allCore (Core n x) = allCore x
 
 
 instance PlayCore CoreItem where

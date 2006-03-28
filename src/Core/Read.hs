@@ -27,7 +27,7 @@ readSpecial xs = read xs -- Core $ concatMap f (lines xs)
 
 -- efficiency hack!
 removeTup :: Core -> Core
-removeTup (Core c) = Core $ filter f c
+removeTup (Core n c) = Core n $ filter f c
     where
         f (CoreFunc (CoreApp (CoreVar x) _) _) | "Preamble.tup" `isPrefixOf` x = False
         f _ = True
@@ -36,11 +36,8 @@ removeTup (Core c) = Core $ filter f c
 -- fix LAMBDA to be Module.LAMBDA
 -- add Module. to position information
 moduleNaming :: Core -> Core
-moduleNaming (Core c) = Core $ mapCore f c
+moduleNaming (Core modName c) = Core modName $ mapCore f c
     where
-        modName = reverse $ dropWhile (/= '.') $ reverse $ head
-            [x | CoreFunc (CoreApp (CoreVar x) _) _ <- c, '.' `elem` x]
-        
         f (CoreVar x) | "LAMBDA" `isPrefixOf` x = CoreVar (modName ++ x)
         f (CorePos p x) = CorePos (modName ++ p) x
         f x = x

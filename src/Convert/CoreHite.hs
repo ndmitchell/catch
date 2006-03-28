@@ -11,7 +11,7 @@ import General.General
 
 
 coreHite :: Core -> Hite
-coreHite (Core xs) = Hite newData (concatMap (convFunc newData) funcs)
+coreHite (Core n xs) = Hite newData (concatMap (convFunc newData) funcs)
     where
         (datas, funcs) = partition isCoreData xs
         newData = map convData datas

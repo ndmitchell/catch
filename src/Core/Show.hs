@@ -19,7 +19,7 @@ indent = map ("    " ++)
 
 
 showCore2 :: Core -> [String]
-showCore2 (Core xs) = if null res then [] else tail res
+showCore2 (Core _ xs) = if null res then [] else tail res
     where res = concat $ map (([] :) . showItem) xs
 
 showItem :: CoreItem -> [String]
@@ -74,7 +74,7 @@ showExpr (CoreCase x y) = line1 ++ rest
         
         f (a,b) = indent $ [noBracket (showExprLine a) ++ " ->"] ++ indent (showExpr b)
 
-showExpr (CoreLet x y) = ["let"] ++ indent (showCore2 $ Core x) ++ ["in"] ++ showExpr y
+showExpr (CoreLet x y) = ["let"] ++ indent (showCore2 $ Core "" x) ++ ["in"] ++ showExpr y
 
 
 singleton [x] = True

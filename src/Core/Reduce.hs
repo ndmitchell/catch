@@ -9,7 +9,7 @@ import Numeric
 import Char
 
 
-reduce (Core x) = Core $ map f x
+reduce (Core n x) = Core n $ map f x
 
 f (CoreFunc a b) = CoreFunc (mapCore g a) (mapCore g b)
     where

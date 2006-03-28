@@ -52,6 +52,7 @@ prim_GT_W a b = catch_any
 prim_ORD a b = catch_any
 prim_ADD_W a b = catch_any
 prim_LE_W a b = catch_any
+prim_LT_W a b = catch_any
 
 
 data Tup0 = Tup0
