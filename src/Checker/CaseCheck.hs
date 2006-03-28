@@ -230,7 +230,7 @@ reduceOne hndl hite pending supress depth orig_req =
 
 reduceMany :: Handle -> Hite -> [Req] -> Depth -> Reqs -> IO Reqs
 reduceMany hndl hite pending depth xs | depth > maxCheckDepth =
-    do putStrLn "Lazy, giving up (False)"
+    do hPutStrLn hndl "Lazy, giving up (False)"
        return predFalse
 
 reduceMany hndl hite pending depth orig_xs =
