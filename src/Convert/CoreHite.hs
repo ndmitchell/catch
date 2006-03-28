@@ -7,6 +7,7 @@ import Hite
 import List
 import Maybe
 import Char
+import General.General
 
 
 coreHite :: Core -> Hite
@@ -86,7 +87,7 @@ simpleCases (CoreFunc (CoreApp name args) body) =
             
                 newCall = CoreVar $ getName name ++ "_CASE_" ++ show n
                 newArg = CoreVar $ "_case_" ++ show n
-                n = fromJust $ lookup on complexCases
+                n = fromJustNote "simpleCases" $ lookup on complexCases
                 
                 g x | x == on = newArg
                     | otherwise = x
