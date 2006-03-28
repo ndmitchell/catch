@@ -25,7 +25,7 @@ shortName hite = mapFunc h $ mapExpr g hite
         f a b | b `elem` goodshorts = (a,b)
               | otherwise           = (a,a)
         
-        g (CallFunc x) = CallFunc $ fromJustNote "shortName(1)" $ lookup x rename
+        g (CallFunc x) = CallFunc $ fromJustNote ("shortName(1), missing " ++ x) $ lookup x rename
         g x = x
         
         h func = func{funcName = fromJustNote "shortName(2)" $ lookup (funcName func) rename}
