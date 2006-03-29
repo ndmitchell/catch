@@ -32,7 +32,7 @@ prettyReqs :: Reqs -> String
 prettyReqs reqs = unlines (map g reps) ++
                   prettyPredBy id (mapPredLitChange f reqs)
     where
-        exprs = map reqExpr $ allPredLit reqs
+        exprs = [x | Req x _ _ <- allPredLit reqs]
         (keepexpr, repexpr) = partition h (nub exprs)
         vars = map (:[]) (['x'..'z'] ++ ['a'..'v']) ++ map (\x -> 'w' : show x) [2..]
         reps = zip repexpr vars
@@ -47,5 +47,6 @@ prettyReqs reqs = unlines (map g reps) ++
             (if pathIsLambda regs then "" else "." ++ pathPretty regs) ++
             strSet opts
     
+        f x = show x
     
         g (expr, var) = "var " ++ var ++ " := " ++ output expr
