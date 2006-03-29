@@ -18,21 +18,44 @@ import List
 import Star.Type
 
 
+
+
+-- simplify all the forall statements
+simplifyForall :: Reqs -> Reqs
+simplifyForall x = predOr $ map f $ fromOr $ dnf x
+    where
+        f x = predAnd $ map g $ groupBy (\a b -> getName a == getName b) $ fromAnd x
+        
+        g xs | nx == ""  = predAnd xs
+             | otherwise = predLit $ ReqAll nx $ predAnd $ map (reqWithin . fromPredLit) xs
+            where nx = getName $ head xs
+        
+        getName (PredLit (ReqAll a b)) = a
+        getName _ = "" 
+
+
+
+
+
 -- Must all be Nothing as their within property
 simplifyReqsFull :: Hite -> Reqs -> Reqs
 simplifyReqsFull hite x = 
-        andPairs finalMerge $
-        orPairsAs orSubsetCollapse $
-        mapPredLit atomNullCtors $
-        andPairs andEqPathCollapse $
-        andPairsAs andSubsetCollapse $
-        mapPredLit addFinite $
-        dnf x
+        mapPredLit simpOne $ simplifyForall x
     where
-        x2 = dnf x
-        --x3 = predOr $ simplifySet rOr $ map (predAnd . simplifySet rAnd . fromAnd) $ fromOr x2
-        
-        
+        simpOne (ReqAll name x) | isTrue x = predTrue
+                                | otherwise = predLit $ ReqAll name (simplifyReq x)
+        simpOne x = simplifyReq (predLit x)
+    
+    
+        simplifyReq x =
+            andPairs finalMerge $
+            orPairsAs orSubsetCollapse $
+            mapPredLit atomNullCtors $
+            andPairs andEqPathCollapse $
+            andPairsAs andSubsetCollapse $
+            mapPredLit addFinite $
+            dnf x
+
         
         andPairsAs f xs = andPairs (makeAssoc f) xs
         orPairsAs  f xs = orPairs  (makeAssoc f) xs
