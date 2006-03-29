@@ -209,12 +209,20 @@ wrapBang hite small = concatMap f small
 
 -- make the following list of functions complete
 ensureComplete :: Hite -> [Func] -> [Func]
-ensureComplete orig small = small ++ f (map funcName small) small
+ensureComplete orig small = 
+        -- PARTIAL implementation
+        small ++ [x | x <- funcs orig, funcName x `notElem` map funcName small]
+
+        {- 
+        -- FULL implementation
+        
+        small ++ f (map funcName small) small
     where
         f done pending = if null depends then [] else newFuncs ++ f (depends++done) newFuncs
             where
                 newFuncs = map (getFunc orig) depends
                 depends = nub [x | CallFunc x <- allExpr pending] \\ done
+        -}
 
 
 
@@ -327,7 +335,7 @@ reduceMany hndl hite pending depth orig_xs =
 
 
 
-simplifyMid hite x = if simplifyRegular then simplifyReqs False hite x else x
+simplifyMid hite x = if simplifyRegular then simplifyReqsFull hite x else x
 
 simpler x = blurReqsPath (reducePred x)
 
