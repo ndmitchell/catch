@@ -26,7 +26,7 @@ caseCheck hndl hite =
             then putStrLn "No inexhaustive patterns, your code is safe"
             else do
                 putStrLn $ show count ++ " inexhaustive " ++ pattern_s count ++ " found\n"
-                ans <- mapM (uncurry $ caseCheckOne hndl) res
+                ans <- mapM (uncurry $ caseCheckOne hndl hite) res
                 if all isTrue ans
                     then putStrLn "All patterns were shown to be safe"
                     else do
@@ -49,15 +49,19 @@ caseCheck hndl hite =
                 sn = show (n+1)
 
 
-caseCheckOne :: Handle -> Hite -> String -> IO Reqs
-caseCheckOne hndl hite msg =
+caseCheckOne :: Handle -> Hite -> [Func] -> String -> IO Reqs
+caseCheckOne hndl hite funs msg =
     do
         putStrLn $ "Checking pattern match: " ++ msg
         hPutStrLn hndl $ "\n\n===================================\nChecking pattern match: " ++ msg
         
-        let orig = simplifyReqsFull hite $ propagateAll hite "error!" predFalse
+        let orig = simplifyReqsFull hite $ propagateAll (Hite (datas hite) funs) "error!" predFalse
         hPutStrLn hndl $ show orig
+        f funs orig
+        
+        {-
         res <- reduce hndl hite orig
+        
         let final = simplifyReqsFull hite res
         hPutStrLn hndl $ "=\n" ++ prettyReqs final
         
@@ -66,6 +70,41 @@ caseCheckOne hndl hite msg =
             else putStrLn $ "Unsafe :-(, precondition is:\n" ++ prettyReqs final
         
         return final
+        -}
+    where
+        -- take a complete component and a requirements, propagate one stage
+        f :: [Func] -> Reqs -> IO Reqs
+        f funs orig = do
+            hPutStrLn hndl $ show orig
+            let h2 = Hite (datas hite) (wrapBang hite funs)
+            
+            res <- reduce hndl h2 orig
+            
+            -- simplify doesn't understand forall's
+            let final = res -- simplifyReqsFull hite res
+            hPutStrLn hndl $ "=\n" ++ prettyReqs final
+            
+            if isTrue final
+                then do
+                    putStrLn $ "Safe :-)\n"
+                    return final
+                else do
+                    let calls = (findCallers $ allForall final) \\ map funcName funs
+                    putStrLn $ prettyReqs final
+                    if null (calls \\ ["main"])
+                        then do
+                            putStrLn $ "Unsafe :-(\n"
+                            return final
+                        else do
+                            hPutStrLn hndl $ "Enlarging with: " ++ show calls
+                            f (ensureComplete hite (map (getFunc hite) calls ++ funs)) final
+
+
+        -- give a list of functions which contain a call to this one
+        findCallers :: [FuncName] -> [FuncName]
+        findCallers xs = map funcName $ filter hasCall (funcs hite)
+            where
+                hasCall fun = not $ null [() | CallFunc x <- allExpr fun, x `elem` xs]
        
 
 
@@ -73,34 +112,27 @@ caseCheckOne hndl hite msg =
 -- HITE MANIPULATORS
 
 
-
---DEPRECATED
-fixBottom :: Hite -> Hite
-fixBottom hite = hite{funcs = map f (funcs hite), datas = newData : datas hite}
-    where
-        newData = Data "Internal" [Ctor "InternalA" [], Ctor "InternalB" []]
-        newBody = Case (Make "InternalA" []) [("InternalB", Call (CallFunc "_") [])]
-        
-        f (Func "error" args body pos) = Func "error" args newBody pos
-        f x = x
-
-
-
 -- generate all the required Hite instances
 -- each instance has exactly one "error!" function
 -- and the string (if there is one) corresponds to some information on the parse error
-prepareHites :: Hite -> [(Hite, String)]
-prepareHites bad_hite = map (\(a,b) -> (Hite (datas hite) a, b)) $ f (funcs hite)
+prepareHites :: Hite -> [([Func], String)]
+prepareHites bad_hite = concatMap f (funcs hite)
+        -- map (\(a,b) -> (Hite (datas hite) a, b)) $ f (funcs hite)
     where
         hite = annotateVar $ fixError $ removeUnderscore bad_hite
         
+        {-
         f :: [Func] -> [([Func], String)]
         f [] = []
         f (x:xs) = this ++ rest
             where
                 this = [(a:xs,b) | (a,b) <- errFuncs x]
                 rest = [(x:a,b) | (a,b) <- f xs]
-
+        -}
+        
+        f :: Func -> [([Func], String)]
+        f func = [(ensureComplete hite [f2], m2) | (f2,m2) <- errFuncs func]
+        
 
         errFuncs :: Func -> [(Func, String)]
         errFuncs func = map f errIds
@@ -150,17 +182,44 @@ annotateVar h = mapFunc f h
         g name x = x
 
 
+
 ---------------------------------------------------------------------
--- UTILITY FUNCTIONS
+-- SCC HITE MANIPULATORS
 
 
-simpler x = blurReqsPath (reducePred x)
+-- wrap all functions in bang versions
+-- should only provide an interface for those functions which
+-- are called from the bit of the hite not covered
+wrapBang :: Hite -> [Func] -> [Func]
+wrapBang hite small = concatMap f small
+    where
+        inside = map funcName small
+
+        needWrapper = nub $ ["main" | "main" `elem` inside] ++
+            [x | ff <- funcs hite, not (funcName ff `elem` inside),
+                 CallFunc x <- allExpr ff, x `elem` inside]
+    
+        f orig | not (funcName orig `elem` needWrapper) = [orig]
+    
+        f orig@(Func name args body pos) = [orig,
+                Func newname args (Call (CallFunc name) (map (`Var` newname) args)) pos]
+            where newname = '!':name
+
+
+
+-- make the following list of functions complete
+ensureComplete :: Hite -> [Func] -> [Func]
+ensureComplete orig small = small ++ f (map funcName small) small
+    where
+        f done pending = if null depends then [] else newFuncs ++ f (depends++done) newFuncs
+            where
+                newFuncs = map (getFunc orig) depends
+                depends = nub [x | CallFunc x <- allExpr pending] \\ done
 
 
 
 ---------------------------------------------------------------------
 -- CORE FUNCTIONS
-
 
 
 type Depth = Int
@@ -201,7 +260,7 @@ reduceOne hndl hite pending supress depth orig_req =
                                        return predTrue
 
             (Req (Var a b) _ _) -> 
-                if b == "*" || b == "main" then
+                if b == "*" || head b == '!' then
                     return $ predLit orig_req
                 else
                     onwards $ propagate hite orig_req
@@ -210,8 +269,9 @@ reduceOne hndl hite pending supress depth orig_req =
     
             
             (ReqAll on within) -> do x <- reduceMany hndl hite pending depth within
-                                     if on == "main" then
-                                         return $ mapPredLit starToMain x
+                                     if head on == '!' then
+                                         return $ predLit (ReqAll (tail on) within)
+                                         --return $ mapPredLit (starToName on) x
                                       else
                                          reduceMany hndl hite (orig_req:pending) depth $ propagateAll hite on x
 
@@ -223,9 +283,10 @@ reduceOne hndl hite pending supress depth orig_req =
                     Req _ _ _ -> orig_req : pending
                     _ -> pending
 
-        starToMain (Req on path opts) = predLit $ Req (mapExpr f on) path opts
-        f (Var x "*") = Var x "main"
-        f x = x
+        -- TODO: is starToMain entirely useless?
+        starToName name (Req on path opts) = predLit $ Req (mapExpr (f name) on) path opts
+        f name (Var x "*") = Var x name
+        f name x = x
 
 
 reduceMany :: Handle -> Hite -> [Req] -> Depth -> Reqs -> IO Reqs
@@ -267,4 +328,6 @@ reduceMany hndl hite pending depth orig_xs =
 
 
 simplifyMid hite x = if simplifyRegular then simplifyReqs False hite x else x
+
+simpler x = blurReqsPath (reducePred x)
 
