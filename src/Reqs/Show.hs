@@ -18,7 +18,6 @@ import Char
 instance Show Req where
     show r = case r of
             (Req expr regs opts) -> "<" ++ inline (output expr) ++ "," ++ pathPretty regs ++ "," ++ strSet opts ++ ">"
-            (ReqEnv expr regs opts within) -> show (Req expr regs opts) ++ "(" ++ inline (output within) ++ ")"
             (ReqAll on within) -> "(\\forall " ++ on ++ ", " ++ show within ++ ")"
         where
             inline x = case lines x of

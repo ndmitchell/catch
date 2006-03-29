@@ -15,7 +15,6 @@ import List
 
 data Req = Req {reqExpr :: Expr, reqPath :: Path String, reqCtors :: [CtorName]}
          | ReqAll {reqForall :: FuncName, reqWithin :: Reqs}
-         | ReqEnv {reqExpr :: Expr, reqPath :: Path String, reqCtors :: [CtorName], reqIn :: Expr}
            deriving Eq
 
 
