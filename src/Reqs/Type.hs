@@ -1,6 +1,6 @@
 
 module Reqs.Type(
-    Req(..), Reqs, blurReqsPath
+    Req(..), Reqs, blurReqsPath, allForall
     ) where
 
 import Pred.Type
@@ -28,3 +28,8 @@ blurReqPath req = req{reqPath = pathBlur (reqPath req)}
 
 blurReqsPath :: Reqs -> Reqs
 blurReqsPath = mapPredLit (predLit . blurReqPath)
+
+
+
+allForall :: Reqs -> [FuncName]
+allForall req = [x | ReqAll x _ <- allPredLit req]
