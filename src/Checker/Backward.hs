@@ -64,9 +64,10 @@ backward hite (Req orig@(Repeat expr alt) path opts) = predAnd $
         predLit $ Req (unrollExpr orig) path opts
     ]
 
+backward hite (Req (Msg _) path opts) = predFalse
 
 
-backward hite all@(Req a b c) = error $ show all ++ ": " ++ case a of
+backward hite all@(Req a b c) = error $ "backward, unhandled: " ++ show all ++ ": " ++ case a of
     Call x xs -> "call" ++ show (output x, map output xs)
     CallFunc x -> "callfunc"
     Make x xs -> "make"
