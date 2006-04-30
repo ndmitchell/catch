@@ -20,6 +20,8 @@ import CPUTime
 import Time
 import IO
 
+import Make
+
 import Checker.CaseCheck
 import Checker.Statistics
 
@@ -247,9 +249,9 @@ splitWidth norig xs = f norig [] (words xs)
         
 
 runArgs :: String -> [Arg] -> IO ()
-runArgs file acts = do hs <- pickFile file
-                       hite <- readFileHite file
-                       f hs hite acts
+runArgs file acts = do -- hs <- pickFile file
+                       hite <- make file
+                       f file hite acts
     where
         f hs hite (Single param (Command act _ _) : acts) =
             do h2 <- act param hite

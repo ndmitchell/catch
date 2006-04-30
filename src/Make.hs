@@ -1,119 +1,186 @@
 
-module Make(make) where
+module Make(make, Depend(..)) where
+
+import System
+import List
+import Directory
+import Monad
+
+
+import qualified General.Make
+import General.Make (Depend(..))
 
 import Hite
 import Core
 import Convert.CoreHite
 
-import Directory
-import Time
 
-
--- you are a dependancy on yourself
-
-
-data Cache = CacheDepends FilePath [String]
-           | CacheHite FilePath Hite
-           | CacheData FilePath [Data]
-           | CacheFunc FilePath [Func]
-           | CacheCore FilePath Core
-           
-
-make :: FilePath -> IO Hite
-make file = do c <- return []
-               (c,h) <- demandHite file c
-               return h
-       
-
-type Cr a = FilePath -> [Cache] -> IO ([Cache], a)
-type C    = FilePath -> [Cache] -> IO [Cache]
-
--- HITE
-
-
-
-demandHite :: Cr Hite
-demandHite file c = do c2 <- ensureHite
-                       let res = [x | CacheHite s x <- c2, s == file]
-                       if null res
-                           then do
-                               h <- readCacheHite (file ++ ".hite")
-                               return (c2, h)
-                           else
-                               return (c2, head res)
-
-
-ensureHite :: C
-ensureHite file c = do (c2,d) <- demandDeps file c
-                       datHit <- fileDate file_hite
-                       datDep <- maxFileDates d
-                       if datHit > datDep then do
-                            (c3,ds) <- mapC demandData dep c2
-                            (c4,fs) <- mapC demandFunc dep c3
-                            putStrLn $ "- Building hite for " ++ file
-                            let h = reachable "" $ Hite (concat ds) (concat fs)
-                            writeCacheHite h file_hite
-                            return $ CacheHite file h : c
-                        else
-                            return c
 
 
 
 {-
 
 
-getHite :: FilePath -> [Cache] -> IO ([Cache], Hite)
-getHite file c =
-    case [x | CacheHite s x <- c, s == file] of
-        [x] -> return (c, x)
-        _ -> do
-            (c, d) <- getCDep file c
-            datDep <- depDate d
-            datHit <- fileDate file_hite
-            if datHit > datDep then buildHite d c else loadHite c
-    where
-        file_hite = file ++ ".hite"
-    
-        loadHite c = do h <- readCacheHite file_hite
-                        return (CacheHite file h : c, h)
-        
-        buildHite dep c = do 
+data Depend dat = Depend
+    FilePath -- ^ This file
+    [FilePath] -- ^ The files I depend on
+    (FilePath -> IO dat) -- ^ How to read a cache item
+    (FilePath -> dat -> IO ()) -- ^ How to write a cache item
+    ((FilePath -> dat) -> FilePath -> IO dat) -- ^ How to create a piece of data
+
 -}
 
 
-mapC :: (FilePath -> [Cache] -> IO ([Cache], a)) -> [FilePath] -> [Cache] -> IO ([Cache], [a])
-mapC f [] c = return (c, [])
-mapC f (x:xs) c = do (c,r) <- f x c
-                     (c,rs) <- mapC f xs c
-                     return (c, r:rs)
+data MakeData = MdCore {fromMdCore :: Core}
+              | MdHite {fromMdHite :: Hite}
+              deriving Show
+
+
+make :: FilePath -> IO Hite
+make x = do ensureDirectory "Cache"
+            ensureDirectory "Cache/Library"
+            ensureDirectory "Cache/Example"
+            src <- getFilePath x
+            deps <- calcDeps src
+            let alldeps = nub $ concatMap snd deps
+                datas = map (\(x,_) -> Depend ("Cache/" ++ x ++ ".data") ["Cache/" ++ x ++ ".core"] rdCore wrCore (crData x)) deps
+                parts = map (\(x,d) -> Depend ("Cache/" ++ x ++ ".part") (("Cache/" ++ x ++ ".core") : map (\y -> "Cache/" ++ y ++ ".data") d) rdHite wrHite (crPart x d)) deps
+                final = Depend ("Cache/" ++ src ++ ".hite") (map (\x -> "Cache/" ++ x ++ ".part") alldeps) rdHite wrHite (crHite alldeps)
+                exist = map (\(x,_) -> Depend ("Cache/" ++ x ++ ".core") [] rdCore (error "wrCore, no implementation") (error "crCore, no implementation")) deps
+            
+            MdHite res <- General.Make.make (final:datas++parts++exist) ("Cache/" ++ src ++ ".hite")
+            return res
+    where
+        crData file get = do let MdCore (Core name items) = get $ "Cache/" ++ file ++ ".core"
+                             putStrLn $ "Creating data for " ++ file
+                             return $ MdCore $ Core name $ filter isCoreData items
+            
+        crPart file dep get = do putStrLn $ "Creating part for " ++ file
+                                 return $ MdHite $ Hite (filter validData datas) funcs
+            where
+                Hite datas funcs = coreHite res
+                validData dat = not (dataName dat `elem` addDatas)
+                addDatas = [name | Core _ x <- cores, CoreData name _ <- x]
+                res = Core name (concatMap (\(Core _ x) -> x) cores ++ dat)
+                (Core name dat) = fromMdCore $ get $ "Cache/" ++ file ++ ".core"
+                cores = map (\x -> fromMdCore $ get $ "Cache/" ++ x ++ ".data") dep
+            
+        rdHite src = readCacheHite src >>= return . MdHite
+        wrHite src (MdHite val) = writeCacheHite val src
+        
+        crHite deps get = do putStrLn "Creating final hite"
+                             return $ MdHite $ reachable "" $ Hite (concatMap datas res) (concatMap insertMain $ concatMap funcs res)
+            where res = map (\x -> fromMdHite $ get $ "Cache/" ++ x ++ ".part") deps
+            
+        rdCore src = readFile src >>= return . MdCore . readCore
+        wrCore src (MdCore val) = writeFile src (show val)
+        
+        
+        insertMain func@(Func name args body pos) | ".main" `isSuffixOf` name =
+            [Func "main" args (Call (CallFunc name) (map (`Var` "") args)) pos, func]
+        insertMain func = [func]
+            
+
+
+ensureDirectory s = do b <- doesDirectoryExist s
+                       when (not b) $ createDirectory s
+
+
+-- * Figure out which file it is that you require
+
+isPreamble :: FilePath -> Bool
+isPreamble file = "Preamble.hs" `isSuffixOf` file
+
+
+getFilePath :: FilePath -> IO FilePath
+getFilePath file = do let fil = if file == "Prelude" then "Library/Preamble.hs"
+                                else file ++ (if '.' `elem` file then "" else ".hs")
+                          f1 = "Example/" ++ fil
+                          f2 = "Library/" ++ fil
+                      b1 <- doesFileExist f1
+                      b2 <- doesFileExist f2
+                   
+                      if b1 then return f1
+                       else if b2 then return f2
+                       else error $ "Could not find file, " ++ file
+
+
+-- * Dependancy tracking, through import statements
+
+calcDeps :: FilePath -> IO [(FilePath, [FilePath])]
+calcDeps file = f [file] []
+    where
+        f [] res = return res
+        f (x:xs) res = do dep <- getDeps x
+                          let newreq = (dep \\ map fst res) \\ (x:xs)
+                          f (newreq++xs) ((x,dep):res)
+
+
+getDeps :: FilePath -> IO [FilePath]
+getDeps file = do keep_core <- newer cfile file
+                  keep_dep  <- newer dfile file
+                  when (not keep_core) buildCore
+                  res <- if not (keep_core && keep_dep) then buildDep else loadDep
+                  mapM getFilePath res
+    where
+        cfile = "Cache/" ++ file ++ ".core"
+        dfile = "Cache/" ++ file ++ ".dep"
+        
+        loadDep = readFile dfile >>= return . lines
+        
+        
+        buildCore :: IO ()
+        buildCore = do
+            putStrLn $ "Creating core for " ++ file ++ " using Yhc"
+            let file2 = "Cache/" ++ file
+                preamble = isPreamble file
+                out = cfile ++ ['2'|preamble]
+                cmd = "yhc " ++ file2 ++ " -corep 2> " ++ out
+                
+            putStrLn cmd
+            copyFile file file2
+            system cmd
+            b <- doesFileExist out
+            when (not b) $ error "Core file not generated, do you have Yhc installed?"
+            when preamble $ do res <- readFile out
+                               writeFile cfile (stripPreamble res)
+
+        buildDep = do src <- readFile cfile
+                      let ans = if isPreamble file then [] else ("Preamble":depends (readCore src))
+                      writeFile dfile $ unlines ans
+                      return ans
+
+
+copyFile src dest = readFile src >>= writeFile dest
+                      
+
+
+-- | is the first file newer than the second
+--   if either does not exist, the answer is false
+newer :: FilePath -> FilePath -> IO Bool
+newer f1 f2 = do b1 <- doesFileExist f1
+                 b2 <- doesFileExist f2
+                 if b1 && b2 then
+                    do m1 <- getModificationTime f1
+                       m2 <- getModificationTime f2
+                       return $ m1 > m2
+                  else return False
 
 
 
-demandData :: FilePath -> [Cache] -> IO ([Cache], [Data])
-demandData file c = return (c, [])
+
+stripPreamble src = strip src                             
+    where
+        tupStart = ",CoreFunc (CoreApp (CoreVar \"Preamble.tup"
+        tupEnd = ")]))"
+
+        strip x | tupStart `isPrefixOf` x = strip (dropTup x)
+        strip (x:xs) = x : strip xs
+        strip [] = []
 
 
-demandFunc :: FilePath -> [Cache] -> IO ([Cache], [Func])
-demandFunc file c = return (c, [])
-
-
-
-demandDep :: FilePath -> [Cache] -> IO ([Cache], [FilePath])
-demandDep file c = return (c, []) -- do src <- fileDate file
-
-
-
-demandDeps :: FilePath -> [Cache] -> IO ([Cache], [FilePath])
-demandDeps file c = do (c,d) <- demandDep file c
-                       (c,ds) <- mapC demandDeps d c
+        dropTup x | tupEnd `isPrefixOf` x = drop (length tupEnd) x
+        dropTup (x:xs) = dropTup xs
 
 
 
-fileDate :: FilePath -> IO ClockTime
-fileDate file = do b <- doesFileExist file
-                   if b then getModificationTime file else getClockTime
-
-
-maximumFileDates :: [FilePath] -> IO ClockTime
-maximumFileDates files = do x <- mapM getModificationTime files
-                            return $ maximum x
