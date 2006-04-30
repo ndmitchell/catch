@@ -1,6 +1,6 @@
 
 
-module Hite.Reachable(cmd, reachable) where
+module Hite.Reachable(cmd, reachable, reachableList) where
 
 import Hite.Type
 import List
@@ -12,12 +12,16 @@ cmd = cmdHitePure reachable "reachable"
             "Reachability analysis, from a root function (default=main) figure out which functions can be used"
 
 
+
 reachable :: FuncName -> Hite -> Hite
-reachable name2 hite@(Hite datas funcs) = Hite aliveDatas aliveFuncs
+reachable ""   hite = reachableList ["main"] hite
+reachable name hite = reachableList [name]   hite
+
+
+reachableList :: [FuncName] -> Hite -> Hite
+reachableList names hite@(Hite datas funcs) = Hite aliveDatas aliveFuncs
     where
-        name = if null name2 then "main" else name2
-        
-        aliveFuncNames = fixSet f [name]
+        aliveFuncNames = fixSet f names
         aliveFuncs = [x | x <- funcs, funcName x `elem` aliveFuncNames]
 
         -- still misses data which is only used as a field selector        
