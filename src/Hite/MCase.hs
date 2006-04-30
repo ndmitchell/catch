@@ -11,7 +11,7 @@ cmd = cmdHitePure (const mcase) "mcase"
 mcase :: Hite -> Hite
 mcase (Hite datas funcs) = Hite datas (mapExpr f funcs)
     where
-        f (Case (Var var _) alts) = MCase $ concatMap g alts
+        f (Case var alts) = MCase $ concatMap g alts
             where
                 g (on,MCase alts) = [MCaseAlt ((var,on):opts) expr | MCaseAlt opts expr <- alts]
                 g (on,alt) = [MCaseAlt [(var,on)] alt]
