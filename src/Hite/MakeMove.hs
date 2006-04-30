@@ -50,6 +50,11 @@ getValue hite (Call (CallFunc name) params)
         = expand hite name params
     where
         Func _ args body _ = getFunc hite name
+
+getValue hite (Msg msg) = if null msg
+                          then Make "[]" []
+                          else Make ":" [Make (charCtor $ head msg) [], Msg $ tail msg]
+
 getValue hite x = x
 
 
