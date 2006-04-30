@@ -30,6 +30,7 @@ reachableList names hite@(Hite datas funcs) = Hite aliveDatas aliveFuncs
         g (Make x _) = [x]
         g (Case _ alts) = fsts alts
         g (Sel _ path) = [ctorName $ getCtorFromArg hite path]
+        g (Msg x) = map charCtor x
         g _ = []
         
         aliveDatas = concatMap h datas
