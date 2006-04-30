@@ -9,6 +9,7 @@ import General.General
 import General.Commands
 import Maybe
 import List
+import Char
 
 
 cmdHite :: (String -> Hite -> IO Hite) -> String -> String -> Command Hite
@@ -212,3 +213,9 @@ mutateId x i y = f (reverse i) x
         
         rep 0 (x:xs) y = y:xs
         rep n (x:xs) y = x : rep (n-1) xs y
+
+
+charCtor :: Char -> CtorName
+charCtor c = "Char_" ++ (if isAlphaNum c then [c] else pad3 (show (ord c)))
+    where pad3 x = replicate (3 - length x) '0' ++ x
+

@@ -133,7 +133,7 @@ convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) =
         f path vars (CoreCon x) = (Make x [], [])
         f path vars (CoreInt x) = (CallFunc "prim_int", [])
         f path vars (CoreInteger x) = (CallFunc "prim_int", [])
-        f path vars (CoreChr x) = (Make (asChar x) [], [])
+        f path vars (CoreChr x) = (Make (charCtor x) [], [])
         f path vars (CoreStr x) = (Msg x, [])
         
         -- application, need sequencing
@@ -185,7 +185,7 @@ convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) =
                 -- figure out what the LHS of a case matches
                 dealMatch :: CoreExpr -> (CtorName, [(String, Expr)])
                 dealMatch (CoreVar "_") = ("_", [])
-                dealMatch (CoreChr c  ) = (asChar c, [])
+                dealMatch (CoreChr c  ) = (charCtor c, [])
                 dealMatch (CoreCon con) = dealMatch (CoreApp (CoreCon con) [])
                 dealMatch (CoreApp (CoreCon con) args) = (con,
                         [(v, Sel newOn x) | (CoreVar v, x) <- zip args sels])
@@ -322,10 +322,6 @@ convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) =
 
         -}
 
-
-asChar :: Char -> String
-asChar c = "Char_" ++ (if isAlphaNum c then [c] else pad3 (show (ord c)))
-    where pad3 x = replicate (3 - length x) '0' ++ x
 
 
 {-
