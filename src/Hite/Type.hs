@@ -40,12 +40,17 @@ data Expr = Call {callFunc :: Expr, callArgs :: [Expr]}
           | CallFunc {callName :: FuncName}
           | Make {makeName :: CtorName, makeArgs :: [Expr]}
           | Case Expr [(CtorName, Expr)] -- case x of Cons a b, Nil -> Case "x" (Cons, ["a", "b"]), (Nil, [])
+          | MCase [MCaseAlt]
           | Msg String
           
           -- constructor, list of arguments (nothing is recurse), expr is alt
           | Repeat {expr :: Expr, alt :: Expr}
           | RepeatNow
           | Bottom
+          deriving (Eq, Show, Read)
+
+
+data MCaseAlt = MCaseAlt [(FuncArg, CtorName)] Expr
           deriving (Eq, Show, Read)
 
 
@@ -70,6 +75,7 @@ instance PlayExpr Expr where
         Make a bs -> Make a             (mapExpr f bs)
         Case a bs -> Case (mapExpr f a) (map (\(d,e) -> (d,mapExpr f e)) bs)
         Sel  a b  -> Sel  (mapExpr f a) b
+        MCase  as -> MCase (map (\(MCaseAlt a b) -> MCaseAlt a (mapExpr f b)) as)
         _ -> x
     
     allExpr x = x : concatMap allExpr (case x of
@@ -77,6 +83,7 @@ instance PlayExpr Expr where
             Make _ xs -> xs
             Case x xs -> x : map snd xs
             Sel  x _  -> [x]
+            MCase  xs -> map (\(MCaseAlt a b) -> b) xs
             _ -> []
         )
 

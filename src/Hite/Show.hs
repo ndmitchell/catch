@@ -33,6 +33,8 @@ instance Output Expr where
             f b i (RepeatNow) = "***"
             f b i (Repeat expr alt) = brack b $ f b i expr ++ " | " ++ f b i alt
             f b i (Msg s) = show s
+            
+            f b i (MCase opts) = concatMap output opts
 
             f b i (Sel expr arg) = f True i expr ++ "." ++ arg
             f b i (Make name args) = f b i (Call (CallFunc name) args)
@@ -49,3 +51,8 @@ instance Output Expr where
             
             h i alt Nothing = "( *** | " ++ f True i alt ++ ")"
             h i alt (Just x) = f True i x
+
+
+instance Output MCaseAlt where
+    output (MCaseAlt cond expr) = "\n  | " ++ concat (intersperse " ^ " $ map f cond) ++ " = " ++ output expr
+        where f (var,cond) = var ++ "{" ++ cond ++ "}"

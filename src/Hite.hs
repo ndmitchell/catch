@@ -31,9 +31,10 @@ import Hite.CaseLift
 import Hite.ArityRaise
 import Hite.Consts
 import Hite.MakeMove
+import Hite.MCase
 
 
 cmds :: [Command Hite]
 cmds = [Hite.Reachable.cmd, Hite.ShortName.cmd, Hite.ErrorFail.cmd, Hite.CaseLift.cmd,
         Hite.ArityRaise.cmd, Hite.Consts.cmd, Hite.MakeMove.cmd, Hite.Inline.cmd,
-        Hite.Defunc.cmd]
+        Hite.Defunc.cmd, Hite.MCase.cmd]
