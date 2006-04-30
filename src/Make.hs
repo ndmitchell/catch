@@ -135,7 +135,7 @@ getDeps file = do keep_core <- newer cfile file
             let file2 = "Cache/" ++ file
                 preamble = isPreamble file
                 out = cfile ++ ['2'|preamble]
-                cmd = "yhc " ++ file2 ++ " -corep 2> " ++ out
+                cmd = "yhc " ++ file2 ++ " -dst Cache -hidst Cache -corep 2> " ++ out
                 
             putStrLn cmd
             copyFile file file2
