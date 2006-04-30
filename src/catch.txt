@@ -18,6 +18,7 @@ prepare Prepare a Hite program from analysis
 	reachable
 	make-move
 	inline
+	make-move
 	reachable
 	defunc
 
