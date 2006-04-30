@@ -38,6 +38,6 @@ removeTup (Core n c) = Core n $ filter f c
 moduleNaming :: Core -> Core
 moduleNaming (Core modName c) = Core modName $ mapCore f c
     where
-        f (CoreVar x) | "LAMBDA" `isPrefixOf` x = CoreVar (modName ++ x)
+        f (CoreVar x) | "LAMBDA" `isPrefixOf` x = CoreVar (modName ++ "." ++ x)
         f (CorePos p x) = CorePos (modName ++ p) x
         f x = x
