@@ -65,7 +65,7 @@ make x = do ensureDirectory "Cache"
                 (Core name dat) = fromMdCore $ get $ "Cache/" ++ file ++ ".core"
                 cores = map (\x -> fromMdCore $ get $ "Cache/" ++ x ++ ".data") dep
             
-        rdHite src = readCacheHite src >>= return . MdHite
+        rdHite src = putStrLn ("Reading " ++ src) >> readCacheHite src >>= return . MdHite
         wrHite src (MdHite val) = writeCacheHite val src
         
         crHite deps get = do putStrLn "Creating final hite"
