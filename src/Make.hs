@@ -42,7 +42,7 @@ make x = do ensureDirectory "Cache"
             ensureDirectory "Cache/Example"
             src <- getFilePath x
             deps <- calcDeps src
-            let alldeps = nub $ concatMap snd deps
+            let alldeps = nub $ src : concatMap snd deps
                 datas = map (\(x,_) -> Depend ("Cache/" ++ x ++ ".data") ["Cache/" ++ x ++ ".core"] rdCore wrCore (crData x)) deps
                 parts = map (\(x,d) -> Depend ("Cache/" ++ x ++ ".part") (("Cache/" ++ x ++ ".core") : map (\y -> "Cache/" ++ y ++ ".data") d) rdHite wrHite (crPart x d)) deps
                 final = Depend ("Cache/" ++ src ++ ".hite") (map (\x -> "Cache/" ++ x ++ ".part") alldeps) rdHite wrHite (crHite alldeps)
