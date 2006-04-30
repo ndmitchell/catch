@@ -9,7 +9,7 @@ cmd = cmdHitePure (const mcase) "mcase"
 
 
 mcase :: Hite -> Hite
-mcase (Hite datas funcs) = Hite datas (mapExpr f funcs)
+mcase (Hite datas funcs) = Hite datas (ensure $ mapExpr f funcs)
     where
         f (Case var alts) = MCase $ concatMap g alts
             where
@@ -17,3 +17,11 @@ mcase (Hite datas funcs) = Hite datas (mapExpr f funcs)
                 g (on,alt) = [MCaseAlt [(var,on)] alt]
         
         f x = x
+        
+        
+        ensure x = map g x
+            where
+                g func = func{body = h (body func)}
+
+                h x@(MCase _) = x
+                h x = MCase [MCaseAlt [] x]
