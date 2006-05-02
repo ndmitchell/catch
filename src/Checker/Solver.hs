@@ -27,7 +27,7 @@ import General.Output
 solve :: Hite -> [FuncName] -> Reqs -> OutputMonad Bool
 solve hite funcs reqs = {- error $ output hite2 -}  reduce hite2 reqs >>= return . isTrue
     where
-        hite2 = annotateVar $ annotateFringe funcs $ fixError $ removeUnderscore hite
+        hite2 = annotateVar $ annotateFringe funcs $ removeUnderscore hite
 
 
 ---------------------------------------------------------------------
@@ -41,17 +41,6 @@ removeUnderscore x = mapExpr f $ x{funcs = filter ((/= "_") . funcName) (funcs x
         f (Call (CallFunc "_") []) = Bottom
         f (CallFunc "_") = Bottom
         f x = x
-
-
--- make error functions correct
-fixError :: Hite -> Hite
-fixError hite = hite{funcs = errs ++ filter (not.isError) (funcs hite)}
-    where
-        isError func = funcName func == "error"
-        
-        errs = [Func "error" ["x"] Bottom ""
-               ,Func "error!" []   Bottom ""
-               ]
 
 
 annotateFringe :: [FuncName] -> Hite -> Hite
