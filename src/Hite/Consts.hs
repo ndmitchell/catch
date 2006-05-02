@@ -113,7 +113,7 @@ genEvaluate hite (name, pargs) newName =
         
         newBody = mapExpr f body
         
-        f (Var x _) | isJust res = fromJustNote "genEvaluate" res
+        f (Var x) | isJust res = fromJustNote "genEvaluate" res
             where res = lookup x rename
         f x = x
 
@@ -153,6 +153,6 @@ expand hite name params = mapExpr f body
         f x = x
 -}
 
-varFree x = null [() | Var _ _ <- allExpr x] && length (allExpr x) < 15
+varFree x = null [() | Var _ <- allExpr x] && length (allExpr x) < 15
 
 

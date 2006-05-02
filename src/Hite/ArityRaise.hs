@@ -27,7 +27,7 @@ arityRaise bad_hite = hite{funcs = map f (funcs hite)}
                 ar = fromJust (lookup name ars) - length args
                 newArgs = ["_new" ++ show x | x <- [1..ar]]
                 
-                g (Call x xs) = Call x (xs ++ map (`Var` "") newArgs)
+                g (Call x xs) = Call x (xs ++ map Var newArgs)
 
 
 

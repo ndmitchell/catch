@@ -36,7 +36,7 @@ data Func = Func {funcName :: FuncName, funcArgs :: [FuncArg], body :: Expr, pos
           deriving (Eq, Show, Read)
 
 data Expr = Call {callFunc :: Expr, callArgs :: [Expr]}
-          | Var {varArg :: FuncArg, scope :: FuncName}
+          | Var {varArg :: FuncArg}
           | Sel {expr :: Expr, path :: CtorArg}
           | CallFunc {callName :: FuncName}
           | Make {makeName :: CtorName, makeArgs :: [Expr]}

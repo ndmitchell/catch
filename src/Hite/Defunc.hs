@@ -32,13 +32,13 @@ defunc bad_hite = Hite (newData ++ datas) (newFuncs ++ oldFuncs)
         reqFuncs = sort $ nub [read xs :: Int | CallFunc ('%':'a':'p':xs) <- allExpr oldFuncs]
         newFuncs = map g reqFuncs
         
-        g n = Func ("%ap" ++ show n) ("f":args) (Case (Var "f" "") (concatMap f items)) ""
+        g n = Func ("%ap" ++ show n) ("f":args) (Case (Var "f") (concatMap f items)) ""
             where
                 args = map (('x':) . show) [1..n]
                 
                 f (name,arity) | diff >= n = [(nam,
                                    (if diff == n then Call (CallFunc name) else Make ("%Ap_" ++ name ++ "_" ++ show (arity+n)))
-                                   (map (\x -> Sel (Var "f" "") (nam ++ "_" ++ show x)) [1..arity] ++ map (`Var` "") args)
+                                   (map (\x -> Sel (Var "f") (nam ++ "_" ++ show x)) [1..arity] ++ map Var args)
                                    )]
                     where
                         nam = "%Ap_" ++ name ++ "_" ++ show arity

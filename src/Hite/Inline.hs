@@ -22,7 +22,7 @@ inline bad_hite = normalise $ mapExpr f $ mapExpr f $ mapExpr f hite
             where
                 Func _ args body _ = getFunc hite x
                 ren = zip args xs
-                g (Var x _) = fromJust $ lookup x ren
+                g (Var x) = fromJust $ lookup x ren
                 g x = x
 
         f x = x
@@ -39,6 +39,6 @@ inlineable hite = map funcName $ filter canInline (funcs hite)
         f (Msg x) = True
         f x = g x
         
-        g (Var _ _) = True
+        g (Var _) = True
         g (Sel x _) = g x
         g _ = False
