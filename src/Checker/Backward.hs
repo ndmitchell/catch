@@ -1,5 +1,5 @@
 
-module Checker.Backward(backward) where
+module Checker.Backward(backward, backwardRepeat, backwardRepeatPred) where
 
 import Hite
 import Constraint
@@ -74,3 +74,22 @@ backward hite all@(Req a b c) = error $ "backward, unhandled: " ++ show all ++ "
     _ -> "other"
 
 backward hite a = error $ "Backward: " ++ show a
+
+
+-- small reduce - only reduce as far as call's
+-- or var's or repeat's
+-- will take a bounded (hopefully small) amount of time
+
+backwardRepeat :: Hite -> Req -> Reqs
+backwardRepeat hite x = case x of
+        (Req (Var a b) _ _ ) -> predLit x
+        (Req (Repeat _ _) _ _) -> predLit x
+        (Req (Call _ _) _ _) -> predLit x
+        (ReqAll on within) -> predLit $ ReqAll on (backwardRepeatPred hite within)
+        x -> backwardRepeatPred hite (backward hite x)
+
+
+backwardRepeatPred :: Hite -> Reqs -> Reqs
+backwardRepeatPred hite x = mapPredLit (backwardRepeat hite) x
+
+
