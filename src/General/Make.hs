@@ -67,10 +67,12 @@ demandItem deps file (Cache cache) =
             [(valid, Depend _ depend rd wr cr)] = if null items then error $ "null items, when looking for, " ++ file
                                                   else items
         if valid then
-            do value <- rd file
+            do putStrLn $ "READ " ++ file
+               value <- rd file
                return $ Cache $ (file,value):cache
          else
             do cache2 <- demandItems deps depend (Cache cache)
+               putStrLn $ "MAKE " ++ file
                value <- cr (getItem cache2)
                wr file value
                return $ Cache $ (file,value):cache

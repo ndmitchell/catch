@@ -52,11 +52,9 @@ make x = do ensureDirectory "Cache"
             return res
     where
         crData file get = do let MdCore (Core name items) = get $ "Cache/" ++ file ++ ".core"
-                             putStrLn $ "Creating data for " ++ file
                              return $ MdCore $ Core name $ filter isCoreData items
             
-        crPart file dep get = do putStrLn $ "Creating part for " ++ file
-                                 return $ MdHite $ Hite (filter validData datas) funcs
+        crPart file dep get = return $ MdHite $ Hite (filter validData datas) funcs
             where
                 Hite datas funcs = coreHite res
                 validData dat = not (dataName dat `elem` addDatas)
@@ -65,11 +63,10 @@ make x = do ensureDirectory "Cache"
                 (Core name dat) = fromMdCore $ get $ "Cache/" ++ file ++ ".core"
                 cores = map (\x -> fromMdCore $ get $ "Cache/" ++ x ++ ".data") dep
             
-        rdHite src = putStrLn ("Reading " ++ src) >> readCacheHite src >>= return . MdHite
+        rdHite src = readCacheHite src >>= return . MdHite
         wrHite src (MdHite val) = writeCacheHite val src
         
-        crHite deps get = do putStrLn "Creating final hite"
-                             return $ MdHite $ reachable "" $ Hite (concatMap datas res) (concatMap insertMain $ concatMap funcs res)
+        crHite deps get = return $ MdHite $ reachable "" $ Hite (concatMap datas res) (concatMap insertMain $ concatMap funcs res)
             where res = map (\x -> fromMdHite $ get $ "Cache/" ++ x ++ ".part") deps
             
         rdCore src = readFile src >>= return . MdCore . readCore
@@ -131,13 +128,13 @@ getDeps file = do keep_core <- newer cfile file
         
         buildCore :: IO ()
         buildCore = do
-            putStrLn $ "Creating core for " ++ file ++ " using Yhc"
             let file2 = "Cache/" ++ file
                 preamble = isPreamble file
                 out = cfile ++ "2"
                 cmd = "yhc " ++ file2 ++ " -dst Cache -hidst Cache -corep 2> " ++ out
                 
-            putStrLn cmd
+            putStrLn $ "MAKE " ++ cfile
+            putStrLn $ "     " ++ cmd
             copyFile file file2
             code <- system cmd
             
