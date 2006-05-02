@@ -1,18 +1,49 @@
 
 module Checker.CaseCheck(caseCheck) where
 
-import qualified Checker.Solver
+import Checker.Solver
 
 import IO
 import Hite
 import Constraint
 import General.General
+import Checker.Backward
+
+import General.Output
+import General.General
 
 
 caseCheck :: Handle -> Hite -> IO ()
-caseCheck hndl hite = --error $ show $ initErrors $ removeError hite
+caseCheck hndl hite = runOutput hndl (caseCheckOut hite)
 
-     Checker.Solver.caseCheck hndl hite
+
+caseCheckOut :: Hite -> OutputMonad ()
+caseCheckOut hite = do
+    putBoth "\n== Pattern Match Checker"
+    if null errs then
+        putBoth "There are no incomplete cases, safe"
+     else do
+        putBoth $ show lerrs ++ " incomplete case" ++ ['s'|lerrs/=1] ++ " found\n"
+        res <- mapM f (zip [1..] errs)
+        let lres = length $ filter (==False) res
+        if lres == 0 then
+            putBoth "All case statements were shown to be safe"
+         else
+            putBoth $ show lres ++ " potentially unsafe case" ++ ['s'|lres/=1] ++ " found"
+    where
+        errs = initErrors $ removeError hite
+        lerrs = length errs
+        
+        f (n, (func, msg, reqs)) = do
+            putBoth $ "Checking case [" ++ show n ++ "/" ++ show lerrs ++ "] in function " ++ func
+            putBoth $ "    " ++ msg
+            res <- solveError hite func reqs
+            putBoth ""
+            return res
+            
+            
+
+--     Checker.Solver.caseCheck hndl hite
 
 
 
@@ -20,19 +51,27 @@ removeError :: Hite -> Hite
 removeError hite = hite{funcs = filter ((/=) "error" . funcName) (funcs hite)}
 
 
-initErrors :: Hite -> [(String, Reqs)]
-initErrors hite = [(head errors, condToPred cond) |
-        func <- funcs hite, let MCase alts = body func,
+initErrors :: Hite -> [(FuncName, String, Reqs)]
+initErrors hite = [(fName, headNote "CaseCheck.initErrors" errors, condToPred fName cond) |
+        func <- funcs hite, let MCase alts = body func, let fName = funcName func,
         MCaseAlt cond val <- alts, let errors = getErrors val, not (null errors)]
     where
         getErrors val = [getMsg args | Call (CallFunc "error") args <- allExpr val]
-        condToPred cond = predAnd $ map (predLit . f) cond
+        condToPred funcName cond = predLit $ ReqAll funcName $ mapPredLit g $ predAnd $ map f cond
         
         getMsg [Msg x] = x
         getMsg [x] = output x
         getMsg xs = show xs
         
-        f (expr, cond) = Req expr pathLambda [cond]
+        g (Req (Var a b) c d) = predLit $ Req (Var a "*") c d
+        
+        f (expr, cond) = backwardRepeat hite $ Req expr pathLambda (getOtherCtors hite cond)
     
+
     
-    
+solveError :: Hite -> FuncName -> Reqs -> OutputMonad Bool
+solveError hite func reqs = do
+    res <- solve hite ["main"] reqs
+    putBoth $ if res then "Safe" else "Unsafe"
+    return res
+

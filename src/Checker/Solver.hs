@@ -1,11 +1,12 @@
 
-module Checker.Solver(caseCheck) where
+module Checker.Solver(solve) where
 
 import Hite
 import General.General
 import List
 import Maybe
 import IO
+import Monad
 import Debug.Trace
 
 import Checker.Propagate
@@ -13,27 +14,27 @@ import Checker.Backward
 
 import Constraint
 import Options
-
+import General.Output
 
 
 ---------------------------------------------------------------------
 -- DRIVER
 
-caseCheck :: Handle -> Hite -> IO ()
-caseCheck hndl hite = 
-    do
-        if null res
-            then putStrLn "No inexhaustive patterns, your code is safe"
-            else do
-                putStrLn $ show count ++ " inexhaustive " ++ pattern_s count ++ " found\n"
-                ans <- mapM (uncurry $ caseCheckOne hndl hite) res
-                if all isTrue ans
-                    then putStrLn "All patterns were shown to be safe"
-                    else do
-                        let unsafe = length $ filter (not.isTrue) ans
-                        putStrLn $ show unsafe ++ " " ++ pattern_s unsafe ++ " are potentially unsafe"
-                        putStrLn $ unlines $ ["    " ++ m | ((h,m),b) <- zip res ans, not (isTrue b)]
-                        putStrLn $ "Full precondition for safety:"
+
+-- | Take a Hite program, a set of functions that are the "boundary"
+--   and some requirements, and solve it
+--   Return True if its successfully solved, False otherwise
+solve :: Hite -> [FuncName] -> Reqs -> OutputMonad Bool
+solve hite funcs reqs = {- error $ output hite2 -}  reduce hite2 reqs >>= return . isTrue
+    where
+        hite2 = annotateVar $ annotateFringe funcs $ fixError $ removeUnderscore hite
+
+
+
+{-
+
+solveCore 
+
                         putStrLn $ prettyReqs (simplifyReqsFull hite (predAnd ans))
     where
         hites = prepareHites hite
@@ -47,8 +48,10 @@ caseCheck hndl hite =
                 ran = "[" ++ replicate (length sc - length sn) ' ' ++ sn ++ "/" ++ sc ++ "] "
                 sc = show count
                 sn = show (n+1)
+-}
 
 
+{-
 caseCheckOne :: Handle -> Hite -> [Func] -> String -> IO Reqs
 caseCheckOne hndl hite funs msg =
     do
@@ -59,7 +62,7 @@ caseCheckOne hndl hite funs msg =
         hPutStrLn hndl $ show orig
         f funs orig
         
-        {-
+        { -
         res <- reduce hndl hite orig
         
         let final = simplifyReqsFull hite res
@@ -70,7 +73,7 @@ caseCheckOne hndl hite funs msg =
             else putStrLn $ "Unsafe :-(, precondition is:\n" ++ prettyReqs final
         
         return final
-        -}
+        - }
     where
         -- take a complete component and a requirements, propagate one stage
         f :: [Func] -> Reqs -> IO Reqs
@@ -106,7 +109,7 @@ caseCheckOne hndl hite funs msg =
             where
                 hasCall fun = not $ null [() | CallFunc x <- allExpr fun, x `elem` xs]
        
-
+-}
 
 ---------------------------------------------------------------------
 -- HITE MANIPULATORS
@@ -173,6 +176,14 @@ fixError hite = hite{funcs = errs ++ filter (not.isError) (funcs hite)}
                ]
 
 
+annotateFringe :: [FuncName] -> Hite -> Hite
+annotateFringe fringe hite = hite{funcs = concatMap f (funcs hite)}
+    where
+        f func@(Func name args body pos) | name `elem` fringe =
+            [func, Func ('!':name) args (Call (CallFunc name) (map (`Var` "") args)) pos]
+        f x = [x]
+
+
 -- and annotations as to which function each variable is in
 annotateVar :: Hite -> Hite
 annotateVar h = mapFunc f h
@@ -180,6 +191,12 @@ annotateVar h = mapFunc f h
         f (Func name args body pos) = Func name args (mapExpr (g name) body) pos
         g name (Var x y) = Var x name
         g name x = x
+
+--------------------------------------------------------------------
+-- NEW INTERFACE
+
+
+
 
 
 
@@ -230,45 +247,20 @@ ensureComplete orig small =
 -- CORE FUNCTIONS
 
 
-type Depth = Int
-
-out :: Handle -> Depth -> String -> IO ()
-out hndl depth msg = hPutStrLn hndl $ replicate (depth*2) ' ' ++ msg
+reduce :: Hite -> Reqs -> OutputMonad Reqs
+reduce hite x = reduceMany hite [] x
 
 
-
--- small reduce - only reduce as far as call's
--- or var's or repeat's
--- will take a bounded (hopefully small) amount of time
-
-reduceOneSmall :: Hite -> Req -> Reqs
-reduceOneSmall hite x = case x of
-        (Req (Var a b) _ _ ) -> predLit x
-        (Req (Repeat _ _) _ _) -> predLit x
-        (Req (Call _ _) _ _) -> predLit x
-        (ReqAll on within) -> predLit $ ReqAll on (reduceManySmall hite within)
-        x -> reduceManySmall hite (backward hite x)
-
-
-reduceManySmall :: Hite -> Reqs -> Reqs
-reduceManySmall hite x = mapPredLit (reduceOneSmall hite) x
-
-
-
-reduce :: Handle -> Hite -> Reqs -> IO Reqs
-reduce hndl hite x = reduceMany hndl hite [] 1 x
-
-
-reduceOne :: Handle -> Hite -> [Req] -> Bool -> Depth -> Req -> IO Reqs
-reduceOne hndl hite pending supress depth orig_req =
+reduceOne :: Hite -> [Req] -> Bool -> Req -> OutputMonad Reqs
+reduceOne hite pending supress orig_req =
     do
-        if supress then return () else out hndl depth (show orig_req)
+        when (not supress) $ putLog (show orig_req)
         case orig_req of
-            r | r `elem` pending -> do out hndl depth "True -- Pending tied back"
+            r | r `elem` pending -> do putLog "True -- Pending tied back"
                                        return predTrue
 
             (Req (Var a b) _ _) -> 
-                if b == "*" || head b == '!' then
+                if b == "*" || headNote "Solver.reduceOne" b == '!' then
                     return $ predLit orig_req
                 else
                     onwards $ propagate hite orig_req
@@ -276,16 +268,16 @@ reduceOne hndl hite pending supress depth orig_req =
             (Req _ path opts) | pathIsEmpty path -> return predTrue
     
             
-            (ReqAll on within) -> do x <- reduceMany hndl hite pending depth within
+            (ReqAll on within) -> do x <- reduceMany hite pending within
                                      if head on == '!' then
                                          return $ predLit (ReqAll (tail on) within)
                                          --return $ mapPredLit (starToName on) x
                                       else
-                                         reduceMany hndl hite (orig_req:pending) depth $ propagateAll hite on x
+                                         reduceMany hite (orig_req:pending) $ propagateAll hite on x
 
             r -> onwards $ backward hite r
     where
-        onwards = reduceMany hndl hite p2 depth
+        onwards = reduceMany hite p2
             where
                 p2 = case orig_req of
                     Req _ _ _ -> orig_req : pending
@@ -297,38 +289,43 @@ reduceOne hndl hite pending supress depth orig_req =
         f name x = x
 
 
-reduceMany :: Handle -> Hite -> [Req] -> Depth -> Reqs -> IO Reqs
-reduceMany hndl hite pending depth xs | depth > maxCheckDepth =
-    do hPutStrLn hndl "Lazy, giving up (False)"
-       return predFalse
-
-reduceMany hndl hite pending depth orig_xs =
-        case simp (reduceManySmall hite orig_xs) of
-             PredLit x -> reduceOne hndl hite pending False depth x
-             x | null (allPredLit x) -> return x
-             xs -> f xs
+reduceMany :: Hite -> [Req] -> Reqs -> OutputMonad Reqs
+reduceMany hite pending orig_xs = do
+        ind <- getIndent
+        if ind > maxCheckDepth
+            then do putLog "Lazy, giving up (False)"
+                    return predFalse
+            else
+                case simp (backwardRepeatPred hite orig_xs) of
+                     PredLit x -> reduceOne hite pending False x
+                     x | null (allPredLit x) -> return x
+                     xs -> f xs
     where
         f xs =
             do
                 let reqs = nub $ allPredLit xs
-                out hndl depth ("+ " ++ show orig_xs)
-                out hndl depth ("  " ++ show xs)
+                putLog $ "+ " ++ show orig_xs
+                putLog $ "  " ++ show xs
                 res <- g xs reqs
-                out hndl depth ("- " ++ show res)
+                putLog $ "- " ++ show res
                 return res
 
         simp = simplifyMid hite . simpler
 
         g reqs [] = return reqs
-        g reqs (x:xs) = do out hndl (depth+1) ("+ " ++ show x)
+        g reqs (x:xs) = do incIndent
+                           putLog $ "+ " ++ show x
                            res <-
                                if x `elem` allPredLit reqs then
-                                   do r <- reduceOne hndl hite pending True (depth+2) x
-                                      out hndl (depth+1) ("- " ++ show r)
+                                   do incIndent
+                                      r <- reduceOne hite pending True x
+                                      decIndent
+                                      putLog $ "  - " ++ show r
                                       return $ simp $ mapPredLit (replace x r) reqs
                                else
-                                   do out hndl (depth+1) ("- ignored for now")
+                                   do putLog "  - ignored for now"
                                       return reqs
+                           decIndent
                            g res xs
 
         replace from to x = if x == from then to else predLit x
