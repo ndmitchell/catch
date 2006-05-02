@@ -134,16 +134,24 @@ getDeps file = do keep_core <- newer cfile file
             putStrLn $ "Creating core for " ++ file ++ " using Yhc"
             let file2 = "Cache/" ++ file
                 preamble = isPreamble file
-                out = cfile ++ ['2'|preamble]
+                out = cfile ++ "2"
                 cmd = "yhc " ++ file2 ++ " -dst Cache -hidst Cache -corep 2> " ++ out
                 
             putStrLn cmd
             copyFile file file2
-            system cmd
+            code <- system cmd
+            
+            when (code /= ExitSuccess) $ do
+                res <- readFile out
+                putStrLn $ "Failed to compile\n" ++ res
+                error "Fix compilation errors"
+            
             b <- doesFileExist out
             when (not b) $ error "Core file not generated, do you have Yhc installed?"
-            when preamble $ do res <- readFile out
-                               writeFile cfile (stripPreamble res)
+            
+            res <- readFile out
+            writeFile cfile ((if preamble then stripPreamble else id) res)
+            
 
         buildDep = do src <- readFile cfile
                       let ans = if isPreamble file then [] else ("Preamble":depends (readCore src))
