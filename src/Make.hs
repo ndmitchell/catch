@@ -74,7 +74,7 @@ make x = do ensureDirectory "Cache"
         
         
         insertMain func@(Func name args body pos) | ".main" `isSuffixOf` name =
-            [Func "main" args (Call (CallFunc name) (map (`Var` "") args)) pos, func]
+            [Func "main" args (Call (CallFunc name) (map Var args)) pos, func]
         insertMain func = [func]
             
 

@@ -121,7 +121,7 @@ convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) =
         Func name [x | CoreVar x <- args] res pos : rest
     where
         (res, rest) = f [] (map asVar args) body
-        asVar (CoreVar x) = (x, Var x "")
+        asVar (CoreVar x) = (x, Var x)
         
         pos = name ++ ", " ++ getPosStr body
         
@@ -273,13 +273,13 @@ convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) =
                 newArgs = map (\n -> newPath ++ "_" ++ show n) [0..length args-1]
                 allArgs = newArgs ++ map fst vars
                 
-                (newBody, newFuncs) = f (0:path) (map (\x -> (x, Var x "")) allArgs) (body (map CoreVar newArgs))
+                (newBody, newFuncs) = f (0:path) (map (\x -> (x, Var x)) allArgs) (body (map CoreVar newArgs))
                 
                 g x | x < 10 = show x
                     | otherwise = '_' : show x
                 
                 reqVars = filter (\(n,_) -> n `elem` reqArgs) vars
-                reqArgs = [x | Var x "" <- allExpr newBody]
+                reqArgs = [x | Var x <- allExpr newBody]
                 
         {-
         
