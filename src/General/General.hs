@@ -4,6 +4,7 @@ module General.General where
 import Maybe
 import Directory
 import List
+import Monad
 
 {-
 import IOExts
@@ -94,3 +95,8 @@ fix f x = if x == x2 then x else fix f x2
 
 class Output x where
     output :: x -> String
+
+
+
+ensureDirectory s = do b <- doesDirectoryExist s
+                       when (not b) $ createDirectory s

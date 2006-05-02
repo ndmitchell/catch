@@ -5,6 +5,7 @@ import System
 import List
 import Directory
 import Monad
+import General.General
 
 
 import qualified General.Make
@@ -78,9 +79,6 @@ make x = do ensureDirectory "Cache"
         insertMain func = [func]
             
 
-
-ensureDirectory s = do b <- doesDirectoryExist s
-                       when (not b) $ createDirectory s
 
 
 -- * Figure out which file it is that you require

@@ -56,7 +56,8 @@ terminals = [("safe-patterns",term "safe-patterns" caseCheck),
              ("statistics",const statistics)]
 
 term :: String -> (Handle -> Hite -> IO ()) -> FilePath -> Hite -> IO ()
-term s f out hite = do handle <- openFile (out ++ ".log") WriteMode
+term s f out hite = do ensureDirectory "Logs"
+                       handle <- openFile ("Logs/" ++ out ++ ".log") WriteMode
                        putStrLn "Generating reduced Haskell"
                        hPutStrLn handle $ "== " ++ s
                        hPutStrLn handle $ output hite
