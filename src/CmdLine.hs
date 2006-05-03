@@ -156,7 +156,7 @@ exec args = do comp <- composite
                             putStrLn "\n"
                             return res
     
-        expandWildcard ["*"] = do src <- readFile "Example/SafePatterns.txt"
+        expandWildcard ["!"] = do src <- readFile "Example/SafePatterns.txt"
                                   return $ map (takeWhile (/= ' ')) $ lines src
         expandWildcard x = return x
     
