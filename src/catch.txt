@@ -21,6 +21,7 @@ prepare Prepare a Hite program from analysis
 	make-move
 	reachable
 	defunc
+	mcase
 
 case *Try to prove a program is free from pattern match errors
 	prepare

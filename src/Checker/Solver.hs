@@ -24,10 +24,10 @@ import General.Output
 -- | Take a Hite program, a set of functions that are the "boundary"
 --   and some requirements, and solve it
 --   Return True if its successfully solved, False otherwise
-solve :: Hite -> [FuncName] -> Reqs -> OutputMonad Bool
-solve hite funcs reqs = {- error $ output hite2 -}  reduce hite2 reqs >>= return . isTrue
+solve :: Hite -> [FuncName] -> Reqs -> OutputMonad Reqs
+solve hite funcs reqs = reduce hite2 reqs
     where
-        hite2 = annotateVar $ annotateFringe funcs $ removeUnderscore hite
+        hite2 = annotateFringe funcs $ removeUnderscore hite
 
 
 ---------------------------------------------------------------------
@@ -47,17 +47,8 @@ annotateFringe :: [FuncName] -> Hite -> Hite
 annotateFringe fringe hite = hite{funcs = concatMap f (funcs hite)}
     where
         f func@(Func name args body pos) | name `elem` fringe =
-            [func, Func ('!':name) args (Call (CallFunc name) (map (`Var` "") args)) pos]
+            [func, Func ('!':name) args (MCase [MCaseAlt [] $ Call (CallFunc name) (map Var args)]) pos]
         f x = [x]
-
-
--- and annotations as to which function each variable is in
-annotateVar :: Hite -> Hite
-annotateVar h = mapFunc f h
-    where
-        f (Func name args body pos) = Func name args (mapExpr (g name) body) pos
-        g name (Var x y) = Var x name
-        g name x = x
 
 
 ---------------------------------------------------------------------
@@ -76,43 +67,38 @@ reduceOne hite pending supress orig_req =
             r | r `elem` pending -> do putLog "True -- Pending tied back"
                                        return predTrue
 
-            (Req (Var a b) _ _) -> 
-                if b == "*" || headNote "Solver.reduceOne" b == '!' then
-                    return $ predLit orig_req
-                else
-                    onwards $ propagate hite orig_req
+
+            (Req (Var a) _ _) -> return $ predLit orig_req
 
             (Req _ path opts) | pathIsEmpty path -> return predTrue
     
             
-            (ReqAll on within) -> do x <- reduceMany hite pending within
+            (ReqAll on within) -> do incIndent
+                                     x <- reduceMany hite pending within
+                                     putLog $ show x
+                                     decIndent
                                      if head on == '!' then
                                          return $ predLit (ReqAll (tail on) within)
-                                         --return $ mapPredLit (starToName on) x
                                       else
-                                         reduceMany hite (orig_req:pending) $ propagateAll hite on x
+                                         reduceMany hite (orig_req:pending) $ propagate hite on x
 
             r -> onwards $ backward hite r
     where
-        onwards = reduceMany hite p2
+        onwards x = reduceMany hite p2 x
             where
                 p2 = case orig_req of
                     Req _ _ _ -> orig_req : pending
                     _ -> pending
 
-        -- TODO: is starToMain entirely useless?
-        starToName name (Req on path opts) = predLit $ Req (mapExpr (f name) on) path opts
-        f name (Var x "*") = Var x name
-        f name x = x
-
 
 reduceMany :: Hite -> [Req] -> Reqs -> OutputMonad Reqs
 reduceMany hite pending orig_xs = do
+        putLog $ show orig_xs
         ind <- getIndent
         if ind > maxCheckDepth
             then do putLog "Lazy, giving up (False)"
                     return predFalse
-            else
+            else do
                 case simp (backwardRepeatPred hite orig_xs) of
                      PredLit x -> reduceOne hite pending False x
                      x | null (allPredLit x) -> return x

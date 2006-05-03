@@ -8,6 +8,7 @@ import Hite
 import Constraint
 import General.General
 import Checker.Backward
+import Monad
 
 import General.Output
 import General.General
@@ -52,26 +53,33 @@ removeError hite = hite{funcs = filter ((/=) "error" . funcName) (funcs hite)}
 
 
 initErrors :: Hite -> [(FuncName, String, Reqs)]
-initErrors hite = [(fName, headNote "CaseCheck.initErrors" errors, condToPred fName cond) |
+initErrors hite = [(
+                fName,
+                headNote "CaseCheck.initErrors" errors,
+                predLit $ ReqAll fName $ predNot hite $ mcasePred hite cond) |
         func <- funcs hite, let MCase alts = body func, let fName = funcName func,
         MCaseAlt cond val <- alts, let errors = getErrors val, not (null errors)]
     where
         getErrors val = [getMsg args | Call (CallFunc "error") args <- allExpr val]
-        condToPred funcName cond = predLit $ ReqAll funcName $ mapPredLit g $ predAnd $ map f cond
         
         getMsg [Msg x] = x
         getMsg [x] = output x
         getMsg xs = show xs
         
-        g (Req (Var a b) c d) = predLit $ Req (Var a "*") c d
+        {-
+        condToPred funcName cond = predLit $ ReqAll funcName $ mapPredLit g $ predAnd $ map f cond
+        g (Req (Var a) c d) = predLit $ Req (Var a) c d
         
         f (expr, cond) = backwardRepeat hite $ Req expr pathLambda (getOtherCtors hite cond)
+        -}
     
 
     
 solveError :: Hite -> FuncName -> Reqs -> OutputMonad Bool
 solveError hite func reqs = do
     res <- solve hite ["main"] reqs
-    putBoth $ if res then "Safe" else "Unsafe"
-    return res
+    let success = isTrue res
+    when (not success) $ putBoth $ prettyReqs res
+    putBoth $ if success then "Safe" else "Unsafe"
+    return success
 

@@ -1,5 +1,5 @@
 
-module Checker.Backward(backward, backwardRepeat, backwardRepeatPred) where
+module Checker.Backward(backward, backwardRepeat, backwardRepeatPred, mcasePred, predNot) where
 
 import Hite
 import Constraint
@@ -26,11 +26,12 @@ backward hite (Req (Call (CallFunc name) params) path opts) =
         rename = zip args params
         res = blurExpr $ {- selToPath $ -} mapExpr f body
         
-        f (Var a _) = fromJustNote "backward" $ lookup a rename
+        f (Var a) = fromJustNote "backward" $ lookup a rename
         f x = x
         
         
 
+{-
 backward hite (Req (Case on alts) path opts) = predAnd $ map f alts
     where
         others = getCtorsFromCtor hite (fst $ head alts)
@@ -39,6 +40,12 @@ backward hite (Req (Case on alts) path opts) = predAnd $ map f alts
                 predLit $ Req on pathLambda (others \\ [ctor]),
                 predLit $ Req expr path opts
             ]
+-}
+
+backward hite (Req (MCase alts) path opts) = predAnd $ map f alts
+    where
+        f (MCaseAlt cond expr) = predOr [predNot hite $ mcasePred hite cond, predLit $ Req expr path opts]
+
 
 
 backward hite (Req (Make x ys) path opts) = predAnd $ pre : zipWith f cArgs ys
@@ -71,6 +78,8 @@ backward hite all@(Req a b c) = error $ "backward, unhandled: " ++ show all ++ "
     Call x xs -> "call" ++ show (output x, map output xs)
     CallFunc x -> "callfunc"
     Make x xs -> "make"
+    Repeat _ _ -> "repeat"
+    MCase _ -> "mcase"
     _ -> "other"
 
 backward hite a = error $ "Backward: " ++ show a
@@ -82,7 +91,7 @@ backward hite a = error $ "Backward: " ++ show a
 
 backwardRepeat :: Hite -> Req -> Reqs
 backwardRepeat hite x = case x of
-        (Req (Var a b) _ _ ) -> predLit x
+        (Req (Var a) _ _ ) -> predLit x
         (Req (Repeat _ _) _ _) -> predLit x
         (Req (Call _ _) _ _) -> predLit x
         (ReqAll on within) -> predLit $ ReqAll on (backwardRepeatPred hite within)
@@ -93,3 +102,20 @@ backwardRepeatPred :: Hite -> Reqs -> Reqs
 backwardRepeatPred hite x = mapPredLit (backwardRepeat hite) x
 
 
+
+
+
+-- mcasePred :: MCaseAlt -> Pred
+-- What has to be true for this condition to be picked
+mcasePred hite cond = predAnd $ map f cond
+    where
+        f (expr, cond) = backwardRepeat hite $ Req expr pathLambda [cond]
+
+
+predNot :: Hite -> Reqs -> Reqs
+predNot hite p = mapPred f p
+    where
+        f (PredAnd xs) = predOr  xs
+        f (PredOr  xs) = predAnd xs
+        f (PredLit (Req on path set)) = predLit $ Req on path (getCtorsFromCtor hite (head set) \\ set)
+        

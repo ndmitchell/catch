@@ -1,8 +1,9 @@
 
 
-module Checker.Propagate(propagate, propagateAll) where
+module Checker.Propagate(propagate) where
 
 import Hite
+import Checker.Backward
 import Constraint
 import List
 import Options
@@ -11,7 +12,7 @@ import Maybe
 import General.General
 
 
-
+{-
 findCallsHistory :: Hite -> (Expr -> Maybe Reqs) -> [(FuncName, Reqs)]
 findCallsHistory hite check = concatMap ff $ funcs hite
     where
@@ -116,9 +117,47 @@ propagateSimple hite (Req (Var arg name) path set) =
 
         f c@(Call (CallFunc n) _) | n == name = 
                 case callArg c pos of
-                    Nothing -> [predFalse ] {- $ "Unsaturated use of partial function, " ++ name ++
-                                           " (wanted " ++ show pos ++ ")"] -}
+                    Nothing -> [predFalse ] { - $ "Unsaturated use of partial function, " ++ name ++
+                                           " (wanted " ++ show pos ++ ")"] - }
                     Just x -> [predLit $ Req x path set]
 
         f _ = []
+
+-}
+
+
+
+propagate :: Hite -> FuncName -> Reqs -> Reqs
+propagate hite on reqs
+    | isTrue reqs = predTrue
+    | otherwise = predAnd $ res
+        where
+    
+{-
+    | otherwise = predAnd $ map reAll $ findCallsHistory hite f
+    where
+        f c@(Call (CallFunc n) args) | n == on = Just $ mapPredLit g reqs
+            where
+                g (Req (Var n "*") path opts) = predLit $ Req (fromJust $ callArg c pos) path opts
+                    where pos = getArgPos on n hite
+                g x = predLit x
+        f _ = Nothing
+
+        reAll (name, x) = predLit $ ReqAll name (mapPredLit f x)
+            where
+                f (Req a b c) = predLit $ Req (mapExpr g a) b c
+
+                g (Var x y) = Var x 
+                g x = x
+
+        
+-}
+            orig = funcArgs $ getFunc hite on
+
+            f rep (Req (Var var) path set) = predLit $ Req (fromJust $ lookup var rep) path set
+
+            res = [predLit $ ReqAll (funcName func) $
+                    predOr [predNot hite $ mcasePred hite cond, mapPredLit (f $ zip orig args) reqs] |
+                    func <- funcs hite, let MCase alts = body func, MCaseAlt cond act <- alts,
+                    (Call (CallFunc n) args) <- allExpr act, n == on]
 
