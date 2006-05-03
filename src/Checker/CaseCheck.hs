@@ -14,7 +14,7 @@ import General.Output
 import General.General
 
 
-caseCheck :: String -> Handle -> Hite -> IO ()
+caseCheck :: String -> Handle -> Hite -> IO Bool
 caseCheck file hndl hite = runOutput hndl $ caseCheckOut hite >>= checkOracle file
 
 
@@ -51,13 +51,13 @@ caseCheckOut hite = do
 
 --     Checker.Solver.caseCheck hndl hite
 
-checkOracle :: String -> Reqs -> OutputMonad ()
+checkOracle :: String -> Reqs -> OutputMonad Bool
 checkOracle file req = do src <- outputIO $ readFile "Example/SafePatterns.txt"
                           let ans = lookup file $ map (break (== ' ')) $ lines src
                           case ans of
-                                Nothing -> putBoth "Example not found in Oracle"
-                                Just (' ':x) | x == show req -> putBoth "Example matches Oracle"
-                                             | otherwise -> putBoth "Mismatch to Oracle"
+                                Nothing -> putBoth "Example not found in Oracle" >> return False
+                                Just (' ':x) | x == show req -> putBoth "Example matches Oracle" >> return True
+                                             | otherwise -> putBoth "Mismatch to Oracle" >> return False
                           
 
 removeError :: Hite -> Hite

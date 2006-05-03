@@ -32,7 +32,7 @@ import General.General
 
 data Arg = File String
          | Special SpecialArg
-         | Terminal (FilePath -> Hite -> IO ())
+         | Terminal (FilePath -> Hite -> IO Bool)
          | Single String (Command Hite)
          | Unknown String
 
@@ -55,7 +55,7 @@ terminals = [("safe-patterns",term "safe-patterns" caseCheck),
              ("unsafe-patterns",term "unsafe-patterns" undefined) {- ,
              ("statistics", \a b -> statistics) -} ]
 
-term :: String -> (String -> Handle -> Hite -> IO ()) -> FilePath -> Hite -> IO ()
+term :: String -> (String -> Handle -> Hite -> IO Bool) -> FilePath -> Hite -> IO Bool
 term s f out hite = do ensureDirectory "Logs"
                        handle <- openFile ("Logs/" ++ out ++ ".log") WriteMode
                        putStrLn "Generating reduced Haskell"
@@ -63,8 +63,9 @@ term s f out hite = do ensureDirectory "Logs"
                        hPutStrLn handle $ output hite
                        hPutStrLn handle $ "================================================"
                        putStrLn $ "Begining analysis: " ++ s
-                       f out handle hite
+                       res <- f out handle hite
                        hClose handle
+                       return res
 
 
 verboseOut :: String -> Command Hite
@@ -117,11 +118,8 @@ exec args = do comp <- composite
                when (Version `elem` specs) $
                     do putStr $ unlines $ versionMsg
                        exitWith ExitSuccess
-               
+                       
                let (files,farg) = partition isFile rarg
-               when (length files /= 1) $
-                    do putStrLn $ "Expected one file, found " ++ show (length files)
-                       exitWith (ExitFailure 1)
 
                args <- return farg
                args <- return $ if Verbose `elem` specs
@@ -137,21 +135,26 @@ exec args = do comp <- composite
                        exitWith (ExitFailure 1)
                
                args <- return $ if null args || not (isTerminal (last args))
-                           then args ++ [Terminal (const (outputHite "final"))]
+                           then args ++ [Terminal (\a b -> outputHite "final" b >> return True)]
                            else args
-               
-               let [File file] = files
-               
-               when (Clean `elem` specs) $
-                    do x <- pickFile file
-                       removeExist $ x ++ ".hite"
-               when (Reclean `elem` specs) $
-                    do x <- pickFile file
-                       removeExist "Preamble/Preamble.hs.core"
-                       removeExist (x ++ ".core")
-               
-               runArgs file args
+
+               runAll args (map (\(File file) -> file) files)
     where
+        runAll args files = do res <- mapM f files
+                               let (success, failed) = partition fst $ zip res files
+                               when (length files > 1) $ do
+                                   putStrLn "==== RESULTS ===="
+                                   putStrLn $ "Success: " ++ pretty success
+                                   putStrLn $ "Failure: " ++ pretty failed
+            where
+                pretty xs = concat $ intersperse ", " $ map snd xs
+            
+                f file = do putStrLn $ "==== RUNNING: " ++ file ++ " ===="
+                            res <- runArgs file args
+                            putStrLn "\n"
+                            return res
+    
+    
         addVerbose [] = []
         addVerbose [x] = [x]
         addVerbose (s@(Single _ (Command _ name _)) : xs) = s : Single "" (verboseOut ("verbose, " ++ name)) : addVerbose xs
@@ -167,7 +170,7 @@ exec args = do comp <- composite
                                      return hite
                                      
                 profEnd hs h = do prof "end" "" h 
-                                  return ()
+                                  return True
                                         
 
 removeExist :: FilePath -> IO ()
@@ -249,7 +252,7 @@ splitWidth norig xs = f norig [] (words xs)
             where n2 = n - length x
         
 
-runArgs :: String -> [Arg] -> IO ()
+runArgs :: String -> [Arg] -> IO Bool
 runArgs file acts = do -- hs <- pickFile file
                        hite <- make file
                        f file hite acts
