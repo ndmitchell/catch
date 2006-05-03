@@ -119,7 +119,8 @@ exec args = do comp <- composite
                     do putStr $ unlines $ versionMsg
                        exitWith ExitSuccess
                        
-               let (files,farg) = partition isFile rarg
+               let (files2,farg) = partition isFile rarg
+               files <- expandWildcard (map (\(File file) -> file) files2)
 
                args <- return farg
                args <- return $ if Verbose `elem` specs
@@ -138,7 +139,7 @@ exec args = do comp <- composite
                            then args ++ [Terminal (\a b -> outputHite "final" b >> return True)]
                            else args
 
-               runAll args (map (\(File file) -> file) files)
+               runAll args files
     where
         runAll args files = do res <- mapM f files
                                let (success, failed) = partition fst $ zip res files
@@ -147,12 +148,17 @@ exec args = do comp <- composite
                                    putStrLn $ "Success: " ++ pretty success
                                    putStrLn $ "Failure: " ++ pretty failed
             where
+                pretty [] = "<none>"
                 pretty xs = concat $ intersperse ", " $ map snd xs
             
                 f file = do putStrLn $ "==== RUNNING: " ++ file ++ " ===="
                             res <- runArgs file args
                             putStrLn "\n"
                             return res
+    
+        expandWildcard ["*"] = do src <- readFile "Example/SafePatterns.txt"
+                                  return $ map (takeWhile (/= ' ')) $ lines src
+        expandWildcard x = return x
     
     
         addVerbose [] = []
