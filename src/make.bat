@@ -1,1 +1,1 @@
-ghc --make Main -o catch 
+ghc --make Main -o catch -odir Temp -hidir Temp 
