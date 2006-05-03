@@ -95,12 +95,16 @@ simplifyReqsFull hite x =
             = Just $ Req a1 b1 (c1 `intersect` c2)
         andEqPathCollapse _ _ = Nothing
 
-        
+
+        -- if the set is null, then try and prove the path is not reachable
+        -- by following the quotients
         atomNullCtors (Req a1 b1 c1)
             | null c1
-            = predAnd [f (map ctorName ctrs \\ [cn]) alt |
-                              Data dn ctrs <- datas hite, Ctor cn alts <- ctrs, alt <- alts]
+            = if pathIsEwp b1 then predFalse else res
                 where
+                    res = predAnd [f (map ctorName ctrs \\ [cn]) alt |
+                              Data dn ctrs <- datas hite, Ctor cn alts <- ctrs, alt <- alts]
+                
                     f cns an = if pathIsOmega b2 then predTrue
                                else predLit (Req a1 b2 cns)
                         where b2 = an `pathQuotient` b1
