@@ -53,6 +53,9 @@ getIndent = do x <- ask
                liftIO $ readIORef (depth x)
 
 
+outputIO a = liftIO a
+
+
 {-
 main = runOutput stdout sample
 

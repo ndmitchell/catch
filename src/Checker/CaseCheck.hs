@@ -14,25 +14,28 @@ import General.Output
 import General.General
 
 
-caseCheck :: Handle -> Hite -> IO ()
-caseCheck hndl hite = runOutput hndl (caseCheckOut hite)
+caseCheck :: String -> Handle -> Hite -> IO ()
+caseCheck file hndl hite = runOutput hndl $ caseCheckOut hite >>= checkOracle file
 
 
-caseCheckOut :: Hite -> OutputMonad ()
+caseCheckOut :: Hite -> OutputMonad Reqs
 caseCheckOut hite = do
     putBoth "\n== Pattern Match Checker"
-    if null errs then
+    if null errs then do
         putBoth "There are no incomplete cases, safe"
+        return predTrue
      else do
         putBoth $ show lerrs ++ " incomplete case" ++ ['s'|lerrs/=1] ++ " found\n"
         res <- mapM f (zip [1..] errs)
         let ores = filter (not . isTrue) res
             lres = length ores
+            tres = predAnd ores
         if null ores then
             putBoth "All case statements were shown to be safe"
          else do
-            putBoth $ "Final postcondition: " ++ show (predAnd ores)
+            putBoth $ "Final postcondition: " ++ show tres
             putBoth $ show lres ++ " potentially unsafe case" ++ ['s'|lres/=1] ++ " found"
+        return tres
     where
         errs = initErrors $ removeError hite
         lerrs = length errs
@@ -48,7 +51,14 @@ caseCheckOut hite = do
 
 --     Checker.Solver.caseCheck hndl hite
 
-
+checkOracle :: String -> Reqs -> OutputMonad ()
+checkOracle file req = do src <- outputIO $ readFile "Example/SafePatterns.txt"
+                          let ans = lookup file $ map (break (== ' ')) $ lines src
+                          case ans of
+                                Nothing -> putBoth "Example not found in Oracle"
+                                Just (' ':x) | x == show req -> putBoth "Example matches Oracle"
+                                             | otherwise -> putBoth "Mismatch to Oracle"
+                          
 
 removeError :: Hite -> Hite
 removeError hite = hite{funcs = filter ((/=) "error" . funcName) (funcs hite)}

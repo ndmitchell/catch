@@ -52,10 +52,10 @@ specials = [("verbose",Verbose),("help",Help),("version",Version),
 
 -- Terminal functions
 terminals = [("safe-patterns",term "safe-patterns" caseCheck),
-             ("unsafe-patterns",term "unsafe-patterns" undefined),
-             ("statistics",const statistics)]
+             ("unsafe-patterns",term "unsafe-patterns" undefined) {- ,
+             ("statistics", \a b -> statistics) -} ]
 
-term :: String -> (Handle -> Hite -> IO ()) -> FilePath -> Hite -> IO ()
+term :: String -> (String -> Handle -> Hite -> IO ()) -> FilePath -> Hite -> IO ()
 term s f out hite = do ensureDirectory "Logs"
                        handle <- openFile ("Logs/" ++ out ++ ".log") WriteMode
                        putStrLn "Generating reduced Haskell"
@@ -63,7 +63,7 @@ term s f out hite = do ensureDirectory "Logs"
                        hPutStrLn handle $ output hite
                        hPutStrLn handle $ "================================================"
                        putStrLn $ "Begining analysis: " ++ s
-                       f handle hite
+                       f out handle hite
                        hClose handle
 
 

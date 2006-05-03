@@ -1,0 +1,2 @@
+Head (\forall main, <v194,1,{:}>)
+Tails True
