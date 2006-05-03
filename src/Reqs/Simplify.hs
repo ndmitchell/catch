@@ -52,6 +52,7 @@ simplifyReqsFull hite x =
             orPairsAs orSubsetCollapse $
             mapPredLit atomNullCtors $
             andPairs andEqPathCollapse $
+            orPairs orEqPathCollapse $
             andPairsAs andSubsetCollapse $
             mapPredLit addFinite $
             dnf x
@@ -94,6 +95,12 @@ simplifyReqsFull hite x =
             | a1 == a2 && b1 == b2
             = Just $ Req a1 b1 (c1 `intersect` c2)
         andEqPathCollapse _ _ = Nothing
+        
+        
+        orEqPathCollapse [Req a1 b1 c1] [Req a2 b2 c2]
+            | a1 == a2 && b1 == b2 && pathIsFinite b1
+            = Just [Req a1 b1 (c1 `union` c2)]
+        orEqPathCollapse _ _ = Nothing
 
 
         -- if the set is null, then try and prove the path is not reachable
@@ -108,6 +115,9 @@ simplifyReqsFull hite x =
                     f cns an = if pathIsOmega b2 then predTrue
                                else predLit (Req a1 b2 cns)
                         where b2 = an `pathQuotient` b1
+        atomNullCtors (Req a1 b1 c1)
+            | c1 `setEq` (getCtorsFromCtor hite (head c1))
+            = predTrue
         atomNullCtors x = predLit x
         
         
