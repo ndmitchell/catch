@@ -26,10 +26,12 @@ caseCheckOut hite = do
      else do
         putBoth $ show lerrs ++ " incomplete case" ++ ['s'|lerrs/=1] ++ " found\n"
         res <- mapM f (zip [1..] errs)
-        let lres = length $ filter (==False) res
-        if lres == 0 then
+        let ores = filter (not . isTrue) res
+            lres = length ores
+        if null ores then
             putBoth "All case statements were shown to be safe"
-         else
+         else do
+            putBoth $ "Final postcondition: " ++ show (predAnd ores)
             putBoth $ show lres ++ " potentially unsafe case" ++ ['s'|lres/=1] ++ " found"
     where
         errs = initErrors $ removeError hite
@@ -75,11 +77,11 @@ initErrors hite = [(
     
 
     
-solveError :: Hite -> FuncName -> Reqs -> OutputMonad Bool
+solveError :: Hite -> FuncName -> Reqs -> OutputMonad Reqs
 solveError hite func reqs = do
     res <- solve hite ["main"] reqs
     let success = isTrue res
     when (not success) $ putBoth $ prettyReqs res
     putBoth $ if success then "Safe" else "Unsafe"
-    return success
+    return res
 
