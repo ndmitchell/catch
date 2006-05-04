@@ -2,6 +2,7 @@
 module Hite.MCase(mcase, cmd) where
 
 import Hite.Type
+import List
 
 
 cmd = cmdHitePure (const mcase) "mcase"
@@ -9,7 +10,7 @@ cmd = cmdHitePure (const mcase) "mcase"
 
 
 mcase :: Hite -> Hite
-mcase (Hite datas funcs) = Hite datas (ensure $ mapExpr f funcs)
+mcase (Hite datas funcs) = Hite datas (map factor $ ensure $ mapExpr f funcs)
     where
         f (Case var alts) = MCase $ concatMap g alts
             where
@@ -26,3 +27,13 @@ mcase (Hite datas funcs) = Hite datas (ensure $ mapExpr f funcs)
 
                 h x@(MCase _) = x
                 h x = MCase [MCaseAlt (MCaseAnd []) x]
+
+        
+        factor func = func{body = MCase res}
+            where
+                MCase alts = body func
+                res = map rejoin $ groupBy splitup alts
+                splitup (MCaseAlt a1 b1) (MCaseAlt a2 b2) = b1 == b2
+                rejoin xs = MCaseAlt (MCaseOr x) (head y)
+                    where (x,y) = unzip $ map (\(MCaseAlt a b) -> (a,b)) xs
+
