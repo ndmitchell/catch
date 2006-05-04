@@ -53,5 +53,13 @@ instance Output Expr where
 
 
 instance Output MCaseAlt where
-    output (MCaseAlt cond expr) = "\n  | " ++ concat (intersperse " ^ " $ map f cond) ++ " = " ++ output expr
-        where f (var,cond) = output var ++ "{" ++ cond ++ "}"
+    output (MCaseAlt cond expr) = "\n  | " ++ output cond ++ " = " ++ output expr
+    
+    
+instance Output MCasePred where
+    output x = case x of
+                    MCaseLit var cond -> output var ++ "{" ++ cond ++ "}"
+                    MCaseAnd xs -> f '^' xs
+                    MCaseOr  xs -> f 'v' xs
+        where
+            f mid xs = "(" ++ (concat $ intersperse [' ',mid,' '] $ map output xs) ++ ")"

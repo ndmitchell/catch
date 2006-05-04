@@ -51,8 +51,13 @@ data Expr = Call {callFunc :: Expr, callArgs :: [Expr]}
           deriving (Eq, Show, Read)
 
 
-data MCaseAlt = MCaseAlt [(Expr, CtorName)] Expr
+data MCaseAlt = MCaseAlt MCasePred Expr
           deriving (Eq, Show, Read)
+
+data MCasePred = MCaseLit Expr CtorName
+               | MCaseAnd [MCasePred]
+               | MCaseOr  [MCasePred]
+               deriving (Eq, Show, Read)
 
 
 isVar (Var{}) = True; isVar _ = False
@@ -76,7 +81,7 @@ instance PlayExpr Expr where
         Make a bs -> Make a             (mapExpr f bs)
         Case a bs -> Case (mapExpr f a) (map (\(d,e) -> (d,mapExpr f e)) bs)
         Sel  a b  -> Sel  (mapExpr f a) b
-        MCase  as -> MCase [MCaseAlt [(mapExpr f x,y) | (x,y) <- a] (mapExpr f b) | MCaseAlt a b <- as]
+        MCase  as -> MCase (mapExpr f as)
         _ -> x
     
     allExpr x = x : concatMap allExpr (case x of
@@ -84,9 +89,26 @@ instance PlayExpr Expr where
             Make _ xs -> xs
             Case x xs -> x : map snd xs
             Sel  x _  -> [x]
-            MCase  xs -> concatMap (\(MCaseAlt a b) -> map fst a ++ [b]) xs
+            MCase  xs -> concatMap allExpr xs
             _ -> []
         )
+
+instance PlayExpr MCaseAlt where
+    mapExpr f (MCaseAlt a b) = MCaseAlt (mapExpr f a) (mapExpr f b)
+    allExpr (MCaseAlt a b) = allExpr a ++ allExpr b
+
+
+instance PlayExpr MCasePred where
+    mapExpr f x = case x of
+                     MCaseLit a b -> MCaseLit (f a) b
+                     MCaseAnd as -> MCaseAnd $ map (mapExpr f) as
+                     MCaseOr  as -> MCaseOr  $ map (mapExpr f) as
+    
+    allExpr x = case x of
+                     MCaseLit a b -> [a]
+                     MCaseAnd as -> concatMap allExpr as
+                     MCaseOr  as -> concatMap allExpr as
+    
 
 instance PlayExpr Func where
     mapExpr f x = x{body = mapExpr f (body x)}

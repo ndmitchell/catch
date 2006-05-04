@@ -107,9 +107,12 @@ backwardRepeatPred hite x = mapPredLit (backwardRepeat hite) x
 
 -- mcasePred :: MCaseAlt -> Pred
 -- What has to be true for this condition to be picked
-mcasePred hite cond = predAnd $ map f cond
+mcasePred :: Hite -> MCasePred -> Reqs
+mcasePred hite cond = f cond
     where
-        f (expr, cond) = backwardRepeat hite $ Req expr pathLambda [cond]
+        f (MCaseAnd xs) = predAnd $ map f xs
+        f (MCaseOr  xs) = predOr  $ map f xs
+        f (MCaseLit expr cond) = backwardRepeat hite $ Req expr pathLambda [cond]
 
 
 predNot :: Hite -> Reqs -> Reqs
