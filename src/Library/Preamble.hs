@@ -14,7 +14,7 @@ Some things however require a non-qualified import, such as [] and Bool.
 
 -- special imports
 import qualified Prelude
-import Prelude( []((:),[]) , Bool(True,False) )
+import Prelude( []((:),[]) , Bool(True,False), Char)
 
 
 
@@ -201,6 +201,7 @@ repeat x          = x : repeat x
 -- everything to do with booleans
 
 data Preamble_Bool = Preamble_False | Preamble_True
+    deriving (Prelude.Show)
 
 True  || _ = True
 False || a = a
@@ -217,7 +218,7 @@ not False = True
 --
 -- everything to do with characters
 
-data Char = Char_000 | Char_001 | Char_002 | Char_003 | Char_004 | Char_005 | Char_006 | Char_007 | Char_008 | Char_009
+data Preamble_Char = Char_000 | Char_001 | Char_002 | Char_003 | Char_004 | Char_005 | Char_006 | Char_007 | Char_008 | Char_009
           | Char_010 | Char_011 | Char_012 | Char_013 | Char_014 | Char_015 | Char_016 | Char_017 | Char_018 | Char_019 | Char_020 | Char_021 | Char_022 | Char_023 | Char_024 | Char_025 | Char_026 | Char_027 | Char_028 | Char_029 | Char_030 | Char_031 | Char_032 | Char_033 | Char_034 | Char_035 | Char_036 | Char_037 | Char_038 | Char_039 | Char_040 | Char_041 | Char_042 | Char_043 | Char_044 | Char_045 | Char_046 | Char_047 | Char_058 | Char_059 | Char_060 | Char_061 | Char_062 | Char_063 | Char_064 | Char_091 | Char_092 | Char_093 | Char_094 | Char_095 | Char_096
           | Char_123 | Char_124 | Char_125 | Char_126 | Char_127 | Char_128 | Char_129 | Char_130 | Char_131 | Char_132 | Char_133 | Char_134 | Char_135 | Char_136 | Char_137 | Char_138 | Char_139 | Char_140 | Char_141 | Char_142 | Char_143 | Char_144 | Char_145 | Char_146 | Char_147 | Char_148 | Char_149 | Char_150 | Char_151 | Char_152 | Char_153 | Char_154 | Char_155 | Char_156 | Char_157 | Char_158 | Char_159 | Char_160 | Char_161 | Char_162 | Char_163 | Char_164 | Char_165 | Char_166 | Char_167 | Char_168 | Char_169 | Char_170 | Char_171 | Char_172 | Char_173 | Char_174 | Char_175 | Char_176 | Char_177 | Char_178 | Char_179 | Char_180 | Char_181 | Char_182 | Char_183 | Char_184 | Char_185 | Char_186 | Char_187 | Char_188 | Char_189 | Char_190 | Char_191 | Char_192 | Char_193 | Char_194 | Char_195 | Char_196 | Char_197 | Char_198 | Char_199 | Char_200 | Char_201 | Char_202 | Char_203 | Char_204 | Char_205 | Char_206 | Char_207 | Char_208 | Char_209 | Char_210 | Char_211 | Char_212 | Char_213 | Char_214 | Char_215 | Char_216 | Char_217 | Char_218 | Char_219 | Char_220 | Char_221 | Char_222 | Char_223 | Char_224 | Char_225 | Char_226 | Char_227 | Char_228 | Char_229 | Char_230 | Char_231 | Char_232 | Char_233 | Char_234 | Char_235 | Char_236 | Char_237 | Char_238 | Char_239 | Char_240 | Char_241 | Char_242 | Char_243 | Char_244 | Char_245 | Char_246 | Char_247 | Char_248 | Char_249 | Char_250 | Char_251 | Char_252 | Char_253 | Char_254 | Char_255
           | Char_0 | Char_1 | Char_2 | Char_3 | Char_4 | Char_5 | Char_6 | Char_7 | Char_8 | Char_9
@@ -424,6 +425,8 @@ putStr (x:xs) = putChar x >> putStr xs
 
 putStrLn x = putStr (x ++ "\n")
 
+
+print x = putStrLn (show x)
 
 -- these functions can be defined as higher order, but are not
 -- pragmatic reasons :)
