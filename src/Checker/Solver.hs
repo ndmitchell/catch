@@ -80,7 +80,7 @@ reduceOne hite pending supress orig_req =
                                      if head on == '!' then
                                          return $ predLit (ReqAll (tail on) within)
                                       else
-                                         reduceMany hite (orig_req:pending) $ propagate hite on x
+                                         reduceMany hite (orig_req:pending) $ simplify hite $ propagate hite on x
 
             r -> onwards $ backward hite r
     where
@@ -99,7 +99,7 @@ reduceMany hite pending orig_xs = do
             then do putLog "Lazy, giving up (False)"
                     return predFalse
             else do
-                case simp (backwardRepeatPred hite orig_xs) of
+                case simplify hite (backwardRepeatPred hite orig_xs) of
                      PredLit x -> reduceOne hite pending False x
                      x | null (allPredLit x) -> return x
                      xs -> f xs
@@ -113,8 +113,6 @@ reduceMany hite pending orig_xs = do
                 putLog $ "- " ++ show res
                 return res
 
-        simp = simplifyMid hite . simpler
-
         g reqs [] = return reqs
         g reqs (x:xs) = do incIndent
                            putLog $ "+ " ++ show x
@@ -124,7 +122,7 @@ reduceMany hite pending orig_xs = do
                                       r <- reduceOne hite pending True x
                                       decIndent
                                       putLog $ "  - " ++ show r
-                                      return $ simp $ mapPredLit (replace x r) reqs
+                                      return $ simplify hite $ mapPredLit (replace x r) reqs
                                else
                                    do putLog "  - ignored for now"
                                       return reqs
@@ -133,6 +131,9 @@ reduceMany hite pending orig_xs = do
 
         replace from to x = if x == from then to else predLit x
 
+
+
+simplify hite = simplifyMid hite . simpler
 
 
 simplifyMid hite x = if simplifyRegular then simplifyReqsFull hite x else x
