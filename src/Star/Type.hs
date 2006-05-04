@@ -333,3 +333,14 @@ starEnumerate x = case x of
         StarCon (x:xs) -> [a ++ b | a <- starEnumerate x, b <- starEnumerate (StarCon xs)]
         Star _ _ True -> error "starEnumerate: Cannot enumerate an infinite language!"
         Star x z False -> starEnumerate (StarUni [StarCon (replicate n x) | n <- z])
+
+
+starSize :: (Show a, Eq a) => Star a -> Int
+starSize x = 1 + case x of
+                Star a b c -> starSize a
+                StarUni xs -> f xs
+                StarInt xs -> f xs
+                StarCon xs -> f xs
+                _ -> 0
+    where
+        f = sum . map starSize
