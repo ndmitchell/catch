@@ -38,14 +38,17 @@ mapPred f x = f $ case x of
 
 mapPredM :: (Eq a, Monad m) => (Pred a -> m (Pred a)) -> Pred a -> m (Pred a)
 mapPredM f x = do y <- case x of
-                      PredOr xs  -> do ys <- fs xs
-                                       return $ predOr  xs
-                      PredAnd xs -> do ys <- fs xs
-                                       return $ predAnd xs
+                      PredOr xs  -> fs isTrue predTrue xs >>= return . predOr
+                      PredAnd xs -> fs isFalse predFalse xs >>= return . predAnd
                       x -> return x
                   f y
     where
-        fs xs = mapM (mapPredM f) xs
+        fs test result xs = case xs of
+            [] -> return []
+            (x:xs) -> do y <- mapPredM f x
+                         if test y
+                            then return [result]
+                            else fs test result xs >>= return . (y:)
 
 
 allPred :: Pred a -> [Pred a]
