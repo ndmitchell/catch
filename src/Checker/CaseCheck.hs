@@ -1,7 +1,7 @@
 
 module Checker.CaseCheck(caseCheck) where
 
-import Checker.Solver
+import Checker.Progressive
 
 import IO
 import Hite
@@ -43,7 +43,7 @@ caseCheckOut hite = do
         f (n, (func, msg, reqs)) = do
             putBoth $ "Checking case [" ++ show n ++ "/" ++ show lerrs ++ "] in function " ++ func
             putBoth $ "    " ++ msg
-            res <- solveError hite func reqs
+            res <- solveError hite reqs
             putBoth ""
             return res
             
@@ -77,22 +77,13 @@ initErrors hite = [(
         getMsg [Msg x] = x
         getMsg [x] = output x
         getMsg xs = show xs
-        
-        {-
-        condToPred funcName cond = predLit $ ReqAll funcName $ mapPredLit g $ predAnd $ map f cond
-        g (Req (Var a) c d) = predLit $ Req (Var a) c d
-        
-        f (expr, cond) = backwardRepeat hite $ Req expr pathLambda (getOtherCtors hite cond)
-        -}
     
 
     
-solveError :: Hite -> FuncName -> Reqs -> OutputMonad Reqs
-solveError hite func reqs = do
-    let hite2 = annotateFringe ["main"] hite
-    res <- solve hite2 reqs
-    let success = isTrue res
-    when (not success) $ putBoth $ prettyReqs res
-    putBoth $ if success then "Safe" else "Unsafe"
+solveError :: Hite -> Reqs -> OutputMonad Reqs
+solveError hite reqs = do
+    res <- progressiveSolve hite reqs
+    putBoth $ prettyReqs res
+    putBoth $ if isTrue res then "Safe" else "Unsafe"
     return res
 
