@@ -24,10 +24,10 @@ import General.Output
 -- | Take a Hite program, a set of functions that are the "boundary"
 --   and some requirements, and solve it
 --   Return True if its successfully solved, False otherwise
-solve :: Hite -> [FuncName] -> Reqs -> OutputMonad Reqs
-solve hite funcs reqs = reduce hite2 reqs
+solve :: Hite -> Reqs -> OutputMonad Reqs
+solve hite reqs = reduce hite2 reqs
     where
-        hite2 = annotateFringe funcs $ removeUnderscore hite
+        hite2 = removeUnderscore hite
 
 
 ---------------------------------------------------------------------
@@ -41,14 +41,6 @@ removeUnderscore x = mapExpr f $ x{funcs = filter ((/= "_") . funcName) (funcs x
         f (Call (CallFunc "_") []) = Bottom
         f (CallFunc "_") = Bottom
         f x = x
-
-
-annotateFringe :: [FuncName] -> Hite -> Hite
-annotateFringe fringe hite = hite{funcs = concatMap f (funcs hite)}
-    where
-        f func@(Func name args body pos) | name `elem` fringe =
-            [func, Func ('!':name) args (MCase [MCaseAlt (MCaseAnd []) $ Call (CallFunc name) (map Var args)]) pos]
-        f x = [x]
 
 
 ---------------------------------------------------------------------

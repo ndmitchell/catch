@@ -89,7 +89,8 @@ initErrors hite = [(
     
 solveError :: Hite -> FuncName -> Reqs -> OutputMonad Reqs
 solveError hite func reqs = do
-    res <- solve hite ["main"] reqs
+    let hite2 = annotateFringe ["main"] hite
+    res <- solve hite2 reqs
     let success = isTrue res
     when (not success) $ putBoth $ prettyReqs res
     putBoth $ if success then "Safe" else "Unsafe"

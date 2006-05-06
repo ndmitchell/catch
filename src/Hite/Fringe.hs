@@ -3,7 +3,7 @@
 -}
 
 
-module Hite.Fringe(Fringe, increaseFringe, calcFringe) where
+module Hite.Fringe(Fringe, increaseFringe, calcFringe, annotateFringe) where
 
 import Hite.Type
 import Hite.Reachable
@@ -22,4 +22,13 @@ increaseFringe hite fringe = map (:[])
 
 calcFringe :: Hite -> Fringe -> Hite
 calcFringe hite fringe = reachableList fringe hite
+
+
+
+annotateFringe :: Fringe -> Hite -> Hite
+annotateFringe fringe hite = hite{funcs = concatMap f (funcs hite)}
+    where
+        f func@(Func name args body pos) | name `elem` fringe =
+            [func, Func ('!':name) args (MCase [MCaseAlt (MCaseAnd []) $ Call (CallFunc name) (map Var args)]) pos]
+        f x = [x]
 

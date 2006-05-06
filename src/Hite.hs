@@ -6,6 +6,7 @@ module Hite
     module Hite.Show, module Hite.Eq,
     
     module Hite.Blur, module Hite.Cache,
+    module Hite.Fringe,
     
     shortName, reachable
     )
@@ -32,6 +33,7 @@ import Hite.ArityRaise
 import Hite.Consts
 import Hite.MakeMove
 import Hite.MCase
+import Hite.Fringe
 
 
 cmds :: [Command Hite]
