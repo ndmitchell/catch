@@ -24,6 +24,9 @@ import General.Output
 -- | Take a Hite program, a set of functions that are the "boundary"
 --   and some requirements, and solve it
 --   Return True if its successfully solved, False otherwise
+--
+--   The "edge" functions are assumed to start with an exclamation mark
+--   any function marked as being edge *may not* be called from this fragment
 solve :: Hite -> Reqs -> OutputMonad Reqs
 solve hite reqs = reduce hite2 reqs
     where
