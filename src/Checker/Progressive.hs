@@ -8,14 +8,55 @@
 module Checker.Progressive(progressiveSolve) where
 
 
+import General.General
 import Hite
 import Constraint
 import Checker.Solver
 import General.Output
+import List
+
 
 
 
 progressiveSolve :: Hite -> Reqs -> OutputMonad Reqs
-progressiveSolve hite reqs = solve hite2 reqs
+progressiveSolve hite reqs = do putBoth $ show reqs
+                                solve hite2 reqs >>= f
     where
-        hite2 = annotateFringe ["main"] hite
+        fringe = nub $ map reqForall $ allPredLit reqs
+        hite2 = annotateFringe fringe $ calcFringe hite fringe
+
+
+        f :: Reqs -> OutputMonad Reqs
+--        f reqs | True = do putBoth $ "progressiveSolve: " ++ show reqs
+--                           error "here!"
+--                           return reqs
+                        
+        
+        f reqs | "main" `elem` fringe = do putBoth $ show reqs
+                                           return reqs
+
+               | otherwise = do putBoth $ show reqs
+                                putBoth $ "Increasing fringe from " ++ show fringe ++ " to " ++ show newfringe
+                                --error $ show $ increaseFringe hite fringe
+                                --error $ show fringe ++ "\n" ++ show newfringe ++ "\n" ++ output hite2
+                                --error $ output hite2
+                                solve hite2 reqs >>= f
+            where
+                oldfuncs = map funcName $ funcs $ calcFringe hite fringe
+                
+                hite2 = safeFuncs $ annotateFringe newfringe $ calcFringe hite newfringe
+            
+                newfringe = nub $ concat $ increaseFringe hite fringe
+                fringe = nub $ map reqForall $ allPredLit reqs
+                
+                safeFuncs h = h{funcs = concatMap g (funcs h)}
+                g func@(Func name args body pos) | name `elem` fringe = [
+                        repoint func{funcName = name ++ "!"},
+                        Func name args (blankMCase $ Call (CallFunc $ name ++ "!") (map Var args)) pos]
+                    | name `elem` oldfuncs = [repoint func]
+                    | otherwise = [func]
+                
+                repoint x = mapExpr h x
+                    where
+                        h (CallFunc x) | x `elem` fringe = CallFunc (x ++ "!")
+                        h x = x
