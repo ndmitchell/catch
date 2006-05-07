@@ -3,6 +3,7 @@ module Hite.MCase(mcase, cmd) where
 
 import Hite.Type
 import List
+import General.General
 
 
 cmd = cmdHitePure (const mcase) "mcase"
@@ -34,6 +35,6 @@ mcase (Hite datas funcs) = Hite datas (map factor $ ensure $ mapExpr f funcs)
                 MCase alts = body func
                 res = map rejoin $ groupBy splitup alts
                 splitup (MCaseAlt a1 b1) (MCaseAlt a2 b2) = b1 == b2
-                rejoin xs = MCaseAlt (MCaseOr x) (head y)
+                rejoin xs = MCaseAlt (MCaseOr x) (headNote "Hite.MCase.factor" y)
                     where (x,y) = unzip $ map (\(MCaseAlt a b) -> (a,b)) xs
 
