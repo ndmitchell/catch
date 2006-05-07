@@ -39,13 +39,16 @@ simplifyForall x = predOr $ map f $ fromOr $ dnf x
 
 -- Must all be Nothing as their within property
 simplifyReqsFull :: Hite -> Reqs -> Reqs
-simplifyReqsFull hite x = 
-        mapPredLit simpOne $ simplifyForall x
+simplifyReqsFull hite x = if anyForall x then
+                              mapPredLit simpOne $ simplifyForall x
+                          else
+                              simplifyReq x
     where
         simpOne (ReqAll name x) | isTrue x = predTrue
                                 | otherwise = predLit $ ReqAll name (simplifyReq x)
         simpOne x = simplifyReq (predLit x)
     
+        anyForall x = not $ null [() | ReqAll _ _ <- allPredLit x]
     
         simplifyReq x =
             andPairs finalMerge $
