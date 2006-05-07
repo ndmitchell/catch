@@ -42,6 +42,6 @@ taut p = case eval p of
                   taut (subst v True  p') &&
                   taut (subst v False p')
 
-main :: Bool
-main = taut (Imp (Var 'p') (Imp (Imp (Var 'p') (Var 'q')) (Var 'q')))
+-- main :: Bool
+main x = taut x
 
