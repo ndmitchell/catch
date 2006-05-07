@@ -33,11 +33,13 @@ increaseFringe hite fringe = newfringe
             any (`elem` fringe) calls]
         
         
-        calcNames x = map funcName $ funcs $ reachableList x hite
+        calcNames x = map funcName $ funcs $ calcFringe hite x
 
 
+-- DO NOT remove data, since they may have outstanding constraints
+-- which reference data that is still outstanding
 calcFringe :: Hite -> Fringe -> Hite
-calcFringe hite fringe = reachableList fringe hite
+calcFringe hite fringe = hite{funcs = funcs (reachableList fringe hite)}
 
 
 
