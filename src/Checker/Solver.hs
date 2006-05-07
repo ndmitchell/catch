@@ -72,7 +72,7 @@ reduceOne hite pending supress orig_req =
                                      x <- reduceMany hite pending within
                                      putLog $ show x
                                      decIndent
-                                     if head on == '!' then
+                                     if headNote "Checker.Solver.reduceOne" on == '!' then
                                          return $ predLit (ReqAll (tail on) within)
                                       else
                                          reduceMany hite (orig_req:pending) $ simplify hite $ propagate hite on x
