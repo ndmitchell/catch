@@ -1,6 +1,6 @@
 
 module Reqs.Type(
-    Req(..), Reqs, blurReqsPath, allForall
+    Req(..), Reqs, blurReqsPath, allForall, reqsNot
     ) where
 
 import Pred.Type
@@ -32,3 +32,10 @@ blurReqsPath = mapPredLit (predLit . blurReqPath)
 
 allForall :: Reqs -> [FuncName]
 allForall req = [x | ReqAll x _ <- allPredLit req]
+
+
+
+reqsNot :: Hite -> Reqs -> Reqs
+reqsNot hite x = predNot f x
+    where
+        f (Req on path set) = predLit $ Req on path (getCtorsFromCtor hite (head set) \\ set) 

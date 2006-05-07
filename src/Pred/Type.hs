@@ -161,3 +161,10 @@ isTrue (PredAnd []) = True
 isTrue (PredAnd xs) = all isTrue xs
 isTrue (PredOr  xs) = any isTrue xs
 isTrue _ = False
+
+
+predNot :: Eq a => (a -> Pred a) -> Pred a -> Pred a
+predNot f x = case x of
+                  PredAnd xs -> predOr  $ map (predNot f) xs
+                  PredOr  xs -> predAnd $ map (predNot f) xs
+                  PredLit x  -> f x

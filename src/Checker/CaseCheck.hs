@@ -68,7 +68,7 @@ initErrors :: Hite -> [(FuncName, String, Reqs)]
 initErrors hite = [(
                 fName,
                 headNote "CaseCheck.initErrors" errors,
-                predLit $ ReqAll fName $ predNot hite $ mcasePred hite cond) |
+                predLit $ ReqAll fName $ reqsNot hite $ mcasePred hite cond) |
         func <- funcs hite, let MCase alts = body func, let fName = funcName func,
         MCaseAlt cond val <- alts, let errors = getErrors val, not (null errors)]
     where
