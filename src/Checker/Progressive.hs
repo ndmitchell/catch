@@ -34,6 +34,7 @@ progressiveSolve hite reqs = do putBoth $ show reqs
         
         f reqs | "main" `elem` fringe = do putBoth $ show reqs
                                            return reqs
+               | isTrue reqs = return reqs
 
                | otherwise = do putBoth $ show reqs
                                 putBoth $ "Increasing fringe from " ++ show fringe ++ " to " ++ show newfringe
