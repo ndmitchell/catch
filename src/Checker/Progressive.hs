@@ -46,7 +46,7 @@ progressiveSolve hite reqs = do putBoth $ show reqs
                 
                 hite2 = safeFuncs $ annotateFringe newfringe $ calcFringe hite newfringe
             
-                newfringe = nub $ concat $ increaseFringe hite fringe
+                newfringe = increaseFringe hite fringe
                 fringe = nub $ map reqForall $ allPredLit reqs
                 
                 safeFuncs h = h{funcs = concatMap g (funcs h)}
