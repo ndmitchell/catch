@@ -58,7 +58,15 @@ simplifyReqsFull hite x = if anyForall x then
             orPairs orEqPathCollapse $
             andPairsAs andSubsetCollapse $
             mapPredLit addFinite $
-            dnf x
+            dnf $
+            andPairs finalMerge $
+            orPairsAs orSubsetCollapse $
+            mapPredLit atomNullCtors $
+            andPairs andEqPathCollapse $
+            orPairs orEqPathCollapse $
+            andPairsAs andSubsetCollapse $
+            mapPredLit addFinite $
+            cnf x
 
         
         andPairsAs f xs = andPairs (makeAssoc f) xs
