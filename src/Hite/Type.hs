@@ -152,10 +152,11 @@ getCtor hite name = getWith name ctorName (concatMap ctors (datas hite))
 
 -- More complex, travel up the tree
 getDataFromCtor :: Hite -> CtorName -> Data
-getDataFromCtor hite name = head [d | d <- datas hite, c <- ctors d, name == ctorName c]
+getDataFromCtor hite name = headNote ("Hite.Type.getDataFromCtor, asking for " ++ name)
+    [d | d <- datas hite, c <- ctors d, name == ctorName c]
 
 getCtorFromArg :: Hite -> CtorArg -> Ctor
-getCtorFromArg hite name = head [c | d <- datas hite, c <- ctors d, name `elem` ctorArgs c]
+getCtorFromArg hite name = headNote "Hite.Type.getCtorFromArg" [c | d <- datas hite, c <- ctors d, name `elem` ctorArgs c]
 
 
 -- Compound, do common operations
@@ -197,9 +198,9 @@ exprToList x = case x of
 
 exprFromList :: Expr -> [Expr] -> Expr
 exprFromList x ys = case x of
-    Call _ _ -> Call (head ys) (tail ys)
+    Call _ _ -> Call (headNote "Hite.Type" ys) (tail ys)
     Make n _ -> Make n ys
-    Case _ q -> Case (head ys) (zip (map fst q) (tail ys))
+    Case _ q -> Case (headNote "Hite.Type" ys) (zip (map fst q) (tail ys))
     Sel  _ p -> let [y] = ys in Sel y p
     n        -> if null ys then n else error "exprFromList, non-empty list"
 

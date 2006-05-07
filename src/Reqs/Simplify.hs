@@ -28,7 +28,7 @@ simplifyForall x = predOr $ map f $ fromOr $ dnf x
         
         g xs | nx == ""  = predAnd xs
              | otherwise = predLit $ ReqAll nx $ predAnd $ map (reqWithin . fromPredLit) xs
-            where nx = getName $ head xs
+            where nx = getName $ headNote "Reqs.Simplify.simplifyForall" xs
         
         getName (PredLit (ReqAll a b)) = a
         getName _ = "" 
@@ -119,7 +119,7 @@ simplifyReqsFull hite x = if anyForall x then
                                else predLit (Req a1 b2 cns)
                         where b2 = an `pathQuotient` b1
         atomNullCtors (Req a1 b1 c1)
-            | c1 `setEq` (getCtorsFromCtor hite (head c1))
+            | c1 `setEq` (getCtorsFromCtor hite (headNote "Reqs.Simplify.atomNullCtors" c1))
             = predTrue
         atomNullCtors x = predLit x
         
@@ -151,7 +151,7 @@ simplifyReqsFull hite x = if anyForall x then
                           l1 `isPrefixOf` l2 &&
                           not (ctorName ctr `elem` c1)
                     where
-                        c = head (drop (length l1) l2)
+                        c = headNote "Reqs.Simplify.superImply" (drop (length l1) l2)
                         ctr = getCtorFromArg hite c
                 
             

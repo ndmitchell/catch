@@ -3,6 +3,7 @@ module Hite.Blur(blurExpr, unrollExpr) where
 
 import Hite.Type
 import Options
+import General.General
 
 
 unrollExpr :: Expr -> Expr
@@ -58,7 +59,7 @@ blurToExpr :: Blur -> Expr
 blurToExpr (Raw x) = x
 blurToExpr (Rep mode name xs) =
     case mode of
-        ModeSel  -> Sel (blurToExpr $ head xs) name
+        ModeSel  -> Sel (blurToExpr $ headNote "Hite.Blur" xs) name
         ModeMake -> Make name (map blurToExpr xs)
         ModeCall -> Call (CallFunc name) (map blurToExpr xs)
 
@@ -66,7 +67,7 @@ blurToExpr (Rep mode name xs) =
 blurBlur :: Blur -> Blur
 blurBlur (Raw x) = Raw x
 blurBlur r@(Rep m n xs)
-        | not (null repeats) = xs !! head repeats
+        | not (null repeats) = xs !! headNote "Hite.Blur" repeats
         | null depths = r
         | otherwise   = Raw $ Repeat expr alt
     where
@@ -74,7 +75,7 @@ blurBlur r@(Rep m n xs)
         alt  = blurToExpr $ drill (depth-hiteBlurTo) r
         poss = [0 .. length xs - 1]
     
-        (pos, depth) = head depths -- maybe max on this one?
+        (pos, depth) = headNote "Hite.Blur" depths -- maybe max on this one?
         depths = [(pos, depth) | pos <- poss, depth <- [blurDepth r pos], depth >= hiteBlurFrom]
 
         drill 0 r = r
