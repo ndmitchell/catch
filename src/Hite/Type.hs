@@ -241,3 +241,6 @@ charCtor :: Char -> CtorName
 charCtor c = "Char_" ++ (if isAlphaNum c then [c] else pad3 (show (ord c)))
     where pad3 x = replicate (3 - length x) '0' ++ x
 
+
+blankMCase :: Expr -> Expr
+blankMCase x = MCase [MCaseAlt (MCaseAnd []) x]

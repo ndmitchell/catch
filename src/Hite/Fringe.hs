@@ -29,6 +29,6 @@ annotateFringe :: Fringe -> Hite -> Hite
 annotateFringe fringe hite = hite{funcs = concatMap f (funcs hite)}
     where
         f func@(Func name args body pos) | name `elem` fringe =
-            [func, Func ('!':name) args (MCase [MCaseAlt (MCaseAnd []) $ Call (CallFunc name) (map Var args)]) pos]
+            [func, Func ('!':name) args (blankMCase $ Call (CallFunc name) (map Var args)) pos]
         f x = [x]
 
