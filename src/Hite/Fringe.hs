@@ -13,11 +13,14 @@ type Fringe = [FuncName]
 
 
 increaseFringe :: Hite -> Fringe -> [Fringe]
-increaseFringe hite fringe = map (:[])
-    [name |
-        Func name _ body _ <- funcs hite,
-        let calls = [x | CallFunc x <- allExpr body],
-        any (`elem` fringe) calls]
+increaseFringe hite fringe =
+        [[name |
+            Func name _ body _ <- funcs hite,
+            not (name `elem` existing),
+            let calls = [x | CallFunc x <- allExpr body],
+            any (`elem` fringe) calls]]
+    where
+        existing = map funcName $ funcs $ calcFringe hite fringe
 
 
 calcFringe :: Hite -> Fringe -> Hite
