@@ -7,20 +7,33 @@ module Hite.Fringe(Fringe, increaseFringe, calcFringe, annotateFringe) where
 
 import Hite.Type
 import Hite.Reachable
+import List
 
 
 type Fringe = [FuncName]
 
 
-increaseFringe :: Hite -> Fringe -> [Fringe]
-increaseFringe hite fringe =
-        [[name |
+increaseFringe :: Hite -> Fringe -> Fringe
+increaseFringe hite fringe = newfringe
+    where
+        newfringe = nub [x |
+                Func name _ body _ <- funcs hite,
+                not (name `elem` newset),
+                CallFunc x <- allExpr body,
+                x `elem` newset]
+    
+        newset = calcNames callers
+        existing = calcNames fringe
+        
+        -- those functions that call one of the functions in the old fringe
+        callers = [name |
             Func name _ body _ <- funcs hite,
             not (name `elem` existing),
             let calls = [x | CallFunc x <- allExpr body],
-            any (`elem` fringe) calls]]
-    where
-        existing = map funcName $ funcs $ calcFringe hite fringe
+            any (`elem` fringe) calls]
+        
+        
+        calcNames x = map funcName $ funcs $ reachableList x hite
 
 
 calcFringe :: Hite -> Fringe -> Hite
