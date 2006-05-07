@@ -14,7 +14,7 @@ type Fringe = [FuncName]
 
 
 increaseFringe :: Hite -> Fringe -> Fringe
-increaseFringe hite fringe = newfringe
+increaseFringe hite fringe = newfringe `union` ["main"|"main" `elem` newset]
     where
         newfringe = nub [x |
                 Func name _ body _ <- funcs hite,
