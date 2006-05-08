@@ -133,5 +133,5 @@ simplify hite = simplifyMid hite . simpler
 
 simplifyMid hite x = if simplifyRegular then simplifyReqsFull hite x else x
 
-simpler x = blurReqsPath (reducePred x)
+simpler x = blur (reducePred x)
 

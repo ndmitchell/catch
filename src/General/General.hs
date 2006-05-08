@@ -97,6 +97,9 @@ class Output x where
     output :: x -> String
 
 
+class Blur x where
+    blur :: x -> x
+
 
 ensureDirectory s = do b <- doesDirectoryExist s
                        when (not b) $ createDirectory s

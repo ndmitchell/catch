@@ -24,7 +24,7 @@ backward hite (Req (Call (CallFunc name) params) path opts) =
         (Func _ args body _) = getFunc hite name
         
         rename = zip args params
-        res = blurExpr $ {- selToPath $ -} mapExpr f body
+        res = blur $ {- selToPath $ -} mapExpr f body
         
         f (Var a) = fromJustNote "backward" $ lookup a rename
         f x = x

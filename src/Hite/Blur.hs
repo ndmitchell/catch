@@ -1,5 +1,5 @@
 
-module Hite.Blur(blurExpr, unrollExpr) where
+module Hite.Blur(unrollExpr) where
 
 import Hite.Type
 import Options
@@ -17,6 +17,9 @@ unrollExpr r@(Repeat expr alt) =
         f RepeatNow = r
         f x = x
 
+
+instance Blur Expr where
+    blur = blurExpr
 
 
 blurExpr :: Expr -> Expr
