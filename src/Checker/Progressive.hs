@@ -18,7 +18,7 @@ import List
 
 
 
-progressiveSolve :: Hite -> Reqs -> OutputMonad Reqs
+progressiveSolve :: Hite -> ReqAlls -> OutputMonad ReqAlls
 progressiveSolve hite reqs = do putBoth $ show reqs
                                 solve hite2 reqs >>= f
     where
@@ -26,7 +26,7 @@ progressiveSolve hite reqs = do putBoth $ show reqs
         hite2 = annotateFringe fringe $ calcFringe hite fringe
 
 
-        f :: Reqs -> OutputMonad Reqs
+        f :: ReqAlls -> OutputMonad ReqAlls
 --        f reqs | True = do putBoth $ "progressiveSolve: " ++ show reqs
 --                           error "here!"
 --                           return reqs

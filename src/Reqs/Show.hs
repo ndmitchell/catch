@@ -16,13 +16,15 @@ import Char
 
 
 instance Show Req where
-    show r = case r of
-            (Req expr regs opts) -> "<" ++ inline (output expr) ++ "," ++ pathPretty regs ++ "," ++ strSet opts ++ ">"
-            (ReqAll on within) -> "(\\forall " ++ on ++ ", " ++ show within ++ ")"
+    show (Req expr regs opts) = "<" ++ inline (output expr) ++ "," ++ pathPretty regs ++ "," ++ strSet opts ++ ">"
         where
             inline x = case lines x of
-                            [x] -> x
-                            xs -> "{" ++ (concat $ intersperse "; " $ map (dropWhile isSpace) xs) ++ "}"
+                [x] -> x
+                xs -> "{" ++ (concat $ intersperse "; " $ map (dropWhile isSpace) xs) ++ "}"
+
+
+instance Show ReqAll where
+    show (ReqAll on within) = "(\\forall " ++ on ++ ", " ++ show within ++ ")"
 
 
 

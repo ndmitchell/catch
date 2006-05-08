@@ -1,5 +1,5 @@
 
-module Reqs.Simplify(simplifyReqs, simplifyReqsFull) where
+module Reqs.Simplify(simplifyReqs, simplifyReqsFull, simplifyReqAllsFull) where
 
 import Hite
 
@@ -21,7 +21,7 @@ import Star.Type
 
 
 -- simplify all the forall statements
-simplifyForall :: Reqs -> Reqs
+simplifyForall :: ReqAlls -> ReqAlls
 simplifyForall x = predOr $ map f $ fromOr $ dnf x
     where
         f x = predAnd $ map g $ groupBy (\a b -> getName a == getName b) $ fromAnd x
@@ -34,20 +34,19 @@ simplifyForall x = predOr $ map f $ fromOr $ dnf x
         getName _ = "" 
 
 
-
+simplifyReqAllsFull :: Hite -> ReqAlls -> ReqAlls
+simplifyReqAllsFull hite x = mapPredLit simpOne $ simplifyForall x
+    where
+        simpOne (ReqAll name x) | isTrue x = predTrue
+                                | otherwise = predLit $ ReqAll name (simplifyReqsFull hite x)
+    
 
 
 -- Must all be Nothing as their within property
 simplifyReqsFull :: Hite -> Reqs -> Reqs
-simplifyReqsFull hite x = if anyForall x then
-                              mapPredLit simpOne $ simplifyForall x
-                          else
-                              simplifyReq x
+simplifyReqsFull hite x = simplifyReq x
     where
-        simpOne (ReqAll name x) | isTrue x = predTrue
-                                | otherwise = predLit $ ReqAll name (simplifyReq x)
-        simpOne x = simplifyReq (predLit x)
-    
+
         anyForall x = not $ null [() | ReqAll _ _ <- allPredLit x]
     
         simplifyReq x =

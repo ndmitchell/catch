@@ -11,7 +11,7 @@ import General.General
 
 
 
-propagate :: Hite -> FuncName -> Reqs -> Reqs
+propagate :: Hite -> FuncName -> Reqs -> ReqAlls
 propagate hite on reqs
     | isTrue reqs = predTrue
     | otherwise = predAnd $ res

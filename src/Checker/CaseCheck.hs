@@ -18,7 +18,7 @@ caseCheck :: String -> Handle -> Hite -> IO Bool
 caseCheck file hndl hite = runOutput hndl $ caseCheckOut hite >>= checkOracle file
 
 
-caseCheckOut :: Hite -> OutputMonad Reqs
+caseCheckOut :: Hite -> OutputMonad ReqAlls
 caseCheckOut hite = do
     putBoth "\n== Pattern Match Checker"
     if null errs then do
@@ -51,7 +51,7 @@ caseCheckOut hite = do
 
 --     Checker.Solver.caseCheck hndl hite
 
-checkOracle :: String -> Reqs -> OutputMonad Bool
+checkOracle :: String -> ReqAlls -> OutputMonad Bool
 checkOracle file req = do src <- outputIO $ readFile "Example/SafePatterns.txt"
                           let ans = lookup file $ map (break (== ' ')) $ lines src
                           case ans of
@@ -64,7 +64,7 @@ removeError :: Hite -> Hite
 removeError hite = hite{funcs = filter ((/=) "error" . funcName) (funcs hite)}
 
 
-initErrors :: Hite -> [(FuncName, String, Reqs)]
+initErrors :: Hite -> [(FuncName, String, ReqAlls)]
 initErrors hite = [(
                 fName,
                 headNote "CaseCheck.initErrors" errors,
@@ -80,10 +80,10 @@ initErrors hite = [(
     
 
     
-solveError :: Hite -> Reqs -> OutputMonad Reqs
+solveError :: Hite -> ReqAlls -> OutputMonad ReqAlls
 solveError hite reqs = do
     res <- progressiveSolve hite reqs
-    putBoth $ prettyReqs res
+    putBoth $ show res
     putBoth $ if isTrue res then "Safe" else "Unsafe"
     return res
 

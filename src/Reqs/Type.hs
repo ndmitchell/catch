@@ -1,6 +1,6 @@
 
 module Reqs.Type(
-    Req(..), Reqs, reqsNot
+    Req(..), Reqs, ReqAll(..), ReqAlls, reqsNot
     ) where
 
 import Pred.Type
@@ -14,17 +14,21 @@ import List
 
 
 data Req = Req {reqExpr :: Expr, reqPath :: Path String, reqCtors :: [CtorName]}
-         | ReqAll {reqForall :: FuncName, reqWithin :: Reqs}
            deriving Eq
+           
+data ReqAll = ReqAll {reqForall :: FuncName, reqWithin :: Reqs}
+              deriving Eq
 
 
 type Reqs = Pred Req
+type ReqAlls = Pred ReqAll
 
 
 instance Blur Req where
-    blur (ReqAll on within) = ReqAll on (blur within)
     blur req = req{reqPath = pathBlur (reqPath req)}
 
+instance Blur ReqAll where
+    blur (ReqAll on within) = ReqAll on (blur within)
 
 instance (Eq a, Blur a) => Blur (Pred a) where
     blur x = mapPredLit (predLit . blur) x

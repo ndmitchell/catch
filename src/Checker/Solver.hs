@@ -27,7 +27,7 @@ import General.Output
 --
 --   The "edge" functions are assumed to start with an exclamation mark
 --   any function marked as being edge *may not* be called from this fragment
-solve :: Hite -> Reqs -> OutputMonad Reqs
+solve :: Hite -> ReqAlls -> OutputMonad ReqAlls
 solve hite reqs = reduce hite2 reqs
     where
         hite2 = removeUnderscore hite
@@ -49,56 +49,80 @@ removeUnderscore x = mapExpr f $ x{funcs = filter ((/= "_") . funcName) (funcs x
 ---------------------------------------------------------------------
 -- CORE FUNCTIONS
 
-
-reduce :: Hite -> Reqs -> OutputMonad Reqs
+reduce :: Hite -> ReqAlls -> OutputMonad ReqAlls
 reduce hite x = reduceMany hite [] x
 
 
-reduceOne :: Hite -> [Req] -> Bool -> Req -> OutputMonad Reqs
-reduceOne hite pending supress orig_req =
-    do
-        when (not supress) $ putLog (show orig_req)
-        case orig_req of
-            r | r `elem` pending -> do putLog "True -- Pending tied back"
-                                       return predTrue
+class (Show a, Eq a) => Reducer a where
+    reducer :: Hite -> [Req] -> Bool -> a -> OutputMonad (Pred a)
+    simpler :: Hite -> Pred a -> Pred a
+    backwards :: Hite -> Pred a -> Pred a
 
 
-            (Req (Var a) _ _) -> return $ predLit orig_req
+instance Reducer ReqAll where
+    reducer hite pending supress orig_req =
+        do
+            when (not supress) $ putLog (show orig_req)
+            case orig_req of
+                (ReqAll on within) -> do incIndent
+                                         x <- reduceMany hite pending within
+                                         putLog $ show x
+                                         decIndent
+                                         if headNote "Checker.Solver.reduceOne" on == '!' then
+                                             return $ predLit (ReqAll (tail on) within)
+                                          else
+                                             reduceMany hite pending $ simpler hite $ propagate hite on x
 
-            (Req _ path opts) | pathIsEmpty path -> return predTrue
+    simpler hite = simplifyReqAllsFull hite -- . mapPredLit (simpler hite . predLit)
     
-            
-            (ReqAll on within) -> do incIndent
-                                     x <- reduceMany hite pending within
-                                     putLog $ show x
-                                     decIndent
-                                     if headNote "Checker.Solver.reduceOne" on == '!' then
-                                         return $ predLit (ReqAll (tail on) within)
-                                      else
-                                         reduceMany hite (orig_req:pending) $ simplify hite $ propagate hite on x
-
-            r -> onwards $ backward hite r
-    where
-        onwards x = reduceMany hite p2 x
-            where
-                p2 = case orig_req of
-                    Req _ _ _ -> orig_req : pending
-                    _ -> pending
+    backwards = backwardRepeatAll
 
 
-reduceMany :: Hite -> [Req] -> Reqs -> OutputMonad Reqs
-reduceMany hite pending orig_xs = do
+instance Reducer Req where
+    reducer hite pending supress orig_req =
+        do
+            when (not supress) $ putLog (show orig_req)
+            case orig_req of
+                r | r `elem` pending -> do putLog "True -- Pending tied back"
+                                           return predTrue
+
+                (Req (Var a) _ _) -> return $ predLit orig_req
+
+                (Req _ path opts) | pathIsEmpty path -> return predTrue
+
+                r -> onwards $ backward hite r
+        where
+            onwards x = reduceMany hite p2 x
+                where
+                    p2 = case orig_req of
+                        Req _ _ _ -> orig_req : pending
+                        _ -> pending
+
+    simpler hite = simplifyMid . blur . reducePred
+        where
+            simplifyMid x = if simplifyRegular then simplifyReqsFull hite x else x
+
+    backwards = backwardRepeatPred
+
+
+
+
+
+reduceMany :: Reducer a => Hite -> [Req] -> Pred a -> OutputMonad (Pred a)
+reduceMany hite pending orig2_xs = do
         putLog $ show orig_xs
         ind <- getIndent
-        if ind > maxCheckDepth
+        if ind > maxCheckDepth -- `div` 2
             then do putLog "Lazy, giving up (False)"
                     return predFalse
             else do
-                case simplify hite (backwardRepeatPred hite orig_xs) of
-                     PredLit x -> reduceOne hite pending False x
+                case simpler hite (backwards hite orig_xs) of
+                     PredLit x -> reducer hite pending False x
                      x | null (allPredLit x) -> return x
                      xs -> f xs
     where
+        orig_xs = simpler hite orig2_xs
+    
         f xs =
             do
                 let reqs = nub $ allPredLit xs
@@ -114,10 +138,10 @@ reduceMany hite pending orig_xs = do
                            res <-
                                if x `elem` allPredLit reqs then
                                    do incIndent
-                                      r <- reduceOne hite pending True x
+                                      r <- reducer hite pending True x
                                       decIndent
                                       putLog $ "  - " ++ show r
-                                      return $ simplify hite $ mapPredLit (replace x r) reqs
+                                      return $ simpler hite $ mapPredLit (replace x r) reqs
                                else
                                    do putLog "  - ignored for now"
                                       return reqs
@@ -125,13 +149,3 @@ reduceMany hite pending orig_xs = do
                            g res xs
 
         replace from to x = if x == from then to else predLit x
-
-
-
-simplify hite = simplifyMid hite . simpler
-
-
-simplifyMid hite x = if simplifyRegular then simplifyReqsFull hite x else x
-
-simpler x = blur (reducePred x)
-

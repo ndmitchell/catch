@@ -1,5 +1,5 @@
 
-module Checker.Backward(backward, backwardRepeat, backwardRepeatPred, mcasePred, predNot) where
+module Checker.Backward(backward, backwardRepeat, backwardRepeatPred, mcasePred, predNot, backwardRepeatAll) where
 
 import Hite
 import Constraint
@@ -94,9 +94,13 @@ backwardRepeat hite x = case x of
         (Req (Var a) _ _ ) -> predLit x
         (Req (Repeat _ _) _ _) -> predLit x
         (Req (Call _ _) _ _) -> predLit x
-        (ReqAll on within) -> predLit $ ReqAll on (backwardRepeatPred hite within)
         x -> backwardRepeatPred hite (backward hite x)
 
+
+backwardRepeatAll :: Hite -> ReqAlls -> ReqAlls
+backwardRepeatAll hite x = mapPredLit f x
+    where
+        f (ReqAll on within) = predLit $ ReqAll on (backwardRepeatPred hite within)
 
 backwardRepeatPred :: Hite -> Reqs -> Reqs
 backwardRepeatPred hite x = mapPredLit (backwardRepeat hite) x
