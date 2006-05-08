@@ -18,6 +18,7 @@ data Vars = Vars {
 
 runOutput :: Handle -> OutputMonad a -> IO a
 runOutput hndl out = do depth <- newIORef 0
+                        hSetBuffering hndl NoBuffering
                         runReaderT out (Vars depth hndl)
 
 
