@@ -139,6 +139,10 @@ exec args = do comp <- composite
                            then args ++ [Terminal (\a b -> outputHite "final" b >> return True)]
                            else args
 
+               when (null files) $ do
+                    putStr "No files specified or found, nothing to do"
+                    exitWith ExitSuccess
+
                runAll args files
     where
         runAll args files = do res <- mapM f files
