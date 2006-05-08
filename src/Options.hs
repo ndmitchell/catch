@@ -31,3 +31,6 @@ simplifyRegular = True
 
 
 maxCheckDepth = 30 :: Int
+
+
+printEverything = False

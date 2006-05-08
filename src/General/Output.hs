@@ -4,6 +4,7 @@ module General.Output where
 import Control.Monad.Reader
 import Data.IORef
 import IO
+import Options
 
 
 type OutputMonad a = ReaderT Vars IO a
@@ -30,13 +31,16 @@ getHandle = do x <- ask
 
 
 putBoth :: String -> OutputMonad ()
-putBoth msg = do liftIO $ putStrLn msg
+putBoth msg = do when (not printEverything) $ liftIO $ putStrLn msg
                  putLog msg
-                 
+
 putLog :: String -> OutputMonad ()
 putLog msg = do hndl <- getHandle
                 ind <- getIndent
-                liftIO $ hPutStrLn hndl $ replicate (ind*2) ' ' ++ msg
+                let msg2 = replicate (ind*2) ' ' ++ msg
+                liftIO $ hPutStrLn hndl msg2
+                when printEverything $ liftIO $ putStrLn msg2
+                
 
 incIndent :: OutputMonad ()
 incIndent = addIndent (+1)
