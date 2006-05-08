@@ -1,6 +1,6 @@
 
 module Reqs.Type(
-    Req(..), Reqs, allForall, reqsNot
+    Req(..), Reqs, reqsNot
     ) where
 
 import Pred.Type
@@ -28,12 +28,6 @@ instance Blur Req where
 
 instance (Eq a, Blur a) => Blur (Pred a) where
     blur x = mapPredLit (predLit . blur) x
-
-
-
-allForall :: Reqs -> [FuncName]
-allForall req = [x | ReqAll x _ <- allPredLit req]
-
 
 
 reqsNot :: Hite -> Reqs -> Reqs
