@@ -29,9 +29,9 @@ data Mode = ModeSel | ModeMake | ModeCall
             deriving Eq
 
 
-data Blur = Raw Expr
-          | Rep Mode String [Blur]
-          deriving Eq
+data Blurs = Raw Expr
+           | Rep Mode String [Blurs]
+           deriving Eq
 
 
 boundExpr :: Int -> Expr -> Expr
@@ -48,14 +48,14 @@ boundExpr n x = case x of
         fs = map f
 
 
-exprToBlur :: Expr -> Blur
+exprToBlur :: Expr -> Blurs
 exprToBlur (Call (CallFunc x) xs) = Rep ModeCall x (map exprToBlur xs)
 exprToBlur (Make x xs) = Rep ModeMake x (map exprToBlur xs)
 exprToBlur (Sel x y) = Rep ModeSel y [exprToBlur x]
 exprToBlur x = Raw x
 
 
-blurToExpr :: Blur -> Expr
+blurToExpr :: Blurs -> Expr
 blurToExpr (Raw x) = x
 blurToExpr (Rep mode name xs) =
     case mode of
@@ -64,7 +64,7 @@ blurToExpr (Rep mode name xs) =
         ModeCall -> Call (CallFunc name) (map blurToExpr xs)
 
 
-blurBlur :: Blur -> Blur
+blurBlur :: Blurs -> Blurs
 blurBlur (Raw x) = Raw x
 blurBlur r@(Rep m n xs)
         | not (null repeats) = xs !! headNote "Hite.Blur" repeats
@@ -89,7 +89,7 @@ blurBlur r@(Rep m n xs)
     
 
     
-blurDepth :: Blur -> Int -> Int
+blurDepth :: Blurs -> Int -> Int
 blurDepth (Rep m n xs) pos = 
     case xs !! pos of
         r@(Rep m2 n2 xs2)
@@ -98,7 +98,7 @@ blurDepth (Rep m n xs) pos =
         _ -> 0
 
 
-isRepeat :: Blur -> Int -> Bool
+isRepeat :: Blurs -> Int -> Bool
 isRepeat (Rep m n xs) pos =
     case xs !! pos of
         Raw (Repeat expr alt) ->
