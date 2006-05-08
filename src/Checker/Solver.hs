@@ -53,8 +53,12 @@ reduce :: Hite -> ReqAlls -> OutputMonad ReqAlls
 reduce hite x = reduceMany hite [] x
 
 
+data R = R1 ReqAll | R2 Req
+         deriving Eq
+
+
 class (Show a, Eq a) => Reducer a where
-    reducer :: Hite -> [Req] -> Bool -> a -> OutputMonad (Pred a)
+    reducer :: Hite -> [R] -> Bool -> a -> OutputMonad (Pred a)
     simpler :: Hite -> Pred a -> Pred a
     backwards :: Hite -> Pred a -> Pred a
 
@@ -64,6 +68,9 @@ instance Reducer ReqAll where
         do
             when (not supress) $ putLog (show orig_req)
             case orig_req of
+                r | R1 r `elem` pending -> do putLog "True -- Pending tied back"
+                                              return predTrue 
+            
                 (ReqAll on within) -> do incIndent
                                          x <- reduceMany hite pending within
                                          putLog $ show x
@@ -71,7 +78,7 @@ instance Reducer ReqAll where
                                          if headNote "Checker.Solver.reduceOne" on == '!' then
                                              return $ predLit (ReqAll (tail on) within)
                                           else
-                                             reduceMany hite pending $ simpler hite $ propagate hite on x
+                                             reduceMany hite (R1 orig_req:pending) $ simpler hite $ propagate hite on x
 
     simpler hite = simplifyReqAllsFull hite -- . mapPredLit (simpler hite . predLit)
     
@@ -83,8 +90,8 @@ instance Reducer Req where
         do
             when (not supress) $ putLog (show orig_req)
             case orig_req of
-                r | r `elem` pending -> do putLog "True -- Pending tied back"
-                                           return predTrue
+                r | R2 r `elem` pending -> do putLog "True -- Pending tied back"
+                                              return predTrue
 
                 (Req (Var a) _ _) -> return $ predLit orig_req
 
@@ -95,7 +102,7 @@ instance Reducer Req where
             onwards x = reduceMany hite p2 x
                 where
                     p2 = case orig_req of
-                        Req _ _ _ -> orig_req : pending
+                        Req _ _ _ -> R2 orig_req : pending
                         _ -> pending
 
     simpler hite = simplifyMid . blur . reducePred
@@ -108,7 +115,7 @@ instance Reducer Req where
 
 
 
-reduceMany :: Reducer a => Hite -> [Req] -> Pred a -> OutputMonad (Pred a)
+reduceMany :: Reducer a => Hite -> [R] -> Pred a -> OutputMonad (Pred a)
 reduceMany hite pending orig2_xs = do
         putLog $ show orig_xs
         ind <- getIndent
