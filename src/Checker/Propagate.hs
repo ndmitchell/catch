@@ -18,7 +18,7 @@ propagate hite on reqs
         where
             orig = funcArgs $ getFunc hite on
 
-            f rep (Req (Var var) path set) = predLit $ Req (fromJust $ lookup var rep) path set
+            f rep (Req (Var var) path set h) = predLit $ Req (fromJust $ lookup var rep) path set h
 
             res = [predLit $ ReqAll (funcName func) $
                     predOr [reqsNot hite $ mcasePred hite cond, mapPredLit (f $ zip orig args) reqs] |

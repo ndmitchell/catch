@@ -93,16 +93,16 @@ instance Reducer Req where
                 r | R2 r `elem` pending -> do putLog "True -- Pending tied back"
                                               return predTrue
 
-                (Req (Var a) _ _) -> return $ predLit orig_req
+                (Req (Var a) _ _ _) -> return $ predLit orig_req
 
-                (Req _ path opts) | pathIsEmpty path -> return predTrue
+                (Req _ path opts _) | pathIsEmpty path -> return predTrue
 
                 r -> onwards $ backward hite r
         where
             onwards x = reduceMany hite p2 x
                 where
                     p2 = case orig_req of
-                        Req _ _ _ -> R2 orig_req : pending
+                        Req _ _ _ _ -> R2 orig_req : pending
                         _ -> pending
 
     simpler hite = simplifyMid . blur . reducePred

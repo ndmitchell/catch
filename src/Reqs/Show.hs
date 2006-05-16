@@ -16,7 +16,7 @@ import Char
 
 
 instance Show Req where
-    show (Req expr regs opts) = "<" ++ inline (output expr) ++ "," ++ pathPretty regs ++ "," ++ strSet opts ++ ">"
+    show (Req expr regs opts _) = "<" ++ inline (output expr) ++ "," ++ pathPretty regs ++ "," ++ strSet opts ++ ">"
         where
             inline x = case lines x of
                 [x] -> x
@@ -30,10 +30,10 @@ instance Show ReqAll where
 
 -- cannot show a Req which is not Nothing
 prettyReqs :: Reqs -> String
-prettyReqs reqs = unlines (map g reps) ++
+prettyReqs reqs = "prettyReq's no longer works" {- unlines (map g reps) ++
                   prettyPredBy id (mapPredLitChange f reqs)
     where
-        exprs = [x | Req x _ _ <- allPredLit reqs]
+        exprs = [x | Req x _ _ _ <- allPredLit reqs]
         (keepexpr, repexpr) = partition h (nub exprs)
         vars = map (:[]) (['x'..'z'] ++ ['a'..'v']) ++ map (\x -> 'w' : show x) [2..]
         reps = zip repexpr vars
@@ -51,3 +51,4 @@ prettyReqs reqs = unlines (map g reps) ++
         f x = show x
     
         g (expr, var) = "var " ++ var ++ " := " ++ output expr
+-}

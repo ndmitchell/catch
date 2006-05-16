@@ -88,9 +88,9 @@ simplifyReqsFull hite x = simplifyReq x
                 f x = x
         
         
-        addFinite (Req a b c)
+        addFinite (Req a b c d)
             | not (pathIsFinite b)
-            = predAnd [predLit $ Req a b c, predLit $ Req a (pathMakeFinite b) c]
+            = predAnd [predLit $ Req a b c d, predLit $ Req a (pathMakeFinite b) c d]
         addFinite x = predLit x
         
         
@@ -101,21 +101,21 @@ simplifyReqsFull hite x = simplifyReq x
         orSubsetCollapse _ _ = Nothing
 
 
-        andEqPathCollapse (Req a1 b1 c1) (Req a2 b2 c2)
+        andEqPathCollapse (Req a1 b1 c1 d1) (Req a2 b2 c2 d2)
             | a1 == a2 && b1 == b2
-            = Just $ Req a1 b1 (c1 `intersect` c2)
+            = Just $ Req a1 b1 (c1 `intersect` c2) d1
         andEqPathCollapse _ _ = Nothing
         
         
-        orEqPathCollapse [Req a1 b1 c1] [Req a2 b2 c2]
+        orEqPathCollapse [Req a1 b1 c1 d1] [Req a2 b2 c2 d2]
             | a1 == a2 && b1 == b2 && pathIsFinite b1
-            = Just [Req a1 b1 (c1 `union` c2)]
+            = Just [Req a1 b1 (c1 `union` c2) d1]
         orEqPathCollapse _ _ = Nothing
 
 
         -- if the set is null, then try and prove the path is not reachable
         -- by following the quotients
-        atomNullCtors (Req a1 b1 c1)
+        atomNullCtors (Req a1 b1 c1 d1)
             | null c1
             = if pathIsEwp b1 then predFalse else res
                 where
@@ -123,24 +123,24 @@ simplifyReqsFull hite x = simplifyReq x
                               Data dn ctrs <- datas hite, Ctor cn alts <- ctrs, alt <- alts]
                 
                     f cns an = if pathIsOmega b2 then predTrue
-                               else predLit (Req a1 b2 cns)
+                               else predLit (Req a1 b2 cns d1)
                         where b2 = an `pathQuotient` b1
-        atomNullCtors (Req a1 b1 c1)
+        atomNullCtors (Req a1 b1 c1 d1)
             | c1 `setEq` (getCtorsFromCtor hite (headNote "Reqs.Simplify.atomNullCtors" c1))
             = predTrue
         atomNullCtors x = predLit x
         
         
-        finalMerge (Req a1 b1 c1) (Req a2 b2 c2)
+        finalMerge (Req a1 b1 c1 d1) (Req a2 b2 c2 d2)
             | a1 == a2 && c1 `setEq` c2
-            = Just $ Req a1 (b1 `pathUnion` b2) c1
+            = Just $ Req a1 (b1 `pathUnion` b2) c1 d1
         finalMerge _ _ = Nothing
         
         
 
         -- does a imply b
         (==>) :: Req -> Req -> Bool
-        (Req a1 b1 c1) ==> (Req a2 b2 c2)
+        (Req a1 b1 c1 d1) ==> (Req a2 b2 c2 d2)
             | a1 /= a2 = False
             | b2 `pathSubset` b1 && null (c1 \\ c2) = True
             | b1 == b2 && c1 `setEq` c2 = True -- should be redundant, if pathSubset is == implies
@@ -279,43 +279,43 @@ simplifyReqs b hite x = (if b then simplifyPredFull else simplifyPred)
         ruleSameCondOr _ _ = Nothing
         -}
         
-        ruleSameCondAnd (Req a1 b1 c1) (Req a2 b2 c2)
+        ruleSameCondAnd (Req a1 b1 c1 d1) (Req a2 b2 c2 d2)
             | a1 == a2 && c1 `setEq` c2
-            = Just (Req a1 (b1 `pathUnion` b2) c1)
+            = Just (Req a1 (b1 `pathUnion` b2) c1 d1)
         ruleSameCondAnd _ _ = Nothing
         
-        ruleSubsetOr (Req a1 b1 c1) (Req a2 b2 c2)
+        ruleSubsetOr (Req a1 b1 c1 d1) (Req a2 b2 c2 d2)
             | a1 == a2 && b1 `pathSubset` b2 && c1 `setEq` c2
-            = Just (Req a1 b1 c1)
+            = Just (Req a1 b1 c1 d1)
         ruleSubsetOr _ _ = Nothing
         
-        ruleSingleOr (Req a1 b1 c1) (Req a2 b2 c2)
+        ruleSingleOr (Req a1 b1 c1 d1) (Req a2 b2 c2 d2)
             | a1 == a2 && b1 == b2 && pathIsSingle b1
-            = Just $ Req a1 b1 (c1 `union` c2)
+            = Just $ Req a1 b1 (c1 `union` c2) d1
         ruleSingleOr _ _ = Nothing
         
         
-        ruleSingleAnd (Req a1 b1 c1) (Req a2 b2 c2)
+        ruleSingleAnd (Req a1 b1 c1 d1) (Req a2 b2 c2 d2)
             | a1 == a2 && b1 == b2 && pathIsSingle b1
-            = Just $ Req a1 b1 (c1 `intersect` c2)
+            = Just $ Req a1 b1 (c1 `intersect` c2) d1
         ruleSingleAnd _ _ = Nothing
         
         
-        ruleDel (PredLit (Req a1 b1 c1))
+        ruleDel (PredLit (Req a1 b1 c1 d1))
             | null c1
             = Just predFalse -- not true, what if none defined - to fix
-        ruleDel (PredLit (Req a1 b1 c1))
+        ruleDel (PredLit (Req a1 b1 c1 d1))
             | getCtorsFromCtor hite (head c1) `setEq` c1
             = Just predTrue
-        ruleDel (PredLit (Req a1 b1 c1))
+        ruleDel (PredLit (Req a1 b1 c1 d1))
             | pathIsOmega b1
             = Just predTrue
         ruleDel _ = Nothing
         
 
-        ruleImplies (Req a1 b1 c1) (Req a2 b2 c2)
+        ruleImplies (Req a1 b1 c1 d1) (Req a2 b2 c2 d2)
             | a1 == a2 && (b1 `elem` diffs)
-            = Just $ Req a2 b2 c2
+            = Just $ Req a2 b2 c2 d1
             where
                 diffs = f [] (map (`rdiff` b2) iargs)
                 ictors = getOtherCtors hite (head c1)
@@ -330,9 +330,9 @@ simplifyReqs b hite x = (if b then simplifyPredFull else simplifyPred)
         ruleImplies _ _ = Nothing
 
 
-        ruleImplies2 (Req a1 b1 c1) (Req a2 b2 c2)
+        ruleImplies2 (Req a1 b1 c1 d1) (Req a2 b2 c2 d2)
             | a1 == a2 && (b1 `pathSubset` b2) && (c1 == (c1 \\ c2))
-            = Just (Req a1 b1 [])
+            = Just (Req a1 b1 [] d1)
         ruleImplies2 _ _ = Nothing
 
 {-

@@ -10,14 +10,14 @@ import General.General
 
 backward :: Hite -> Req -> Reqs
 
-backward hite (Req (Sel a b) path opts) = predLit $ Req a (pathIntegrate b path) opts
+backward hite (Req (Sel a b) path opts h) = predLit $ Req a (pathIntegrate b path) opts h
 
-backward hite (Req Bottom path opts) = predFalse
-backward hite (Req (Call Bottom _) path opts) = predFalse
+backward hite (Req Bottom path opts h) = predFalse
+backward hite (Req (Call Bottom _) path opts h) = predFalse
 
-backward hite (Req (Call (CallFunc name) params) path opts) =
+backward hite (Req (Call (CallFunc name) params) path opts h) =
         if length params == length args then
-            predLit $ Req res path opts
+            predLit $ Req res path opts h
         else
             error $ "Backward: unsaturated " ++ name
     where
@@ -42,20 +42,20 @@ backward hite (Req (Case on alts) path opts) = predAnd $ map f alts
             ]
 -}
 
-backward hite (Req (MCase alts) path opts) = predAnd $ map f alts
+backward hite (Req (MCase alts) path opts h) = predAnd $ map f alts
     where
-        f (MCaseAlt cond expr) = predOr [reqsNot hite $ mcasePred hite cond, predLit $ Req expr path opts]
+        f (MCaseAlt cond expr) = predOr [reqsNot hite $ mcasePred hite cond, predLit $ Req expr path opts h]
 
 
 
-backward hite (Req (Make x ys) path opts) = predAnd $ pre : zipWith f cArgs ys
+backward hite (Req (Make x ys) path opts h) = predAnd $ pre : zipWith f cArgs ys
     where
         cArgs = ctorArgs $ getCtor hite x
 
         f arg e = if pathIsEmpty q then
                       predTrue
                   else
-                      predLit $ Req e q opts
+                      predLit $ Req e q opts h
             where q = pathQuotient arg path
             
         
@@ -65,16 +65,16 @@ backward hite (Req (Make x ys) path opts) = predAnd $ pre : zipWith f cArgs ys
                   predTrue
 
 
-backward hite (Req orig@(Repeat expr alt) path opts) = predAnd $
+backward hite (Req orig@(Repeat expr alt) path opts h) = predAnd $
     [
-        predLit $ Req alt path opts,
-        predLit $ Req (unrollExpr orig) path opts
+        predLit $ Req alt path opts h,
+        predLit $ Req (unrollExpr orig) path opts h
     ]
 
-backward hite (Req (Msg _) path opts) = predFalse
+backward hite (Req (Msg _) path opts h) = predFalse
 
 
-backward hite all@(Req a b c) = error $ "backward, unhandled: " ++ show all ++ ": " ++ case a of
+backward hite all@(Req a b c h) = error $ "backward, unhandled: " ++ show all ++ ": " ++ case a of
     Call x xs -> "call" ++ show (output x, map output xs)
     CallFunc x -> "callfunc"
     Make x xs -> "make"
@@ -91,9 +91,9 @@ backward hite a = error $ "Backward: " ++ show a
 
 backwardRepeat :: Hite -> Req -> Reqs
 backwardRepeat hite x = case x of
-        (Req (Var a) _ _ ) -> predLit x
-        (Req (Repeat _ _) _ _) -> predLit x
-        (Req (Call _ _) _ _) -> predLit x
+        (Req (Var a) _ _ _) -> predLit x
+        (Req (Repeat _ _) _ _ _) -> predLit x
+        (Req (Call _ _) _ _ _) -> predLit x
         x -> backwardRepeatPred hite (backward hite x)
 
 
@@ -116,5 +116,5 @@ mcasePred hite cond = f cond
     where
         f (MCaseAnd xs) = predAnd $ map f xs
         f (MCaseOr  xs) = predOr  $ map f xs
-        f (MCaseLit expr cond) = backwardRepeat hite $ Req expr pathLambda [cond]
+        f (MCaseLit expr cond) = backwardRepeat hite $ Req expr pathLambda [cond] hite
 

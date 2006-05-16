@@ -13,7 +13,7 @@ import Char
 import List
 
 
-data Req = Req {reqExpr :: Expr, reqPath :: Path String, reqCtors :: [CtorName]}
+data Req = Req {reqExpr :: Expr, reqPath :: Path String, reqCtors :: [CtorName], reqHite :: Hite}
            deriving Eq
            
 data ReqAll = ReqAll {reqForall :: FuncName, reqWithin :: Reqs}
@@ -35,6 +35,6 @@ instance (Eq a, Blur a) => Blur (Pred a) where
 
 
 reqsNot :: Hite -> Reqs -> Reqs
-reqsNot hite x = predNot f x
+reqsNot _ x = predNot f x
     where
-        f (Req on path set) = predLit $ Req on path (getCtorsFromCtor hite (head set) \\ set) 
+        f (Req on path set hite) = predLit $ Req on path (getCtorsFromCtor hite (head set) \\ set) hite
