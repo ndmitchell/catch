@@ -57,7 +57,7 @@ data R = R1 ReqAll | R2 Req
          deriving Eq
 
 
-class (Show a, Eq a) => Reducer a where
+class (PredLit a, Show a, Eq a) => Reducer a where
     reducer :: Hite -> [R] -> Bool -> a -> OutputMonad (Pred a)
     simpler :: Hite -> Pred a -> Pred a
     backwards :: Hite -> Pred a -> Pred a
@@ -105,7 +105,7 @@ instance Reducer Req where
                         Req _ _ _ _ -> R2 orig_req : pending
                         _ -> pending
 
-    simpler hite = simplifyMid . blur . reducePred
+    simpler hite = blur -- simplifyMid . blur . reducePred
         where
             simplifyMid x = if simplifyRegular then simplifyReqsFull hite x else x
 

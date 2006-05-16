@@ -6,9 +6,9 @@ import Hite
 import Reqs.Type
 import Reqs.Path
 import Reqs.Show
-import Pred.Type
-import Pred.Simplify
-import Pred.Form
+--import Pred.Type
+--import Pred.Simplify
+--import Pred.Form
 
 import General.Simplify
 import General.General
@@ -17,12 +17,26 @@ import List
 
 import Star.Type
 
+import Data.Predicate
+
+
+
+
+
+instance PredLit ReqAll where
+    litNot (ReqAll name reqs) = predLit $ ReqAll name (predNot reqs)
+
+
+instance PredLit Req where
+    litNot (Req on path set hite) = predLit $ Req on path (getCtorsFromCtor hite (head set) \\ set) hite
+
+
 
 
 
 -- simplify all the forall statements
 simplifyForall :: ReqAlls -> ReqAlls
-simplifyForall x = predOr $ map f $ fromOr $ dnf x
+simplifyForall x = x {- predOr $ map f $ fromOr $ dnf x
     where
         f x = predAnd $ map g $ groupBy (\a b -> getName a == getName b) $ fromAnd x
         
@@ -31,20 +45,20 @@ simplifyForall x = predOr $ map f $ fromOr $ dnf x
             where nx = getName $ headNote "Reqs.Simplify.simplifyForall" xs
         
         getName (PredLit (ReqAll a b)) = a
-        getName _ = "" 
+        getName _ = ""  -}
 
 
 simplifyReqAllsFull :: Hite -> ReqAlls -> ReqAlls
-simplifyReqAllsFull hite x = mapPredLit simpOne $ simplifyForall x
+simplifyReqAllsFull hite x = x {- mapPredLit simpOne $ simplifyForall x
     where
         simpOne (ReqAll name x) | isTrue x = predTrue
-                                | otherwise = predLit $ ReqAll name (simplifyReqsFull hite x)
+                                | otherwise = predLit $ ReqAll name (simplifyReqsFull hite x) -}
     
 
 
 -- Must all be Nothing as their within property
 simplifyReqsFull :: Hite -> Reqs -> Reqs
-simplifyReqsFull hite x = simplifyReq x
+simplifyReqsFull hite x = x {- simplifyReq x
     where
 
         anyForall x = not $ null [() | ReqAll _ _ <- allPredLit x]
@@ -57,7 +71,7 @@ simplifyReqsFull hite x = simplifyReq x
             orPairs orEqPathCollapse $
             andPairsAs andSubsetCollapse $
             mapPredLit addFinite $
-            dnf x {- $
+            dnf x { - $
             andPairs finalMerge $
             orPairsAs orSubsetCollapse $
             mapPredLit atomNullCtors $
@@ -65,7 +79,7 @@ simplifyReqsFull hite x = simplifyReq x
             orPairs orEqPathCollapse $
             andPairsAs andSubsetCollapse $
             mapPredLit addFinite $
-            cnf x -}
+            cnf x - }
 
         
         andPairsAs f xs = andPairs (makeAssoc f) xs
@@ -162,7 +176,7 @@ simplifyReqsFull hite x = simplifyReq x
                         ctr = getCtorFromArg hite c
                 
             
-            
+            -}
         
         
         
@@ -236,12 +250,12 @@ simplifyReqsFull hite x = simplifyReq x
 
 
 simplifyReqs :: Bool -> Hite -> Reqs -> Reqs
-simplifyReqs b hite x = (if b then simplifyPredFull else simplifyPred)
+simplifyReqs b hite x = x {- (if b then simplifyPredFull else simplifyPred)
         [Rule ruleSingleOr , RuleAssoc ruleSubsetOr, RuleAssoc ruleImplies]
         [Rule ruleSingleAnd, Rule ruleSameCondAnd, RuleAssoc ruleImplies2]
         [RuleOne ruleDel]
         x
-    where
+    where -}
         {-
         ruleAnd1 (Req a1 b1 c1) (Req a2 b2 c2)
             | a1 == a2 && c1 == c2
@@ -279,6 +293,7 @@ simplifyReqs b hite x = (if b then simplifyPredFull else simplifyPred)
         ruleSameCondOr _ _ = Nothing
         -}
         
+        {-
         ruleSameCondAnd (Req a1 b1 c1 d1) (Req a2 b2 c2 d2)
             | a1 == a2 && c1 `setEq` c2
             = Just (Req a1 (b1 `pathUnion` b2) c1 d1)
@@ -334,6 +349,7 @@ simplifyReqs b hite x = (if b then simplifyPredFull else simplifyPred)
             | a1 == a2 && (b1 `pathSubset` b2) && (c1 == (c1 \\ c2))
             = Just (Req a1 b1 [] d1)
         ruleImplies2 _ _ = Nothing
+        -}
 
 {-
         ruleImplies r1@(Req a1 b1 c1) r2@(Req a2 b2 c2)

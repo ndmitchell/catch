@@ -44,7 +44,7 @@ backward hite (Req (Case on alts) path opts) = predAnd $ map f alts
 
 backward hite (Req (MCase alts) path opts h) = predAnd $ map f alts
     where
-        f (MCaseAlt cond expr) = predOr [reqsNot hite $ mcasePred hite cond, predLit $ Req expr path opts h]
+        f (MCaseAlt cond expr) = predOr [predNot $ mcasePred hite cond, predLit $ Req expr path opts h]
 
 
 

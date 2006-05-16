@@ -1,10 +1,16 @@
 
 module Reqs.Type(
-    Req(..), Reqs, ReqAll(..), ReqAlls, reqsNot
+    Req(..), Reqs, ReqAll(..), ReqAlls
     ) where
 
+
+import Data.Predicate
+
+{-
 import Pred.Type
 import Pred.Show
+-}
+
 import Reqs.Path
 
 import Hite
@@ -22,19 +28,3 @@ data ReqAll = ReqAll {reqForall :: FuncName, reqWithin :: Reqs}
 
 type Reqs = Pred Req
 type ReqAlls = Pred ReqAll
-
-
-instance Blur Req where
-    blur req = req{reqPath = pathBlur (reqPath req)}
-
-instance Blur ReqAll where
-    blur (ReqAll on within) = ReqAll on (blur within)
-
-instance (Eq a, Blur a) => Blur (Pred a) where
-    blur x = mapPredLit (predLit . blur) x
-
-
-reqsNot :: Hite -> Reqs -> Reqs
-reqsNot _ x = predNot f x
-    where
-        f (Req on path set hite) = predLit $ Req on path (getCtorsFromCtor hite (head set) \\ set) hite

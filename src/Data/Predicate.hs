@@ -11,14 +11,20 @@ import Data.Maybe
 data Pred a = PredOr  [Pred a]
             | PredAnd [Pred a]
             | PredLit a
+            deriving Eq -- can do better than this!!!
 
 
 class PredLit a where
-    litNot :: a -> a
+    litNot :: a -> Pred a
     (?=>) :: a -> a -> Bool
     (?\/) :: a -> a -> Maybe a
     (?/\) :: a -> a -> Maybe a
     simp :: a -> Maybe Bool
+    
+    simp x = Nothing
+    x ?=> y = False
+    x ?\/ y = Nothing
+    x ?/\ y = Nothing
 
 
 -- * Useful utilities
@@ -123,6 +129,14 @@ predBool True  = predTrue
 predBool False = predFalse
 
 
+predNot :: PredLit a => Pred a -> Pred a
+predNot x =
+    case x of
+        PredOr  xs -> predAnd $ map predNot xs
+        PredAnd xs -> predOr  $ map predNot xs
+        PredLit x  -> litNot x
+
+
 -- * Show
 
 instance Show a => Show (Pred a) where
@@ -144,3 +158,22 @@ showPredBy f x =
     where
         disp sym xs = "(" ++ mid ++ ")"
             where mid = concat $ intersperse [' ',sym,' '] $ map (showPredBy f) xs
+
+
+-- * Maps and traversals
+
+mapPredLit :: (PredLit a, PredLit b) => (a -> Pred b) -> Pred a -> Pred b
+mapPredLit f x =
+    case x of
+        PredOr  xs -> predOr  $ fs xs
+        PredAnd xs -> predAnd $ fs xs
+        PredLit x  -> f x
+    where
+        fs = map (mapPredLit f)
+
+allPredLit :: Pred a -> [a]
+allPredLit x =
+    case x of
+        PredOr  xs -> concatMap allPredLit xs
+        PredAnd xs -> concatMap allPredLit xs
+        PredLit x  -> [x]
