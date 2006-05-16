@@ -25,12 +25,35 @@ import Data.Predicate
 
 instance PredLit ReqAll where
     litNot (ReqAll name reqs) = predLit $ ReqAll name (predNot reqs)
+    
+    (ReqAll a1 b1) ?/\ (ReqAll a2 b2) | a1 == a2 = Single $ ReqAll a1 (predAnd [b1, b2])
+                                      | otherwise = Same
 
 
 instance PredLit Req where
     litNot (Req on path set hite) = predLit $ Req on path (getCtorsFromCtor hite (head set) \\ set) hite
 
     (?=>) = (==>)
+    
+    
+    (Req a1 b1 c1 hite) ?\/ (Req a2 b2 c2 _) 
+        | a1 == a2 && b1 == b2 && pathIsFinite b1
+            = Single $ Req a1 b1 (c1 `union` c2) hite
+        | otherwise = Same
+    
+    
+    (Req a1 b1 c1 hite) ?/\ (Req a2 b2 c2 _)
+        | a1 == a2 && c1 `setEq` c2
+            = Single $ Req a1 (b1 `pathUnion` b2) c1 hite
+        | otherwise = Same
+
+
+    simp (Req a1 b1 c1 hite)
+        | c1 `setEq` (getCtorsFromCtor hite (head c1))
+            = Just True
+        | otherwise
+            = Nothing
+    
 
 
 
@@ -145,11 +168,6 @@ simplifyReqsFull hite x = x {- simplifyReq x
         andEqPathCollapse _ _ = Nothing
         
         
-        orEqPathCollapse [Req a1 b1 c1 d1] [Req a2 b2 c2 d2]
-            | a1 == a2 && b1 == b2 && pathIsFinite b1
-            = Just [Req a1 b1 (c1 `union` c2) d1]
-        orEqPathCollapse _ _ = Nothing
-
 
         -- if the set is null, then try and prove the path is not reachable
         -- by following the quotients
