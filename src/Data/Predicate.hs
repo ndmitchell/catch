@@ -14,41 +14,48 @@ data Pred a = PredOr  [Pred a]
             deriving Eq -- can do better than this!!!
 
 
+data Reduction a = Same
+                 | Single a
+                 | Value Bool
+
+
 class PredLit a where
     litNot :: a -> Pred a
     (?=>) :: a -> a -> Bool
-    (?\/) :: a -> a -> Maybe a
-    (?/\) :: a -> a -> Maybe a
+    (?\/) :: a -> a -> Reduction a
+    (?/\) :: a -> a -> Reduction a
     simp :: a -> Maybe Bool
     
     simp x = Nothing
     x ?=> y = False
-    x ?\/ y = Nothing
-    x ?/\ y = Nothing
+    x ?\/ y = Same
+    x ?/\ y = Same
 
 
 -- * Useful utilities
 
-(??\/) :: PredLit a => a -> a -> Maybe a
-a ??\/ b | a ?=> b = Just b
+(??\/) :: PredLit a => a -> a -> Reduction a
+a ??\/ b | a ?=> b = Single b
          | otherwise = a ?\/ b
 
 
-(??/\) :: PredLit a => a -> a -> Maybe a
-a ??/\ b | a ?=> b = Just a
+(??/\) :: PredLit a => a -> a -> Reduction a
+a ??/\ b | a ?=> b = Single a
          | otherwise = a ??/\ b
 
 
-reduceList :: (a -> a -> Maybe a) -> [a] -> [a]
+reduceList :: PredLit a => (a -> a -> Reduction a) -> [a] -> [Pred a]
 reduceList pair xs = f xs
     where
         f [] = []
-        f (x:xs) = g [] x (f xs)
+        f (x:xs) = comps ++ g [] x (map fromLit lits)
+            where (lits, comps) = partition isLit (f xs)
         
-        g acc x [] = x:acc
-        g acc x (y:ys) | isJust res = g [] (fromJust res) (acc++ys)
-                       | otherwise  = g (y:acc) x ys
-            where res = pair x y
+        g acc x [] = simpList (x:acc)
+        g acc x (y:ys) = case pair x y of
+                             Same -> g (y:acc) x ys
+                             Single a -> g [] a (acc++ys)
+                             Value b -> predBool b : g acc x ys
 
 simpList :: PredLit a => [a] -> [Pred a]
 simpList xs = map f xs
@@ -86,7 +93,7 @@ fromLit (PredLit x) = x
 
 solveTerms f items = lits2 ++ terms
     where
-        lits2 = simpList $ reduceList f (map fromLit lits)
+        lits2 = reduceList f (map fromLit lits)
         (lits, terms) = partition isLit items
 
 
