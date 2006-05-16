@@ -41,7 +41,7 @@ a ??\/ b | a ?=> b = Single b
 
 (??/\) :: PredLit a => a -> a -> Reduction a
 a ??/\ b | a ?=> b = Single a
-         | otherwise = a ??/\ b
+         | otherwise = a ?/\ b
 
 
 reduceList :: PredLit a => (a -> a -> Reduction a) -> [a] -> [Pred a]
