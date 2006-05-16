@@ -30,6 +30,30 @@ instance PredLit ReqAll where
 instance PredLit Req where
     litNot (Req on path set hite) = predLit $ Req on path (getCtorsFromCtor hite (head set) \\ set) hite
 
+    (?=>) = (==>)
+
+
+
+(==>) :: Req -> Req -> Bool
+(Req a1 b1 c1 hite) ==> (Req a2 b2 c2 _)
+    | a1 /= a2 = False
+    | b2 `pathSubset` b1 && null (c1 \\ c2) = True
+    | b1 == b2 && c1 `setEq` c2 = True -- should be redundant, if pathSubset is == implies
+    | pathIsFinite b1 && superImply hite b1 c1 b2 = True
+    | otherwise = False
+
+superImply :: Hite -> Path String -> [CtorName] -> Path String -> Bool
+superImply hite b1 c1 b2 = all (\l2 -> any (f l2) b1s) b2s
+    where
+        b1s = pathEnumerate b1
+        b2s = pathEnumerate (pathMakeFinite b2)
+
+        f l2 l1 = length l1 < length l2 &&
+                  l1 `isPrefixOf` l2 &&
+                  not (ctorName ctr `elem` c1)
+            where
+                c = headNote "Reqs.Simplify.superImply" (drop (length l1) l2)
+                ctr = getCtorFromArg hite c
 
 
 
