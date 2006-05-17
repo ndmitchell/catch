@@ -24,15 +24,15 @@ import Data.Predicate
 
 
 instance PredLit ReqAll where
-    litNot (ReqAll name reqs) = predLit $ ReqAll name (predNot reqs)
-    
     (ReqAll a1 b1) ?/\ (ReqAll a2 b2) | a1 == a2 = Single $ ReqAll a1 (predAnd [b1, b2])
                                       | otherwise = Same
 
 
-instance PredLit Req where
+instance PredLitNot Req where
     litNot (Req on path set hite) = predLit $ Req on path (getCtorsFromCtor hite (head set) \\ set) hite
 
+
+instance PredLit Req where
     (?=>) = (==>)
     
     

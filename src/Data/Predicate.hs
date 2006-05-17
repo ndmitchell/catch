@@ -19,8 +19,11 @@ data Reduction a = Same
                  | Value Bool
 
 
-class PredLit a where
+class PredLit a => PredLitNot a where
     litNot :: a -> Pred a
+
+
+class PredLit a where
     (?=>) :: a -> a -> Bool
     (?\/) :: a -> a -> Reduction a
     (?/\) :: a -> a -> Reduction a
@@ -136,7 +139,7 @@ predBool True  = predTrue
 predBool False = predFalse
 
 
-predNot :: PredLit a => Pred a -> Pred a
+predNot :: PredLitNot a => Pred a -> Pred a
 predNot x =
     case x of
         PredOr  xs -> predAnd $ map predNot xs
