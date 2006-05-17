@@ -21,8 +21,9 @@ data Pred a = PredOr  [Pred a]
 
 
 data Reduction a = Same
-                 | Single a
+                 | Single a       -- same as Priority infinite
                  | Value Bool
+                 | Priority Int a -- higher is bigger priority
 
 
 class PredLit a => PredLitNot a where
@@ -58,20 +59,49 @@ a ??/\ b | disableSimplify = Same
 reduceList :: PredLit a => (a -> a -> Reduction a) -> [a] -> [Pred a]
 reduceList pair xs = f xs
     where
+        f xs = g Nothing xs (allPairs xs)
+        
+        
+        g Nothing orig [] = map simpItem orig
+        g (Just (_,res)) orig [] = res
+        g pending orig (((a,b),rest):remainder) =
+            case pair a b of
+                Same -> g pending orig remainder
+                Single x -> f (x:rest)
+                Value b -> predBool b : f rest
+                Priority pri x -> case pending of
+                    Just (p2,res) | p2 >= pri -> g pending orig remainder
+                    _ -> g (Just (pri, f (x:rest))) orig remainder
+
+{-            
+    
+    
         f [] = []
-        f (x:xs) = comps ++ g [] x (map fromLit lits)
+        f (x:xs) = comps ++ g maxBound Nothing [] x (map fromLit lits)
             where (lits, comps) = partition isLit (f xs)
         
-        g acc x [] = simpList (x:acc)
-        g acc x (y:ys) = case pair x y of
+        g mx (Just pri) acc x [] = g pri Nothing [] x acc
+        g mx Nothing    acc x [] = simpList (x:acc)
+        g mx pri acc x (y:ys) = case pair x y of
                              Same -> g (y:acc) x ys
                              Single a -> g [] a (acc++ys)
                              Value b -> predBool b : g acc x ys
+-}
 
-simpList :: PredLit a => [a] -> [Pred a]
-simpList xs = map f xs
-    where
-        f x = case simp x of
+
+-- find all pairs in a list
+allPairs :: [a] -> [((a,a),[a])]
+allPairs [] = []
+allPairs (x:xs) = [((x,y),ys) | (y,ys) <- allElems xs]
+
+
+allElems :: [a] -> [(a, [a])]
+allElems [] = []
+allElems (x:xs) = (x,xs) : [(y,x:ys) | (y,ys) <- allElems xs]
+
+
+simpItem :: PredLit a => a -> Pred a
+simpItem x = case simp x of
                   Just b | not disableSimplify -> predBool b
                   _ -> predLit x
 
