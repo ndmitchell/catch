@@ -3,15 +3,15 @@ Tails True
 Dual True
 Dual2 True
 Dual3 True
-Ant True
-Adjoxo2 True
+Records (\forall main, False)
+Risers True
+Referee True
+MonadFail True
+MapHead (\forall main, <v197,tl*.hd,{:}>)
 HeadHeadReverse (\forall main, ((<v210,tl,{:}> ^ <v210,tl.tl*,{[]}>) v <v210,tl.tl*.hd+tl,{:}> v <v210,tl.tl*,{:}> v <v210,tl*.hd,{:}>))
 HeadReverse (\forall main, <v196,1,{:}>)
-MapHead (\forall main, <v197,tl*.hd,{:}>)
 MapHeadReverse (\forall main, (<v199,tl*,{[]}> v (<v199,tl,{:}> ^ <v199,tl.tl*,{[]}>) v (<v199,tl.tl*.hd+tl,{:}> ^ <v199,tl,{[]}>) v (<v199,tl*.hd,{:}> ^ <v199,tl,{[]}>) v <v199,tl.tl*,{:}> v <v199,tl*.hd,{:}>))
-MonadFail True
-Referee True
 Soda2 True
 ZipInit (\forall main, ((<v219,tl.tl*,{[]}> ^ <v220,1,{:}>) v <v219,1,{[]}> v <v220,tl*,{:}>))
-Records False
-Risers True
+Ant True
+Adjoxo2 True
