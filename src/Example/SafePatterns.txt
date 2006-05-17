@@ -14,3 +14,4 @@ Referee True
 Soda2 True
 ZipInit (\forall main, ((<v219,tl.tl*,{[]}> ^ <v220,1,{:}>) v <v219,1,{[]}> v <v220,tl*,{:}>))
 Records False
+Risers True
