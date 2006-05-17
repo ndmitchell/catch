@@ -4,6 +4,12 @@ module Data.Predicate where
 
 import Data.List
 import Data.Maybe
+
+
+-- * Debugging options
+
+disableSimplify :: Bool
+disableSimplify = False
     
     
 -- * Core Type
@@ -38,12 +44,14 @@ class PredLit a where
 -- * Useful utilities
 
 (??\/) :: PredLit a => a -> a -> Reduction a
-a ??\/ b | a ?=> b = Single b
+a ??\/ b | disableSimplify = Same
+         | a ?=> b = Single b
          | otherwise = a ?\/ b
 
 
 (??/\) :: PredLit a => a -> a -> Reduction a
-a ??/\ b | a ?=> b = Single a
+a ??/\ b | disableSimplify = Same
+         | a ?=> b = Single a
          | otherwise = a ?/\ b
 
 
@@ -64,8 +72,8 @@ simpList :: PredLit a => [a] -> [Pred a]
 simpList xs = map f xs
     where
         f x = case simp x of
-                  Nothing -> predLit x
-                  Just b -> predBool b
+                  Just b | not disableSimplify -> predBool b
+                  _ -> predLit x
 
 
 -- * Simple tests and extractors
