@@ -82,6 +82,12 @@ setEq :: Eq a => [a] -> [a] -> Bool
 setEq = setEqBy (==)
 
 
+groupSetBy :: (a -> a -> Bool) -> [a] -> [[a]]
+groupSetBy f [] = []
+groupSetBy f (x:xs) = (x:match) : groupSetBy f rest
+    where (match,rest) = partition (f x) xs
+
+
 indent x = "  " ++ x
 indents x = map indent x
 
