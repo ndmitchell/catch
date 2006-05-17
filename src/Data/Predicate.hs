@@ -92,7 +92,8 @@ reduceList pair xs = f xs
 -- find all pairs in a list
 allPairs :: [a] -> [((a,a),[a])]
 allPairs [] = []
-allPairs (x:xs) = [((x,y),ys) | (y,ys) <- allElems xs]
+allPairs (x:xs) = [((x,y),ys) | (y,ys) <- allElems xs] ++
+                  [(y,x:ys)   | (y,ys) <- allPairs xs]
 
 
 allElems :: [a] -> [(a, [a])]
