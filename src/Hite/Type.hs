@@ -99,7 +99,7 @@ instance PlayExpr MCaseAlt where
     mapExpr f (MCaseAlt a b) = MCaseAlt (mapExprOpt a) (mapExpr f b)
         where
             mapExprOpt x = mapPredLit g x
-            g (MCaseOpt expr ctor) = predLit $ MCaseOpt expr ctor
+            g (MCaseOpt expr ctor) = predLit $ MCaseOpt (mapExpr f expr) ctor
         
     allExpr (MCaseAlt a b) = allExprOpt a ++ allExpr b
         where
