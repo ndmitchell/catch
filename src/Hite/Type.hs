@@ -52,7 +52,8 @@ data Expr = Call {callFunc :: Expr, callArgs :: [Expr]}
           deriving (Eq, Show, Read)
 
 
-type MCaseOpt = (Expr,CtorName)
+data MCaseOpt = MCaseOpt Expr CtorName
+                deriving (Eq, Show, Read)
 
 data MCaseAlt = MCaseAlt (Pred MCaseOpt) Expr
                 deriving (Eq, Show, Read)
@@ -95,16 +96,16 @@ instance PlayExpr Expr where
         )
 
 instance PlayExpr MCaseAlt where
-    mapExpr f (MCaseAlt a b) = MCaseAlt (mapExpr f a) (mapExpr f b)
-    allExpr (MCaseAlt a b) = allExpr a ++ allExpr b
-
-
-instance PlayExpr (Pred MCaseOpt) where
-    mapExpr f x = mapPredLit g x
-        where g (expr,ctor) = predLit (f expr, ctor)
-
-    allExpr x = map fst $ allPredLit x
+    mapExpr f (MCaseAlt a b) = MCaseAlt (mapExprOpt a) (mapExpr f b)
+        where
+            mapExprOpt x = mapPredLit g x
+            g (MCaseOpt expr ctor) = predLit $ MCaseOpt expr ctor
+        
+    allExpr (MCaseAlt a b) = allExprOpt a ++ allExpr b
+        where
+            allExprOpt x = map (\(MCaseOpt a b) -> a) $ allPredLit x
     
+
 
 instance PlayExpr Func where
     mapExpr f x = x{body = mapExpr f (body x)}

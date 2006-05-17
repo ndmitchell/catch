@@ -16,9 +16,9 @@ mcase (Hite datas funcs) = Hite datas (map factor $ ensure $ mapExpr f funcs)
     where
         f (Case var alts) = MCase $ concatMap g alts
             where
-                g (on,MCase alts) = [MCaseAlt (predAnd [predLit (var,on), guard]) expr |
+                g (on,MCase alts) = [MCaseAlt (predAnd [predLit (MCaseOpt var on), guard]) expr |
                                                       MCaseAlt guard expr <- alts]
-                g (on,alt) = [MCaseAlt (predLit (var,on)) alt]
+                g (on,alt) = [MCaseAlt (predLit (MCaseOpt var on)) alt]
         
         f x = x
         

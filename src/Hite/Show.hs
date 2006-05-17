@@ -57,7 +57,5 @@ instance Output MCaseAlt where
     output (MCaseAlt cond expr) = "\n  | " ++ output cond ++ " = " ++ output expr
     
     
-instance Output (Pred MCaseOpt) where
-    output x = showPredBy f x
-        where
-            f (expr,ctor) = output expr ++ "{" ++ ctor ++ "}"
+instance Output MCaseOpt where
+    output (MCaseOpt expr ctor) = output expr ++ "{" ++ ctor ++ "}"

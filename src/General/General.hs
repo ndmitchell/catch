@@ -5,6 +5,7 @@ import Maybe
 import Directory
 import List
 import Monad
+import Data.Predicate
 
 {-
 import IOExts
@@ -95,6 +96,9 @@ fix f x = if x == x2 then x else fix f x2
 
 class Output x where
     output :: x -> String
+
+instance Output a => Output (Pred a) where
+    output x = showPredBy output x
 
 
 class Blur x where

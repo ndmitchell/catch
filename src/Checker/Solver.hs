@@ -57,7 +57,7 @@ data R = R1 ReqAll | R2 Req
          deriving Eq
 
 
-class (Output a, Output (Pred a), PredLit a, Show a, Eq a) => Reducer a where
+class (Output a, PredLit a, Show a, Eq a) => Reducer a where
     reducer :: Hite -> [R] -> Bool -> a -> OutputMonad (Pred a)
     simpler :: Hite -> Pred a -> Pred a
     backwards :: Hite -> Pred a -> Pred a

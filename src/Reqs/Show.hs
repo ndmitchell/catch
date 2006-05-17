@@ -15,12 +15,6 @@ import Char
 import Data.Predicate
 
 
-instance Output Reqs where
-    output x = showPred x
-
-instance Output ReqAlls where
-    output x = showPred x
-
 instance Output Req where
     output x = show x
     

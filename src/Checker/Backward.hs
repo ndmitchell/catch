@@ -114,5 +114,5 @@ backwardRepeatPred hite x = mapPredLit (backwardRepeat hite) x
 mcasePred :: Hite -> Pred MCaseOpt -> Reqs
 mcasePred hite cond = mapPredLit f cond
     where
-        f (expr,cond) = backwardRepeat hite $ Req expr pathLambda [cond] hite
+        f (MCaseOpt expr cond) = backwardRepeat hite $ Req expr pathLambda [cond] hite
 
