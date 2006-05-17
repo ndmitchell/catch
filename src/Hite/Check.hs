@@ -3,6 +3,7 @@ module Hite.Check(check, cmd) where
 
 import Hite.Type
 import Hite.Show
+import Data.Predicate
 import List
 import General.General
 
@@ -33,10 +34,14 @@ check (Hite datas funcs) =
                 checkExpr (Call name args) = all checkExpr (name:args)
                 checkExpr (Case on alts) = checkExpr on && all checkAlt alts
                 checkExpr (Msg x) = True
+                checkExpr (MCase alts) = all checkCase alts
                 
                 checkExpr x = error $ "Disallowed language element, " ++ output x
                 
                 checkAlt (on, arg) = on `elm` allCtorName && checkExpr arg
+                
+                checkCase (MCaseAlt cond expr) = all checkCaseAlt (allPredLit cond) && checkExpr expr
+                checkCaseAlt (MCaseOpt expr ctor) = checkExpr expr && ctor `elm` allCtorName
         
                 elm :: String -> [String] -> Bool
                 elm x xs | not (x `elem` xs) = error $ "Name not from recognised set: " ++ show x ++
