@@ -19,7 +19,7 @@ import List
 
 
 progressiveSolve :: Hite -> ReqAlls -> OutputMonad ReqAlls
-progressiveSolve hite reqs = do putBoth $ show reqs
+progressiveSolve hite reqs = do putBoth $ output reqs
                                 solve hite2 reqs >>= f
     where
         fringe = nub $ map reqForall $ allPredLit reqs
@@ -32,11 +32,11 @@ progressiveSolve hite reqs = do putBoth $ show reqs
 --                           return reqs
                         
         
-        f reqs | "main" `elem` fringe = do putBoth $ show reqs
+        f reqs | "main" `elem` fringe = do putBoth $ output reqs
                                            return reqs
                | isTrue reqs = return reqs
 
-               | otherwise = do putBoth $ show reqs
+               | otherwise = do putBoth $ output reqs
                                 putBoth $ "Increasing fringe from " ++ show fringe ++ " to " ++ show newfringe
                                 --error $ show $ increaseFringe hite fringe
                                 --error $ show fringe ++ "\n" ++ show newfringe ++ "\n" ++ output hite2

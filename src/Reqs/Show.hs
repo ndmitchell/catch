@@ -4,8 +4,6 @@ module Reqs.Show where
 
 import Reqs.Type
 import Reqs.Path
-import Pred.Show
-import Pred.Type
 import General.General
 
 import RegExp.Parse -- why? i don't know why this is needed...
@@ -13,6 +11,21 @@ import RegExp.Parse -- why? i don't know why this is needed...
 import List
 import Maybe
 import Char
+
+import Data.Predicate
+
+
+instance Output Reqs where
+    output x = showPred x
+
+instance Output ReqAlls where
+    output x = showPred x
+
+instance Output Req where
+    output x = show x
+    
+instance Output ReqAll where
+    output x = show x
 
 
 instance Show Req where
@@ -24,7 +37,7 @@ instance Show Req where
 
 
 instance Show ReqAll where
-    show (ReqAll on within) = "(\\forall " ++ on ++ ", " ++ show within ++ ")"
+    show (ReqAll on within) = "(\\forall " ++ on ++ ", " ++ output within ++ ")"
 
 
 

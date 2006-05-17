@@ -33,7 +33,7 @@ caseCheckOut hite = do
         if null ores then
             putBoth "All case statements were shown to be safe"
          else do
-            putBoth $ "Final postcondition: " ++ show tres
+            putBoth $ "Final postcondition: " ++ output tres
             putBoth $ show lres ++ " potentially unsafe case" ++ ['s'|lres/=1] ++ " found"
         return tres
     where
@@ -56,7 +56,7 @@ checkOracle file req = do src <- outputIO $ readFile "Example/SafePatterns.txt"
                           let ans = lookup file $ map (break (== ' ')) $ lines src
                           case ans of
                                 Nothing -> putBoth "Example not found in Oracle" >> return False
-                                Just (' ':x) | x == show req -> putBoth "Example matches Oracle" >> return True
+                                Just (' ':x) | x == output req -> putBoth "Example matches Oracle" >> return True
                                              | otherwise -> putBoth "Mismatch to Oracle" >> return False
                           
 
@@ -83,7 +83,7 @@ initErrors hite = [(
 solveError :: Hite -> ReqAlls -> OutputMonad ReqAlls
 solveError hite reqs = do
     res <- progressiveSolve hite reqs
-    putBoth $ show res
+    putBoth $ output res
     putBoth $ if isTrue res then "Safe" else "Unsafe"
     return res
 
