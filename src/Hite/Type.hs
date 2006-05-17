@@ -167,7 +167,7 @@ getOtherCtors hite name = delete name (getCtorsFromCtor hite name)
 -- Argument functions (these are a bit dubious)
 -- 1 based
 getArgPos :: FuncName -> FuncArg -> Hite -> Int
-getArgPos func arg hite = fromJust $ lookup arg $ zip (funcArgs (getFunc hite func)) [1..]
+getArgPos func arg hite = fromJustNote "Hite.Type.getArgPos" $ lookup arg $ zip (funcArgs (getFunc hite func)) [1..]
 
 
 getArgName :: FuncName -> Int -> Hite -> FuncArg

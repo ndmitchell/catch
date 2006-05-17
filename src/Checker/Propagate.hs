@@ -18,7 +18,8 @@ propagate hite on reqs
         where
             orig = funcArgs $ getFunc hite on
 
-            f rep (Req (Var var) path set h) = predLit $ Req (fromJust $ lookup var rep) path set h
+            f rep (Req (Var var) path set h) = predLit $ Req (frmJst $ lookup var rep) path set h
+                where frmJst = fromJustNote "Checker.Propagate.propagate"
 
             res = [predLit $ ReqAll (funcName func) $
                     predOr [predNot $ mcasePred hite cond, mapPredLit (f $ zip orig args) reqs] |

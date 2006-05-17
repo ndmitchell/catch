@@ -17,8 +17,6 @@ debugmsg msg val = unsafePerformIO $
 debugmsgres msg val = debugmsg (msg, val) val
 -}
 
-a ! b = fromJust $ lookup b a
-
 errorS a = error (show a)
 
 fsts = map fst
