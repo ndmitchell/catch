@@ -28,7 +28,7 @@ import General.Output
 --   The "edge" functions are assumed to start with an exclamation mark
 --   any function marked as being edge *may not* be called from this fragment
 solve :: Hite -> ReqAlls -> OutputMonad ReqAlls
-solve hite reqs = reduce hite2 reqs
+solve hite reqs = reduce hite2 reqs >>= return . simpMore
     where
         hite2 = removeUnderscore hite
 

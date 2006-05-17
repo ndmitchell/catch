@@ -1,5 +1,5 @@
 
-module Reqs.Simplify(simplifyReqs, simplifyReqsFull, simplifyReqAllsFull) where
+module Reqs.Simplify(simplifyReqs, simplifyReqsFull, simplifyReqAllsFull, simpMore) where
 
 import Hite
 
@@ -21,7 +21,41 @@ import Data.Predicate
 
 
 
+-- * Super Simplify Section
 
+data Wrap = Wrap {unwrap :: Req}
+
+instance PredLit Wrap where
+    a ?=> b = unwrap a $=> unwrap b
+    a ?\/ b = rewrap $ unwrap a $\/ unwrap b
+    a ?/\ b = case unwrap a $/\ unwrap b of
+                  Same -> rewrap $ unwrap a $!/\ unwrap b
+                  x -> rewrap x
+    simp a = simpReq (unwrap a)
+
+
+rewrap (Single a) = Single (Wrap a)
+rewrap (Priority x a) = Priority x (Wrap a)
+rewrap Same = Same
+rewrap (Value x) = Value x
+
+
+simpMore :: ReqAlls -> ReqAlls
+simpMore x = mapPredLit f x
+    where
+        f (ReqAll a b) = predLit $ ReqAll a $ mapPredLit (predLit . unwrap) $ mapPredLit (predLit . Wrap) b
+
+
+(Req a1 b1 c1 hite) $!/\ (Req a2 b2 c2 _)
+    | a1 == a2 && c1 `setEq` c2
+        = Single $ Req a1 (b1 `pathUnion` b2) c1 hite
+    | otherwise = Same
+
+
+
+
+
+-- * Standard Simplify Section
 
 instance PredLit ReqAll where
     (ReqAll a1 b1) ?/\ (ReqAll a2 b2) | a1 == a2 = Single $ ReqAll a1 (predAnd [b1, b2])
@@ -33,32 +67,30 @@ instance PredLitNot Req where
 
 
 instance PredLit Req where
-    (?=>) = (==>)
+    (?=>) = ($=>)
+    (?\/) = ($\/)
+    (?/\) = ($/\)
+
+    simp = simpReq
     
     
-    (Req a1 b1 c1 hite) ?\/ (Req a2 b2 c2 _) 
-        | a1 == a2 && b1 == b2 && pathIsFinite b1
-            = Single $ Req a1 b1 (c1 `union` c2) hite
-        | otherwise = Same
-    
-    
-    (Req a1 b1 c1 hite) ?/\ (Req a2 b2 c2 _)
-        | a1 == a2 && c1 `setEq` c2
-            = Single $ Req a1 (b1 `pathUnion` b2) c1 hite
-        | otherwise = Same
+
+simpReq (Req a1 b1 c1 hite)
+    | c1 `setEq` (getCtorsFromCtor hite (head c1))
+        = Just True
+    | otherwise
+        = Nothing
+
+(Req a1 b1 c1 hite) $\/ (Req a2 b2 c2 _) 
+    | a1 == a2 && b1 == b2 && pathIsFinite b1
+        = Single $ Req a1 b1 (c1 `union` c2) hite
+    | otherwise = Same
+
+_ $/\ _ = Same
 
 
-    simp (Req a1 b1 c1 hite)
-        | c1 `setEq` (getCtorsFromCtor hite (head c1))
-            = Just True
-        | otherwise
-            = Nothing
-    
-
-
-
-(==>) :: Req -> Req -> Bool
-(Req a1 b1 c1 hite) ==> (Req a2 b2 c2 _)
+($=>) :: Req -> Req -> Bool
+(Req a1 b1 c1 hite) $=> (Req a2 b2 c2 _)
     | a1 /= a2 = False
     | b2 `pathSubset` b1 && null (c1 \\ c2) = True
     | b1 == b2 && c1 `setEq` c2 = True -- should be redundant, if pathSubset is == implies
