@@ -6,8 +6,6 @@ import List
 import Maybe
 import General.General
 
-import Hite.Check
-
 cmd = cmdHitePure (const shortName) "short-name"
             "Shorten names, if the module name is not required for disambiguation"
 

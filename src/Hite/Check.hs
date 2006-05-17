@@ -1,10 +1,17 @@
 
-module Hite.Check(check) where
+module Hite.Check(check, cmd) where
 
 import Hite.Type
 import Hite.Show
 import List
 import General.General
+
+
+cmd = cmdHitePure f "check"
+            "Check that a Hite program is well formed"
+    where
+        f _ h = if check h then h else error "Check failed"
+
 
 -- in reality either return True, or crash
 check :: Hite -> Bool
