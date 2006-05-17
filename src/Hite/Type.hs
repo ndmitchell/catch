@@ -10,6 +10,7 @@ import General.Commands
 import Maybe
 import List
 import Char
+import Data.Predicate
 
 
 cmdHite :: (String -> Hite -> IO Hite) -> String -> String -> Command Hite
@@ -51,13 +52,13 @@ data Expr = Call {callFunc :: Expr, callArgs :: [Expr]}
           deriving (Eq, Show, Read)
 
 
-data MCaseAlt = MCaseAlt MCasePred Expr
-          deriving (Eq, Show, Read)
+type MCaseOpt = (Expr,CtorName)
 
-data MCasePred = MCaseLit Expr CtorName
-               | MCaseAnd [MCasePred]
-               | MCaseOr  [MCasePred]
-               deriving (Eq, Show, Read)
+data MCaseAlt = MCaseAlt (Pred MCaseOpt) Expr
+                deriving (Eq, Show, Read)
+
+instance PredLit MCaseOpt where
+    a ?=> b = a == b
 
 
 isVar (Var{}) = True; isVar _ = False
@@ -98,16 +99,11 @@ instance PlayExpr MCaseAlt where
     allExpr (MCaseAlt a b) = allExpr a ++ allExpr b
 
 
-instance PlayExpr MCasePred where
-    mapExpr f x = case x of
-                     MCaseLit a b -> MCaseLit (f a) b
-                     MCaseAnd as -> MCaseAnd $ map (mapExpr f) as
-                     MCaseOr  as -> MCaseOr  $ map (mapExpr f) as
-    
-    allExpr x = case x of
-                     MCaseLit a b -> [a]
-                     MCaseAnd as -> concatMap allExpr as
-                     MCaseOr  as -> concatMap allExpr as
+instance PlayExpr (Pred MCaseOpt) where
+    mapExpr f x = mapPredLit g x
+        where g (expr,ctor) = predLit (f expr, ctor)
+
+    allExpr x = map fst $ allPredLit x
     
 
 instance PlayExpr Func where
@@ -244,4 +240,4 @@ charCtor c = "Char_" ++ (if isAlphaNum c then [c] else pad3 (show (ord c)))
 
 
 blankMCase :: Expr -> Expr
-blankMCase x = MCase [MCaseAlt (MCaseAnd []) x]
+blankMCase x = MCase [MCaseAlt predTrue x]

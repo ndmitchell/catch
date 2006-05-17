@@ -4,6 +4,7 @@ module Hite.MCase(mcase, cmd) where
 import Hite.Type
 import List
 import General.General
+import Data.Predicate
 
 
 cmd = cmdHitePure (const mcase) "mcase"
@@ -15,9 +16,9 @@ mcase (Hite datas funcs) = Hite datas (map factor $ ensure $ mapExpr f funcs)
     where
         f (Case var alts) = MCase $ concatMap g alts
             where
-                g (on,MCase alts) = [MCaseAlt (MCaseAnd (MCaseLit var on:opts)) expr |
-                                                      MCaseAlt (MCaseAnd opts) expr <- alts]
-                g (on,alt) = [MCaseAlt (MCaseAnd [MCaseLit var on]) alt]
+                g (on,MCase alts) = [MCaseAlt (predAnd [predLit (var,on), guard]) expr |
+                                                      MCaseAlt guard expr <- alts]
+                g (on,alt) = [MCaseAlt (predLit (var,on)) alt]
         
         f x = x
         
@@ -27,7 +28,7 @@ mcase (Hite datas funcs) = Hite datas (map factor $ ensure $ mapExpr f funcs)
                 g func = func{body = h (body func)}
 
                 h x@(MCase _) = x
-                h x = MCase [MCaseAlt (MCaseAnd []) x]
+                h x = MCase [MCaseAlt predTrue x]
 
         
         factor func = func{body = MCase res}
@@ -35,6 +36,6 @@ mcase (Hite datas funcs) = Hite datas (map factor $ ensure $ mapExpr f funcs)
                 MCase alts = body func
                 res = map rejoin $ groupBy splitup alts
                 splitup (MCaseAlt a1 b1) (MCaseAlt a2 b2) = b1 == b2
-                rejoin xs = MCaseAlt (MCaseOr x) (headNote "Hite.MCase.factor" y)
+                rejoin xs = MCaseAlt (predOr x) (headNote "Hite.MCase.factor" y)
                     where (x,y) = unzip $ map (\(MCaseAlt a b) -> (a,b)) xs
 

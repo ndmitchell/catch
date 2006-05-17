@@ -4,6 +4,7 @@ module Hite.Show() where
 import Hite.Type
 import List
 import General.General
+import Data.Predicate
 
 
 instance Output Hite where
@@ -56,10 +57,7 @@ instance Output MCaseAlt where
     output (MCaseAlt cond expr) = "\n  | " ++ output cond ++ " = " ++ output expr
     
     
-instance Output MCasePred where
-    output x = case x of
-                    MCaseLit var cond -> output var ++ "{" ++ cond ++ "}"
-                    MCaseAnd xs -> f '^' xs
-                    MCaseOr  xs -> f 'v' xs
+instance Output (Pred MCaseOpt) where
+    output x = showPredBy f x
         where
-            f mid xs = "(" ++ (concat $ intersperse [' ',mid,' '] $ map output xs) ++ ")"
+            f (expr,ctor) = output expr ++ "{" ++ ctor ++ "}"

@@ -11,7 +11,7 @@ import Data.Maybe
 data Pred a = PredOr  [Pred a]
             | PredAnd [Pred a]
             | PredLit a
-            deriving Eq -- can do better than this!!!
+            deriving (Read, Show)
 
 
 data Reduction a = Same
@@ -149,10 +149,6 @@ predNot x =
 
 -- * Show
 
-instance Show a => Show (Pred a) where
-    show x = showPred x
-    
-
 showPred :: Show a => Pred a -> String
 showPred x = showPredBy show x
 
@@ -168,6 +164,24 @@ showPredBy f x =
     where
         disp sym xs = "(" ++ mid ++ ")"
             where mid = concat $ intersperse [' ',sym,' '] $ map (showPredBy f) xs
+
+
+-- * Eq
+
+instance Eq a => Eq (Pred a) where
+    (PredLit a) == (PredLit b) = a == b
+    (PredAnd a) == (PredAnd b) = sameSet a b
+    (PredOr  a) == (PredOr  b) = sameSet a b
+    _ == _ = False
+
+
+sameSet a b | length a /= length b = False
+            | otherwise = f [] a b
+    where
+        f [] [] [] = True
+        f acc (a:as) (b:bs) | a == b = f [] as (acc ++ bs)
+                            | otherwise = f (b:acc) (a:as) bs
+        f _ _ _ = False                        
 
 
 -- * Maps and traversals
