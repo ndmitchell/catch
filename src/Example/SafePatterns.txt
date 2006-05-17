@@ -7,6 +7,7 @@ Records (\forall main, False)
 Risers True
 Referee True
 MonadFail True
+Foldr1 (\forall main, <v206,1,{:}>)
 MapHead (\forall main, <v197,tl*.hd,{:}>)
 HeadHeadReverse (\forall main, ((<v210,tl,{:}> ^ <v210,tl.tl*,{[]}>) v <v210,tl.tl*.hd+tl,{:}> v <v210,tl.tl*,{:}> v <v210,tl*.hd,{:}>))
 HeadReverse (\forall main, <v196,1,{:}>)
