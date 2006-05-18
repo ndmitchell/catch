@@ -1,11 +1,22 @@
 
+{- |
+    For details see <http://www.cs.york.ac.uk/~ndm/projects/libraries.php>
+    
+    The idea behind this library is that the simplification of the predicate is
+    handled automatically using the 'PredLit' instance.
+-}
 
 module Data.Predicate(
-    Pred, Reduction(..), PredLit, PredLitNot,
-    fromAnd, fromOr, fromLit,
+    -- * Core Type Declarations
+    Pred, Reduction(..), PredLit(..), PredLitNot(..),
+    -- * Predicate Creation
     predTrue, predFalse, predLit, predAnd, predOr, predNot, predBool,
+    -- * Extract and Test
+    fromAnd, fromOr, fromLit,
     isFalse, isTrue, isLit,
+    -- * Show
     showPred, showPredBy,
+    -- * Play
     mapPredLit, allPredLit
     ) where
 
@@ -16,38 +27,49 @@ import Data.Maybe
 
 -- * Debugging options
 
+-- only to be used for developing
 disableSimplify :: Bool
 disableSimplify = False
     
     
 -- * Core Type
 
+-- | The abstract data type of a predicate.
+--   Most users will want the type variable to be a member of 'PredLit'
 data Pred a = PredOr  [Pred a]
             | PredAnd [Pred a]
             | PredLit a
             deriving (Read, Show)
 
 
-data Reduction a = Same
-                 | Single a       -- same as Priority infinite
-                 | Value Bool
-                 | Priority Int a -- higher is bigger priority
+-- | How do two items combine to be reduced, for simplification rules.
+data Reduction a = Same           -- ^ These two items do not simplify
+                 | Single a       -- ^ Two items collapse to one item, same as 'Priority' infinite
+                 | Value Bool     -- ^ Two items collapse to a boolean value
+                 | Priority Int a -- ^ The items collapse, but with a given priority - higher gets done first
 
 
-class PredLit a => PredLitNot a where
-    litNot :: a -> Pred a
-
-
+-- | A predicate that has simplifications on it, all methods are optional
 class PredLit a where
+    -- | the first item implies the second
     (?=>) :: a -> a -> Bool
+    -- | how two items combine under or
     (?\/) :: a -> a -> Reduction a
+    -- | how two items combine under and
     (?/\) :: a -> a -> Reduction a
+    -- | can a single value be collapse to a boolean
     simp :: a -> Maybe Bool
     
     simp x = Nothing
     x ?=> y = False
     x ?\/ y = Same
     x ?/\ y = Same
+
+
+-- | A predicate that can also be negated, required for 'predNot' only
+class PredLit a => PredLitNot a where
+    -- | the negation of a literal
+    litNot :: a -> Pred a
 
 
 -- * Useful utilities
@@ -117,11 +139,13 @@ simpItem x = case simp x of
 
 -- * Simple tests and extractors
 
+-- | return a list of the items, if the item is not a 'predAnd' its the singleton list
 fromAnd :: Pred a -> [Pred a]
 fromAnd (PredAnd x) = x
 fromAnd x           = [x]
 
 
+-- | return a list of the items, if the item is not a 'predOr' its the singleton list
 fromOr :: Pred a -> [Pred a]
 fromOr (PredOr x) = x
 fromOr x          = [x]
@@ -131,14 +155,21 @@ fromOr x          = [x]
 -- * Creators
 
 
+-- | A constant True
+predTrue :: Pred a
 predTrue = PredAnd []
 
+-- | A constant False
+predFalse :: Pred a
 predFalse = PredOr []
 
+-- | Create a predicate that is just a literal
+predLit :: a -> Pred a
 predLit x = PredLit x
+
+-- | Crashes if 'isLit' is False
+fromLit :: Pred a -> a
 fromLit (PredLit x) = x
-
-
 
 
 solveTerms f items = lits2 ++ terms
@@ -147,6 +178,7 @@ solveTerms f items = lits2 ++ terms
         (lits, terms) = partition isLit items
 
 
+-- | Combine a list of predicates with and
 predAnd :: PredLit a => [Pred a] -> Pred a
 predAnd xs = case items of
                 [x] -> x
@@ -156,6 +188,7 @@ predAnd xs = case items of
         items = filter (not . isTrue) $ solveTerms (??/\) $ concatMap fromAnd xs
 
 
+-- | Combine a list of predicates with or
 predOr :: PredLit a => [Pred a] -> Pred a
 predOr xs = case items of
                 [x] -> x
@@ -165,27 +198,34 @@ predOr xs = case items of
         items = filter (not . isFalse) $ solveTerms (??\/) $ concatMap fromOr xs
 
 
-
-
+-- | Return True only if the predicate is definately False. Note that predFalse /is not/ not . predTrue
+isFalse :: Pred a -> Bool
 isFalse (PredOr  []) = True
 isFalse (PredAnd xs) = any isFalse xs
 isFalse (PredOr  xs) = all isFalse xs
 isFalse _ = False
 
+-- | Return True only if the predicate is definately True
+isTrue :: Pred a -> Bool
 isTrue (PredAnd []) = True
 isTrue (PredAnd xs) = all isTrue xs
 isTrue (PredOr  xs) = any isTrue xs
 isTrue _ = False
 
 
+-- | Is a predicate just a literal
+isLit :: Pred a -> Bool
 isLit (PredLit x) = True
 isLit _ = False
 
 
+-- | Create a predicate that matches the boolean value
+predBool :: Bool -> Pred a
 predBool True  = predTrue
 predBool False = predFalse
 
 
+-- | Negate a predicate
 predNot :: PredLitNot a => Pred a -> Pred a
 predNot x =
     case x of
@@ -196,10 +236,12 @@ predNot x =
 
 -- * Show
 
+-- | Show a predicate nicely
 showPred :: Show a => Pred a -> String
 showPred x = showPredBy show x
 
 
+-- | Show a predicate, with a special function for showing each element
 showPredBy :: (a -> String) -> Pred a -> String
 showPredBy f x =
     case x of
@@ -233,6 +275,7 @@ sameSet a b | length a /= length b = False
 
 -- * Maps and traversals
 
+-- | Perform a map over every literal
 mapPredLit :: (PredLit a, PredLit b) => (a -> Pred b) -> Pred a -> Pred b
 mapPredLit f x =
     case x of
@@ -242,6 +285,7 @@ mapPredLit f x =
     where
         fs = map (mapPredLit f)
 
+-- | Get all literals in a predicate
 allPredLit :: Pred a -> [a]
 allPredLit x =
     case x of
