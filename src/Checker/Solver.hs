@@ -124,7 +124,7 @@ reduceMany hite pending orig2_xs = do
                     return predFalse
             else do
                 case simpler hite (backwards hite orig_xs) of
-                     PredLit x -> reducer hite pending False x
+                     x | isLit x -> reducer hite pending False (fromLit x)
                      x | null (allPredLit x) -> return x
                      xs -> f xs
     where
