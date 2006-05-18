@@ -1,6 +1,14 @@
 
 
-module Data.Predicate where
+module Data.Predicate(
+    Pred, Reduction(..), PredLit, PredLitNot,
+    fromAnd, fromOr, fromLit,
+    predTrue, predFalse, predLit, predAnd, predOr, predNot, predBool,
+    isFalse, isTrue, isLit,
+    showPred, showPredBy,
+    mapPredLit, allPredLit
+    ) where
+
 
 import Data.List
 import Data.Maybe
@@ -237,6 +245,9 @@ mapPredLit f x =
 allPredLit :: Pred a -> [a]
 allPredLit x =
     case x of
-        PredOr  xs -> concatMap allPredLit xs
-        PredAnd xs -> concatMap allPredLit xs
+        PredOr  xs -> fs xs
+        PredAnd xs -> fs xs
         PredLit x  -> [x]
+    where
+        fs = concatMap allPredLit
+        
