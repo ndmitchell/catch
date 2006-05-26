@@ -38,7 +38,7 @@ showRewrite node (Just (Rewrite a b)) =
 
 
 showGExp :: String -> GExp -> [String]
-showGExp nn gexp = [nn ++ "[label=\"" ++ take 15 (noQuotes (show gexp)) ++ "\"]"]
+showGExp nn gexp = [nn ++ "[label=\"" ++ noQuotes (show gexp) ++ "\"]"]
     where
         noQuotes x = map f x
         f '\"' = '\''
