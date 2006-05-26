@@ -31,7 +31,7 @@ mcase (Hite datas funcs) = Hite datas (map factor $ ensure $ mapExpr f funcs)
                 h x = MCase [MCaseAlt predTrue x]
 
         
-        factor func = func{body = MCase res}
+        factor func = func{body = MCase (filter valid res)}
             where
                 MCase alts = body func
                 res = map rejoin $ groupSetBy splitup alts
@@ -39,3 +39,4 @@ mcase (Hite datas funcs) = Hite datas (map factor $ ensure $ mapExpr f funcs)
                 rejoin xs = MCaseAlt (predOr x) (headNote "Hite.MCase.factor" y)
                     where (x,y) = unzip $ map (\(MCaseAlt a b) -> (a,b)) xs
 
+        valid (MCaseAlt p e) = not (isFalse p)

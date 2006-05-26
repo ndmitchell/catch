@@ -60,6 +60,7 @@ data MCaseAlt = MCaseAlt (Pred MCaseOpt) Expr
 
 instance PredLit MCaseOpt where
     a ?=> b = a == b
+    (MCaseOpt e1 c1) ?/\ (MCaseOpt e2 c2) = if e1 == e2 && c1 /= c2 then Value False else Same
 
 
 isVar (Var{}) = True; isVar _ = False
