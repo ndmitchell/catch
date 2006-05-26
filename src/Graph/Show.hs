@@ -10,12 +10,14 @@ instance Show Graph where
             f n x = show n ++ ": " ++ show x
 
 instance Show Node where
-    show (Node edges rewrite) = show edges ++ " " ++ show rewrite
+    show (Node name edges rewrite) = name ++ " " ++ show edges ++ " " ++ show rewrite
 
 instance Show Rewrite where
     show (Rewrite a b) = show a ++ " -> " ++ show b
+    show (GraphEnd) = "GraphEnd"
 
 instance Show GExp where
-    show (GFree x) = "$" ++ x
+    show (GVar x) = "$" ++ x
     show (GCtor x xs) = "(" ++ x ++ concatMap ((' ':) . show) xs ++ ")"
     show (GFunc x xs) = show (GCtor x [xs])
+    show (GStr x) = show x

@@ -5,13 +5,15 @@ import Data.List
 
 
 data Graph = Graph [Node]
-data Node = Node {edges :: [Int], rewrite :: Maybe Rewrite}
+data Node = Node {nodeName :: String, edges :: [Int], rewrite :: Maybe Rewrite}
 
 data Rewrite = Rewrite GExp GExp
+             | GraphEnd
 
-data GExp = GFree String
+data GExp = GVar String
           | GCtor String [GExp]
           | GFunc String GExp
+          | GStr String
 
 
 

@@ -31,6 +31,10 @@ ncase *Find the circumstances under which a program will definately crash
 	prepare
 	unsafe-patterns
 
+graph *Solve the program with graph methods
+	prepare
+	graph-patterns
+
 stats *Generate statistics about a Haskell program
 	short-name
 	reachable
