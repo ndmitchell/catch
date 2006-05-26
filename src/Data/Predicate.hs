@@ -141,13 +141,13 @@ simpItem x = case simp x of
 
 -- | return a list of the items, if the item is not a 'predAnd' its the singleton list
 fromAnd :: Pred a -> [Pred a]
-fromAnd (PredAnd x) = x
+fromAnd (PredAnd x) = if null x then [predTrue] else x
 fromAnd x           = [x]
 
 
 -- | return a list of the items, if the item is not a 'predOr' its the singleton list
 fromOr :: Pred a -> [Pred a]
-fromOr (PredOr x) = x
+fromOr (PredOr x) = if null x then [predFalse] else x
 fromOr x          = [x]
 
 
