@@ -16,6 +16,13 @@ data GExp = GVar String
           | GStr String
 
 
+mapGExp :: (GExp -> GExp) -> GExp -> GExp
+mapGExp f x = f $ case x of
+                  GCtor a b -> GCtor a (map (mapGExp f) b)
+                  GFunc a b -> GFunc a (mapGExp f b)
+                  x -> x
+
+
 
 -- Which nodes are reachable from an initial node
 reachable :: Graph -> Int -> [Int]

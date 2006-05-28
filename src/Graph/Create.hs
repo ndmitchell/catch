@@ -4,6 +4,7 @@ module Graph.Create(createGraph) where
 import Graph.Type
 import Graph.Show
 import Hite
+import General.General
 import List
 import Maybe
 import Data.Predicate
@@ -27,34 +28,30 @@ createGraph hite@(Hite _ funcs) = Graph nodes
                 g (MCaseAlt p ex) = [(name,to, Rewrite (lhs args p) r) | (to,r) <- rhs ex]
         
         lhs :: [FuncArg] -> Pred MCaseOpt -> GExp
-        lhs args p | isTrue p = GCtor "." $ map GVar args
-                   | all isLit ps = foldr comb (lhs args predTrue) (map fromLit ps)
+        lhs args p | isTrue p = base
+                   | all isLit ps = solve base $ map (generate . fromLit) ps
+                   -- foldr comb (lhs args predTrue) (map fromLit ps)
                    | otherwise = error "Graph.Create.lhs: Can't handle predOr's"
             where
+                base = GCtor "." $ map GVar args
                 ps = fromAnd p
                 
-                comb :: MCaseOpt -> GExp -> GExp
-                comb (MCaseOpt (Var s) ctor) expr = mergeCtor expr pos (newCtor ctor [s])
-                    where Just pos = elemIndex s args
+                -- generate an initial expression, with its name
+                generate :: MCaseOpt -> (String, GExp)
+                generate (MCaseOpt s ctor) = (var,
+                        GCtor ctor [GVar $ var ++ "." ++ x | x <- ctorArgs $ getCtor hite ctor])
+                    where var = output s
                 
-                -- comb (MCaseOpt (Path on path) ctor) 
-
-                comb a b = error $ show ("comb",a,b)
+                solve :: GExp -> [(String, GExp)] -> GExp
+                solve b [] = b
+                solve b (x:xs) = solve (merge x b) $ map (\(a,b) -> (a,merge x b)) xs
                 
-                mergeCtor (GCtor n xs) pos new = GCtor n $ pre ++ [new] ++ post
-                    where (pre, post) = (take pos xs, drop (pos+1) xs)
-                
-                newCtor :: CtorName -> [String] -> GExp
-                newCtor ctor path = GCtor ctor [GVar (pre ++ x) | x <- args]
+                merge :: (String, GExp) -> GExp -> GExp
+                merge (name,rep) x = mapGExp f x
                     where
-                        pre = concatMap (++".") path
-                        Ctor _ args = getCtor hite ctor
-                
-                
-{-                
-                   | isLit p = let MCaseOpt (Var var) cond = fromLit p
-                               in GCtor "." [GCtor cond []] -}
-        
+                        f (GVar n) | n == name = rep
+                        f x = x
+
         rhs :: Expr -> [(FuncName, GExp)]
         rhs x = [(name, GCtor "." (map trans args)) | Call (CallFunc name) args <- allExpr x]
         
