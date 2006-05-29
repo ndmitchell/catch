@@ -2,6 +2,7 @@
 module Graph.Type where
 
 import Data.List
+import Data.Maybe
 
 
 data Graph = Graph [Node]
@@ -16,6 +17,11 @@ data GExp = GVar String
           | GStr String
 
 
+isGVar (GVar _) = True; isGVar _ = False
+
+isGraphEnd (GraphEnd) = True; isGraphEnd _ = False
+
+
 mapGExp :: (GExp -> GExp) -> GExp -> GExp
 mapGExp f x = f $ case x of
                   GCtor a b -> GCtor a (map (mapGExp f) b)
@@ -25,8 +31,8 @@ mapGExp f x = f $ case x of
 
 
 -- Which nodes are reachable from an initial node
-reachable :: Graph -> Int -> [Int]
-reachable (Graph nodes) x = fixSet f [x]
+gReachable :: Graph -> Int -> [Int]
+gReachable (Graph nodes) x = fixSet f [x]
     where
         f x = edges (nodes !! x)
 
@@ -35,7 +41,13 @@ reachable (Graph nodes) x = fixSet f [x]
 -- perform a garbage collection
 -- useful to stop deletion of nodes being required ever
 gc :: Graph -> Graph
-gc x = x
+gc graph@(Graph nodes) = Graph $ map f [nodes !! n | n <- new]
+    where
+        new = sort $ gReachable graph 0
+        ren = zip new [0..]
+        
+        f node = node{edges = map (\x -> fromJust $ lookup x ren) (edges node)}
+
 
 
 
