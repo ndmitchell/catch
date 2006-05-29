@@ -13,7 +13,7 @@ drawGraph graph file = do writeFile (file ++ ".dot") (showGraph graph)
 
 
 showGraph :: Graph -> String
-showGraph (Graph xs) = unlines $ ["Digraph catch{"] ++ concat (zipWith f [0..] xs) ++ ["}"]
+showGraph xs = unlines $ ["Digraph catch{"] ++ concat (zipWith f [0..] xs) ++ ["}"]
     where
         nod :: Int -> String
         nod n = "n" ++ show n

@@ -5,7 +5,7 @@ import Data.List
 import Data.Maybe
 
 
-data Graph = Graph [Node]
+type Graph = [Node]
 data Node = Node {nodeName :: String, edges :: [Int], rewrite :: Maybe Rewrite}
 
 data Rewrite = Rewrite GExp GExp
@@ -32,7 +32,7 @@ mapGExp f x = f $ case x of
 
 -- Which nodes are reachable from an initial node
 gReachable :: Graph -> Int -> [Int]
-gReachable (Graph nodes) x = fixSet f [x]
+gReachable nodes x = fixSet f [x]
     where
         f x = edges (nodes !! x)
 
@@ -41,7 +41,7 @@ gReachable (Graph nodes) x = fixSet f [x]
 -- perform a garbage collection
 -- useful to stop deletion of nodes being required ever
 gc :: Graph -> Graph
-gc graph@(Graph nodes) = Graph $ map f [nodes !! n | n <- new]
+gc graph = map f [graph !! n | n <- new]
     where
         new = sort $ gReachable graph 0
         ren = zip new [0..]

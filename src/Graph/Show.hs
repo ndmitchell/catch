@@ -4,12 +4,10 @@ module Graph.Show where
 import Graph.Type
 
 
-instance Show Graph where
-    show (Graph xs) = unlines ("Graph:" : zipWith f [0..] xs)
-        where
-            f n x = show n ++ ": " ++ show x
-
 instance Show Node where
+    showList xs = showString $ unlines ("Graph:" : zipWith f [0..] xs)
+        where f n x = show n ++ ": " ++ show x
+
     show (Node name edges rewrite) = name ++ " " ++ show edges ++ " " ++ show rewrite
 
 instance Show Rewrite where

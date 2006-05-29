@@ -19,7 +19,7 @@ solveGraph hite graph = do drawGraph graph2 "Temp-Graph"
 -- if a rewrite changes nothing, and has not ctor's apart from the base "."
 -- then it is redundant
 removeSimpleRewrite :: Graph -> Graph
-removeSimpleRewrite (Graph nodes) = Graph $ map f nodes
+removeSimpleRewrite nodes = map f nodes
     where
         f (n@Node{rewrite=Just r}) | isSimple r = n{rewrite=Nothing}
         f x = x
@@ -31,30 +31,30 @@ removeSimpleRewrite (Graph nodes) = Graph $ map f nodes
 
 -- Remove all control->control nodes
 controlReduce :: Graph -> Graph
-controlReduce graph@(Graph nodes) = if length nodes == length nodes2 then graph else controlReduce newgraph
+controlReduce graph = if length graph == length newgraph then graph else controlReduce newgraph
     where
-        newgraph@(Graph nodes2) = controlReduction graph
+        newgraph = controlReduction graph
 
 
 controlReduction :: Graph -> Graph
-controlReduction graph@(Graph nodes) = gc $ Graph $ map change nodes
+controlReduction graph = gc $ map change graph
     where
-        redundant = map fst $ filter isRedundant $ zip [0..] nodes
+        redundant = map fst $ filter isRedundant $ zip [0..] graph
         
         isRedundant (num, node) = isNothing (rewrite node) && all f (edges node)
             where
                 f n = {- isNothing (rewrite (nodes !! n)) && -} not (num `elem` gReachable graph n)
 
         change node = node{edges = concatMap newedge (edges node)}
-        newedge n | n `elem` redundant = edges (nodes !! n)
+        newedge n | n `elem` redundant = edges (graph !! n)
                   | otherwise = [n]
 
 
 reachFailure :: Graph -> Graph
-reachFailure graph@(Graph nodes) = gc $ Graph $ map change nodes
+reachFailure graph = gc $ map change graph
     where
-        safe = map fst $ filter isSafe $ zip [0..] nodes
+        safe = map fst $ filter isSafe $ zip [0..] graph
         
-        isSafe (num, node) = not $ any isGraphEnd $ catMaybes [rewrite (nodes !! n) | n <- gReachable graph num]
+        isSafe (num, node) = not $ any isGraphEnd $ catMaybes [rewrite (graph !! n) | n <- gReachable graph num]
 
         change node = node{edges = filter (\x -> not (x `elem` safe)) (edges node)}

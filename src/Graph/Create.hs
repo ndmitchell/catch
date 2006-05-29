@@ -11,7 +11,7 @@ import Data.Predicate
 
 
 createGraph :: Hite -> Graph
-createGraph hite@(Hite _ funcs) = Graph nodes
+createGraph hite@(Hite _ funcs) = nodes
     where
         nodes = map baseNode table ++ map linkNode links
         links = zip [length funcs..] $ concatMap f $ filter (\x -> funcName x /= "error") funcs
