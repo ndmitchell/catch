@@ -29,12 +29,26 @@ mapGExp f x = f $ case x of
                   x -> x
 
 
+labels :: Graph -> [Int]
+labels graph = [0 .. length graph - 1]
+
+labeled :: Graph -> [(Int, Node)]
+labeled graph = zip [0..] graph
+
 
 -- Which nodes are reachable from an initial node
 gReachable :: Graph -> Int -> [Int]
-gReachable nodes x = fixSet f [x]
+gReachable graph x = gReachables graph [x]
+
+gReachables :: Graph -> [Int] -> [Int]
+gReachables nodes x = fixSet f x
     where
         f x = edges (nodes !! x)
+
+
+-- Which nodes point at this node
+incoming :: Graph -> Int -> [Int]
+incoming graph x = [n | (n,i) <- labeled graph, x `elem` edges i]
 
 
 

@@ -5,6 +5,8 @@ import Graph.Type
 import Graph.Draw
 import Hite
 import Data.Maybe
+import Data.List
+import Debug.Trace
 
 
 solveGraph :: Hite -> Graph -> IO Bool
@@ -48,7 +50,47 @@ reachFailure graph = gc $ map change graph
 -- Remove all redundant control loops, just compress things
 
 graphControlDelete :: Graph -> Graph
-graphControlDelete = controlReduce 
+graphControlDelete = yPromotion . labelInline . controlReduce
+
+
+-- if a node is at the end, then promote it to be the contents of all its inners
+yPromotion :: Graph -> Graph
+yPromotion graph = if null canPromote then graph else yPromotion $ gc $ change (length graph) graph
+    where
+        canPromote = [n | (n,x) <- labeled graph, let dest = gReachables graph (edges x),
+                          not (n `elem` dest), let income = incoming graph n \\ dest,
+                          length income >= 2]
+
+        (promote, promnode) = (head canPromote, graph !! promote)
+        
+        change n [] = []
+        change n (node:nodes) | promote `elem` es = node{edges = es2} : change (n+1) (nodes ++ [promnode])
+                              | otherwise = node : change n nodes
+            where
+                es = edges node
+                es2 = map (\x -> if x == promote then n else x) es
+
+
+-- if the root node (0) is a single pointer onwards, compress it
+rootPromote :: Graph -> Graph
+rootPromote graph = gc $ f 0 : tail graph
+    where
+        f n | length (edges nn) == 1 && null (rewrite nn) = f (head $ edges nn)
+            | otherwise = nn
+            where nn = graph !! n
+
+
+labelInline :: Graph -> Graph
+labelInline graph = gc $ map (f []) (labels graph)
+    where
+        f done x | x `elem` done = {- trace ("labelInline1: " ++ show (done,x)) $ -} Node "" [x] []
+                 | null (edges node) || length (edges node) > 1 = {- trace ("labelInline2: " ++ show (done,x)) -} node
+                 | otherwise = let Node nam edg rw = f (x:done) (head $ edges node)
+                               in Node nam edg (rewrite node ++ rw)
+            where
+                node = graph !! x
+        
+
 
 -- Remove all control->control nodes
 controlReduce :: Graph -> Graph
@@ -64,7 +106,7 @@ controlReduction graph = gc $ map change graph
         
         isRedundant (num, node) = null (rewrite node) && all f (edges node)
             where
-                f n = {- isNothing (rewrite (nodes !! n)) && -} not (num `elem` gReachable graph n)
+                f n = not (num `elem` gReachable graph n)
 
         change node = node{edges = concatMap newedge (edges node)}
         newedge n | n `elem` redundant = edges (graph !! n)
