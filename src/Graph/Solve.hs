@@ -11,10 +11,16 @@ solveGraph :: Hite -> Graph -> IO Bool
 solveGraph hite graph = do drawGraph graph2 "Temp-Graph"
                            return False
     where
-        graph2 = controlReduce $ reachFailure $ removeSimpleRewrite graph
+        graph2 = graphControlDelete $ graphItemDelete graph
 
 
 
+
+-- * Item removal
+-- Delete all redundant bits
+
+graphItemDelete :: Graph -> Graph
+graphItemDelete = removeSimpleRewrite . reachFailure
 
 -- if a rewrite changes nothing, and has not ctor's apart from the base "."
 -- then it is redundant
@@ -28,6 +34,21 @@ removeSimpleRewrite nodes = map f nodes
         isSimple _ = False
 
 
+reachFailure :: Graph -> Graph
+reachFailure graph = gc $ map change graph
+    where
+        safe = map fst $ filter isSafe $ zip [0..] graph
+        
+        isSafe (num, node) = not $ any isGraphEnd $ concat [rewrite (graph !! n) | n <- gReachable graph num]
+
+        change node = node{edges = filter (\x -> not (x `elem` safe)) (edges node)}
+
+
+-- * Control Reduction
+-- Remove all redundant control loops, just compress things
+
+graphControlDelete :: Graph -> Graph
+graphControlDelete = controlReduce 
 
 -- Remove all control->control nodes
 controlReduce :: Graph -> Graph
@@ -49,12 +70,3 @@ controlReduction graph = gc $ map change graph
         newedge n | n `elem` redundant = edges (graph !! n)
                   | otherwise = [n]
 
-
-reachFailure :: Graph -> Graph
-reachFailure graph = gc $ map change graph
-    where
-        safe = map fst $ filter isSafe $ zip [0..] graph
-        
-        isSafe (num, node) = not $ any isGraphEnd $ concat [rewrite (graph !! n) | n <- gReachable graph num]
-
-        change node = node{edges = filter (\x -> not (x `elem` safe)) (edges node)}
