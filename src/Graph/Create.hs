@@ -25,16 +25,17 @@ createGraph hite@(Hite _ funcs) = nodes
         f :: Func -> [(FuncName, FuncName, Rewrite)]
         f (Func name args (MCase alts) _) = concatMap g alts
             where
-                g (MCaseAlt p ex) = [(name,to, Rewrite (lhs args p) r) | (to,r) <- rhs ex]
+                g (MCaseAlt p ex) = [(name,to, Rewrite l2 r2) | (to,r) <- rhs ex, let (l2,r2) = lhs r args p]
         
-        lhs :: [FuncArg] -> Pred MCaseOpt -> GExp
-        lhs args p | isTrue p = base
-                   | all isLit ps = solve base $ map (generate . fromLit) ps
-                   -- foldr comb (lhs args predTrue) (map fromLit ps)
-                   | otherwise = error "Graph.Create.lhs: Can't handle predOr's"
+        lhs :: GExp -> [FuncArg] -> Pred MCaseOpt -> (GExp, GExp)
+        lhs right args p | isTrue p = (base, right)
+                         | all isLit ps = (solve base reps, solve right reps)
+                           -- foldr comb (lhs args predTrue) (map fromLit ps)
+                         | otherwise = error "Graph.Create.lhs: Can't handle predOr's"
             where
                 base = GCtor "." $ map GVar args
                 ps = fromAnd p
+                reps = map (generate . fromLit) ps
                 
                 -- generate an initial expression, with its name
                 generate :: MCaseOpt -> (String, GExp)
