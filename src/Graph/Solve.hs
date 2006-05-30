@@ -13,7 +13,7 @@ solveGraph :: Hite -> Graph -> IO Bool
 solveGraph hite graph = do drawGraph graph2 "Temp-Graph"
                            return False
     where
-        graph2 = graphItemDelete $ graphControlDelete $ graphItemDelete graph
+        graph2 = graphControlDelete $ graphItemDelete $ graphItemDelete $ graphControlDelete $ graphItemDelete graph
 
 
 
@@ -22,8 +22,23 @@ solveGraph hite graph = do drawGraph graph2 "Temp-Graph"
 -- Delete all redundant bits
 
 graphItemDelete :: Graph -> Graph
-graphItemDelete = compressList . removeSimpleRewrite . reachFailure
+graphItemDelete = singleSourceIncompatible . compressList . removeSimpleRewrite . reachFailure
 
+singleSourceIncompatible :: Graph -> Graph
+singleSourceIncompatible graph = map f $ labeled graph
+    where
+        f (n,node) | length ins == 1 && not (null inr) && not (null nnr) &&
+                     isRewrite nnr_head && isRewrite inr_last &&
+                     not (rewriteRhs inr_last `isCompatible` rewriteLhs nnr_head)
+                   = node{rewrite = [GraphBreak]}
+            where
+                nnr_head = head nnr
+                inr_last = last inr
+                nnr = rewrite node
+                inr = rewrite (graph !! head ins)
+                ins = incoming graph n
+
+        f (n,node) = node
 
 -- try and do some basic simplifications
 compressList :: Graph -> Graph
@@ -38,6 +53,7 @@ compressList graph = map f graph
         pairs [] = []
         pairs [x] = [x]
         pairs (Rewrite a b:GraphEnd:xs) = Rewrite (onlyVar [] a) GFree:GraphEnd:[]
+        pairs (Rewrite a1 b1:Rewrite a2 b2:xs) | not (isCompatible b1 a2) = Rewrite a1 b1 : GraphBreak : []
         pairs (a:b:xs) = a : pairs (b:xs)
 
         
@@ -56,6 +72,11 @@ compressList graph = map f graph
 -- and if they can, what are the matching pairs?
 -- all items in pair set are GVar, GFree
 -- conjoin :: GExp -> GExp -> Maybe [(GExp, GExp)]
+
+
+isCompatible :: GExp -> GExp -> Bool
+isCompatible (GCtor n1 x1) (GCtor n2 x2) = n1 == n2 && length x1 == length x2 && and (zipWith isCompatible x1 x2)
+isCompatible _ _ = True
 
 
 

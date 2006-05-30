@@ -13,6 +13,7 @@ instance Show Node where
 instance Show Rewrite where
     show (Rewrite a b) = show a ++ " -> " ++ show b
     show (GraphEnd) = "GraphEnd"
+    show (GraphBreak) = "GraphBreak"
 
 instance Show GExp where
     show (GVar x) = "$" ++ x

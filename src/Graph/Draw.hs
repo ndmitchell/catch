@@ -30,9 +30,9 @@ showRewrite node i (Rewrite a b:xs) edges =
     showGExp (node ++ show (i+2)) b ++
     showRewrite node (i+2) xs edges
 
-showRewrite node i (GraphEnd:xs) edges = 
+showRewrite node i (x:xs) edges = 
     [node ++ show i ++ "->" ++ node ++ show (i+1)
-    ,node ++ show (i+1) ++ "[label=\"End\",color=\"red\"]"
+    ,node ++ show (i+1) ++ "[label=\"" ++ show x ++ "\",color=\"red\"]"
     ] ++
     showRewrite node (i+1) xs edges
 

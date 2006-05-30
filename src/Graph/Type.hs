@@ -8,14 +8,18 @@ import Data.Maybe
 type Graph = [Node]
 data Node = Node {nodeName :: String, edges :: [Int], rewrite :: [Rewrite]}
 
-data Rewrite = Rewrite GExp GExp
+data Rewrite = Rewrite {rewriteLhs :: GExp, rewriteRhs :: GExp}
              | GraphEnd
+             | GraphBreak
 
 data GExp = GVar String
           | GCtor String [GExp]
           | GFunc String GExp
           | GStr String
           | GFree
+
+
+isRewrite (Rewrite{}) = True; isRewrite _ = False
 
 
 isGVar (GVar _) = True; isGVar _ = False
