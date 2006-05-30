@@ -19,3 +19,4 @@ instance Show GExp where
     show (GCtor x xs) = "(" ++ x ++ concatMap ((' ':) . show) xs ++ ")"
     show (GFunc x xs) = show (GCtor x [xs])
     show (GStr x) = show x
+    show (GFree) = "_"

@@ -13,7 +13,7 @@ solveGraph :: Hite -> Graph -> IO Bool
 solveGraph hite graph = do drawGraph graph2 "Temp-Graph"
                            return False
     where
-        graph2 = graphControlDelete $ graphItemDelete graph
+        graph2 = graphItemDelete $ graphControlDelete $ graphItemDelete graph
 
 
 
@@ -22,7 +22,42 @@ solveGraph hite graph = do drawGraph graph2 "Temp-Graph"
 -- Delete all redundant bits
 
 graphItemDelete :: Graph -> Graph
-graphItemDelete = removeSimpleRewrite . reachFailure
+graphItemDelete = compressList . removeSimpleRewrite . reachFailure
+
+
+-- try and do some basic simplifications
+compressList :: Graph -> Graph
+compressList graph = map f graph
+    where
+        f n = n{rewrite = pairs $ map simp $ rewrite n}
+        
+        simp (Rewrite a b) = Rewrite (onlyVar vars a) (onlyVar vars b)
+            where vars = allVars a `intersect` allVars b
+        simp x = x
+        
+        pairs [] = []
+        pairs [x] = [x]
+        pairs (Rewrite a b:GraphEnd:xs) = Rewrite (onlyVar [] a) GFree:GraphEnd:[]
+        pairs (a:b:xs) = a : pairs (b:xs)
+
+        
+        allVars :: GExp -> [String]
+        allVars x = nub [n | GVar n <- allGExp x]
+        
+        onlyVar :: [String] -> GExp -> GExp
+        onlyVar vars x = mapGExp f x
+            where
+                f (GVar n) | not (n `elem` vars) = GFree
+                f x = x
+
+
+
+-- can the two GExp's be unified
+-- and if they can, what are the matching pairs?
+-- all items in pair set are GVar, GFree
+-- conjoin :: GExp -> GExp -> Maybe [(GExp, GExp)]
+
+
 
 -- if a rewrite changes nothing, and has not ctor's apart from the base "."
 -- then it is redundant

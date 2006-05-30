@@ -15,9 +15,11 @@ data GExp = GVar String
           | GCtor String [GExp]
           | GFunc String GExp
           | GStr String
+          | GFree
 
 
 isGVar (GVar _) = True; isGVar _ = False
+fromGVar (GVar x) = x
 
 isGraphEnd (GraphEnd) = True; isGraphEnd _ = False
 
@@ -27,6 +29,13 @@ mapGExp f x = f $ case x of
                   GCtor a b -> GCtor a (map (mapGExp f) b)
                   GFunc a b -> GFunc a (mapGExp f b)
                   x -> x
+
+allGExp :: GExp -> [GExp]
+allGExp x = x : concatMap allGExp (case x of
+                    GCtor a b -> b
+                    GFunc a b -> [b]
+                    _ -> []
+            )
 
 
 labels :: Graph -> [Int]
