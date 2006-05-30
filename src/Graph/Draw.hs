@@ -18,7 +18,7 @@ showGraph xs = unlines $ ["Digraph catch{"] ++ concat (zipWith f [0..] xs) ++ ["
         nod :: Int -> String
         nod n = "n" ++ show n
     
-        f n (Node name [] (Just GraphEnd)) = [nod n ++ "[label=\"End\",color=\"red\"]"]
+        f n (Node name [] [GraphEnd]) = [nod n ++ "[label=\"End\",color=\"red\"]"]
         f n (Node name edges rewrite) = (nn ++ "[label=\"" ++ show n ++ "," ++ name ++ "\"]")
                                        : map (g nn) edges
                                        ++ showRewrite nn rewrite
@@ -26,9 +26,9 @@ showGraph xs = unlines $ ["Digraph catch{"] ++ concat (zipWith f [0..] xs) ++ ["
         
         g from to = from ++ "->" ++ nod to ++ "[label=\"\"]"
 
-showRewrite :: String -> Maybe Rewrite -> [String]
-showRewrite node Nothing = []
-showRewrite node (Just (Rewrite a b)) = 
+showRewrite :: String -> [Rewrite] -> [String]
+showRewrite node [] = []
+showRewrite node [Rewrite a b] = 
     [node ++ "->" ++ node ++ "e[label=\"E\"]"
     ,node ++ "->" ++ node ++ "b[label=\"B\"]"
     ]

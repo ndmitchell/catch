@@ -21,7 +21,7 @@ solveGraph hite graph = do drawGraph graph2 "Temp-Graph"
 removeSimpleRewrite :: Graph -> Graph
 removeSimpleRewrite nodes = map f nodes
     where
-        f (n@Node{rewrite=Just r}) | isSimple r = n{rewrite=Nothing}
+        f (n@Node{rewrite=[r]}) | isSimple r = n{rewrite=[]}
         f x = x
         
         isSimple (Rewrite (GCtor "." a) (GCtor "." b)) = all isGVar (a ++ b)
@@ -41,7 +41,7 @@ controlReduction graph = gc $ map change graph
     where
         redundant = map fst $ filter isRedundant $ zip [0..] graph
         
-        isRedundant (num, node) = isNothing (rewrite node) && all f (edges node)
+        isRedundant (num, node) = null (rewrite node) && all f (edges node)
             where
                 f n = {- isNothing (rewrite (nodes !! n)) && -} not (num `elem` gReachable graph n)
 
@@ -55,6 +55,6 @@ reachFailure graph = gc $ map change graph
     where
         safe = map fst $ filter isSafe $ zip [0..] graph
         
-        isSafe (num, node) = not $ any isGraphEnd $ catMaybes [rewrite (graph !! n) | n <- gReachable graph num]
+        isSafe (num, node) = not $ any isGraphEnd $ concat [rewrite (graph !! n) | n <- gReachable graph num]
 
         change node = node{edges = filter (\x -> not (x `elem` safe)) (edges node)}

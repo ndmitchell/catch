@@ -17,9 +17,9 @@ createGraph hite@(Hite _ funcs) = nodes
         links = zip [length funcs..] $ concatMap f $ filter (\x -> funcName x /= "error") funcs
         table = ("main",0) : zip (map funcName funcs \\ ["main"]) [1..]
         
-        baseNode ("error",_) = Node "error" [] (Just GraphEnd)
-        baseNode (name,_) = Node name [n | (n,(from,to,with)) <- links, from == name] Nothing
-        linkNode (_,(from,to,with)) = Node "" [fromJust $ lookup to table] (Just with)
+        baseNode ("error",_) = Node "error" [] [GraphEnd]
+        baseNode (name,_) = Node name [n | (n,(from,to,with)) <- links, from == name] []
+        linkNode (_,(from,to,with)) = Node "" [fromJust $ lookup to table] [with]
         
         
         f :: Func -> [(FuncName, FuncName, Rewrite)]

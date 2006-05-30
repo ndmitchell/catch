@@ -6,7 +6,7 @@ import Data.Maybe
 
 
 type Graph = [Node]
-data Node = Node {nodeName :: String, edges :: [Int], rewrite :: Maybe Rewrite}
+data Node = Node {nodeName :: String, edges :: [Int], rewrite :: [Rewrite]}
 
 data Rewrite = Rewrite GExp GExp
              | GraphEnd
