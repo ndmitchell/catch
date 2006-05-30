@@ -13,8 +13,12 @@ solveGraph :: Hite -> Graph -> IO Bool
 solveGraph hite graph = do drawGraph graph2 "Temp-Graph"
                            return False
     where
-        graph2 = graphControlDelete $ graphItemDelete $ graphItemDelete $ graphControlDelete $ graphItemDelete graph
+        graph2 = simplify graph
 
+
+-- simplify entirely on a graph, must be reducing and terminating
+simplify :: Graph -> Graph
+simplify = graphItemDelete . graphControlDelete . graphItemDelete . graphItemDelete . graphControlDelete . graphItemDelete
 
 
 
@@ -54,6 +58,7 @@ compressList graph = map f graph
         pairs [x] = [x]
         pairs (Rewrite a b:GraphEnd:xs) = Rewrite (onlyVar [] a) GFree:GraphEnd:[]
         pairs (Rewrite a1 b1:Rewrite a2 b2:xs) | not (isCompatible b1 a2) = Rewrite a1 b1 : GraphBreak : []
+                                               | isPure b1 = pairs (fuse (Rewrite a1 b1) (Rewrite a2 b2) : xs)
         pairs (a:b:xs) = a : pairs (b:xs)
 
         
@@ -67,16 +72,19 @@ compressList graph = map f graph
                 f x = x
 
 
-
--- can the two GExp's be unified
--- and if they can, what are the matching pairs?
--- all items in pair set are GVar, GFree
--- conjoin :: GExp -> GExp -> Maybe [(GExp, GExp)]
+fuse :: Rewrite -> Rewrite -> Rewrite
+fuse x y = error $ show (x,y)
 
 
+-- can the two GExp's be unified, with matching contstructors
 isCompatible :: GExp -> GExp -> Bool
 isCompatible (GCtor n1 x1) (GCtor n2 x2) = n1 == n2 && length x1 == length x2 && and (zipWith isCompatible x1 x2)
 isCompatible _ _ = True
+
+
+-- is an expression pure, i.e. no function calls
+isPure :: GExp -> Bool
+isPure x = null [() | GFunc _ _ <- allGExp x]
 
 
 
@@ -85,10 +93,10 @@ isCompatible _ _ = True
 removeSimpleRewrite :: Graph -> Graph
 removeSimpleRewrite nodes = map f nodes
     where
-        f (n@Node{rewrite=[r]}) | isSimple r = n{rewrite=[]}
-        f x = x
+        f n = n{rewrite = filter (not . isSimple) (rewrite n)}
         
-        isSimple (Rewrite (GCtor "." a) (GCtor "." b)) = all isGVar (a ++ b)
+        isSimple (Rewrite (GCtor "." a) (GCtor "." b))
+            = all isGVar (a ++ b) && map fromGVar a == map fromGVar b
         isSimple _ = False
 
 
