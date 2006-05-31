@@ -25,6 +25,8 @@ isRewrite (Rewrite{}) = True; isRewrite _ = False
 isGVar (GVar _) = True; isGVar _ = False
 fromGVar (GVar x) = x
 
+isGFunc (GFunc{}) = True; isGFunc _ = False
+
 isGraphEnd (GraphEnd) = True; isGraphEnd _ = False
 
 

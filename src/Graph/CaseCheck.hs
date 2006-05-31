@@ -13,6 +13,6 @@ graphCaseCheck file hndl hite =
     do
         let graph = createGraph hite
         putStrLn "Checking graph"
-        res <- solveGraph hite graph
+        res <- solveGraph file hite graph
         putStrLn $ "Result: " ++ show res
         return res

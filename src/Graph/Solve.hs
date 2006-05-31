@@ -8,15 +8,83 @@ import Data.Maybe
 import Data.List
 import Debug.Trace
 import Control.Exception
+import Directory
+import Monad
 
 
-solveGraph :: Hite -> Graph -> IO Bool
-solveGraph hite graph = do drawGraph graph2 "Temp-Graph"
-                           return False
+solveGraph :: String -> Hite -> Graph -> IO Bool
+solveGraph file hite graph =
+    do
+        b <- doesDirectoryExist path
+        when (not b) $ createDirectory path
+        
+        draw graph 0
+        f graph 1
     where
-        graph2 = simplify graph
+        path = "Logs/" ++ file
+    
+        draw :: Graph -> Int -> IO ()
+        draw graph n = drawGraph graph (path ++ "/" ++ make3 (show n))
+        
+        make3 x = replicate (3 - length x) '0' ++ x
+    
+        f :: Graph -> Int -> IO Bool
+        f graph n | n > 10 = return False
+        f graph n = do let g = simplify graph
+                       draw g n
+                       if isSolved g then
+                           return True
+                        else if not $ canInstantiate g then
+                           return False
+                        else do
+                           let g2 = instantiate hite g
+                           draw g2 (n+1)
+                           f g2 (n+2)
 
 
+canInstantiate :: Graph -> Bool
+canInstantiate graph = any canInstantiateRewrite (concatMap rewrite graph)
+
+isSolved :: Graph -> Bool
+isSolved graph = not $ any isGraphEnd $ concatMap rewrite graph
+
+
+---------------------------------------------------------------------
+-- INSTANTIATE
+-- instantiate a graph with functional forms
+
+instantiate :: Hite -> Graph -> Graph
+instantiate hite graph = map change $ concat newnodes
+    where
+        newnodes = map doNode graph
+        rep = f 0 $ zip [0..] newnodes
+            where
+                f n [] = []
+                f n ((m,x):xs) = (m, [n..lx]) : f lx xs
+                    where lx = n + length x
+    
+        change node = node{edges = concatMap f (edges node)}
+            where f n = fromJust $ lookup n rep
+    
+        doNode :: Node -> [Node]
+        doNode node = map (\x -> node{rewrite=x}) $ doRewrites (rewrite node)
+        
+        doRewrites :: [Rewrite] -> [[Rewrite]]
+        doRewrites [] = [[]]
+        doRewrites (r:rs) = [r2:rs2 | r2 <- doRewrite r, rs2 <- doRewrites rs]
+        
+        doRewrite :: Rewrite -> [Rewrite]
+        -- doRewrite r@(Rewrite lhs rhs) | canInstantiateRewrite r = error $ show rhs
+        doRewrite r = [r]
+        
+
+canInstantiateRewrite :: Rewrite -> Bool
+canInstantiateRewrite (Rewrite a b) = any isGFunc $ allGExp b
+canInstantiateRewrite _ = False
+
+
+---------------------------------------------------------------------
+-- SIMPLIFY
 -- simplify entirely on a graph, must be reducing and terminating
 simplify :: Graph -> Graph
 simplify = graphItemDelete . graphControlDelete . graphItemDelete . graphItemDelete . graphControlDelete . graphItemDelete
