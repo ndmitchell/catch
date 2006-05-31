@@ -7,6 +7,7 @@ import Hite
 import Data.Maybe
 import Data.List
 import Debug.Trace
+import Control.Exception
 
 
 solveGraph :: Hite -> Graph -> IO Bool
@@ -65,15 +66,37 @@ compressList graph = map f graph
         allVars :: GExp -> [String]
         allVars x = nub [n | GVar n <- allGExp x]
         
+        -- not sure this transformation is valid
         onlyVar :: [String] -> GExp -> GExp
-        onlyVar vars x = mapGExp f x
+        onlyVar vars x = x -- mapGExp f x
             where
                 f (GVar n) | not (n `elem` vars) = GFree
                 f x = x
 
 
 fuse :: Rewrite -> Rewrite -> Rewrite
-fuse x y = error $ show (x,y)
+fuse (Rewrite l1 r1) (Rewrite l2 r2) = Rewrite (rep unifyL l1) (rep unifyR r2)
+    where
+        unifyL = filter (not . simpleUnify) $ unify r1 l2
+        unifyR = unify l2 r1
+    
+        -- one sided unify
+        unify :: GExp -> GExp -> [(String, GExp)]
+        unify (GCtor n1 x1) (GCtor n2 x2) = assert (n1 == n2 && length x1 == length x2) $
+            concatMap (uncurry unify) (zip x1 x2)
+        unify (GVar x) y = [(x,y)]
+        unify _ _ = []
+        
+        simpleUnify (x, GVar y) = True
+        simpleUnify _ = False
+        
+        rep :: [(String, GExp)] -> GExp -> GExp
+        rep dict x = mapGExp f x
+            where
+                f (GVar n) = case lookup n dict of
+                                Just y -> y
+                                Nothing -> GVar n
+                f x = x
 
 
 -- can the two GExp's be unified, with matching contstructors
