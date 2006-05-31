@@ -35,7 +35,7 @@ mcase (Hite datas funcs) = Hite datas (map factor $ ensure $ mapExpr f funcs)
             where
                 MCase alts = body func
                 res = map rejoin $ groupSetBy splitup alts
-                splitup (MCaseAlt a1 b1) (MCaseAlt a2 b2) = b1 == b2
+                splitup (MCaseAlt a1 b1) (MCaseAlt a2 b2) = False -- b1 == b2
                 rejoin xs = MCaseAlt (predOr x) (headNote "Hite.MCase.factor" y)
                     where (x,y) = unzip $ map (\(MCaseAlt a b) -> (a,b)) xs
 
