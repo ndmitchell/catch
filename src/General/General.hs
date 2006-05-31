@@ -111,3 +111,7 @@ class Blur x where
 
 ensureDirectory s = do b <- doesDirectoryExist s
                        when (not b) $ createDirectory s
+
+
+crossProduct :: [[a]] -> [[a]]
+crossProduct (x:xs) = [y:ys | y <- x, ys <- crossProduct xs]
