@@ -21,6 +21,7 @@ data GExp = GVar String
 
 
 isRewrite (Rewrite{}) = True; isRewrite _ = False
+isGraphBreak GraphBreak = True; isGraphBreak _ = False
 
 
 isGVar (GVar _) = True; isGVar _ = False

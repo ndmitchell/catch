@@ -217,7 +217,7 @@ eval hite orig@(GFunc name (GCtor "." cargs)) =
 -- SIMPLIFY
 -- simplify entirely on a graph, must be reducing and terminating
 simplify :: Graph -> Graph
-simplify = validGraph "simplify" . graphItemDelete . graphControlDelete . graphItemDelete . graphItemDelete . graphControlDelete . graphItemDelete
+simplify = validGraph "simplify" . graphItemDelete . graphControlDelete . graphItemDelete . graphControlDelete . graphItemDelete . graphItemDelete . graphControlDelete . graphItemDelete
 
 
 
@@ -247,11 +247,13 @@ singleSourceIncompatible graph = map f $ labeled graph
 compressList :: Graph -> Graph
 compressList graph = map f graph
     where
-        f n = n{rewrite = pairs $ map simp $ rewrite n}
+        f n = if any isGraphBreak rew then n{edges=[], rewrite=[GraphBreak]} else n{rewrite=rew}
+            where rew = pairs $ map simp $ rewrite n
         
         simp (Rewrite a b) = Rewrite (onlyVar vars a) (onlyVar vars b)
             where vars = allVars a `intersect` allVars b
         simp x = x
+
         
         pairs [] = []
         pairs [x] = [x]
