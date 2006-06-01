@@ -33,7 +33,7 @@ solveGraph file hite graph =
         make3 x = replicate (3 - length x) '0' ++ x
     
         f :: Graph -> Int -> IO Bool
-        f graph n | n > 20 = return False
+        f graph n | n > 15 = return False
         f graph n = do let g = simplify graph
                        draw g n
                        if isSolved g then
@@ -47,7 +47,12 @@ solveGraph file hite graph =
 
 
 canInstantiate :: Graph -> Bool
-canInstantiate graph = any canInstantiateRewrite (concatMap rewrite graph)
+canInstantiate graph = any f (concatMap rewrite graph)
+    where
+        f (Rewrite a b) = any isGFunc $ allGExp b
+        f _ = False
+
+
 
 isSolved :: Graph -> Bool
 isSolved graph = not $ any isGraphEnd $ concatMap rewrite graph
@@ -58,7 +63,57 @@ isSolved graph = not $ any isGraphEnd $ concatMap rewrite graph
 -- instantiate a graph with functional forms
 
 instantiate :: Hite -> Graph -> Graph
-instantiate hite graph = newzero : (map change $ concat newnodes)
+instantiate hite = validGraph "evaluate" . evaluate hite . validGraph "expand" . expand hite . validGraph "onerewrite" . onerewrite . validGraph "funcsimp" . funcsimp
+
+
+-- each rewrite may have a maximum of one function call in the RHS
+funcsimp :: Graph -> Graph
+funcsimp graph = map f graph
+    where
+        f node = node{rewrite = concatMap g (rewrite node)}
+        
+        g rew@(Rewrite (GCtor "." l) (GCtor "." r))
+                | null pfuncs = assert (null cfuncs) [rew]
+                | length (pfuncs++cfuncs) == 1 = [rew]
+                | otherwise = Rewrite (GCtor "." l) (GCtor "." (pfunc:l))
+                            : g (Rewrite (GCtor "." (GVar newvar:l)) (mapGExp change (GCtor "." r)))
+            where
+                pfunc = head pfuncs
+                (pfuncs,cfuncs) = partition isPureFunc $ filter isGFunc $ concatMap allGExp r
+                isPureFunc (GFunc _ x) = isPure x
+                newvar = head $ ["n" ++ show i | i <- [1..]] \\ nub [x | GVar x <- concatMap allGExp (l++r)]
+                
+                change x | x == pfunc = GVar newvar
+                         | otherwise = x
+        
+        g x = [x]
+
+
+-- each node must have a maximum of one rewrite expression
+-- this probably does a lot of work that the control expansion spent
+-- a while doing
+-- also introduce a "zero" node
+onerewrite :: Graph -> Graph
+onerewrite graph = f (length graph) graph
+    where
+        f n [] = []
+        f n (x:xs) | lrews <= 1 = x : f n xs
+                   | otherwise = x{rewrite=[head rews], edges=[n]} :
+                                 f (n+lrews) (
+                                     xs ++
+                                     [Node "" [m+1] [r] | (m,r) <- zip [n..] (tail rews)] ++
+                                     [Node "" (edges x) []]
+                                 )
+            where
+                lrews = length rews
+                rews = rewrite x
+                
+
+
+-- for all functions, instantiate them to ensure that
+-- any appropriate evaluations can be performed
+expand :: Hite -> Graph -> Graph
+expand hite graph = newzero : (map change $ concat newnodes)
     where
         newzero = Node "" (fromJust $ lookup 0 rep) []
         newnodes = map doNode graph
@@ -78,14 +133,8 @@ instantiate hite graph = newzero : (map change $ concat newnodes)
         doRewrites x = crossProduct $ map doRewrite x
         
         doRewrite :: Rewrite -> [Rewrite]
-        doRewrite r@(Rewrite lhs rhs) | canInstantiateRewrite r = map eval $ instan lhs rhs
+        doRewrite r@(Rewrite lhs rhs) | any isGFunc $ allGExp rhs = instan lhs rhs
         doRewrite r = [r]
-        
-        -- evaluate any functions that can be
-        eval :: Rewrite -> Rewrite
-        eval (Rewrite l r) = Rewrite l (mapGExp f r)
-            where
-                f x = if isGFunc x then evaluate hite x else x
         
         -- instantiate any functions so they can be evaluated
         -- note: not sure what the bindings should do here if there is more than
@@ -101,14 +150,33 @@ instantiate hite graph = newzero : (map change $ concat newnodes)
         bindings :: GExp -> [Rename]
         bindings (GFunc name arg) = map (getRename hite func arg) opts
             where
-                opts = [a | let MCase alts = body func, MCaseAlt a b <- alts]
+                opts = [predAnd [a, varsToPred b] | let MCase alts = body func, MCaseAlt a b <- alts]
                 func = getFunc hite name
 
+        -- some guards are removed for being simple
+        -- add all these back in
+        varsToPred :: Expr -> Pred MCaseOpt
+        varsToPred x = predAnd $ map predLit $ concat [ensurePath y | y <- allExpr x, isSel y]
+        
+        ensurePath :: Expr -> [MCaseOpt]
+        ensurePath (Var _) = []
+        ensurePath (Sel x y) = MCaseOpt x (ctorName $ getCtorFromArg hite y) : ensurePath x
+        
+
+-- evaluate all functions, every function must be evaluated
+evaluate :: Hite -> Graph -> Graph
+evaluate hite graph = map f graph
+    where
+        f node = node{rewrite = map g (rewrite node)}
+        
+        g (Rewrite l r) = Rewrite l (mapGExp (eval hite) r)
+        g x = x
 
 
-evaluate :: Hite -> GExp -> GExp
-evaluate hite orig@(GFunc name (GCtor "." cargs)) =
-        if null res then orig else assert (length res == 1) (head res)
+eval :: Hite -> GExp -> GExp
+eval hite x | not (isGFunc x) = x
+eval hite orig@(GFunc name (GCtor "." cargs)) =
+        if null res then error "eval" else assert (length res == 1) (head res)
     where
         (Func _ args (MCase opts) _) = getFunc hite name
         res = [convert x | MCaseAlt p x <- opts,
@@ -139,21 +207,17 @@ evaluate hite orig@(GFunc name (GCtor "." cargs)) =
         convert :: Expr -> GExp
         convert (Make a b) = GCtor a (map convert b)
         convert (Call (CallFunc a) b) = GFunc a (GCtor "." (map convert b))
+        convert (Msg x) = GVar "string"
         convert x = case getVar x of
                         Just y -> y
                         Nothing -> error $ "Graph.Solve.evaluate.convert, Nothing from " ++ show (name,x,cargs)
-
-
-canInstantiateRewrite :: Rewrite -> Bool
-canInstantiateRewrite (Rewrite a b) = any isGFunc $ allGExp b
-canInstantiateRewrite _ = False
 
 
 ---------------------------------------------------------------------
 -- SIMPLIFY
 -- simplify entirely on a graph, must be reducing and terminating
 simplify :: Graph -> Graph
-simplify = graphItemDelete . graphControlDelete . graphItemDelete . graphItemDelete . graphControlDelete . graphItemDelete
+simplify = validGraph "simplify" . graphItemDelete . graphControlDelete . graphItemDelete . graphItemDelete . graphControlDelete . graphItemDelete
 
 
 

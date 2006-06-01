@@ -97,3 +97,11 @@ fixSet f elems = fix2 f elems []
             where
                 done2 = x ++ done
                 x2 = nub $ concatMap f x
+
+
+-- crashes if the graph is not valid
+validGraph :: String -> Graph -> Graph
+validGraph msg graph = if null res then graph else error $ "validGraph failed, " ++ msg
+    where
+        res = nub (concatMap edges graph) \\ nodes
+        nodes = [0.. length graph - 1]

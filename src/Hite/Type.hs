@@ -132,10 +132,12 @@ instance PlayFunc Hite where
 
 
 getVarPath :: Expr -> (FuncArg, [CtorArg])
-getVarPath (Var x) = (x, [])
-getVarPath (Sel x y) = (a,b ++ [y])
-    where (a,b) = getVarPath x
-
+getVarPath x = f x
+    where
+        f (Var x) = (x, [])
+        f (Sel x y) = (a,b ++ [y])
+            where (a,b) = getVarPath x
+        f _ = error $ "Hite.Type.getVarPath, called on non-varpath: " ++ show x
 
 
 -- Generic with function
