@@ -17,6 +17,7 @@ data GExp = GVar String
           | GFunc String GExp
           | GStr String
           | GFree
+          deriving Eq
 
 
 isRewrite (Rewrite{}) = True; isRewrite _ = False
@@ -42,6 +43,13 @@ allGExp x = x : concatMap allGExp (case x of
                     GFunc a b -> [b]
                     _ -> []
             )
+
+allRootGFunc :: GExp -> [GExp]
+allRootGFunc x = case x of
+        GCtor a b -> concatMap allRootGFunc b
+        GFunc _ _ -> [x]
+        _ -> []
+        
 
 
 labels :: Graph -> [Int]

@@ -3,6 +3,8 @@ module Graph.Create(createGraph) where
 
 import Graph.Type
 import Graph.Show
+import Graph.Rename
+
 import Hite
 import General.General
 import List
@@ -23,17 +25,16 @@ createGraph hite@(Hite _ funcs) = nodes
         
         
         f :: Func -> [(FuncName, FuncName, Rewrite)]
-        f (Func name args (MCase alts) _) = concatMap g alts
+        f func@(Func name _ (MCase alts) _) = concatMap g alts
             where
-                g (MCaseAlt p ex) = [(name,to, Rewrite l2 r2) | (to,r) <- rhs ex, let (l2,r2) = lhs r args p]
+                g (MCaseAlt p ex) = [(name,to, Rewrite l2 r2) | (to,r) <- rhs ex, let (l2,r2) = lhs func r p]
         
-        lhs :: GExp -> [FuncArg] -> Pred MCaseOpt -> (GExp, GExp)
-        lhs right args p | isTrue p = (base, right)
-                         | all isLit ps = (solve base reps, solve right reps)
-                           -- foldr comb (lhs args predTrue) (map fromLit ps)
-                         | otherwise = error "Graph.Create.lhs: Can't handle predOr's"
+        lhs :: Func -> GExp -> Pred MCaseOpt -> (GExp, GExp)
+        lhs func right p = (applyRename ren base, applyRename ren right)
             where
-                base = GCtor "." $ map GVar args
+                ren = getRename hite func base p
+                base = GCtor "." $ map GVar (funcArgs func)
+                
                 ps = fromAnd p
                 reps = map (generate . fromLit) ps
                 

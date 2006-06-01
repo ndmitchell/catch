@@ -3,6 +3,8 @@ module Graph.Solve(solveGraph) where
 
 import Graph.Type
 import Graph.Draw
+import Graph.Rename
+
 import Hite
 import Data.Maybe
 import Data.List
@@ -10,6 +12,7 @@ import Debug.Trace
 import Control.Exception
 import Directory
 import Monad
+import General.General
 
 
 solveGraph :: String -> Hite -> Graph -> IO Bool
@@ -54,13 +57,14 @@ isSolved graph = not $ any isGraphEnd $ concatMap rewrite graph
 -- instantiate a graph with functional forms
 
 instantiate :: Hite -> Graph -> Graph
-instantiate hite graph = map change $ concat newnodes
+instantiate hite graph = newzero : (map change $ concat newnodes)
     where
+        newzero = Node "" (fromJust $ lookup 0 rep) []
         newnodes = map doNode graph
-        rep = f 0 $ zip [0..] newnodes
+        rep = f 1 $ zip [0..] newnodes
             where
                 f n [] = []
-                f n ((m,x):xs) = (m, [n..lx]) : f lx xs
+                f n ((m,x):xs) = (m, [n..lx-1]) : f lx xs
                     where lx = n + length x
     
         change node = node{edges = concatMap f (edges node)}
@@ -70,13 +74,34 @@ instantiate hite graph = map change $ concat newnodes
         doNode node = map (\x -> node{rewrite=x}) $ doRewrites (rewrite node)
         
         doRewrites :: [Rewrite] -> [[Rewrite]]
-        doRewrites [] = [[]]
-        doRewrites (r:rs) = [r2:rs2 | r2 <- doRewrite r, rs2 <- doRewrites rs]
+        doRewrites x = crossProduct $ map doRewrite x
         
         doRewrite :: Rewrite -> [Rewrite]
-        -- doRewrite r@(Rewrite lhs rhs) | canInstantiateRewrite r = error $ show rhs
+        doRewrite r@(Rewrite lhs rhs) | canInstantiateRewrite r = map eval $ instan lhs rhs
         doRewrite r = [r]
         
+        -- evaluate any functions that can be
+        eval :: Rewrite -> Rewrite
+        eval x = x
+        
+        -- instantiate any functions so they can be evaluated
+        -- note: not sure what the bindings should do here if there is more than
+        --       one root function
+        instan :: GExp -> GExp -> [Rewrite]
+        instan lhs rhs | length roots /= 1 = error "Graph.Solve.instan, length roots /= 1"
+                       | otherwise = [Rewrite (applyRename r lhs) (applyRename r rhs) | r <- rename]
+            where
+                rename = filter validRename $ bindings root
+                [root] = roots
+                roots = allRootGFunc rhs
+
+        bindings :: GExp -> [Rename]
+        bindings (GFunc name arg) = map (getRename hite func arg) opts
+            where
+                opts = [a | let MCase alts = body func, MCaseAlt a b <- alts]
+                func = getFunc hite name
+
+       
 
 canInstantiateRewrite :: Rewrite -> Bool
 canInstantiateRewrite (Rewrite a b) = any isGFunc $ allGExp b
