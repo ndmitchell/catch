@@ -9,7 +9,8 @@ import Hite
 import Data.Maybe
 import Data.List
 import Debug.Trace
-import Control.Exception
+import Data.Predicate
+import Control.Exception(assert)
 import Directory
 import Monad
 import General.General
@@ -82,7 +83,9 @@ instantiate hite graph = newzero : (map change $ concat newnodes)
         
         -- evaluate any functions that can be
         eval :: Rewrite -> Rewrite
-        eval x = x
+        eval (Rewrite l r) = Rewrite l (mapGExp f r)
+            where
+                f x = if isGFunc x then evaluate hite x else x
         
         -- instantiate any functions so they can be evaluated
         -- note: not sure what the bindings should do here if there is more than
@@ -101,7 +104,43 @@ instantiate hite graph = newzero : (map change $ concat newnodes)
                 opts = [a | let MCase alts = body func, MCaseAlt a b <- alts]
                 func = getFunc hite name
 
-       
+
+
+evaluate :: Hite -> GExp -> GExp
+evaluate hite orig@(GFunc name (GCtor "." cargs)) =
+        if null res then orig else assert (length res == 1) (head res)
+    where
+        (Func _ args (MCase opts) _) = getFunc hite name
+        res = [convert x | MCaseAlt p x <- opts, isTrue (mapPredLit f p)]
+        
+        f :: MCaseOpt -> Pred ()
+        f (MCaseOpt x c) = predBool $ case getVar x of
+                               Just (GCtor n _) | n == c -> True
+                               _ -> False
+      
+        getVar :: Expr -> Maybe GExp
+        getVar x = followPath (pickVar var) path
+            where (var,path) = getVarPath x
+
+        pickVar :: FuncArg -> GExp
+        pickVar x = cargs !! a
+            where (Just a) = elemIndex x args
+            
+        followPath x [] = Just x
+        followPath (GCtor n x) (y:ys) | isJust q = followPath (x !! fromJust q) ys
+            where
+                ctor = getCtor hite n
+                q = elemIndex y (ctorArgs ctor)
+        followPath _ _ = Nothing
+                
+
+        convert :: Expr -> GExp
+        convert (Make a b) = GCtor a (map convert b)
+        convert (Call (CallFunc a) b) = GFunc a (GCtor "." (map convert b))
+        convert x = case getVar x of
+                        Just y -> y
+                        Nothing -> error $ "Graph.Solve.evaluate.convert, Nothing from " ++ show x
+
 
 canInstantiateRewrite :: Rewrite -> Bool
 canInstantiateRewrite (Rewrite a b) = any isGFunc $ allGExp b

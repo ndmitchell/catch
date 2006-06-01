@@ -130,6 +130,13 @@ instance PlayFunc Hite where
     mapFunc f x = x{funcs = mapFunc f (funcs x)}
 
 
+getVarPath :: Expr -> (FuncArg, [CtorArg])
+getVarPath (Var x) = (x, [])
+getVarPath (Sel x y) = (a,b ++ [y])
+    where (a,b) = getVarPath x
+
+
+
 -- Generic with function
 getWith :: String -> (a -> String) -> [a] -> a
 getWith name f xs = case filter (\x -> f x == name) xs of

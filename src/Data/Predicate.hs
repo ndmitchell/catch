@@ -48,7 +48,6 @@ data Reduction a = Same           -- ^ These two items do not simplify
                  | Value Bool     -- ^ Two items collapse to a boolean value
                  | Priority Int a -- ^ The items collapse, but with a given priority - higher gets done first
 
-
 -- | A predicate that has simplifications on it, all methods are optional
 class PredLit a where
     -- | the first item implies the second
@@ -70,6 +69,9 @@ class PredLit a where
 class PredLit a => PredLitNot a where
     -- | the negation of a literal
     litNot :: a -> Pred a
+
+-- | A Null PredLit type, if required
+instance PredLit () where
 
 
 -- * Useful utilities
