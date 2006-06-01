@@ -65,11 +65,13 @@ getRenameOne hite expr (MCaseOpt on ctor) = mergeRename $ map (demand expr) unro
         demand x ([],ctr) = case x of
                                 (GVar a) -> Rename [(a, newCtor ctr a)]
                                 (GCtor a b) -> if a == ctr then Rename [] else RenameInvalid
+                                _ -> RenameInvalid
         demand x (y:ys, ctr) = case x of
                                 (GVar a) -> demand (GVar (a ++ "." ++ y)) (ys, ctr)
                                 (GCtor a b) -> case elemIndex y (ctorArgs $ getCtor hite a) of
                                                     Just n -> demand (b !! n) (ys,ctr)
                                                     Nothing -> RenameInvalid
+                                _ -> RenameInvalid
     
         -- the complete path from the expression to the ctor
         path = f on
