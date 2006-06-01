@@ -64,6 +64,7 @@ instance PredLit MCaseOpt where
 
 
 isVar (Var{}) = True; isVar _ = False
+isSel (Sel{}) = True; isSel _ = False
 isCallFunc (CallFunc{}) = True; isCallFunc _ = False
 
 

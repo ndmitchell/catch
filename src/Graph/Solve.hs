@@ -91,12 +91,12 @@ instantiate hite graph = newzero : (map change $ concat newnodes)
         -- note: not sure what the bindings should do here if there is more than
         --       one root function
         instan :: GExp -> GExp -> [Rewrite]
-        instan lhs rhs | length roots /= 1 = error "Graph.Solve.instan, length roots /= 1"
-                       | otherwise = [Rewrite (applyRename r lhs) (applyRename r rhs) | r <- rename]
+        instan lhs rhs | null vrens = [Rewrite lhs rhs]
+                       | otherwise = [Rewrite (applyRename r lhs) (applyRename r rhs) | r <- vrens]
             where
-                rename = filter validRename $ bindings root
-                [root] = roots
-                roots = allRootGFunc rhs
+                vrens = filter validRename $ map mergeRename $ crossProduct renames
+                renames = filter (not . null) $ map (filter validRename . bindings) roots
+                roots = filter isGFunc $ allGExp rhs
 
         bindings :: GExp -> [Rename]
         bindings (GFunc name arg) = map (getRename hite func arg) opts
@@ -111,7 +111,9 @@ evaluate hite orig@(GFunc name (GCtor "." cargs)) =
         if null res then orig else assert (length res == 1) (head res)
     where
         (Func _ args (MCase opts) _) = getFunc hite name
-        res = [convert x | MCaseAlt p x <- opts, isTrue (mapPredLit f p)]
+        res = [convert x | MCaseAlt p x <- opts,
+                    isTrue (mapPredLit f p), -- demand the guard is met
+                    all (isJust . getVar) [y | y <- allExpr x, isSel y || isVar y]] -- and that the var's exist
         
         f :: MCaseOpt -> Pred ()
         f (MCaseOpt x c) = predBool $ case getVar x of
@@ -139,7 +141,7 @@ evaluate hite orig@(GFunc name (GCtor "." cargs)) =
         convert (Call (CallFunc a) b) = GFunc a (GCtor "." (map convert b))
         convert x = case getVar x of
                         Just y -> y
-                        Nothing -> error $ "Graph.Solve.evaluate.convert, Nothing from " ++ show x
+                        Nothing -> error $ "Graph.Solve.evaluate.convert, Nothing from " ++ show (name,x,cargs)
 
 
 canInstantiateRewrite :: Rewrite -> Bool
