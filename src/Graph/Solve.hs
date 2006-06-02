@@ -337,7 +337,7 @@ reachFailure graph = gc $ map change graph
 -- Remove all redundant control loops, just compress things
 
 graphControlDelete :: Graph -> Graph
-graphControlDelete = yPromotion . labelInline . controlReduce
+graphControlDelete = {- yPromotion . -} labelInline {- . controlReduce -}
 
 
 -- if a node is at the end, then promote it to be the contents of all its inners
