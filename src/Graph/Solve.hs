@@ -65,7 +65,7 @@ isSolved graph = not $ any isGraphEnd $ concatMap rewrite graph
 -- instantiate a graph with functional forms
 
 instantiate :: Hite -> Graph -> Graph
-instantiate hite = validGraph "evaluate" . evaluate hite . validGraph "expand" . expand hite . validGraph "onerewrite" . onerewrite . validGraph "funcsimp" . funcsimp
+instantiate hite = evaluate hite . expand hite . onerewrite . funcsimp
 
 
 -- each rewrite may have a maximum of one function call in the RHS
@@ -219,7 +219,7 @@ eval hite orig@(GFunc name (GCtor "." cargs)) =
 -- SIMPLIFY
 -- simplify entirely on a graph, must be reducing and terminating
 simplify :: Graph -> Graph
-simplify = validGraph "simplify" . graphItemDelete . graphControlDelete . graphItemDelete . graphControlDelete . graphItemDelete . graphItemDelete . graphControlDelete . graphItemDelete
+simplify = graphItemDelete . graphControlDelete . graphItemDelete . graphControlDelete . graphItemDelete . graphItemDelete . graphControlDelete . graphItemDelete
 
 
 
