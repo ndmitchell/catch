@@ -139,15 +139,13 @@ expand hite graph = newzero : (map change $ concat newnodes)
         doRewrite r = [r]
         
         -- instantiate any functions so they can be evaluated
-        -- note: not sure what the bindings should do here if there is more than
-        --       one root function
+        -- should be exactly one function here
         instan :: GExp -> GExp -> [Rewrite]
-        instan lhs rhs | null vrens = [Rewrite lhs rhs]
-                       | otherwise = [Rewrite (applyRename r lhs) (applyRename r rhs) | r <- vrens]
+        instan lhs rhs | null renames = error "No valid renames!"
+                       | otherwise = [Rewrite (applyRename r lhs) (applyRename r rhs) | r <- renames]
             where
-                vrens = filter validRename $ map mergeRename $ crossProduct renames
-                renames = filter (not . null) $ map (filter validRename . bindings) roots
-                roots = filter isGFunc $ allGExp rhs
+                renames = filter validRename $ bindings root
+                [root] = filter isGFunc $ allGExp rhs
 
         bindings :: GExp -> [Rename]
         bindings (GFunc name arg) = map (getRename hite func arg) opts
@@ -178,7 +176,8 @@ evaluate hite graph = map f graph
 eval :: Hite -> GExp -> GExp
 eval hite x | not (isGFunc x) = x
 eval hite orig@(GFunc name (GCtor "." cargs)) =
-        if null res then error "eval" else assert (length res == 1) (head res)
+        if null res then error $ show ("Graph.Solve.eval: no matches",name,cargs)
+        else assert (length res == 1) (head res)
     where
         (Func _ args (MCase opts) _) = getFunc hite name
         res = [convert x | MCaseAlt p x <- opts,
