@@ -35,6 +35,7 @@ solveGraph file hite graph =
         f :: Graph -> Int -> IO Bool
         f graph n | n > 15 = return False
         f graph n = do let g = simplify graph
+                       putStrLn $ show n ++ " simplifying..."
                        draw g n
                        if isSolved g then
                            return True
@@ -42,6 +43,7 @@ solveGraph file hite graph =
                            return False
                         else do
                            let g2 = instantiate hite g
+                           putStrLn $ show (n+1) ++ " instantiating..."
                            draw g2 (n+1)
                            f g2 (n+2)
 
