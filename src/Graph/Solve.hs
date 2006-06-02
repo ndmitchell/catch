@@ -33,7 +33,7 @@ solveGraph file hite graph =
         make3 x = replicate (3 - length x) '0' ++ x
     
         f :: Graph -> Int -> IO Bool
-        f graph n | n > 15 = return False
+        f graph n | n > 15 = putStrLn "Time bound exceeded" >> return False
         f graph n = do let g = simplify graph
                        putStrLn $ show n ++ " simplifying..."
                        draw g n
