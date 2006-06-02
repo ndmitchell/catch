@@ -2,6 +2,7 @@
 module Graph.Rename(Rename, getRename, validRename, mergeRename, applyRename) where
 
 import Graph.Type
+import Graph.Show
 import Hite
 import Data.Predicate
 import General.General
