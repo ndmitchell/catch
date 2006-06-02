@@ -14,6 +14,7 @@ import Debug.Trace
 
 data Rename = Rename [(String, GExp)]
             | RenameInvalid
+            deriving Show
 
 
 getRename :: Hite -> Func -> GExp -> Pred MCaseOpt -> Rename
@@ -105,11 +106,12 @@ validRename (Rename xs) = all isValid (groupSetBy cmp xs)
 
 
 applyRename :: Rename -> GExp -> GExp
-applyRename ren x = assert (validRename ren) $ mapGExp f x
+applyRename ren x = assert (validRename ren) $ f x rep
     where
         Rename rep = ren
-    
-        f (GVar x) = case lookup x rep of
-                        Just y -> y
-                        Nothing -> GVar x
-        f x = x
+        
+        f x [] = x
+        f x (r:rs) = f (mapGExp (g r) x) (map (\(a,b) -> (a, mapGExp (g r) b)) rs)
+
+        g (on,with) (GVar x) | x == on = with
+        g (on,with) x = x
