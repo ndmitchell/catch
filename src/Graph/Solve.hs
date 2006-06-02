@@ -218,7 +218,7 @@ eval hite orig@(GFunc name (GCtor "." cargs)) =
 -- SIMPLIFY
 -- simplify entirely on a graph, must be reducing and terminating
 simplify :: Graph -> Graph
-simplify = graphItemDelete . graphControlDelete . graphItemDelete . graphControlDelete . graphItemDelete . graphItemDelete . graphControlDelete . graphItemDelete
+simplify = edgeIncompatible . graphItemDelete . graphControlDelete . graphItemDelete . graphControlDelete . graphItemDelete . graphItemDelete . graphControlDelete . graphItemDelete
 
 
 
@@ -226,23 +226,17 @@ simplify = graphItemDelete . graphControlDelete . graphItemDelete . graphControl
 -- Delete all redundant bits
 
 graphItemDelete :: Graph -> Graph
-graphItemDelete = singleSourceIncompatible . compressList . removeSimpleRewrite . reachFailure
+graphItemDelete = edgeIncompatible . compressList . removeSimpleRewrite . reachFailure
 
-singleSourceIncompatible :: Graph -> Graph
-singleSourceIncompatible graph = map f $ labeled graph
+-- is an edge impossible to reach, because the nodes either side are incompatible
+edgeIncompatible :: Graph -> Graph
+edgeIncompatible graph = map f graph
     where
-        f (n,node) | length ins == 1 && not (null inr) && not (null nnr) &&
-                     isRewrite nnr_head && isRewrite inr_last &&
-                     not (rewriteRhs inr_last `isCompatible` rewriteLhs nnr_head)
-                   = node{rewrite = [GraphBreak]}
-            where
-                nnr_head = head nnr
-                inr_last = last inr
-                nnr = rewrite node
-                inr = rewrite (graph !! head ins)
-                ins = incoming graph n
+        f node = node{edges = filter (isComp node) (edges node)}
+        
+        isComp n1 nn2 = isCompatibleNode n1 n2
+            where n2 = graph !! nn2
 
-        f (n,node) = node
 
 -- try and do some basic simplifications
 compressList :: Graph -> Graph
@@ -259,7 +253,7 @@ compressList graph = map f graph
         pairs [] = []
         pairs [x] = [x]
         pairs (Rewrite a b:GraphEnd:xs) = Rewrite (onlyVar [] a) GFree:GraphEnd:[]
-        pairs (Rewrite a1 b1:Rewrite a2 b2:xs) | not (isCompatible b1 a2) = Rewrite a1 b1 : GraphBreak : []
+        pairs (Rewrite a1 b1:Rewrite a2 b2:xs) | not (isCompatibleExp b1 a2) = Rewrite a1 b1 : GraphBreak : []
                                                | isPure b1 = pairs (fuse (Rewrite a1 b1) (Rewrite a2 b2) : xs)
         pairs (a:b:xs) = a : pairs (b:xs)
 
@@ -301,9 +295,19 @@ fuse (Rewrite l1 r1) (Rewrite l2 r2) = Rewrite (rep unifyL l1) (rep unifyR r2)
 
 
 -- can the two GExp's be unified, with matching contstructors
-isCompatible :: GExp -> GExp -> Bool
-isCompatible (GCtor n1 x1) (GCtor n2 x2) = n1 == n2 && length x1 == length x2 && and (zipWith isCompatible x1 x2)
-isCompatible _ _ = True
+isCompatibleExp :: GExp -> GExp -> Bool
+isCompatibleExp (GCtor n1 x1) (GCtor n2 x2) = n1 == n2 && length x1 == length x2 && and (zipWith isCompatibleExp x1 x2)
+isCompatibleExp _ _ = True
+
+isCompatibleRewrite :: Rewrite -> Rewrite -> Bool
+isCompatibleRewrite (Rewrite _ r) (Rewrite l _) = isCompatibleExp r l
+isCompatibleRewrite _ _ = True
+
+isCompatibleNode :: Node -> Node -> Bool
+isCompatibleNode n1 n2 | not (null r1) && not (null r2) = isCompatibleRewrite (last r1) (head r2)
+    where (r1, r2) = (rewrite n1, rewrite n2)
+isCompatibleNode _ _ = True
+
 
 
 -- is an expression pure, i.e. no function calls
