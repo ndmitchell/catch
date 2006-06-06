@@ -35,6 +35,10 @@ graph *Solve the program with graph methods
 	prepare
 	graph-patterns
 
+subst *Solve the program with substitution methods
+	prepare
+	subst-patterns
+
 stats *Generate statistics about a Haskell program
 	short-name
 	reachable

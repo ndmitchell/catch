@@ -25,6 +25,7 @@ import Make
 import Checker.CaseCheck
 import Checker.Statistics
 import Graph.CaseCheck
+import Subst.CaseCheck
 
 
 import General.Commands
@@ -54,7 +55,9 @@ specials = [("verbose",Verbose),("help",Help),("version",Version),
 -- Terminal functions
 terminals = [("safe-patterns",term "safe-patterns" caseCheck),
              ("unsafe-patterns",term "unsafe-patterns" undefined),
-             ("graph-patterns",term "graph-patterns" graphCaseCheck) {- ,
+             ("graph-patterns",term "graph-patterns" graphCaseCheck),
+             ("subst-patterns",term "subst-patterns" substCaseCheck)
+             {- ,
              ("statistics", \a b -> statistics) -} ]
 
 term :: String -> (String -> Handle -> Hite -> IO Bool) -> FilePath -> Hite -> IO Bool
