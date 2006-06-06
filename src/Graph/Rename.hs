@@ -10,6 +10,7 @@ import Control.Exception
 import Data.List
 import Data.Maybe
 import Debug.Trace
+import Graph.Show
 
 
 data Rename = Rename [(String, GExp)]
