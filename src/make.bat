@@ -8,9 +8,9 @@ set mode=%1
 if "%1" == "" set mode=debug
 
 set flag=
-if %mode% == debug set flag= -O0
-if %mode% == release set flag= -O1
-if %mode% == profile set flag=_prof -prof -auto-all
+if %mode% == debug set flag=.exe -O0
+if %mode% == release set flag=.exe -O1
+if %mode% == profile set flag=_prof.exe -prof -auto-all
 
 if "%flag%" == "" goto bad_flags
 
