@@ -43,4 +43,5 @@ mapSExp f x = f $ case x of
 isConcrete :: SExp -> Bool
 isConcrete SFree = True
 isConcrete (SCtor _ xs) = all isConcrete xs
+isConcrete (SChoice xs) = all isConcrete xs
 isConcrete _ = False

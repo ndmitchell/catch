@@ -9,6 +9,7 @@ import Data.Maybe
 
 import Subst.Type
 import Subst.Show
+import Subst.Blur
 import Hite
 
 
@@ -26,15 +27,17 @@ pass hite env@(Env subst bind) = env3
         env3 = Env (IntMap.map f subst2) bind2
             where
                 f x = mapSExp g x
-                g x@(SFunc name args) = case Map.lookup (name,args) bind2 of
+                g x@(SFunc name args) = case Map.lookup (name,map substBlur args) bind2 of
                                            Just a -> SVar a
                                            Nothing -> x
                 g x = x
     
         (Env subst2 bind2) = foldr (addFunc hite) env reqFuncs
     
-        reqFuncs = [func | x <- IntMap.elems subst, func@(SFunc name args) <- allSExp x,
-                           all isConcrete args, not (Map.member (name,args) bind)]
+        reqFuncs = [SFunc name args2 |
+                           x <- IntMap.elems subst, func@(SFunc name args) <- allSExp x,
+                           all isConcrete args, let args2 = map substBlur args,
+                           not (Map.member (name,args2) bind)]
 
 
 addFunc :: Hite -> SExp -> Env -> Env
