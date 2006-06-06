@@ -17,7 +17,9 @@ module Data.Predicate(
     -- * Show
     showPred, showPredBy,
     -- * Play
-    mapPredLit, allPredLit
+    mapPredLit, allPredLit,
+    -- * Null instance
+    PredNull, demandBool
     ) where
 
 
@@ -73,6 +75,8 @@ class PredLit a => PredLitNot a where
 -- | A Null PredLit type, if required
 instance PredLit () where
 
+data PredNull = PredNull
+instance PredLit PredNull where
 
 -- * Useful utilities
 
@@ -226,6 +230,11 @@ predBool :: Bool -> Pred a
 predBool True  = predTrue
 predBool False = predFalse
 
+
+demandBool :: Pred PredNull -> Bool
+demandBool x | isTrue x = True
+             | isFalse x = False
+             | otherwise = error "demandBool, error"
 
 -- | Negate a predicate
 predNot :: PredLitNot a => Pred a -> Pred a
