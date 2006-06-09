@@ -7,19 +7,36 @@ import General.General
 import Data.List
 import Data.Char
 import System.Cmd
+import Typey.Type
 
 
-annotate :: String -> Hite -> IO Hite
+annotate :: String -> Hite -> IO (FuncName -> TypeRep)
 annotate file hite = do writeFile fileHs (toHaskell hite)
                         writeFile fileIn (getCommands hite)
                         system $ hugsPath ++ " " ++ fileHs ++ " < " ++ fileIn ++ " > " ++ fileOut
-                        return hite
+                        src <- readFile fileOut
+                        let func = parseTypes src
+                        error $ func "main"
     where
         fileHs = "Cache/Example/catch_" ++ file ++ ".hs"
         fileIn = fileHs ++ ".in"
         fileOut = fileHs ++ ".out"
 
 hugsPath = "\"C:/Program Files/WinHugs/hugs.exe\""
+
+
+parseTypes :: String -> (FuncName -> TypeRep)
+parseTypes xs = error $ unlines $ map show res -- \name -> fromJust $ lookup name res
+    where
+        res = map getType $ filter ('=' `elem`) $ map fixType $ lines xs
+        
+        fixType (':':':':xs) = '=':xs
+        fixType (x:xs) = x : fixType xs
+        fixType xs = xs
+        
+        getType :: String -> (FuncName, TypeRep)
+        getType x = (init a,tail b)
+            where (a,_:b) = break (== '=') $ drop 2 $ dropWhile (/= '>') x
 
 
 getCommands :: Hite -> String
@@ -47,6 +64,12 @@ encode x = concatMap f x
     where
         f x | isAlphaNum x = [x]
             | otherwise = "_" ++ show (ord x) ++ "_"
+
+decode x = f $ tail $ dropWhile (/= '_') x
+    where
+        f ('_':xs) = chr (read a) : f (tail b)
+            where (a,b) = break (== '_') xs
+        f (x:xs) = x : f xs
 
 
 -- convert a Hite data structure, to a string
