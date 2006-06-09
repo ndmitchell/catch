@@ -26,6 +26,7 @@ import Checker.CaseCheck
 import Checker.Statistics
 import Graph.CaseCheck
 import Subst.CaseCheck
+import Typey.CaseCheck
 
 
 import General.Commands
@@ -56,7 +57,8 @@ specials = [("verbose",Verbose),("help",Help),("version",Version),
 terminals = [("safe-patterns",term "safe-patterns" caseCheck),
              ("unsafe-patterns",term "unsafe-patterns" undefined),
              ("graph-patterns",term "graph-patterns" graphCaseCheck),
-             ("subst-patterns",term "subst-patterns" substCaseCheck)
+             ("subst-patterns",term "subst-patterns" substCaseCheck),
+             ("typey-patterns",term "typey-patterns" typeyCaseCheck)
              {- ,
              ("statistics", \a b -> statistics) -} ]
 

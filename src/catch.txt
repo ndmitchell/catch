@@ -9,7 +9,8 @@ help Show this help list
 verbose Show the Hite at each step
 version Show version information
 
-prepare Prepare a Hite program from analysis
+
+prep
 	short-name
 	reachable
 	case-lift
@@ -20,6 +21,9 @@ prepare Prepare a Hite program from analysis
 	inline
 	make-move
 	reachable
+
+prepare Prepare a Hite program from analysis
+	prep
 	defunc
 	mcase
 
@@ -38,6 +42,11 @@ graph *Solve the program with graph methods
 subst *Solve the program with substitution methods
 	prepare
 	subst-patterns
+
+typey *Solve the program with subtype analysis
+	prep
+	mcase
+	typey-patterns
 
 stats *Generate statistics about a Haskell program
 	short-name
