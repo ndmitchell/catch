@@ -9,5 +9,6 @@ import General.General
 
 
 typeyCaseCheck :: String -> Handle -> Hite -> IO Bool
-typeyCaseCheck file hndl hite = annotate hite
+typeyCaseCheck file hndl hite = do annotate file hite
+                                   return False
 

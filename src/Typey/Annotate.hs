@@ -7,8 +7,11 @@ import General.General
 import Data.List
 
 
-annotate :: Hite -> a
-annotate hite = error $ "\n" ++ toHaskell hite
+annotate :: String -> Hite -> IO Hite
+annotate file hite = do writeFile file2 (toHaskell hite)
+                        return hite
+    where
+        file2 = "Cache/Example/catch_" ++ file ++ ".hs"
 
 
 prefix = 
