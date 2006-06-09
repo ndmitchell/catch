@@ -17,7 +17,7 @@ module Data.Predicate(
     -- * Show
     showPred, showPredBy,
     -- * Play
-    mapPredLit, allPredLit,
+    mapPredLit, allPredLit, foldPred,
     -- * Null instance
     PredNull, demandBool
     ) where
@@ -305,4 +305,14 @@ allPredLit x =
         PredLit x  -> [x]
     where
         fs = concatMap allPredLit
-        
+
+
+-- | or then and
+foldPred :: ([a] -> a) -> ([a] -> a) -> (b -> a) -> Pred b -> a
+foldPred for fand fone x =
+    case x of
+        PredOr  x -> for  $ f x
+        PredAnd x -> fand $ f x
+        PredLit x -> fone x
+    where
+        f = map (foldPred for fand fone)
