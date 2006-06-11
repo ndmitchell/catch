@@ -18,7 +18,7 @@ readFuncT x = FuncT (length free) (init res) (last res)
         
         -- take an item from a string, to a Type
         lift [] = []
-        lift ("(":xs) = one (combine (lift a)) : lift xs
+        lift ("(":xs) = one (combine (lift a)) : lift b
             where (a,b) = splitBrackets xs
         lift ("->":xs) = FreeL (-1) : lift xs
         lift (x:xs) | isLower (head x) = (FreeL $ fromJust $ lookup x free) : lift xs

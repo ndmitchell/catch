@@ -16,13 +16,21 @@ annotate file hite = do writeFile fileHs (toHaskell hite)
                         writeFile fileIn (getCommands hite)
                         system $ hugsPath ++ " " ++ fileHs ++ " < " ++ fileIn ++ " > " ++ fileOut
                         src <- readFile fileOut
-                        return $ parseTypes src
+                        return $ fixTypes $ parseTypes src
     where
         fileHs = "Cache/Example/catch_" ++ file ++ ".hs"
         fileIn = fileHs ++ ".in"
         fileOut = fileHs ++ ".out"
 
 hugsPath = "\"C:/Program Files/WinHugs/hugs.exe\""
+
+
+fixTypes :: [(FuncName, FuncT)] -> [(FuncName, FuncT)]
+fixTypes x = [(a,mapLargeT f b) | (a,b) <- x]
+    where
+        f (CtorL name xs) = CtorL (decode name) xs
+        f x = x
+
 
 
 parseTypes :: String -> [(FuncName, FuncT)]
@@ -65,11 +73,15 @@ encode x = concatMap f x
         f x | isAlphaNum x = [x]
             | otherwise = "_" ++ show (ord x) ++ "_"
 
-decode x = f $ tail $ dropWhile (/= '_') x
+decode x = f $ g $ dropWhile (/= '_') x
     where
+        g (x:xs) = xs
+        g _ = error $ "'" ++ x ++ "'"
+    
         f ('_':xs) = chr (read a) : f (tail b)
             where (a,b) = break (== '_') xs
         f (x:xs) = x : f xs
+        f [] = []
 
 
 -- convert a Hite data structure, to a string
