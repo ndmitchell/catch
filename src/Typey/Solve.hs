@@ -30,17 +30,55 @@ instance Show Item where
         
 -- return the subtypes of main that do not have bottom in
 typeySolve :: Hite -> DataM SmallT -> FuncM -> IO Subtype
-typeySolve hite datam funcm = do putStrLn $ "-- EXPANDED TYPES"
+typeySolve hite datam funcm = do putStrLn "-- EXPANDED TYPES"
                                  print expand
-                                 putStrLn $ show ans
+                                 putStrLn "-- EQUAL VARIABLE SETS"
+                                 print ans
+                                 putStrLn "-- INSTANTIATE"
+                                 print res
                                  return $ error "todo"
     where
+        res = instantiate expand ans
         ans = fixpVariables expand n2
         (n2,expand) = expandRhs state orig n
         (n,orig) = addItems state [] pairings 0
         pairings = [(fname,args) | name <- funcs hite, let fname = funcName name, fname /= "error",
                                    args <- getSubtypesFunc datam $ fromJust $ lookup fname funcm]
         state = (hite,datam,funcm)
+
+
+instantiate :: [Item] -> [[Result]] -> Subtype
+instantiate xs res = unionSubtype [y | Item "main" _ x _ <- xs, let y = replace x, noBottom y]
+    where
+        replace :: Subtype -> Subtype
+        replace (Subtype a b c d) = Subtype (concatMap rep a) (concatMap rep b) (map replace c) (map replace d)
+        replace (SVar x) = case getVar (head x) of
+                              RTop -> Top
+                              RBot -> Bot
+                              _ -> SVar x
+        replace x = x
+        
+        
+        rep :: UCtor -> [UCtor]
+        rep (UVar x) = case getVar x of
+                            RCtor x -> map UCtor x
+                            _ -> [UVar x]
+        rep x = [x]
+        
+        
+        noBottom :: Subtype -> Bool
+        noBottom (Subtype a b c d) = all noBottom (c++d)
+        noBottom Bot = False
+        noBottom _ = True
+        
+        getVar :: Int -> Result
+        getVar n = if RBot `elem` xs then RBot else RCtor (concat [x | RCtor x <- xs])
+            where
+                xs = filter f $ head $ filter (RVar n `elem`) res
+                
+                f (RVar _) = True
+                f RTop = True
+                
 
 
 addItems :: State -> [Item] -> [(FuncName, [Subtype])] -> Int -> (Int, [Item])
@@ -114,14 +152,14 @@ expandRhs state@(hite,datam,funcm) xs n = (n2, concat xs2)
         getCall name args = unionSubtype [x | Item n a x _ <- xs, n == name, and $ zipWith isSubset a args]
 
 
-data Result = RVar Int | RBot | RCtor String
-              deriving Show
+data Result = RVar Int | RBot | RTop | RCtor [String]
+              deriving (Show, Eq)
 
 
-fixpVariables :: [Item] -> Int -> [Item]
-fixpVariables xs n = error $ show eqs
+fixpVariables :: [Item] -> Int -> [[Result]]
+fixpVariables xs n = eqs
     where
-        eqs = concatMap eqItem xs
+        eqs = simpSets $ joinAllSets $ concatMap eqItem xs
     
         eqItem :: Item -> [[Result]]
         eqItem (Item _ _ a (Now b)) = eqSubtype a b
@@ -136,8 +174,8 @@ fixpVariables xs n = error $ show eqs
         eqSubtype (SVar x) (SVar y) = [map RVar $ x ++ y]
         eqSubtype Empty _ = []
         eqSubtype _ Empty = []
-        eqSubtype Top _ = []
-        eqSubtype _ Top = []
+        eqSubtype Top (SVar x) = [RTop : map RVar x]
+        eqSubtype (SVar x) Top = [RTop : map RVar x]
         eqSubtype Bot (SVar x) = [RBot : map RVar x]
         eqSubtype (SVar x) Bot = [RBot : map RVar x]
         
@@ -145,9 +183,25 @@ fixpVariables xs n = error $ show eqs
         eqUCtor :: [UCtor] -> [UCtor] -> [[Result]]
         eqUCtor x y = [map f (x ++ y)]
             where
-                f (UCtor x) = RCtor x
+                f (UCtor x) = RCtor [x]
                 f (UVar x) = RVar x
     
+        simpSets :: [[Result]] -> [[Result]]
+        simpSets x = concatMap f x
+            where
+                f [] = []
+                f x = [nub x]
+    
+    
+        joinAllSets :: [[Result]] -> [[Result]]
+        joinAllSets x = f 0 x
+            where
+                f i x | i == n = x
+                      | otherwise = f (i+1) (joinSets x i)
+        
+        joinSets :: [[Result]] -> Int -> [[Result]]
+        joinSets rews n = concat a : b
+            where (a,b) = partition (RVar n `elem`) rews
     
 
 mapId :: (a -> Int -> (Int, b)) -> [a] -> Int -> (Int, [b])
