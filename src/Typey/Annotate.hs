@@ -26,7 +26,7 @@ hugsPath = "\"C:/Program Files/WinHugs/hugs.exe\""
 
 
 fixTypes :: [(FuncName, FuncT)] -> [(FuncName, FuncT)]
-fixTypes x = [(a,mapLargeT f b) | (a,b) <- x]
+fixTypes x = [(decode a,mapLargeT f b) | (a,b) <- x]
     where
         f (CtorL name xs) = CtorL (decode name) xs
         f x = x
