@@ -17,7 +17,8 @@ typeyCaseCheck file hndl hite =
     do funcT <- annotate file hite
        dataT <- return []
        (dataT, funcT) <- return $ liftData dataT funcT
-       error $ show $ getSubtypesFunc dataT $ fromJust $ lookup "main" funcT
-       error $ show (dataT, funcT)
+       subTs <- return $ getSubtypesFunc dataT $ fromJust $ lookup "main" funcT
+       res <- return $ typeySolve hite dataT funcT $ map ((,) "main") subTs
+       error $ show res
        return False
 
