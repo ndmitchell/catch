@@ -29,10 +29,14 @@ instance Show Item where
 
         
 -- return the subtypes of main that do not have bottom in
-typeySolve :: Hite -> DataM SmallT -> FuncM -> Subtype
-typeySolve hite datam funcm = error $ show expnd 
+typeySolve :: Hite -> DataM SmallT -> FuncM -> IO Subtype
+typeySolve hite datam funcm = do putStrLn $ "-- EXPANDED TYPES"
+                                 print expand
+                                 putStrLn $ show ans
+                                 return $ error "todo"
     where
-        (n2,expnd) = expandRhs state orig n
+        ans = fixpVariables expand n2
+        (n2,expand) = expandRhs state orig n
         (n,orig) = addItems state [] pairings 0
         pairings = [(fname,args) | name <- funcs hite, let fname = funcName name, fname /= "error",
                                    args <- getSubtypesFunc datam $ fromJust $ lookup fname funcm]
@@ -109,6 +113,42 @@ expandRhs state@(hite,datam,funcm) xs n = (n2, concat xs2)
         getCall "error" _ = Bot
         getCall name args = unionSubtype [x | Item n a x _ <- xs, n == name, and $ zipWith isSubset a args]
 
+
+data Result = RVar Int | RBot | RCtor String
+              deriving Show
+
+
+fixpVariables :: [Item] -> Int -> [Item]
+fixpVariables xs n = error $ show eqs
+    where
+        eqs = concatMap eqItem xs
+    
+        eqItem :: Item -> [[Result]]
+        eqItem (Item _ _ a (Now b)) = eqSubtype a b
+        eqItem _ = []
+        
+        eqSubtype :: Subtype -> Subtype -> [[Result]]
+        eqSubtype (Subtype a1 b1 c1 d1) (Subtype a2 b2 c2 d2) = 
+                eqUCtor a1 a2 ++ eqUCtor b1 b2 ++ f c1 c2 ++ f d1 d2
+            where
+                f x y = concat $ zipWith eqSubtype x y
+        
+        eqSubtype (SVar x) (SVar y) = [map RVar $ x ++ y]
+        eqSubtype Empty _ = []
+        eqSubtype _ Empty = []
+        eqSubtype Top _ = []
+        eqSubtype _ Top = []
+        eqSubtype Bot (SVar x) = [RBot : map RVar x]
+        eqSubtype (SVar x) Bot = [RBot : map RVar x]
+        
+    
+        eqUCtor :: [UCtor] -> [UCtor] -> [[Result]]
+        eqUCtor x y = [map f (x ++ y)]
+            where
+                f (UCtor x) = RCtor x
+                f (UVar x) = RVar x
+    
+    
 
 mapId :: (a -> Int -> (Int, b)) -> [a] -> Int -> (Int, [b])
 mapId f [] n = (n,[])
