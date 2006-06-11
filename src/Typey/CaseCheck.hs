@@ -8,13 +8,16 @@ import Typey.Show
 import Typey.LiftData
 import Typey.Solve
 import Typey.Annotate
+import Data.Maybe
 import General.General
 
 
 typeyCaseCheck :: String -> Handle -> Hite -> IO Bool
-typeyCaseCheck file hndl hite = do funcT <- annotate file hite
-                                   dataT <- return []
-                                   (dataT, funcT) <- return $ liftData dataT funcT
-                                   error $ show (dataT, funcT)
-                                   return False
+typeyCaseCheck file hndl hite =
+    do funcT <- annotate file hite
+       dataT <- return []
+       (dataT, funcT) <- return $ liftData dataT funcT
+       error $ show $ getSubtypesFunc dataT $ fromJust $ lookup "main" funcT
+       error $ show (dataT, funcT)
+       return False
 
