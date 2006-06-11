@@ -8,15 +8,15 @@ import Data.List
 import Data.Char
 import System.Cmd
 import Typey.Type
+import Typey.Read
 
 
-annotate :: String -> Hite -> IO (FuncName -> TypeRep)
+annotate :: String -> Hite -> IO [(FuncName, FuncT)]
 annotate file hite = do writeFile fileHs (toHaskell hite)
                         writeFile fileIn (getCommands hite)
                         system $ hugsPath ++ " " ++ fileHs ++ " < " ++ fileIn ++ " > " ++ fileOut
                         src <- readFile fileOut
-                        let func = parseTypes src
-                        error $ func "main"
+                        return $ parseTypes src
     where
         fileHs = "Cache/Example/catch_" ++ file ++ ".hs"
         fileIn = fileHs ++ ".in"
@@ -25,8 +25,8 @@ annotate file hite = do writeFile fileHs (toHaskell hite)
 hugsPath = "\"C:/Program Files/WinHugs/hugs.exe\""
 
 
-parseTypes :: String -> (FuncName -> TypeRep)
-parseTypes xs = error $ unlines $ map show res -- \name -> fromJust $ lookup name res
+parseTypes :: String -> [(FuncName, FuncT)]
+parseTypes xs = res
     where
         res = map getType $ filter ('=' `elem`) $ map fixType $ lines xs
         
@@ -34,8 +34,8 @@ parseTypes xs = error $ unlines $ map show res -- \name -> fromJust $ lookup nam
         fixType (x:xs) = x : fixType xs
         fixType xs = xs
         
-        getType :: String -> (FuncName, TypeRep)
-        getType x = (init a,tail b)
+        getType :: String -> (FuncName, FuncT)
+        getType x = (init a,readFuncT $ tail b)
             where (a,_:b) = break (== '=') $ drop 2 $ dropWhile (/= '>') x
 
 
