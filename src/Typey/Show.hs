@@ -27,6 +27,7 @@ instance Show Subtype where
     show (Subtype u1 d1 u2 d2) = "Subtype " ++ show u1 ++ " " ++ show d1 ++ " " ++ show u2 ++ " " ++ show d2
     show Top = "?"
     show Bot = "_|_"
+    show (SVar n) = "#" ++ show n
 
 instance Show UCtor where
     show (UCtor x) = x

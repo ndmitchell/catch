@@ -37,7 +37,7 @@ instance PlayLargeT FuncT where
 -- SUBTYPE STUFF
 
 data Subtype = Subtype [UCtor] [UCtor] [Subtype] [Subtype]
-             | Top | Bot
+             | Top | Bot | SVar Int
 
 data UCtor = UCtor String | UVar Int
 
