@@ -3,9 +3,10 @@ module Typey.Solve(typeySolve) where
 
 import Hite
 import Typey.Type
-import Typey.Show
 import Data.List
 import Data.Maybe
+import Data.Predicate
+import General.General
 
 
 type State = (Hite, DataM SmallT, FuncM)
@@ -31,7 +32,7 @@ instance Show Item where
 typeySolve :: Hite -> DataM SmallT -> FuncM -> Subtype
 typeySolve hite datam funcm = error $ show expnd 
     where
-        (n2,expnd) = expandRhs state n orig
+        (n2,expnd) = expandRhs state orig n
         (n,orig) = addItems state [] pairings 0
         pairings = [(fname,args) | name <- funcs hite, let fname = funcName name, fname /= "error",
                                    args <- getSubtypesFunc datam $ fromJust $ lookup fname funcm]
@@ -50,21 +51,63 @@ addItems (hite,datam,funcm) items add norig = (n, items ++ i2)
 
 
 -- all rhs's must stop being Later
-expandRhs :: State -> Int -> [Item] -> (Int, [Item])
-expandRhs state n xs = (n,xs)
+expandRhs :: State -> [Item] -> Int -> (Int, [Item])
+expandRhs state@(hite,datam,funcm) xs n = (n2, concat xs2)
     where
+        (n2,xs2) = mapId f xs n
+        
+        f (Item name args free Later) n = (n, [Item name args free (Now res)])
+            where
+                res = unionSubtype $ map (getType ren) exprs
+                ren = zip fargs args
+                exprs = [expr | MCaseAlt p expr <- opts, doesMatch ren p]
+                (Func _ fargs (MCase opts) _) = getFunc hite name
 
 
-        -- which functions would these things call
-        --requestCallers :: Item -> [(FuncName, [Subtype])]
-        --requestCallers
+        doesMatch :: [(String, Subtype)] -> Pred MCaseOpt -> Bool
+        doesMatch ren x = demandBool $ mapPredLit f x
+            where
+                f (MCaseOpt x c) = predBool $ c `elem` [b | UCtor b <- a]
+                    where (Subtype a _ _ _) = getExpr ren x
 
 
-        -- instantiate, given you have now added the callers
-        --useCallers
+        getExpr :: [(String, Subtype)] -> Expr -> Subtype
+        getExpr ren (Var x) = fromJust $ lookup x ren
+        getExpr ren (Sel x y) = res
+            where
+                s@(Subtype a b c d) = getExpr ren x
+                ctor = getCtorFromArg hite y
+                cname = ctorName ctor
+                dname = dataName $ getDataFromCtor hite cname
+                dtype@(DataT free ctors) = fromJust $ lookup dname datam
+                cargs = head [xs | CtorT n xs <- ctors, n == cname]
+                argPos = fromJust $ elemIndex y (ctorArgs ctor)
+                res = case cargs !! argPos of
+                          Self -> liftSubtype s
+                          FreeS i -> c !! i
 
 
+        getType :: [(String, Subtype)] -> Expr -> Subtype
+        getType ren (Make name xs) = foldr f (Subtype [UCtor name] [] blanks blanks) (zip cargs xs2)
+            where
+                blanks = replicate free Empty
+                dname = dataName $ getDataFromCtor hite name
+                dtype@(DataT free ctors) = fromJust $ lookup dname datam
+                cargs = head [xs | CtorT n xs <- ctors, n == name]
+                xs2 = map (getType ren) xs
+                
+                f (Self, x) y = collapseSubtype x `unionPair` y
+                f (FreeS i, x) (Subtype a b c d) = Subtype a b (c !!! (i, (c !! i) `unionPair` x)) d
 
+        getType ren x | isVar x || isSel x = getExpr ren x
+        
+        getType ren (Call (CallFunc name) args) = getCall name typs
+            where typs = map (getType ren) args
+
+
+        getCall :: FuncName -> [Subtype] -> Subtype
+        getCall "error" _ = Bot
+        getCall name args = unionSubtype [x | Item n a x _ <- xs, n == name, and $ zipWith isSubset a args]
 
 
 mapId :: (a -> Int -> (Int, b)) -> [a] -> Int -> (Int, [b])
@@ -77,7 +120,7 @@ mapId f (x:xs) n = (n3, x2:x3)
 
 
 getSubtypeFree :: DataM SmallT -> LargeT -> Int -> (Int, Subtype)
-getSubtypeFree datam (FreeL i) n = (n+1, SVar n)
+getSubtypeFree datam (FreeL i) n = (n+1, SVar [n])
 getSubtypeFree datam (CtorL name xs) n
         | recursive = let (n1,a1,b1) = f n
                           (n2,a2,b2) = f n1

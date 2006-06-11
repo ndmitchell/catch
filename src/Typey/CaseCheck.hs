@@ -4,7 +4,6 @@ module Typey.CaseCheck(typeyCaseCheck) where
 import IO
 import Hite
 import Typey.Type
-import Typey.Show
 import Typey.LiftData
 import Typey.Solve
 import Typey.Annotate

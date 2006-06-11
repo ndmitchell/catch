@@ -5,7 +5,6 @@ import Typey.Type
 import Data.Char
 import Data.List
 import Data.Maybe
-import Typey.Show
 import Text.ParserCombinators.Parsec
 
 

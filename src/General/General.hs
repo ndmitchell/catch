@@ -97,6 +97,12 @@ fix f x = if x == x2 then x else fix f x2
     where x2 = f x
 
 
+(!!!) :: [a] -> (Int, a) -> [a]
+[] !!! _ = error "!!!"
+(x:xs) !!! (0,y) = y:xs
+(x:xs) !!! (n,y) = x : (xs !!! (n-1,y))
+
+
 
 class Output x where
     output :: x -> String
