@@ -1,6 +1,12 @@
 
 module Typey.Type where
 
+import Hite
+
+-- TYPE STUFF
+
+type FuncM = [(FuncName, FuncT)]
+type DataM a = [(DataName, DataT a)]
 
 data FuncT = FuncT Int [LargeT] LargeT
 data DataT a = DataT Int [CtorT a]
@@ -19,3 +25,12 @@ instance PlayLargeT LargeT where
 
 instance PlayLargeT FuncT where
     mapLargeT f (FuncT n xs x) = FuncT n (map (mapLargeT f) xs) (mapLargeT f x)
+
+
+
+-- SUBTYPE STUFF
+
+data Subtype = Subtype [UCtor] [UCtor] [Subtype] [Subtype]
+             | Top | Bot
+
+data UCtor = UCtor String | UVar Int
