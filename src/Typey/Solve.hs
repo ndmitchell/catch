@@ -3,6 +3,7 @@ module Typey.Solve(typeySolve) where
 
 import Hite
 import Typey.Type
+import Typey.Pretty
 import Data.List
 import Data.Maybe
 import Data.Predicate
@@ -34,11 +35,13 @@ typeySolve hite datam funcm = do putStrLn "-- EXPANDED TYPES"
                                  print expand
                                  putStrLn "-- EQUAL VARIABLE SETS"
                                  print ans
+                                 putStrLn "-- GENERATING FILE"
+                                 typeyPretty "Logs/New" $ instantiateAll ans expand
                                  putStrLn "-- INSTANTIATE"
                                  print res
                                  return $ error "todo"
     where
-        res = instantiate expand ans
+        res = answer expand ans
         ans = fixpVariables expand n2
         (n2,expand) = expandRhs state orig n
         (n,orig) = addItems state [] pairings 0
@@ -47,8 +50,12 @@ typeySolve hite datam funcm = do putStrLn "-- EXPANDED TYPES"
         state = (hite,datam,funcm)
 
 
-instantiate :: [Item] -> [[Result]] -> Subtype
-instantiate xs res = unionSubtype [y | Item "main" _ x _ <- xs, let y = replace x, noBottom y]
+instantiateAll :: [[Result]] -> [Item] -> [(FuncName, [Subtype], Subtype)]
+instantiateAll res xs = [(x,y,instantiate res z) | Item x y z _ <- xs]
+
+
+instantiate :: [[Result]] -> Subtype -> Subtype
+instantiate res x = replace x
     where
         replace :: Subtype -> Subtype
         replace (Subtype a b c d) = Subtype (concatMap rep a) (concatMap rep b) (map replace c) (map replace d)
@@ -65,20 +72,28 @@ instantiate xs res = unionSubtype [y | Item "main" _ x _ <- xs, let y = replace 
                             _ -> [UVar x]
         rep x = [x]
         
-        
-        noBottom :: Subtype -> Bool
-        noBottom (Subtype a b c d) = all noBottom (c++d)
-        noBottom Bot = False
-        noBottom _ = True
-        
         getVar :: Int -> Result
-        getVar n = if RBot `elem` xs then RBot else RCtor (concat [x | RCtor x <- xs])
+        getVar n = if RBot `elem` xs then RBot
+                   else if null xs then RTop
+                   else RCtor (concat [x | RCtor x <- xs])
             where
                 xs = filter f $ head $ filter (RVar n `elem`) res
                 
                 f (RVar _) = True
                 f RTop = True
+                f _ = False
                 
+
+
+
+answer :: [Item] -> [[Result]] -> Subtype
+answer xs res = unionSubtype [y | Item "main" _ x _ <- xs, let y = instantiate res x, noBottom y]
+    where
+        noBottom :: Subtype -> Bool
+        noBottom (Subtype a b c d) = all noBottom (c++d)
+        noBottom Bot = False
+        noBottom _ = True
+        
 
 
 addItems :: State -> [Item] -> [(FuncName, [Subtype])] -> Int -> (Int, [Item])
