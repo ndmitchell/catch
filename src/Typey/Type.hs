@@ -29,15 +29,20 @@ instance Show a => Show (CtorT a) where
 
 
 instance Show Subtype where
-    show (Subtype u1 d1 u2 d2) = "Subtype " ++ show u1 ++ " " ++ show d1 ++ " " ++ show u2 ++ " " ++ show d2
-    show Top = "?"
-    show Bot = "_|_"
-    show Empty = "_"
-    show (SVar n) = "#" ++ show n
+    show (Subtype a b) = "Subtype " ++ show a ++ " " ++ show b
+    show (Atom vals) = show vals
 
-instance Show UCtor where
-    show (UCtor x) = x
-    show (UVar n) = "#" ++ show n
+instance Show Subpair where
+    show (a :@ b) = "<" ++ show a ++ " @ " ++ show b ++ ">"
+
+instance Show Subvalue where
+    showList [] = showString "?"
+    showList [x] = showString $ show x
+    showList xs = showString $ "[" ++ (concat $ intersperse "," $ map show xs) ++ "]"
+
+    show Bot = "_|_"
+    show (SVar n) = "#" ++ show n
+    show (SCtor s) = s
 
 
 -- TYPE STUFF
@@ -70,27 +75,32 @@ instance PlayLargeT FuncT where
 
 -- SUBTYPE STUFF
 
-data Subtype = Subtype [UCtor] [UCtor] [Subtype] [Subtype]
-             | Top | Bot | SVar [Int] | Empty
-             deriving Eq
+data Subtype = Subtype Subpair Subpair
+             | Atom [Subvalue] -- contains Top, Bot, Var (no Ctor)
+             | Empty
 
-data UCtor = UCtor String | UVar Int
-             deriving Eq
+-- the constructors at this level, and inside them
+data Subpair = [Subvalue] :@ [Subtype] -- first one is Ctor
 
+data Subvalue = Bot
+              | SVar Int
+              | SCtor String
+                deriving Eq
 
 
 getSubtypesData :: DataT SmallT -> [Subtype]
 getSubtypesData (DataT n ctors) = concatMap f ctors
     where
-        f c@(CtorT name _) | not (isRecursive c) = [Subtype [UCtor name] [] [] []]
-                           | otherwise = [Subtype [UCtor name] [UCtor x] [] [] | CtorT x _ <- ctors]
+        f c@(CtorT name _) | not (isRecursive c) = [Subtype ([SCtor name] :@ []) ([] :@ [])]
+                           | otherwise = [Subtype ([SCtor name] :@ []) ([SCtor x] :@ []) | CtorT x _ <- ctors]
 
 getSubtypesLarge :: DataM SmallT -> LargeT -> [Subtype]
-getSubtypesLarge datam (FreeL n) = [Top]
+getSubtypesLarge datam (FreeL n) = [Atom []]
 getSubtypesLarge datam (CtorL name args) = concatMap f datat
     where
-        f (Subtype a b _ _) | null b = [Subtype a [] x [] | x <- children]
-                            | otherwise = [Subtype a b x y | x <- children, y <- children]
+        f (Subtype (a :@ []) (b :@ []))
+            | null b = [Subtype (a :@ x) ([] :@ []) | x <- children]
+            | otherwise = [Subtype (a :@ x) (b :@ y) | x <- children, y <- children]
     
         datat = getSubtypesData $ fromJust $ lookup name datam
         children = crossProduct $ map (getSubtypesLarge datam) args
@@ -100,38 +110,44 @@ getSubtypesFunc datam (FuncT n args res) = crossProduct $ map (getSubtypesLarge 
 
 
 
-emptySubtype = Subtype [] [] [] []
+-- emptySubtype = Subtype [] [] [] []
 
-unionSubtype :: [Subtype] -> Subtype
-unionSubtype xs = foldr unionPair Empty xs
 
-unionPair :: Subtype -> Subtype -> Subtype
-unionPair Empty x = x
-unionPair x Empty = x
-unionPair (SVar x) (SVar y) = SVar (x++y)
-unionPair Top Top = Top
-unionPair s1@(Subtype a1 b1 c1 d1) s2@(Subtype a2 b2 c2 d2) =
-        Subtype (f a1 a2) (f b1 b2) (fs c1 c2) (fs d1 d2)
-    where
-        f x y = x `union` y
-        fs [] [] = []
-        fs (x:xs) (y:ys) = (x `unionPair` y) : fs xs ys
-        fs xs [] = xs
-        fs [] ys = ys
-unionPair x y = error $ "unionPair: " ++ show (x,y)
+class Union a where
+    unionPair :: a -> a -> a
+    unionList :: [a] -> a
+    
+    unionList xs = foldr1 unionPair xs
+
+instance Union Subtype where
+    unionPair (Subtype a1 b1) (Subtype a2 b2) = Subtype (unionPair a1 a2) (unionPair b1 b2)
+    unionPair (Atom a) (Atom b) = Atom $ unionPair a b
+    unionPair Empty x = x
+    unionPair x Empty = x
+
+instance Union Subpair where
+    unionPair (a1 :@ b1) (a2 :@ b2) = (unionPair a1 a2 :@ zipWithEq unionPair b1 b2)
+
+instance Union [Subvalue] where
+    unionPair as bs = as `union` bs
+
+
+hasBottom :: Subtype -> Bool
+hasBottom (Atom xs) = Bot `elem` xs
+hasBottom (Subtype a b) = f a || f b
+    where f (a :@ b) = hasBottom (Atom a) || any hasBottom b
+
 
 -- drop all items to the bottom (recursive) level
 collapseSubtype :: Subtype -> Subtype
-collapseSubtype (Subtype a b c d) = Subtype [] a [] c `unionPair` Subtype [] b [] d
+collapseSubtype (Subtype a b) = Subtype ([] :@ []) (unionPair a b)
 
 liftSubtype :: Subtype -> Subtype
-liftSubtype (Subtype a b c d) = Subtype b b d d
+liftSubtype (Subtype a b) = Subtype b b
 
 isSubset :: Subtype -> Subtype -> Bool
-isSubset Top Top = True
-isSubset Top Empty = False
-isSubset (Subtype a1 b1 c1 d1) (Subtype a2 b2 c2 d2) =
-        f a1 a2 && f b1 b2 && fs c1 c2 && fs d1 d2
+isSubset (Subtype a1 b1) (Subtype a2 b2) = f a1 a2 && f b1 b2
     where
-        f x y = null (x \\ y)
-        fs x y = and $ zipWith isSubset x y
+        f (a1:@b1) (a2:@b2) = g a1 a2 && (and $ zipWithEq isSubset b1 b2)
+        g x y = null (x \\ y)
+isSubset (Atom _) (Atom _) = True
