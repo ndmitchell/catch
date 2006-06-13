@@ -122,3 +122,9 @@ ensureDirectory s = do b <- doesDirectoryExist s
 crossProduct :: [[a]] -> [[a]]
 crossProduct (x:xs) = [y:ys | y <- x, ys <- crossProduct xs]
 crossProduct [] = [[]]
+
+
+-- requires both arguments are the same length, or crashes
+zipWithEq :: (a -> b -> c) -> [a] -> [b] -> [c]
+zipWithEq f (x:xs) (y:ys) = f x y : zipWithEq f xs ys
+zipWithEq f [] [] = []
