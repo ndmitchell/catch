@@ -19,7 +19,7 @@ module Data.Predicate(
     -- * Play
     mapPredLit, allPredLit, foldPred,
     -- * Null instance
-    PredNull, demandBool
+    PredNull, demandBool, mapPredBool
     ) where
 
 
@@ -286,8 +286,12 @@ sameSet a b | length a /= length b = False
 
 -- * Maps and traversals
 
+-- | Convert a predicate to a boolean
+mapPredBool :: (a -> Bool) -> Pred a -> Bool
+mapPredBool f = demandBool . mapPredLit (predBool . f)
+
 -- | Perform a map over every literal
-mapPredLit :: (PredLit a, PredLit b) => (a -> Pred b) -> Pred a -> Pred b
+mapPredLit :: PredLit b => (a -> Pred b) -> Pred a -> Pred b
 mapPredLit f x =
     case x of
         PredOr  xs -> predOr  $ fs xs
