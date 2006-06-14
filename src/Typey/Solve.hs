@@ -108,16 +108,29 @@ addItems (hite,datam,funcm) items add norig = (n, items ++ i2)
 
 -- all rhs's must stop being Later
 expandRhs :: State -> [Item] -> Int -> (Int, [Item])
-expandRhs state@(hite,datam,funcm) xs n = (n2, concat xs2)
+expandRhs state@(hite,datam,funcm) xs n = (n2, map head xs2 ++ concatMap tail xs2)
     where
         (n2,xs2) = mapId f xs n
         
-        f (Item name args free Later) n = (n, [Item name args free (Now res)])
+        f (Item name args free Later) n = (n2, Item name args free (Now res) : concatMap snd es)
             where
-                res = unionListNote "expandRhs.f" $ map (getType ren) exprs
+                res = unionListNote "expandRhs.f" (map fst es)
                 ren = zip fargs args
+                (n2, es) = mapId (getTypeCall ren) exprs n
                 exprs = [expr | MCaseAlt p expr <- opts, doesMatch ren p]
                 (Func _ fargs (MCase opts) _) = getFunc hite name
+
+        getTypeCall :: [(String, Subtype)] -> Expr -> Int -> (Int, (Subtype, [Item]))
+        getTypeCall ren x n
+            | callDepth x <= 1 = (n, (getType ren x, []))
+            | otherwise = (n2, (newres, [newitem]))
+            where
+                Call (CallFunc name) args = x
+                sargs = map (getType ren) args
+                (FuncT _ _ res) = lookupJust name funcm
+                (n2, newres) = getSubtypeFree datam res n
+                newitem = Item name sargs newres Never
+
 
 
         doesMatch :: [(String, Subtype)] -> Pred MCaseOpt -> Bool
