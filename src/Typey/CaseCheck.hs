@@ -16,7 +16,4 @@ typeyCaseCheck file hndl hite =
     do funcT <- annotate file hite
        dataT <- return []
        (dataT, funcT) <- return $ liftData dataT funcT
-       res <- typeySolve hite dataT funcT
-       error $ show res
-       return False
-
+       typeySolve file hndl hite dataT funcT

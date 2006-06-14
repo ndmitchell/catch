@@ -29,6 +29,8 @@ instance Show a => Show (CtorT a) where
 
 
 instance Show Subtype where
+    showList xs = showString $ concat $ intersperse " -> " $ map show xs
+
     show (Subtype a b) = "Subtype " ++ show a ++ " " ++ show b
     show (Atom vals) = show vals
 

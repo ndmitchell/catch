@@ -8,6 +8,7 @@ import Data.List
 import Data.Maybe
 import Data.Predicate
 import General.General
+import IO
 
 
 type State = (Hite, DataM SmallT, FuncM)
@@ -30,18 +31,26 @@ instance Show Item where
 
         
 -- return the subtypes of main that do not have bottom in
-typeySolve :: Hite -> DataM SmallT -> FuncM -> IO Subtype
-typeySolve hite datam funcm = do putStrLn "-- EXPANDED TYPES"
-                                 print expand
-                                 putStrLn "-- EQUAL VARIABLE SETS"
-                                 print ans
-                                 putStrLn "-- GENERATING FILE"
-                                 typeyPretty "Logs/New" $ instantiateAll ans expand
-                                 putStrLn "-- INSTANTIATE"
-                                 print res
-                                 return $ error "todo"
+typeySolve :: String -> Handle -> Hite -> DataM SmallT -> FuncM -> IO Bool
+typeySolve file hndl hite datam funcm =
+    do
+        outBoth "-- EXPANDED TYPES"
+        out $ show expand
+        outBoth "-- EQUAL VARIABLE SETS"
+        out $ showResults ans
+        outBoth "-- GENERATING FILE"
+        typeyPretty ("Logs/" ++ file) (("!root",resultArg,resultRes) : instantiateAll ans expand)
+        outBoth "-- INSTANTIATE ANSWER"
+        outBoth $ show (resultArg ++ [resultRes])
+        outBoth "-- FINAL ANSWER"
+        outBoth $ if resultBool then "Safe :)" else "Unsafe :("
+        return resultBool
     where
-        res = answer expand ans
+        out = hPutStrLn hndl
+        outBoth x = putStrLn x >> out x
+    
+        resultBool = not $ any hasBottom [instantiate ans x | Item "main" _ x _ <- expand]
+        (resultArg, resultRes) = answer expand ans
         ans = fixpVariables expand n2
         (n2,expand) = expandRhs state orig n
         (n,orig) = addItems state [] pairings 0
@@ -49,6 +58,9 @@ typeySolve hite datam funcm = do putStrLn "-- EXPANDED TYPES"
                                    args <- getSubtypesFunc datam $ fromJust $ lookup fname funcm]
         state = (hite,datam,funcm)
 
+
+showResults :: Results -> String
+showResults = unlines . map show
 
 instantiateAll :: Results -> [Item] -> [(FuncName, [Subtype], Subtype)]
 instantiateAll res xs = [(x,y,instantiate res z) | Item x y z _ <- xs]
@@ -71,8 +83,13 @@ instantiate res x = replace x
         repOne x = [x]
 
 
-answer :: [Item] -> Results -> Subtype
-answer xs res = unionList [y | Item "main" _ x _ <- xs, let y = instantiate res x, not $ hasBottom y]
+answer :: [Item] -> Results -> ([Subtype], Subtype)
+answer xs rep = foldr1 f (if null success then mains else success)
+    where
+        f (as,a) (bs,b) = (zipWithEq unionPair as bs, unionPair a b)
+    
+        success = filter (not . hasBottom . snd) mains
+        mains = [(args, instantiate rep res)  | Item "main" args res _ <- xs]
         
 
 

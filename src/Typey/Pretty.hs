@@ -53,8 +53,7 @@ instance Nice Subtype where
 
 instance Nice Subvalue where
     nices [] = "?"
-    nices [x] = nice x
-    nices xs = "[" ++ (concat $ intersperse "," $ map nice xs) ++ "]"
+    nices xs = concat $ intersperse " " $ map nice xs
 
     nice Bot = "&perp;"
     nice (SVar n) = "#" ++ show n
