@@ -22,7 +22,7 @@ makeOne (Func name args body extra) = Func name args (MCase $ map fst res) extra
         res = [g o | let MCase opts = body, o <- opts]
 
         g :: MCaseAlt -> (MCaseAlt, [Func])
-        g (MCaseAlt p x) | callDepth x > 2 = (MCaseAlt p x, [])
+        g (MCaseAlt p x) | callDepth x <= 2 = (MCaseAlt p x, [])
                          | otherwise = (MCaseAlt p callon, makeOne (Func newname newargs newbody extra))
             where
                 callon = Call (CallFunc newname) (map fst shallow ++ map Var args)
@@ -38,4 +38,4 @@ makeOne (Func name args body extra) = Func name args (MCase $ map fst res) extra
 
 
 callDepth :: Expr -> Int
-callDepth x = maximum (0 : [(maximum $ map callDepth xs) + 1 | Call _ xs <- allExpr x])
+callDepth x = maximum $ 0 : [(maximum $ 0 : map callDepth xs) + 1 | Call _ xs <- allExpr x]
