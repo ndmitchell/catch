@@ -16,6 +16,7 @@ annotate file hite = do writeFile fileHs (toHaskell hite)
                         writeFile fileIn (getCommands hite)
                         system $ hugsPath ++ " " ++ fileHs ++ " < " ++ fileIn ++ " > " ++ fileOut
                         src <- readFile fileOut
+                        checkForErrors src
                         return $ fixTypes $ parseTypes src
     where
         fileHs = "Cache/Example/catch_" ++ file ++ ".hs"
@@ -23,6 +24,15 @@ annotate file hite = do writeFile fileHs (toHaskell hite)
         fileOut = fileHs ++ ".out"
 
 hugsPath = "\"C:/Program Files/WinHugs/hugs.exe\""
+
+
+checkForErrors :: String -> IO ()
+checkForErrors xs = if null errlines then return ()
+                    else do putStrLn "Errors when type checking:"
+                            putStr $ unlines errlines
+                            error "Failed with type check errors"
+    where errlines = filter ("ERROR" `isPrefixOf`) (lines xs)
+
 
 
 fixTypes :: [(FuncName, FuncT)] -> [(FuncName, FuncT)]
