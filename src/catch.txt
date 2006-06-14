@@ -46,6 +46,7 @@ subst *Solve the program with substitution methods
 typey *Solve the program with subtype analysis
 	prep
 	mcase
+	onecall
 	typey-patterns
 
 stats *Generate statistics about a Haskell program
