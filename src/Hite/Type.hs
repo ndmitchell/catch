@@ -189,6 +189,9 @@ callArg :: Expr -> Int -> Maybe Expr
 callArg (Call _ args) n = if length args >= n then Just (args !! (n - 1)) else Nothing
 
 
+callDepth :: Expr -> Int
+callDepth x = maximum $ 0 : [(maximum $ 0 : map callDepth xs) + 1 | Call _ xs <- allExpr x]
+
 
 -- Id based methods
 

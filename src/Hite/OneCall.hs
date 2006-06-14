@@ -1,6 +1,7 @@
 
 -- Make sure there are no deeply nested calls
 -- 2 level depth is required
+-- if it is level 2, it must be the most outer thing that is a call
 -- Easy to do by introducing extra functions
 
 module Hite.OneCall(cmd) where
@@ -22,7 +23,7 @@ makeOne (Func name args body extra) = Func name args (MCase $ map fst res) extra
         res = [g o | let MCase opts = body, o <- opts]
 
         g :: MCaseAlt -> (MCaseAlt, [Func])
-        g (MCaseAlt p x) | callDepth x <= 2 = (MCaseAlt p x, [])
+        g (MCaseAlt p x) | callDepth x <= 1 = (MCaseAlt p x, [])
                          | otherwise = (MCaseAlt p callon, makeOne (Func newname newargs newbody extra))
             where
                 callon = Call (CallFunc newname) (map fst shallow ++ map Var args)
@@ -34,8 +35,3 @@ makeOne (Func name args body extra) = Func name args (MCase $ map fst res) extra
                 rep x = case lookup x shallow of
                             Nothing -> x
                             Just y -> Var y
-
-
-
-callDepth :: Expr -> Int
-callDepth x = maximum $ 0 : [(maximum $ 0 : map callDepth xs) + 1 | Call _ xs <- allExpr x]
