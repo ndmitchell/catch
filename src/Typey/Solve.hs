@@ -112,8 +112,10 @@ expandRhs state@(hite,datam,funcm) xs n = (n2, map head xs2 ++ concatMap tail xs
     where
         (n2,xs2) = mapId f xs n
         
-        f (Item name args free Later) n = (n2, Item name args free (Now res) : concatMap snd es)
+        f (Item name args free Later) n = (n2, Item name args free (Now res2) : concatMap snd es)
             where
+                res2 = if any (hasBottom . fst) es then resBot else res
+                resBot = allBottom free
                 res = unionListNote "expandRhs.f" (map fst es)
                 ren = zip fargs args
                 (n2, es) = mapId (getTypeCall ren) exprs n

@@ -42,13 +42,18 @@ class Nice a where
 instance Nice Subtype where
     nice (Atom x) = nices x
     nice (Subtype (a :@ b) ([] :@ d)) = 
-        "<table><tr><td class='tb'>" ++ nices a ++ "</td><td class='o1'>(</td><td>" ++
-        nices b ++ "</td><td class='o1'>)</td></tr></table>"
+        "<table><tr><td class='tb'>" ++ nices a ++ "</td>" ++
+        (if null b then "" else "<td class='o1'>(</td><td>" ++ nices b ++ "</td><td class='o1'>)</td>") ++
+        "</tr></table>"
+        
     nice s@(Subtype (a :@ b) (c :@ d)) =
-        "<table cellspacing='0'><tr><td class='t'>" ++ nices a ++
-        "</td><td rowspan='2' class='o2'>(</td>" ++
-        "<td>" ++ nices b ++ "</td><td rowspan='2' class='o2'>)</td></tr>" ++
-        "<tr><td class='b'>" ++ nices c ++ "</td><td>" ++ nices d ++ "</td></tr></table>"
+        "<table cellspacing='0'><tr><td class='t'>" ++ nices a ++ "</td>" ++
+        (if null b then "" else "<td rowspan='2' class='o2'>(</td><td>" ++ nices b ++
+                               "</td><td rowspan='2' class='o2'>)</td>") ++
+        "</tr>" ++
+        "<tr><td class='b'>" ++ nices c ++ "</td>" ++
+        (if null b then "" else "<td>" ++ nices d ++ "</td>") ++
+        "</tr></table>"
 
 
 instance Nice Subvalue where

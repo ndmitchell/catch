@@ -31,11 +31,12 @@ instance Show a => Show (CtorT a) where
 instance Show Subtype where
     showList xs = showString $ concat $ intersperse " -> " $ map show xs
 
-    show (Subtype a b) = "Subtype " ++ show a ++ " " ++ show b
+    show (Subtype a b) = "Subtype" ++ show a ++ show b
     show (Atom vals) = show vals
 
 instance Show Subpair where
-    show (a :@ b) = "<" ++ show a ++ " @ " ++ show b ++ ">"
+    show ([] :@ _) = ""
+    show (a :@ b) = " <" ++ show a ++ " @ " ++ show b ++ ">"
 
 instance Show Subvalue where
     showList [] = showString "?"
@@ -140,6 +141,10 @@ hasBottom (Atom xs) = Bot `elem` xs
 hasBottom (Subtype a b) = f a || f b
     where f (a :@ b) = hasBottom (Atom a) || any hasBottom b
 
+allBottom :: Subtype -> Subtype
+allBottom (Atom x) = Atom [Bot]
+allBottom (Subtype a b) = Subtype (f a) (f b)
+    where f (a :@ b) = (if null a then [] else [Bot]) :@ map allBottom b
 
 -- drop all items to the bottom (recursive) level
 collapseSubtype :: Subtype -> Subtype
