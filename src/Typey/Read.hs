@@ -5,7 +5,7 @@ import Typey.Type
 import Data.Char
 import Data.List
 import Data.Maybe
-import Text.ParserCombinators.Parsec
+import General.General
 
 
 readFuncT :: String -> FuncT
@@ -20,7 +20,7 @@ readFuncT x = FuncT (length free) (init res) (last res)
         lift ("(":xs) = one (combine (lift a)) : lift b
             where (a,b) = splitBrackets xs
         lift ("->":xs) = FreeL (-1) : lift xs
-        lift (x:xs) | isLower (head x) = (FreeL $ fromJust $ lookup x free) : lift xs
+        lift (x:xs) | isLower (head x) = (FreeL $ lookupNote "readFuncT" x free) : lift xs
                     | otherwise = CtorL x [] : lift xs
 
         one [x] = x

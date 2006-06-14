@@ -58,6 +58,13 @@ headNote msg [] = error $ "headNote: [] (" ++ msg ++ ")"
 fromJustNote msg (Just a) = a
 fromJustNote msg Nothing = error $ "fromJust2: Nothing (" ++ msg ++ ")"
 
+lookupJust x ys = case lookup x ys of
+                       Nothing -> error $ "lookupJust, " ++ show x
+                       Just y -> y
+
+lookupNote msg x ys = case lookup x ys of
+                           Nothing -> error $ "lookupNote, " ++ show x ++ ", " ++ msg
+                           Just y -> y
 
 -- | Are two sets eq, given the appropriate equality test.
 setEqBy :: (a -> a -> Bool) -> [a] -> [a] -> Bool

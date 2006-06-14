@@ -104,7 +104,7 @@ getSubtypesLarge datam (CtorL name args) = concatMap f datat
             | null b = [Subtype (a :@ x) ([] :@ []) | x <- children]
             | otherwise = [Subtype (a :@ x) (b :@ y) | x <- children, y <- children]
     
-        datat = getSubtypesData $ fromJust $ lookup name datam
+        datat = getSubtypesData $ lookupJust name datam
         children = crossProduct $ map (getSubtypesLarge datam) args
 
 getSubtypesFunc :: DataM SmallT -> FuncT -> [[Subtype]]

@@ -34,10 +34,12 @@ instance Show Item where
 typeySolve :: String -> Handle -> Hite -> DataM SmallT -> FuncM -> IO Bool
 typeySolve file hndl hite datam funcm =
     do
+        outBoth "-- FUNCTION TYPES"
+        out $ showLines funcm
         outBoth "-- EXPANDED TYPES"
         out $ show expand
         outBoth "-- EQUAL VARIABLE SETS"
-        out $ showResults ans
+        out $ showLines ans
         outBoth "-- GENERATING FILE"
         typeyPretty ("Logs/" ++ file) (("!root",resultArg,resultRes) : instantiateAll ans expand)
         outBoth "-- INSTANTIATE ANSWER"
@@ -55,12 +57,12 @@ typeySolve file hndl hite datam funcm =
         (n2,expand) = expandRhs state orig n
         (n,orig) = addItems state [] pairings 0
         pairings = [(fname,args) | name <- funcs hite, let fname = funcName name, fname /= "error",
-                                   args <- getSubtypesFunc datam $ fromJust $ lookup fname funcm]
+                                   args <- getSubtypesFunc datam $ lookupNote "Typey.Solve.typeySolve" fname funcm]
         state = (hite,datam,funcm)
 
 
-showResults :: Results -> String
-showResults = unlines . map show
+showLines :: Show x => [x] -> String
+showLines = unlines . map show
 
 instantiateAll :: Results -> [Item] -> [(FuncName, [Subtype], Subtype)]
 instantiateAll res xs = [(x,y,instantiate res z) | Item x y z _ <- xs]
@@ -100,7 +102,7 @@ addItems (hite,datam,funcm) items add norig = (n, items ++ i2)
     
         f (name, arg) n = (n2, Item name arg r2 Later)
             where
-                (FuncT _ _ res) = fromJust $ lookup name funcm
+                (FuncT _ _ res) = lookupJust name funcm
                 (n2,r2) = getSubtypeFree datam res n
 
 
@@ -126,14 +128,14 @@ expandRhs state@(hite,datam,funcm) xs n = (n2, concat xs2)
 
 
         getExpr :: [(String, Subtype)] -> Expr -> Subtype
-        getExpr ren (Var x) = fromJust $ lookup x ren
+        getExpr ren (Var x) = lookupJust x ren
         getExpr ren (Sel x y) = res
             where
                 s@(Subtype (_ :@ inside) _) = getExpr ren x
                 ctor = getCtorFromArg hite y
                 cname = ctorName ctor
                 dname = dataName $ getDataFromCtor hite cname
-                dtype@(DataT free ctors) = fromJust $ lookup dname datam
+                dtype@(DataT free ctors) = lookupJust dname datam
                 cargs = head [xs | CtorT n xs <- ctors, n == cname]
                 argPos = fromJust $ elemIndex y (ctorArgs ctor)
                 res = case cargs !! argPos of
@@ -146,7 +148,7 @@ expandRhs state@(hite,datam,funcm) xs n = (n2, concat xs2)
             where
                 blanks = replicate free Empty
                 dname = dataName $ getDataFromCtor hite name
-                dtype@(DataT free ctors) = fromJust $ lookup dname datam
+                dtype@(DataT free ctors) = lookupJust dname datam
                 cargs = head [xs | CtorT n xs <- ctors, n == name]
                 xs2 = map (getType ren) xs
                 
@@ -220,5 +222,5 @@ getSubtypeFree datam (CtorL name xs) n
         f n = (a,[SVar n] :@ b)
             where (a,b) = mapId (getSubtypeFree datam) xs (n+1)
     
-        (DataT free ctors) = fromJust $ lookup name datam
+        (DataT free ctors) = lookupJust name datam
         recursive = any isRecursive ctors
