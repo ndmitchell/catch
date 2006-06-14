@@ -67,6 +67,7 @@ prefix =
     ["int_may f Nothing = False"
     ,"int_may f (Just x) = f x"
     ,"data " ++ box ++ " a = " ++ box ++ " | " ++ colon ++ " a (" ++ box ++ " a)"
+    ,"data " ++ enUpper "Bool" ++ " = " ++ enUpper "True" ++ " | " ++ enUpper "False"
     ]
     
     where

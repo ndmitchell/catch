@@ -114,7 +114,7 @@ expandRhs state@(hite,datam,funcm) xs n = (n2, concat xs2)
         
         f (Item name args free Later) n = (n, [Item name args free (Now res)])
             where
-                res = unionList $ map (getType ren) exprs
+                res = unionListNote "expandRhs.f" $ map (getType ren) exprs
                 ren = zip fargs args
                 exprs = [expr | MCaseAlt p expr <- opts, doesMatch ren p]
                 (Func _ fargs (MCase opts) _) = getFunc hite name
@@ -163,7 +163,12 @@ expandRhs state@(hite,datam,funcm) xs n = (n2, concat xs2)
 
         getCall :: FuncName -> [Subtype] -> Subtype
         getCall "error" _ = Atom [Bot]
-        getCall name args = unionList [x | Item n a x _ <- xs, n == name, and $ zipWith isSubset a args]
+        getCall name args = unionListNote ("getCall, " ++ name ++ " " ++ show args)
+            [x | Item n a x _ <- xs, n == name, and $ zipWith isSubset a args]
+
+
+unionListNote msg [] = error $ "unionListNote, " ++ msg
+unionListNote msg xs = unionList xs
 
 
 type Results = [[Subvalue]]

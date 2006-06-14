@@ -119,6 +119,7 @@ class Union a where
     unionPair :: a -> a -> a
     unionList :: [a] -> a
     
+    unionList [] = error "unionList, with empty list"
     unionList xs = foldr1 unionPair xs
 
 instance Union Subtype where
