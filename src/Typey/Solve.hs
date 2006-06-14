@@ -189,9 +189,12 @@ unionListNote msg xs = unionList xs
 type Results = [[Subvalue]]
 
 fixpVariables :: [Item] -> Int -> Results
-fixpVariables xs n = eqs
+fixpVariables xs n = baseResults
     where
-        eqs = simpSets $ joinAllSets $ concatMap eqItem xs
+        baseResults = makeResults $ concatMap eqItem xs
+        
+        
+        makeResults = simpSets . joinAllSets
     
         eqItem :: Item -> Results
         eqItem (Item _ _ a (Now b)) = eqSubtype a b
@@ -219,6 +222,15 @@ fixpVariables xs n = eqs
         joinSets :: Results -> Int -> Results
         joinSets rews n = concat a : b
             where (a,b) = partition (SVar n `elem`) rews
+
+        
+        -- what constraints have to be added because of the Later statements
+        addConstraints :: Results -> Results
+        addConstraints res = concatMap f xs
+            where
+                f (Item name args free Never) = error "todo"
+                f _ = []
+
 
 
 mapId :: (a -> Int -> (Int, b)) -> [a] -> Int -> (Int, [b])
