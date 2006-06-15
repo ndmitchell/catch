@@ -132,6 +132,20 @@ crossProduct [] = [[]]
 
 
 -- requires both arguments are the same length, or crashes
-zipWithEq :: (a -> b -> c) -> [a] -> [b] -> [c]
-zipWithEq f (x:xs) (y:ys) = f x y : zipWithEq f xs ys
-zipWithEq f [] [] = []
+zipWithEq :: (Show a, Show b) => (a -> b -> c) -> [a] -> [b] -> [c]
+zipWithEq f xs ys = g xs ys
+    where
+        g (x:xs) (y:ys) = f x y : g xs ys
+        g [] [] = []
+        g _ _ = error $ "zipWithEq, different lengths, " ++ show (xs,ys)
+
+zipWithEqNote :: (Show a, Show b) => String -> (a -> b -> c) -> [a] -> [b] -> [c]
+zipWithEqNote msg f x y = g x y
+    where
+        g [] [] = []
+        g (x:xs) (y:ys) = f x y : g xs ys
+        g _ _ = error $ "zipWithEqNote " ++ msg ++ ", on " ++ show (x,y)
+
+zipWithRest :: (a -> a -> a) -> [a] -> [a] -> [a]
+zipWithRest f (x:xs) (y:ys) = f x y : zipWithRest f xs ys
+zipWithRest f xs ys = xs ++ ys

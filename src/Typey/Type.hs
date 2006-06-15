@@ -33,6 +33,7 @@ instance Show Subtype where
 
     show (Subtype a b) = "Subtype" ++ show a ++ show b
     show (Atom vals) = show vals
+    show Empty = "Empty"
 
 instance Show Subpair where
     show ([] :@ _) = ""
@@ -130,7 +131,7 @@ instance Union Subtype where
     unionPair x Empty = x
 
 instance Union Subpair where
-    unionPair (a1 :@ b1) (a2 :@ b2) = (unionPair a1 a2 :@ zipWithEq unionPair b1 b2)
+    unionPair (a1 :@ b1) (a2 :@ b2) = (unionPair a1 a2 :@ zipWithRest unionPair b1 b2)
 
 instance Union [Subvalue] where
     unionPair as bs = as `union` bs
@@ -140,6 +141,7 @@ hasBottom :: Subtype -> Bool
 hasBottom (Atom xs) = Bot `elem` xs
 hasBottom (Subtype a b) = f a || f b
     where f (a :@ b) = hasBottom (Atom a) || any hasBottom b
+hasBottom Empty = False
 
 allBottom :: Subtype -> Subtype
 allBottom (Atom x) = Atom [Bot]
@@ -154,9 +156,10 @@ liftSubtype :: Subtype -> Subtype
 liftSubtype (Subtype a b) = Subtype b b
 
 isSubset :: Subtype -> Subtype -> Bool
-isSubset (Subtype a1 b1) (Subtype a2 b2) = f a1 a2 && f b1 b2
+isSubset s1@(Subtype a1 b1) s2@(Subtype a2 b2) = f a1 a2 && f b1 b2
     where
-        f (a1:@b1) (a2:@b2) = g a1 a2 && (and $ zipWithEq isSubset b1 b2)
+        f ([]:@_) _ = True
+        f (a1:@b1) (a2:@b2) = g a1 a2 && (and $ zipWithEqNote ("Typey.Type.isSubset " ++ show (s1,s2)) isSubset b1 b2)
         g x y = null (x \\ y)
 isSubset (Atom _) (Atom _) = True
 isSubset (Atom _) (Subtype _ _) = True -- a free variable can be a subtype

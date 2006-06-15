@@ -9,6 +9,7 @@ import Data.Maybe
 import Data.Predicate
 import General.General
 import IO
+import Debug.Trace
 
 
 type State = (Hite, DataM SmallT, FuncM)
@@ -36,6 +37,8 @@ typeySolve file hndl hite datam funcm =
     do
         outBoth "-- FUNCTION TYPES"
         out $ showLines funcm
+        outBoth "-- ORIGINAL TYPES"
+        out $ show orig
         outBoth "-- EXPANDED TYPES"
         out $ show expand
         outBoth "-- EQUAL VARIABLE SETS"
@@ -179,7 +182,7 @@ expandRhs state@(hite,datam,funcm) xs n = (n2, map head xs2 ++ concatMap tail xs
         getCall :: FuncName -> [Subtype] -> Subtype
         getCall "error" _ = Atom [Bot]
         getCall name args = unionListNote ("getCall, " ++ name ++ " " ++ show args)
-            [x | Item n a x _ <- xs, n == name, and $ zipWith isSubset a args]
+            [x | Item n a x Later <- xs, n == name, and $ zipWithEq isSubset a args]
 
 
 unionListNote msg [] = error $ "unionListNote, " ++ msg
@@ -213,6 +216,8 @@ fixpVariables xs n = fixp baseResults
         eqSubtype (Subtype a1 b1) (Subtype a2 b2) = f a1 a2 ++ f b1 b2
             where
                 f (a1:@b1) (a2:@b2) = eqSubtype (Atom a1) (Atom a2) ++ concat (zipWithEq eqSubtype b1 b2)
+        eqSubtype _ Empty = []
+        eqSubtype Empty _ = []
 
         simpSets :: Results -> Results
         simpSets x = concatMap f x
@@ -238,7 +243,7 @@ fixpVariables xs n = fixp baseResults
             where
                 f (Item name args free Never) = free `eqSubtype` unionList
                         [instantiate res fre | Item nam arg fre (Now _) <- xs, nam == name,
-                            and $ zipWithEq isSubset (map (instantiate res) arg) args2]
+                            and $ zipWithEqNote ("addConstraints, " ++ name) isSubset (map (instantiate res) arg) args2]
                     where args2 = map (instantiate res) args
                 f _ = []
 
