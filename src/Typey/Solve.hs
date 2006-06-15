@@ -44,9 +44,9 @@ typeySolve file hndl hite datam funcm =
         outBoth "-- EQUAL VARIABLE SETS"
         out $ showLines ans
         outBoth "-- GENERATING FILE"
-        typeyPretty ("Logs/" ++ file) (("!root",resultArg,resultRes) : instantiateAll ans expand)
-        outBoth "-- INSTANTIATE ANSWER"
-        outBoth $ show (resultArg ++ [resultRes])
+        typeyPretty ("Logs/" ++ file) (instantiateAll ans expand)
+        --outBoth "-- INSTANTIATE ANSWER"
+        --outBoth $ show (resultArg ++ [resultRes])
         outBoth "-- FINAL ANSWER"
         outBoth $ if resultBool then "Safe :)" else "Unsafe :("
         return resultBool
