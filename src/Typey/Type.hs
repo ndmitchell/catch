@@ -159,3 +159,5 @@ isSubset (Subtype a1 b1) (Subtype a2 b2) = f a1 a2 && f b1 b2
         f (a1:@b1) (a2:@b2) = g a1 a2 && (and $ zipWithEq isSubset b1 b2)
         g x y = null (x \\ y)
 isSubset (Atom _) (Atom _) = True
+isSubset (Atom _) (Subtype _ _) = True -- a free variable can be a subtype
+

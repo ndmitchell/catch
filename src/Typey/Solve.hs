@@ -189,9 +189,17 @@ unionListNote msg xs = unionList xs
 type Results = [[Subvalue]]
 
 fixpVariables :: [Item] -> Int -> Results
-fixpVariables xs n = baseResults
+fixpVariables xs n = fixp baseResults
     where
         baseResults = makeResults $ concatMap eqItem xs
+        
+        fixp :: Results -> Results
+        fixp res = if null newres then res
+                   else fixp $ makeResults $ newres ++ res
+            where
+                newres = filter isNew $ addConstraints res
+                isNew r = not $ any (r `isSubset`) res
+                isSubset a b = null (a \\ b)
         
         
         makeResults = simpSets . joinAllSets
@@ -228,7 +236,10 @@ fixpVariables xs n = baseResults
         addConstraints :: Results -> Results
         addConstraints res = concatMap f xs
             where
-                f (Item name args free Never) = error "todo"
+                f (Item name args free Never) = free `eqSubtype` unionList
+                        [instantiate res fre | Item nam arg fre (Now _) <- xs, nam == name,
+                            and $ zipWithEq isSubset (map (instantiate res) arg) args2]
+                    where args2 = map (instantiate res) args
                 f _ = []
 
 
