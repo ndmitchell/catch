@@ -11,14 +11,14 @@ import Data.List
 
 data TSubtype = TAtom [TAtom]
               | TBind [TPair]
-              | TArr TSubtype TSubtype
+              | TArr [TSubtype] TSubtype
               | TBot
 
 instance Show TSubtype where
     show (TAtom x) = show x
     show (TBind xs) = "{" ++ (concat $ intersperse " | " $ map show xs) ++ "}"
-    show (TArr a b) = "(" ++ show a ++ " -> " ++ show b ++ ")"
-    show TBot = "_|_"
+    show (TArr a b) = "(" ++ (concat $ intersperse " -> " $ map show (a++[b])) ++ ")"
+    show TBot = "!"
 
 
 data TPair = TPair [TAtom] [TSubtype]
@@ -45,7 +45,7 @@ typeySolve2 file hndl hite datam funcm =
         outBoth "-- TYPES OF FUNCTIONS"
         out $ unlines [a ++ " :: " ++ show b | (a,b) <- funcm]
         outBoth "-- SUBTYPES"
-        out $ showLines $ getSubtypes datam (fromJust $ lookup "head" funcm)
+        out $ showLines $ addBottoms $ getSubtypes datam (fromJust $ lookup "head" funcm)
         return False
     where
         out = hPutStrLn hndl
@@ -58,7 +58,8 @@ typeySolve2 file hndl hite datam funcm =
 
 getSubtypes :: DataM SmallT -> Large2T -> [TSubtype]
 getSubtypes datam (Free2T a) = [TAtom [TFree a]]
-getSubtypes datam (Arr2T a b) = [TArr x y | x <- getSubtypes datam a, y <- getSubtypes datam b]
+getSubtypes datam (Arr2T a b) = [TArr x y | x <- as, y <- getSubtypes datam b]
+    where as = crossProduct $ map (getSubtypes datam) a
 getSubtypes datam (Ctor2T a) = getSubtypes datam $ Bind2T (Ctor2T a) []
 
 getSubtypes datam (Bind2T (Ctor2T x) xs) = 
@@ -70,9 +71,18 @@ getSubtypes datam (Bind2T (Ctor2T x) xs) =
         bs = crossProduct $ map (getSubtypes datam) xs
 
 
-
 -- add bottom everywhere you can
-addBottoms = 1
+addBottoms :: [TSubtype] -> [TSubtype]
+addBottoms x = concat $ map f x
+    where
+        f (TArr as bs) = concat [[TArr a b, TArr a TBot] | a <- fs as, b <- f bs]
+        f (TBind xs) = map TBind $ crossProduct $ map g xs
+        f x = [x]
+        
+        fs xs = crossProduct $ map f xs
+        
+        g (TPair as bs) = [TPair as b | b <- fs bs]
+
 
 -- rename all variables
 renameVars = 1

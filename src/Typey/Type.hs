@@ -70,12 +70,12 @@ data SmallT = FreeS Int | Self
 data Large2T = Ctor2T String
              | Free2T String
              | Bind2T Large2T [Large2T]
-             | Arr2T Large2T Large2T
+             | Arr2T [Large2T] Large2T
 
 mapLarge2T :: (Large2T -> Large2T) -> Large2T -> Large2T
 mapLarge2T f x = f $ case x of
         Bind2T x xs -> Bind2T (mapLarge2T f x) (map (mapLarge2T f) xs)
-        Arr2T a b -> Arr2T (mapLarge2T f a) (mapLarge2T f b)
+        Arr2T a b -> Arr2T (map (mapLarge2T f) a) (mapLarge2T f b)
         x -> x
 
 

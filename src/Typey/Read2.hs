@@ -56,9 +56,13 @@ readArr = do spaces
              spaces
              (do string "->"
                  y <- readArr
-                 return $ Arr2T x y)
+                 return $ joinArr x y)
                <|>
                  return x
+
+joinArr :: Large2T -> Large2T -> Large2T
+joinArr (Arr2T xs x) y = Arr2T (xs ++ [x]) y
+joinArr x y = Arr2T [x] y
 
 
 readBracket :: Parser Large2T
