@@ -61,6 +61,7 @@ instance Show Subvalue where
 -- TYPE STUFF
 
 type FuncM = [(FuncName, FuncT)]
+type Func2M = [(FuncName, Func2T)]
 type DataM a = [(DataName, DataT a)]
 
 data FuncT = FuncT Int [LargeT] LargeT

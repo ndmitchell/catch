@@ -6,6 +6,7 @@ import Hite
 import Typey.Type
 import Typey.LiftData
 import Typey.Solve
+import Typey.Solve2
 import Typey.Annotate
 import Data.Maybe
 import General.General
@@ -22,7 +23,4 @@ typeyCaseCheck file hndl hite =
 typeyHoCaseCheck :: String -> Handle -> Hite -> IO Bool
 typeyHoCaseCheck file hndl hite =
     do funcT <- annotate2 file hite
---       dataT <- return []
---       (dataT, funcT) <- return $ liftData2 dataT funcT
-       error $ showLines funcT
-       
+       typeySolve2 file hndl hite getDatas funcT
