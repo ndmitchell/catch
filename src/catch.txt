@@ -49,6 +49,15 @@ typey *Solve the program with subtype analysis
 	onecall
 	typey-patterns
 
+typeyho *Use higher order subtype analysis
+	short-name
+	reachable
+	const-lift
+	reachable
+	mcase
+	onecall
+	typeyho-patterns
+
 stats *Generate statistics about a Haskell program
 	short-name
 	reachable

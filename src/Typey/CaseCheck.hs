@@ -1,5 +1,5 @@
 
-module Typey.CaseCheck(typeyCaseCheck) where
+module Typey.CaseCheck(typeyCaseCheck, typeyHoCaseCheck) where
 
 import IO
 import Hite
@@ -17,3 +17,7 @@ typeyCaseCheck file hndl hite =
        dataT <- return []
        (dataT, funcT) <- return $ liftData dataT funcT
        typeySolve file hndl hite dataT funcT
+
+
+typeyHoCaseCheck :: String -> Handle -> Hite -> IO Bool
+typeyHoCaseCheck file hndl hite = return False

@@ -58,7 +58,8 @@ terminals = [("safe-patterns",term "safe-patterns" caseCheck),
              ("unsafe-patterns",term "unsafe-patterns" undefined),
              ("graph-patterns",term "graph-patterns" graphCaseCheck),
              ("subst-patterns",term "subst-patterns" substCaseCheck),
-             ("typey-patterns",term "typey-patterns" typeyCaseCheck)
+             ("typey-patterns",term "typey-patterns" typeyCaseCheck),
+             ("typeyho-patterns",term "typeyho-patterns" typeyHoCaseCheck)
              {- ,
              ("statistics", \a b -> statistics) -} ]
 
