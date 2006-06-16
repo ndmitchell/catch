@@ -62,13 +62,24 @@ getSubtypes datam (Arr2T a b) = [TArr x y | x <- as, y <- getSubtypes datam b]
     where as = crossProduct $ map (getSubtypes datam) a
 getSubtypes datam (Ctor2T a) = getSubtypes datam $ Bind2T (Ctor2T a) []
 
-getSubtypes datam (Bind2T (Ctor2T x) xs) = 
+getSubtypes datam (Bind2T (Ctor2T x) xs) = map (simpSubtype datat) $
         [TBind [TPair [a] b] | a <- nas, b <- bs] ++
         [TBind [TPair [a1] b1, TPair [a2] b2] | a1 <- ras, b1 <- bs, a2 <- ras ++ nas, b2 <- bs]
     where
+        datat = fromJust $ lookup x datam
         (ras,nas) = (\(a,b) -> (map snd a,map snd b)) $ partition fst
-            [(isRecursive ctr, TCtor q) | let DataT _ y = fromJust $ lookup x datam, ctr@(CtorT q _) <- y]
+            [(isRecursive ctr, TCtor q) | let DataT _ y = datat, ctr@(CtorT q _) <- y]
         bs = crossProduct $ map (getSubtypes datam) xs
+
+
+simpSubtype :: DataT SmallT -> TSubtype -> TSubtype
+simpSubtype (DataT _ ctors) (TBind xs) = TBind (map f xs)
+    where
+        f (TPair [TCtor n] xs) = TPair [TCtor n] (zipWith f [0..] xs)
+            where
+                ctr = [y | CtorT n2 ys <- ctors, n2 == n, FreeS y <- ys]
+                f i x = if i `elem` ctr then x else TAtom []
+
 
 
 -- add bottom everywhere you can
