@@ -37,10 +37,11 @@ import Hite.Fringe
 import Hite.OneCall
 import Hite.ConstLift
 import Hite.ErrorCall
+import Hite.ArgElim
 
 
 cmds :: [Command Hite]
 cmds = [Hite.Reachable.cmd, Hite.ShortName.cmd, Hite.ErrorFail.cmd, Hite.CaseLift.cmd,
         Hite.ArityRaise.cmd, Hite.Consts.cmd, Hite.MakeMove.cmd, Hite.Inline.cmd,
         Hite.Defunc.cmd, Hite.MCase.cmd, Hite.Check.cmd, Hite.OneCall.cmd,
-        Hite.ConstLift.cmd, Hite.ErrorCall.cmd]
+        Hite.ConstLift.cmd, Hite.ErrorCall.cmd, Hite.ArgElim.cmd]

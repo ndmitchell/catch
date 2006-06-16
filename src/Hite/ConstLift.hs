@@ -8,6 +8,7 @@ import Hite.Type
 import General.General
 import Data.List
 import Data.Maybe
+import Hite.Normalise
 
 
 cmd = cmdHitePure (const constLift) "const-lift"
@@ -15,7 +16,7 @@ cmd = cmdHitePure (const constLift) "const-lift"
 
 
 constLift :: Hite -> Hite
-constLift = resultConst . dropWrappers
+constLift = resultConst . dropWrappers . normalise
 
 
 resultConst :: Hite -> Hite

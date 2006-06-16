@@ -56,7 +56,8 @@ typeyho *Use higher order subtype analysis
 	error-call
 	reachable
 	mcase
-	onecall
+	arg-elim
+	reachable
 	typeyho-patterns
 
 stats *Generate statistics about a Haskell program
