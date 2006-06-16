@@ -17,7 +17,7 @@ annotate = annotateBase f
     where
         f = fixType . readFuncT
 
-annotate2 :: String -> Hite -> IO [(FuncName, Func2T)]
+annotate2 :: String -> Hite -> IO [(FuncName, Large2T)]
 annotate2 = annotateBase f
     where
         f = fixType2 . readFunc2T
@@ -55,8 +55,8 @@ fixType x = mapLargeT f x
         f (CtorL name xs) = CtorL (decode name) xs
         f x = x
 
-fixType2 :: Func2T -> Func2T
-fixType2 (Func2T n x) = Func2T n $ mapLarge2T f x
+fixType2 :: Large2T -> Large2T
+fixType2 x = mapLarge2T f x
     where
         f (Ctor2T n) = Ctor2T (decode n)
         f x = x

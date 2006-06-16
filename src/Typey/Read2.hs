@@ -9,8 +9,8 @@ import General.General
 import Text.ParserCombinators.Parsec
 
 
-readFunc2T :: String -> Func2T
-readFunc2T x = Func2T 0 res
+readFunc2T :: String -> Large2T
+readFunc2T x = res
     where   
         x2 = dropSpaces x
         res = case (parse readStr "" x2) of

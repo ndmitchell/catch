@@ -10,9 +10,6 @@ import Control.Exception
 
 -- SHOW STUFF
 
-instance Show Func2T where
-    show (Func2T n typ) = "forall " ++ show n ++ " . " ++ show typ
-    
 instance Show Large2T where
     show (Free2T i) = i
     show (Ctor2T x) = x
@@ -61,7 +58,7 @@ instance Show Subvalue where
 -- TYPE STUFF
 
 type FuncM = [(FuncName, FuncT)]
-type Func2M = [(FuncName, Func2T)]
+type Func2M = [(FuncName, Large2T)]
 type DataM a = [(DataName, DataT a)]
 
 data FuncT = FuncT Int [LargeT] LargeT
@@ -70,7 +67,6 @@ data CtorT a = CtorT String [a]
 data LargeT = FreeL Int | CtorL String [LargeT]
 data SmallT = FreeS Int | Self
 
-data Func2T = Func2T Int Large2T
 data Large2T = Ctor2T String
              | Free2T String
              | Bind2T Large2T [Large2T]
