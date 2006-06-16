@@ -7,6 +7,7 @@
 module Hite.OneCall(cmd) where
 
 import Hite.Type
+import Hite.Normalise
 
 
 cmd = cmdHitePure (const oneCall) "onecall"
@@ -14,8 +15,8 @@ cmd = cmdHitePure (const oneCall) "onecall"
 
 
 oneCall :: Hite -> Hite
-oneCall hite = hite{funcs = concatMap makeOne (funcs hite)}
-    where
+oneCall bad_hite = hite{funcs = concatMap makeOne (funcs hite)}
+    where hite = normalise bad_hite
     
 makeOne :: Func -> [Func]
 makeOne (Func name args body extra) = Func name args (MCase $ map fst res) extra : concatMap snd res
