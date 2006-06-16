@@ -24,7 +24,7 @@ readFuncT x = FuncT (length free) (init res) (last res)
                     | otherwise = CtorL x [] : lift xs
 
         one [x] = x
-        one _ = error "one"
+        one _ = error "readFuncT, one"
 
         -- combine a list of LargeT to a singe list separated by Free -1 (or -> arrow)
         combine (x:FreeL (-1):xs) = x : combine xs

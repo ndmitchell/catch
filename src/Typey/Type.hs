@@ -60,6 +60,12 @@ data CtorT a = CtorT String [a]
 data LargeT = FreeL Int | CtorL String [LargeT]
 data SmallT = FreeS Int | Self
 
+data Func2T = FuncLump Int Large2T
+data Large2T = Ctor2T String [Large2T]
+             | Free2T Int
+             | Func2T Large2T Large2T
+
+
 isRecursive (CtorT name xs) = any isSelf xs
 isSelf (Self) = True; isSelf _ = False
 

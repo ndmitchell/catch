@@ -20,4 +20,9 @@ typeyCaseCheck file hndl hite =
 
 
 typeyHoCaseCheck :: String -> Handle -> Hite -> IO Bool
-typeyHoCaseCheck file hndl hite = return False
+typeyHoCaseCheck file hndl hite =
+    do funcT <- annotate file hite
+       dataT <- return []
+       (dataT, funcT) <- return $ liftData dataT funcT
+       error $ show (dataT, funcT)
+       
