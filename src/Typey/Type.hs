@@ -10,6 +10,15 @@ import Control.Exception
 
 -- SHOW STUFF
 
+instance Show Func2T where
+    show (Func2T n typ) = "forall " ++ show n ++ " . " ++ show typ
+    
+instance Show Large2T where
+    show (Free2T i) = i
+    show (Ctor2T x) = x
+    show (Bind2T x xs) = "(" ++ show x ++ concatMap ((' ':) . show) xs ++ ")"
+    show (Arr2T a b) = "(" ++ show a ++ ") -> (" ++ show b ++ ")"
+
 instance Show FuncT where
     show (FuncT n args res) = "forall " ++ show n ++ " . " ++ (concat $ intersperse " -> " $ map show $ args ++ [res])
     
@@ -60,10 +69,17 @@ data CtorT a = CtorT String [a]
 data LargeT = FreeL Int | CtorL String [LargeT]
 data SmallT = FreeS Int | Self
 
-data Func2T = FuncLump Int Large2T
-data Large2T = Ctor2T String [Large2T]
-             | Free2T Int
-             | Func2T Large2T Large2T
+data Func2T = Func2T Int Large2T
+data Large2T = Ctor2T String
+             | Free2T String
+             | Bind2T Large2T [Large2T]
+             | Arr2T Large2T Large2T
+
+mapLarge2T :: (Large2T -> Large2T) -> Large2T -> Large2T
+mapLarge2T f x = f $ case x of
+        Bind2T x xs -> Bind2T (mapLarge2T f x) (map (mapLarge2T f) xs)
+        Arr2T a b -> Arr2T (mapLarge2T f a) (mapLarge2T f b)
+        x -> x
 
 
 isRecursive (CtorT name xs) = any isSelf xs

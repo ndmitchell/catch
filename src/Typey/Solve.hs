@@ -64,9 +64,6 @@ typeySolve file hndl hite datam funcm =
         state = (hite,datam,funcm)
 
 
-showLines :: Show x => [x] -> String
-showLines = unlines . map show
-
 instantiateAll :: Results -> [Item] -> [(FuncName, [Subtype], Subtype)]
 instantiateAll res xs = [(x,y,instantiate res z) | Item x y z _ <- xs]
 

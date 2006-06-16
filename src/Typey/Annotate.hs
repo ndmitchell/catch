@@ -1,5 +1,5 @@
 
-module Typey.Annotate(annotate) where
+module Typey.Annotate(annotate, annotate2) where
 
 import Hite
 import Data.Predicate
@@ -9,12 +9,18 @@ import Data.Char
 import System.Cmd
 import Typey.Type
 import Typey.Read
+import Typey.Read2
 
 
 annotate :: String -> Hite -> IO [(FuncName, FuncT)]
 annotate = annotateBase f
     where
         f = fixType . readFuncT
+
+annotate2 :: String -> Hite -> IO [(FuncName, Func2T)]
+annotate2 = annotateBase f
+    where
+        f = fixType2 . readFunc2T
 
 
 annotateBase :: (String -> a) -> String -> Hite -> IO [(FuncName, a)]
@@ -49,6 +55,11 @@ fixType x = mapLargeT f x
         f (CtorL name xs) = CtorL (decode name) xs
         f x = x
 
+fixType2 :: Func2T -> Func2T
+fixType2 (Func2T n x) = Func2T n $ mapLarge2T f x
+    where
+        f (Ctor2T n) = Ctor2T (decode n)
+        f x = x
 
 
 parseTypes :: String -> [(FuncName, String)]

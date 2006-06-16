@@ -149,3 +149,7 @@ zipWithEqNote msg f x y = g x y
 zipWithRest :: (a -> a -> a) -> [a] -> [a] -> [a]
 zipWithRest f (x:xs) (y:ys) = f x y : zipWithRest f xs ys
 zipWithRest f xs ys = xs ++ ys
+
+
+showLines :: Show a => [a] -> String
+showLines = unlines . map show
