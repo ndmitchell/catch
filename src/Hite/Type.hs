@@ -46,6 +46,7 @@ data Expr = Call {callFunc :: Expr, callArgs :: [Expr]}
           | Msg String
           
           -- constructor, list of arguments (nothing is recurse), expr is alt
+          | Error String
           | Repeat {expr :: Expr, alt :: Expr}
           | RepeatNow
           | Bottom

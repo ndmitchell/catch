@@ -53,6 +53,7 @@ typeyho *Use higher order subtype analysis
 	short-name
 	reachable
 	const-lift
+	error-call
 	reachable
 	mcase
 	onecall

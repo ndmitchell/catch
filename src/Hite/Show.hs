@@ -33,6 +33,7 @@ instance Output Expr where
             f b i (RepeatNow) = "***"
             f b i (Repeat expr alt) = brack b $ f b i expr ++ " | " ++ f b i alt
             f b i (Msg s) = show s
+            f b i (Error s) = brack b $ "Error " ++ show s
             
             f b i (MCase opts) = concatMap output opts
 
