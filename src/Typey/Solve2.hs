@@ -45,7 +45,7 @@ typeySolve2 file hndl hite datam funcm =
         outBoth "-- TYPES OF FUNCTIONS"
         out $ unlines [a ++ " :: " ++ show b | (a,b) <- funcm]
         outBoth "-- SUBTYPES"
-        out $ showLines $ addBottoms $ getSubtypes datam (fromJust $ lookup "head" funcm)
+        out $ showLines $ renameVars $ addBottoms $ getSubtypes datam (fromJust $ lookup "head" funcm)
         return False
     where
         out = hPutStrLn hndl
@@ -96,8 +96,29 @@ addBottoms x = concat $ map f x
 
 
 -- rename all variables
-renameVars = 1
+renameVars :: [TSubtype] -> [TSubtype]
+renameVars x = map f x
+    where
+        f x = head $ uniqueVars [x]
 
 
-
-
+uniqueVars :: [TSubtype] -> [TSubtype]
+uniqueVars xs = snd $ mapId f xs 0
+    where
+        raise f (n,a) = (n, f a)
+    
+        f (TAtom x) n = raise TAtom $ mapId g x n
+        f (TBind x) n = raise TBind $ mapId h x n
+        f (TArr x y) n = (n3, TArr x2 y2)
+            where
+                (n2, x2) = mapId f x n
+                (n3, y2) = f y n2
+        f TBot n = (n, TBot)
+        
+        g (TFree x) n = (n+1, TFree (x ++ show n))
+        g x n = (n, x)
+        
+        h (TPair a b) n = (n3, TPair a2 b2)
+            where
+                (n2, a2) = mapId g a n
+                (n3, b2) = mapId f b n2

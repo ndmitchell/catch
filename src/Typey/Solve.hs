@@ -246,13 +246,6 @@ fixpVariables xs n = fixp baseResults
 
 
 
-mapId :: (a -> Int -> (Int, b)) -> [a] -> Int -> (Int, [b])
-mapId f [] n = (n,[])
-mapId f (x:xs) n = (n3, x2:x3)
-    where
-        (n2,x2) = f x n
-        (n3,x3) = mapId f xs n2
-
 
 
 getSubtypeFree :: DataM SmallT -> LargeT -> Int -> (Int, Subtype)
