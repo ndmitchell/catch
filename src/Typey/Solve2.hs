@@ -19,6 +19,7 @@ data TPair = TPair [TAtom] [TSubtype]
 
 data TAtom = TCtor String
            | TFree String
+           deriving Eq
 
 
 instance Show TSubtype where
@@ -39,21 +40,78 @@ instance Show TAtom where
     show (TFree x) = x
 
 
+instance Union TSubtype where
+    unionPair (TAtom a) (TAtom b) = TAtom (a `union` b)
+    unionPair (TBind a) (TBind b) = TBind (zipWithEq unionPair a b)
+    unionPair (TArr a1 b1) (TArr a2 b2) = TArr (zipWithEq unionPair a1 a2) (b1 `unionPair` b2)
+    unionPair a b = error $ show ("Union TSubtype",a,b)
+
+instance Union TPair where
+    unionPair (TPair a1 b1) (TPair a2 b2) = TPair (a1 `union` a2) (zipWithEq unionPair b1 b2)
+
+
 typeySolve2 :: String -> Handle -> Hite -> DataM SmallT -> Func2M -> IO Bool
 typeySolve2 file hndl hite datam funcm =
     do
         outBoth "-- TYPES OF FUNCTIONS"
         out $ unlines [a ++ " :: " ++ show b | (a,b) <- funcm]
-        outBoth "-- SUBTYPES"
-        out $ showLines $ renameVars $ addBottoms $ getSubtypes datam (fromJust $ lookup "head" funcm)
+        outBoth "-- SUBTYPES OF DATA"
+        out $ showTypeList datat
+        outBoth "-- SUBTYPES OF FUNCTIONS"
+        out $ showTypeList funct
         return False
     where
+        datat = basicTypes datam
+        funct = funcTypes datam funcm
+    
         out = hPutStrLn hndl
         outBoth x = putStrLn x >> out x
 
 
+showTypeList :: [(String, [TSubtype])] -> String
+showTypeList x = unlines $ concatMap f x
+    where
+        f (name,typs) = (name ++ " ::") : map show typs
 
 
+-- get all the basic type information for constructors
+basicTypes :: DataM SmallT -> [(String, [TSubtype])]
+basicTypes datam = concatMap (dataSubtypes . snd) datam
+
+
+dataSubtypes :: DataT SmallT -> [(String, [TSubtype])]
+dataSubtypes (DataT n xs) = map f xs
+    where
+        getSelfs :: Char -> [TSubtype]
+        getSelfs i = [TBind [TPair [a] (lst '1')] | a <- nas] ++
+                     [TBind [TPair [a] (lst '1'), TPair [b] (lst '2')] | a <- ras, b <- nas ++ ras]
+            where
+                (ras,nas) = (\(a,b) -> (map snd a,map snd b)) $ partition fst
+                    [(isRecursive ctr, TCtor q) | ctr@(CtorT q _) <- xs]
+                
+                lst j = take n [TAtom [TFree [c,i,j]] | c <- ['a'..'z']]
+    
+        f (CtorT name xs) = (,) name [TArr a (makeRes name (zip xs a)) | a <- args]
+            where args = crossProduct $ zipWith g ['a'..] xs
+        
+        g i Self = getSelfs i
+        g i (FreeS n) = [TAtom [TFree [i]]]
+
+        makeRes :: String -> [(SmallT,TSubtype)] -> TSubtype
+        makeRes name xs | not $ any (isSelf.fst) xs = TBind [TPair [TCtor name] vars]
+                        | otherwise = TBind [TPair [TCtor name] vars, selfs]
+            where
+                selfs = unionListNote "dataSubtypes.selfs" [y | (Self,TBind x) <- xs, y <- x]
+                vars = map h [0..n-1]
+                h i = unionList (TAtom [] : [x | (FreeS j, x) <- xs, j == i])
+
+
+funcTypes :: DataM SmallT -> Func2M -> [(String, [TSubtype])]
+funcTypes datam funcm = [(name, getFuncSubtypes datam typ) | (name, typ) <- funcm]
+
+-- get all the possible subtypes of a function
+getFuncSubtypes :: DataM SmallT -> Large2T -> [TSubtype]
+getFuncSubtypes datam = renameVars . addBottoms . getSubtypes datam
 
 
 getSubtypes :: DataM SmallT -> Large2T -> [TSubtype]

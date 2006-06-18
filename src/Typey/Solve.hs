@@ -182,10 +182,6 @@ expandRhs state@(hite,datam,funcm) xs n = (n2, map head xs2 ++ concatMap tail xs
             [x | Item n a x Later <- xs, n == name, and $ zipWithEq isSubset a args]
 
 
-unionListNote msg [] = error $ "unionListNote, " ++ msg
-unionListNote msg xs = unionList xs
-
-
 type Results = [[Subvalue]]
 
 fixpVariables :: [Item] -> Int -> Results

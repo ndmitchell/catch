@@ -143,6 +143,10 @@ class Union a where
     unionList [] = error "unionList, with empty list"
     unionList xs = foldr1 unionPair xs
 
+
+unionListNote msg [] = error $ "unionListNote, " ++ msg
+unionListNote msg x = unionList x
+
 instance Union Subtype where
     unionPair (Subtype a1 b1) (Subtype a2 b2) = Subtype (unionPair a1 a2) (unionPair b1 b2)
     unionPair (Atom a) (Atom b) = Atom $ unionPair a b
