@@ -46,6 +46,11 @@ strSet :: [String] -> String
 strSet xs = "{" ++ concat (intersperse "," xs) ++ "}"
 
 
+allItems :: [a] -> [([a], a, [a])]
+allItems [] = []
+allItems (x:xs) = ([], x, xs) : [(x:a,b,c) | (a,b,c) <- allItems xs]
+
+
 splitEither :: [Either a b] -> ([a], [b])
 splitEither (Left  x:xs) = let (a,b) = splitEither xs in (x:a, b)
 splitEither (Right x:xs) = let (a,b) = splitEither xs in (a, x:b)

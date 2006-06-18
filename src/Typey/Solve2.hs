@@ -7,6 +7,7 @@ import Hite
 import General.General
 import Data.Maybe
 import Data.List
+import Data.Char
 
 
 data TSubtype = TAtom [TAtom]
@@ -96,15 +97,29 @@ addBottoms x = concat $ map f x
 
 -- rename all variables
 renameVars :: [TSubtype] -> [TSubtype]
-renameVars x = map f x
+renameVars x = concatMap uniqueVars x
+
+
+
+uniqueVars :: TSubtype -> [TSubtype]
+uniqueVars (TArr arg res) = [TArr lhs b | b <- rhss]
     where
-        f x = head $ uniqueVars [x]
+        lhs = insertAtoms arg $ f 0 $ extractAtoms arg
+        lhsf = [x | [TFree x] <- extractAtoms lhs]
+        
+        rhs = extractAtoms [res]
+        rhsf = [x | [TFree x] <- rhs]
+        
+        rhss = if null rhsf then [res]
+               else concatMap (insertAtoms [res]) $ concatMap g (allItems rhs)
+        
+        g (pre,[TFree x],post) = [map blank pre ++ [[TFree y]] ++ map blank post | y <- h x]
+        
+        blank [TFree x] = []
+        blank x = x
 
-
-
-uniqueVars :: [TSubtype] -> [TSubtype]
-uniqueVars x = insertAtoms x $ f 0 $ extractAtoms x
-    where
+        h x = [y | y <- lhsf, takeWhile isAlpha y == x]
+    
         f n ([TFree x]:xs) = [TFree (x ++ show n)] : f (n+1) xs
         f n (x:xs) = x : f n xs
         f n [] = []
