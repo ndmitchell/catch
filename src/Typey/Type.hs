@@ -14,7 +14,7 @@ instance Show Large2T where
     show (Free2T i) = i
     show (Ctor2T x) = x
     show (Bind2T x xs) = "(" ++ show x ++ concatMap ((' ':) . show) xs ++ ")"
-    show (Arr2T a b) = "(" ++ show a ++ ") -> (" ++ show b ++ ")"
+    show (Arr2T a b) = "(" ++ (concat $ intersperse " -> " $ map show a) ++ ") -> (" ++ show b ++ ")"
 
 instance Show FuncT where
     show (FuncT n args res) = "forall " ++ show n ++ " . " ++ (concat $ intersperse " -> " $ map show $ args ++ [res])
