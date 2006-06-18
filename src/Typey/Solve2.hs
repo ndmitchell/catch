@@ -14,21 +14,20 @@ data TSubtype = TAtom [TAtom]
               | TArr [TSubtype] TSubtype
               | TBot
 
+data TPair = TPair [TAtom] [TSubtype]
+
+data TAtom = TCtor String
+           | TFree String
+
+
 instance Show TSubtype where
     show (TAtom x) = show x
     show (TBind xs) = "{" ++ (concat $ intersperse " | " $ map show xs) ++ "}"
     show (TArr a b) = "(" ++ (concat $ intersperse " -> " $ map show (a++[b])) ++ ")"
     show TBot = "!"
 
-
-data TPair = TPair [TAtom] [TSubtype]
-
 instance Show TPair where
     show (TPair a b) = show a ++ " " ++ show b
-
-
-data TAtom = TCtor String
-           | TFree String
 
 instance Show TAtom where
     showList [] = showString "?"
@@ -102,23 +101,42 @@ renameVars x = map f x
         f x = head $ uniqueVars [x]
 
 
+
 uniqueVars :: [TSubtype] -> [TSubtype]
-uniqueVars xs = snd $ mapId f xs 0
+uniqueVars x = insertAtoms x $ f 0 $ extractAtoms x
     where
-        raise f (n,a) = (n, f a)
-    
-        f (TAtom x) n = raise TAtom $ mapId g x n
-        f (TBind x) n = raise TBind $ mapId h x n
-        f (TArr x y) n = (n3, TArr x2 y2)
-            where
-                (n2, x2) = mapId f x n
-                (n3, y2) = f y n2
-        f TBot n = (n, TBot)
+        f n ([TFree x]:xs) = [TFree (x ++ show n)] : f (n+1) xs
+        f n (x:xs) = x : f n xs
+        f n [] = []
+
+
+extractAtoms :: [TSubtype] -> [[TAtom]]
+extractAtoms x = concatMap fSubtype x
+    where
+        fSubtype (TAtom a) = [a]
+        fSubtype (TBind a) = concatMap fPair a
+        fSubtype (TArr a b) = concatMap fSubtype a ++ fSubtype b
+        fSubtype (TBot) = []
         
-        g (TFree x) n = (n+1, TFree (x ++ show n))
-        g x n = (n, x)
-        
-        h (TPair a b) n = (n3, TPair a2 b2)
-            where
-                (n2, a2) = mapId g a n
-                (n3, b2) = mapId f b n2
+        fPair (TPair a b) = [a] ++ concatMap fSubtype b
+
+
+insertAtoms :: [TSubtype] -> [[TAtom]] -> [TSubtype]
+insertAtoms x ns = fSubtypes x ns
+    where
+        fSubtypes :: [TSubtype] -> [[TAtom]] -> [TSubtype]
+        fSubtypes [] [] = []
+        fSubtypes (x:xs) ns = fSubtype x n1 : fSubtypes xs n2
+            where (n1,n2) = splitAt (length $ extractAtoms [x]) ns
+        fSubtypes x y = error $ show ("fSubtypes",x,y)
+
+            
+        fSubtype (TAtom a) [n] = TAtom n
+        fSubtype (TBot) [] = TBot
+        fSubtype (TArr a b) n = TArr (init ab) (last ab)
+            where ab = fSubtypes (a ++ [b]) n
+        fSubtype (TBind xs) n = TBind $ fPairs xs n
+
+        fPairs [] [] = []
+        fPairs (TPair a b : xs) (n:ns) = TPair n (fSubtypes b n1) : fPairs xs n2
+            where (n1,n2) = splitAt (length $ extractAtoms b) ns
