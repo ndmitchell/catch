@@ -9,6 +9,7 @@ import Data.Maybe
 import Data.List
 import Data.Char
 import Data.Predicate
+import Debug.Trace
 
 
 data TSubtype = TAtom [TAtom]
@@ -23,7 +24,7 @@ data TAtom = TCtor String
            deriving Eq
 
 isTFree (TFree{}) = True; isTFree _ = False
-
+isTBot (TBot{}) = True; isTBot _ = False
 
 instance Show TSubtype where
     show (TAtom x) = show x
@@ -262,12 +263,19 @@ type Env = (Hite, DataM SmallT, TypeList, TypeList)
 -- given a datat and a funct, check that the function can have this type
 validType :: Env -> String -> TSubtype -> Bool
 validType env@(hite,datam,datat,funct) funcname (TArr argt res) =
-        res `isTSubset` unionList ress
+        if isTBot res then not $ null resb
+        else if null resn then False
+        else res `isTSubset` unionList resn
     where
+        (resb,resn) = partition isTBot ress
         ress = concat [getType env rep e | MCaseAlt p e <- opts, doesMatch env rep p]
         rep = zip args argt
         Func _ args (MCase opts) _ = getFunc hite funcname
 
+
+getTypeRec :: Env -> [(FuncArg, TSubtype)] -> Expr -> [TSubtype]
+getTypeRec env args expr = error (show ("getTypeRec",args,expr,ans))
+    where ans = getType env args expr
 
 
 -- get the type of an expression in an environment
@@ -302,7 +310,7 @@ getType env@(hite,datam,datat,funct) args expr =
         apply xs ys = concat [f x y | x <- xs, y <- ys]
             where
                 f _ TBot = [TBot]
-                f (TArr (x:xs) y) z | x `isTSubset` z = [tArr (map uni xs) (uni z)]
+                f (TArr (x:xs) y) z | x `isTSubset` z = [tArr (map uni xs) (uni y)]
                     where uni = applyUnify (unify x z)
                 f _ _ = []
 
