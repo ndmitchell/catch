@@ -12,41 +12,35 @@ import Data.Predicate
 import Debug.Trace
 
 
-data TSubtype = TAtom [TAtom]
+data TSubtype = TFree [String]
               | TBind [TPair]
               | TArr [TSubtype] TSubtype
               | TBot
 
-data TPair = TPair [TAtom] [TSubtype]
+data TPair = TPair [CtorName] [TSubtype]
 
-data TAtom = TCtor String
-           | TFree String
-           deriving Eq
-
-isTFree (TFree{}) = True; isTFree _ = False
-isTCtor (TCtor{}) = True; isTCtor _ = False
 isTBot (TBot{}) = True; isTBot _ = False
 
 instance Show TSubtype where
-    show (TAtom x) = show x
+    show (TFree x) = showSet x
     show (TBind xs) = "{" ++ (concat $ intersperse " | " $ map show xs) ++ "}"
     show (TArr a b) = "(" ++ (concat $ intersperse " -> " $ map show (a++[b])) ++ ")"
     show TBot = "!"
 
 instance Show TPair where
-    show (TPair a b) = show a ++ " " ++ show b
+    show (TPair a b) = showSet (map repBox a) ++ " " ++ show b
 
-instance Show TAtom where
-    showList [] = showString "?"
-    showList [x] = showString $ show x
-    showList xs = showString $ "[" ++ (concat $ intersperse "," $ map show xs) ++ "]"
-    
-    show (TCtor x) = if x == "[]" then "#" else x
-    show (TFree x) = x
+-- beacuse [] is overloaded in meaning enough already!
+repBox "[]" = "#"
+repBox x = x
+
+showSet [] = "?"
+showSet [x] = x
+showSet xs = "[" ++ (concat $ intersperse "," $ map show xs) ++ "]"
 
 
 instance Union TSubtype where
-    unionPair (TAtom a) (TAtom b) = TAtom (a `union` b)
+    unionPair (TFree a) (TFree b) = TFree (a `union` b)
     unionPair (TBind a) (TBind b) = TBind (zipWithEq unionPair a b)
     unionPair (TArr a1 b1) (TArr a2 b2) = TArr (zipWithEq unionPair a1 a2) (b1 `unionPair` b2)
     unionPair a b = error $ show ("Union TSubtype",a,b)
@@ -58,17 +52,15 @@ instance Union TPair where
 isTSubset :: TSubtype -> TSubtype -> Bool
 isTSubset (TBind xs) (TBind ys) | length xs > length ys = False
                                 | otherwise = and $ zipWith isTSubsetPair xs ys
-isTSubset (TAtom xs) (TAtom ys) = isTSubsetAtom xs ys
 isTSubset TBot TBot = True
 isTSubset TBot _ = False
-isTSubset (TAtom [TFree _]) _ = True
+isTSubset (TFree _) _ = True
 isTSubset x y = error $ show ("isTSubset",x,y)
 
 
-isTSubsetPair (TPair x1 y1) (TPair x2 y2) = isTSubsetAtom x1 x2 && and (zipWithEq isTSubset y1 y2)
-
-
-isTSubsetAtom xs ys = null $ filter isTCtor xs \\ filter isTCtor ys
+isTSubsetPair (TPair x1 y1) (TPair x2 y2) = f x1 x2 && and (zipWithEq isTSubset y1 y2)
+    where
+        f xs ys = null $ xs \\ ys
 
 
 
@@ -117,23 +109,23 @@ dataSubtypes (DataT n xs) = map f xs
                      [TBind [TPair [a] (lst '1'), TPair [b] (lst '2')] | a <- ras, b <- nas ++ ras]
             where
                 (ras,nas) = (\(a,b) -> (map snd a,map snd b)) $ partition fst
-                    [(isRecursive ctr, TCtor q) | ctr@(CtorT q _) <- xs]
+                    [(isRecursive ctr, q) | ctr@(CtorT q _) <- xs]
                 
-                lst j = take n [TAtom [TFree [c,i,j]] | c <- ['a'..'z']]
+                lst j = take n [TFree [[c,i,j]] | c <- ['a'..'z']]
     
         f (CtorT name xs) = (,) name [TArr a (makeRes name (zip xs a)) | a <- args]
             where args = crossProduct $ zipWith g ['a'..] xs
         
         g i Self = getSelfs i
-        g i (FreeS n) = [TAtom [TFree [i]]]
+        g i (FreeS n) = [TFree [[i]]]
 
         makeRes :: String -> [(SmallT,TSubtype)] -> TSubtype
-        makeRes name xs | not $ any (isSelf.fst) xs = TBind [TPair [TCtor name] vars]
-                        | otherwise = TBind [TPair [TCtor name] vars, selfs]
+        makeRes name xs | not $ any (isSelf.fst) xs = TBind [TPair [name] vars]
+                        | otherwise = TBind [TPair [name] vars, selfs]
             where
                 selfs = unionListNote "dataSubtypes.selfs" [y | (Self,TBind x) <- xs, y <- x]
                 vars = map h [0..n-1]
-                h i = unionList (TAtom [] : [x | (FreeS j, x) <- xs, j == i])
+                h i = unionList (TFree [] : [x | (FreeS j, x) <- xs, j == i])
 
 
 funcTypes :: DataM SmallT -> Func2M -> TypeList
@@ -145,7 +137,7 @@ getFuncSubtypes datam = renameVars . addBottoms . getSubtypes datam
 
 
 getSubtypes :: DataM SmallT -> Large2T -> [TSubtype]
-getSubtypes datam (Free2T a) = [TAtom [TFree a]]
+getSubtypes datam (Free2T a) = [TFree [a]]
 getSubtypes datam (Arr2T a b) = [TArr x y | x <- as, y <- getSubtypes datam b]
     where as = crossProduct $ map (getSubtypes datam) a
 getSubtypes datam (Ctor2T a) = getSubtypes datam $ Bind2T (Ctor2T a) []
@@ -156,17 +148,17 @@ getSubtypes datam (Bind2T (Ctor2T x) xs) = map (simpSubtype datat) $
     where
         datat = fromJust $ lookup x datam
         (ras,nas) = (\(a,b) -> (map snd a,map snd b)) $ partition fst
-            [(isRecursive ctr, TCtor q) | let DataT _ y = datat, ctr@(CtorT q _) <- y]
+            [(isRecursive ctr, q) | let DataT _ y = datat, ctr@(CtorT q _) <- y]
         bs = crossProduct $ map (getSubtypes datam) xs
 
 
 simpSubtype :: DataT SmallT -> TSubtype -> TSubtype
 simpSubtype (DataT _ ctors) (TBind xs) = TBind (map f xs)
     where
-        f (TPair [TCtor n] xs) = TPair [TCtor n] (zipWith f [0..] xs)
+        f (TPair [n] xs) = TPair [n] (zipWith f [0..] xs)
             where
                 ctr = [y | CtorT n2 ys <- ctors, n2 == n, FreeS y <- ys]
-                f i x = if i `elem` ctr then x else TAtom []
+                f i x = if i `elem` ctr then x else TFree []
 
 
 
@@ -192,57 +184,57 @@ renameVars x = concatMap uniqueVars x
 uniqueVars :: TSubtype -> [TSubtype]
 uniqueVars (TArr arg res) = [TArr lhs b | b <- rhss]
     where
-        lhs = insertAtoms arg $ f 0 $ extractAtoms arg
-        lhsf = [x | [TFree x] <- extractAtoms lhs]
+        lhs = replaceFrees arg $ f 0 $ extractFrees arg
+        lhsf = [x | TFree [x] <- extractFrees lhs]
         
-        rhs = extractAtoms [res]
-        rhsf = [x | [TFree x] <- rhs]
+        rhs = extractFrees [res]
+        rhsf = [x | TFree [x] <- rhs]
         
         rhss = if null rhsf then [res]
-               else concatMap (insertAtoms [res]) $ concatMap g (allItems rhs)
+               else concatMap (replaceFrees [res]) $ concatMap g (allItems rhs)
         
-        g (pre,[TFree x],post) = [map blank pre ++ [[TFree y]] ++ map blank post | y <- h x]
+        g (pre,TFree [x],post) = [map blank pre ++ [TFree [y]] ++ map blank post | y <- h x]
         
-        blank [TFree x] = []
+        blank (TFree [x]) = TFree []
         blank x = x
 
         h x = [y | y <- lhsf, takeWhile isAlpha y == x]
     
-        f n ([TFree x]:xs) = [TFree (x ++ show n)] : f (n+1) xs
+        f n (TFree [x]:xs) = TFree [x ++ show n] : f (n+1) xs
         f n (x:xs) = x : f n xs
         f n [] = []
 
 
-extractAtoms :: [TSubtype] -> [[TAtom]]
-extractAtoms x = concatMap fSubtype x
+extractFrees :: [TSubtype] -> [TSubtype]
+extractFrees x = concatMap fSubtype x
     where
-        fSubtype (TAtom a) = [a]
+        fSubtype (TFree a) = [TFree a]
         fSubtype (TBind a) = concatMap fPair a
         fSubtype (TArr a b) = concatMap fSubtype a ++ fSubtype b
         fSubtype (TBot) = []
         
-        fPair (TPair a b) = [a] ++ concatMap fSubtype b
+        fPair (TPair a b) = concatMap fSubtype b
 
 
-insertAtoms :: [TSubtype] -> [[TAtom]] -> [TSubtype]
-insertAtoms x ns = fSubtypes x ns
+replaceFrees :: [TSubtype] -> [TSubtype] -> [TSubtype]
+replaceFrees x ns = fSubtypes x ns
     where
-        fSubtypes :: [TSubtype] -> [[TAtom]] -> [TSubtype]
+        fSubtypes :: [TSubtype] -> [TSubtype] -> [TSubtype]
         fSubtypes [] [] = []
         fSubtypes (x:xs) ns = fSubtype x n1 : fSubtypes xs n2
-            where (n1,n2) = splitAt (length $ extractAtoms [x]) ns
+            where (n1,n2) = splitAt (length $ extractFrees [x]) ns
         fSubtypes x y = error $ show ("fSubtypes",x,y)
 
             
-        fSubtype (TAtom a) [n] = TAtom n
+        fSubtype (TFree a) [n] = n
         fSubtype (TBot) [] = TBot
         fSubtype (TArr a b) n = TArr (init ab) (last ab)
             where ab = fSubtypes (a ++ [b]) n
         fSubtype (TBind xs) n = TBind $ fPairs xs n
 
         fPairs [] [] = []
-        fPairs (TPair a b : xs) (n:ns) = TPair n (fSubtypes b n1) : fPairs xs n2
-            where (n1,n2) = splitAt (length $ extractAtoms b) ns
+        fPairs (TPair a b : xs) ns = TPair a (fSubtypes b n1) : fPairs xs n2
+            where (n1,n2) = splitAt (length $ extractFrees b) ns
 
 ---------------------------------------------------------------------
 -- PRUNE
@@ -264,17 +256,12 @@ type Env = (Hite, DataM SmallT, TypeList, TypeList)
 -- given a datat and a funct, check that the function can have this type
 validType :: Env -> String -> TSubtype -> Bool
 validType env@(hite,datam,datat,funct) funcname (TArr argt res) =
-        if isTBot res then
-        (
-            if not $ null resb
-            then trace (show ("validType",funcname,argt,res,ress)) True
-            else trace (show ("not validType",funcname,argt,res,ress)) False
-        )
+        if isTBot res then not $ null resb
         else if null resn then False
         else res `isTSubset` unionList resn
     where
         (resb,resn) = partition isTBot ress
-        ress = concat [getTypeRec env rep e | MCaseAlt p e <- opts, doesMatch env rep p]
+        ress = concat [getType env rep e | MCaseAlt p e <- opts, doesMatch env rep p]
         rep = zip args argt
         Func _ args (MCase opts) _ = getFunc hite funcname
 
@@ -313,7 +300,7 @@ getType env@(hite,datam,datat,funct) args expr =
                 
         
         apply :: [TSubtype] -> [TSubtype] -> [TSubtype]
-        apply xs ys = trace (show ("apply",xs,ys,res)) res
+        apply xs ys = {- trace (show ("apply",xs,ys,res)) -} res
             where
                 res = concat [f x y | x <- xs, y <- ys]
                 f _ TBot = [TBot]
@@ -330,8 +317,8 @@ applyUnify dat (TBind xs) = TBind $ map f xs
     where
         f (TPair a1 b1) = TPair a1 (map (applyUnify dat) b1)
 
-applyUnify dat (TAtom []) = TAtom []
-applyUnify dat o@(TAtom [TFree n]) = case lookup n dat of
+applyUnify dat (TFree []) = TFree []
+applyUnify dat o@(TFree [n]) = case lookup n dat of
                                           Nothing -> o
                                           Just x -> x
 applyUnify dat (TArr x y) = TArr (map (applyUnify dat) x) (applyUnify dat y)
@@ -346,8 +333,8 @@ unify :: TSubtype -> TSubtype -> [(String, TSubtype)]
 unify (TBind xs) (TBind ys) = concat $ zipWith f xs ys
     where
         f (TPair a1 b1) (TPair a2 b2) = concat $ zipWith unify b1 b2
-unify (TAtom []) _ = []
-unify (TAtom [TFree a]) x = [(a,x)]
+unify (TFree []) _ = []
+unify (TFree [a]) x = [(a,x)]
 
 unify x y = error $ show ("unify",x,y)
 
@@ -355,5 +342,5 @@ unify x y = error $ show ("unify",x,y)
 doesMatch :: Env -> [(FuncArg, TSubtype)] -> Pred MCaseOpt -> Bool
 doesMatch env args p = mapPredBool f p
     where
-        f (MCaseOpt e c) = TCtor c `elem` a
+        f (MCaseOpt e c) = c `elem` a
             where TBind (TPair a _:_) = unionList $ getType env args e
