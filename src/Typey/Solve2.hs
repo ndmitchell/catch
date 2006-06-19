@@ -24,6 +24,7 @@ data TAtom = TCtor String
            deriving Eq
 
 isTFree (TFree{}) = True; isTFree _ = False
+isTCtor (TCtor{}) = True; isTCtor _ = False
 isTBot (TBot{}) = True; isTBot _ = False
 
 instance Show TSubtype where
@@ -67,7 +68,7 @@ isTSubset x y = error $ show ("isTSubset",x,y)
 isTSubsetPair (TPair x1 y1) (TPair x2 y2) = isTSubsetAtom x1 x2 && and (zipWithEq isTSubset y1 y2)
 
 
-isTSubsetAtom xs ys = null $ filter isTFree xs \\ filter isTFree ys
+isTSubsetAtom xs ys = null $ filter isTCtor xs \\ filter isTCtor ys
 
 
 
@@ -263,18 +264,23 @@ type Env = (Hite, DataM SmallT, TypeList, TypeList)
 -- given a datat and a funct, check that the function can have this type
 validType :: Env -> String -> TSubtype -> Bool
 validType env@(hite,datam,datat,funct) funcname (TArr argt res) =
-        if isTBot res then not $ null resb
+        if isTBot res then
+        (
+            if not $ null resb
+            then trace (show ("validType",funcname,argt,res,ress)) True
+            else trace (show ("not validType",funcname,argt,res,ress)) False
+        )
         else if null resn then False
         else res `isTSubset` unionList resn
     where
         (resb,resn) = partition isTBot ress
-        ress = concat [getType env rep e | MCaseAlt p e <- opts, doesMatch env rep p]
+        ress = concat [getTypeRec env rep e | MCaseAlt p e <- opts, doesMatch env rep p]
         rep = zip args argt
         Func _ args (MCase opts) _ = getFunc hite funcname
 
 
 getTypeRec :: Env -> [(FuncArg, TSubtype)] -> Expr -> [TSubtype]
-getTypeRec env args expr = error (show ("getTypeRec",args,expr,ans))
+getTypeRec env args expr = trace (show ("getTypeRec",args,expr,ans)) ans
     where ans = getType env args expr
 
 
@@ -307,8 +313,9 @@ getType env@(hite,datam,datat,funct) args expr =
                 
         
         apply :: [TSubtype] -> [TSubtype] -> [TSubtype]
-        apply xs ys = concat [f x y | x <- xs, y <- ys]
+        apply xs ys = trace (show ("apply",xs,ys,res)) res
             where
+                res = concat [f x y | x <- xs, y <- ys]
                 f _ TBot = [TBot]
                 f (TArr (x:xs) y) z | x `isTSubset` z = [tArr (map uni xs) (uni y)]
                     where uni = applyUnify (unify x z)
