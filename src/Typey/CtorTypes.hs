@@ -1,5 +1,5 @@
 
-module Typey.CtorTypes(ctorTypes) where
+module Typey.CtorTypes(ctorTypes,typePermutations) where
 
 import Typey.Type
 import Typey.Subtype
