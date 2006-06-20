@@ -18,8 +18,8 @@ isTBot (TBot{}) = True; isTBot _ = False
 
 instance Show TSubtype where
     show (TFree x) = showSet x
-    show (TBind xs) = "{" ++ (concat $ intersperse " | " $ map show xs) ++ "}"
-    show (TArr a b) = "(" ++ (concat $ intersperse " -> " $ map show (a++[b])) ++ ")"
+    show (TBind xs) = "{" ++ intercatS " | " xs ++ "}"
+    show (TArr a b) = "(" ++ intercatS " -> " (a++[b]) ++ ")"
     show TBot = "!"
 
 instance Show TPair where
@@ -31,7 +31,7 @@ repBox x = x
 
 showSet [] = "?"
 showSet [x] = x
-showSet xs = "[" ++ (concat $ intersperse "," $ map show xs) ++ "]"
+showSet xs = "[" ++ intercatS "," xs ++ "]"
 
 
 instance Union TSubtype where

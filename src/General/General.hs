@@ -167,3 +167,10 @@ mapId f (x:xs) n = (n3, x2:x3)
         (n2,x2) = f x n
         (n3,x3) = mapId f xs n2
 
+
+intercat :: String -> [String] -> String
+intercat sep = concat . intersperse sep
+
+intercatS :: Show a => String -> [a] -> String
+intercatS sep = intercat sep . map show
+
