@@ -87,34 +87,3 @@ uniqueVars (TArr arg res) = [TArr lhs b | b <- rhss]
         f n (x:xs) = x : f n xs
         f n [] = []
 
-
-extractFrees :: [TSubtype] -> [TSubtype]
-extractFrees x = concatMap fSubtype x
-    where
-        fSubtype (TFree a) = [TFree a]
-        fSubtype (TBind a) = concatMap fPair a
-        fSubtype (TArr a b) = concatMap fSubtype a ++ fSubtype b
-        fSubtype (TBot) = []
-        
-        fPair (TPair a b) = concatMap fSubtype b
-
-
-replaceFrees :: [TSubtype] -> [TSubtype] -> [TSubtype]
-replaceFrees x ns = fSubtypes x ns
-    where
-        fSubtypes :: [TSubtype] -> [TSubtype] -> [TSubtype]
-        fSubtypes [] [] = []
-        fSubtypes (x:xs) ns = fSubtype x n1 : fSubtypes xs n2
-            where (n1,n2) = splitAt (length $ extractFrees [x]) ns
-        fSubtypes x y = error $ show ("fSubtypes",x,y)
-
-            
-        fSubtype (TFree a) [n] = n
-        fSubtype (TBot) [] = TBot
-        fSubtype (TArr a b) n = TArr (init ab) (last ab)
-            where ab = fSubtypes (a ++ [b]) n
-        fSubtype (TBind xs) n = TBind $ fPairs xs n
-
-        fPairs [] [] = []
-        fPairs (TPair a b : xs) ns = TPair a (fSubtypes b n1) : fPairs xs n2
-            where (n1,n2) = splitAt (length $ extractFrees b) ns
