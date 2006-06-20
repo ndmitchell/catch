@@ -6,6 +6,7 @@ import Directory
 import List
 import Monad
 import Data.Predicate
+import Data.Char
 
 {-
 import IOExts
@@ -174,3 +175,5 @@ intercat sep = concat . intersperse sep
 intercatS :: Show a => String -> [a] -> String
 intercatS sep = intercat sep . map show
 
+numToChr :: Int -> Char
+numToChr i = chr (ord 'a' + i)

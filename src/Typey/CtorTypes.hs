@@ -12,27 +12,18 @@ import Data.Char
 
 -- get all the basic type information for constructors
 ctorTypes :: DataM SmallT -> TypeList
-ctorTypes datam = concatMap (dataSubtypes . snd) datam
+ctorTypes datam = concatMap (dataSubtypes . snd) $ tail datam
 
 
 dataSubtypes :: DataT SmallT -> TypeList
-dataSubtypes (DataT n xs) = map f xs
+dataSubtypes dat@(DataT n xs) = map f xs
     where
-        getSelfs :: Char -> [TSubtype]
-        getSelfs i = [TBind [TPair [a] (lst '1')] | a <- nas] ++
-                     [TBind [TPair [a] (lst '1'), TPair [b] (lst '2')] | a <- ras, b <- nas ++ ras]
-            where
-                (ras,nas) = (\(a,b) -> (map snd a,map snd b)) $ partition fst
-                    [(isRecursive ctr, q) | ctr@(CtorT q _) <- xs]
-                
-                lst j = take n [TFree [[c,i,j]] | c <- ['a'..'z']]
-    
         f (CtorT name xs) = (,) name [TArr a (makeRes name (zip xs a)) | a <- args]
-            where args = crossProduct $ zipWith g ['a'..] xs
+            where args = map uniqueFrees $ crossProduct $ map g xs
         
-        g i Self = getSelfs i
-        g i (FreeS n) = [TFree [[i]]]
-
+        g Self = typePermutations dat
+        g (FreeS i) = [TFree [[numToChr i]]]
+        
         makeRes :: String -> [(SmallT,TSubtype)] -> TSubtype
         makeRes name xs | not $ any (isSelf.fst) xs = TBind [TPair [name] vars]
                         | otherwise = TBind [TPair [name] vars, selfs]
@@ -41,3 +32,16 @@ dataSubtypes (DataT n xs) = map f xs
                 vars = map h [0..n-1]
                 h i = unionList (TFree [] : [x | (FreeS j, x) <- xs, j == i])
 
+
+
+typePermutations :: DataT SmallT -> [TSubtype]
+typePermutations (DataT n xs) =
+        [TBind [x]| x <- nper] ++ [TBind [x,y] | x <- rper, y <- rper++nper]
+    where
+        (rper,nper) = (map f rctr, map f nctr)
+        (rctr,nctr) = partition isRecursive xs
+
+        f (CtorT name xs) = TPair [name] $ map g [0..n-1]
+            where
+                g i = if i `elem` frees then TFree [[numToChr i]] else TFree []
+                frees = nub [i | FreeS i <- xs]

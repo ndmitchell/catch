@@ -102,3 +102,15 @@ replaceFrees x ns = fSubtypes x ns
         fPairs [] [] = []
         fPairs (TPair a b : xs) ns = TPair a (fSubtypes b n1) : fPairs xs n2
             where (n1,n2) = splitAt (length $ extractFrees b) ns
+
+
+uniqueFrees :: [TSubtype] -> [TSubtype]
+uniqueFrees x = replaceFrees x $ f [] $ extractFrees x
+    where
+        f rep [] = []
+        f rep (TFree [a]:xs) = TFree [a ++ show n] : f ((a,n+1):rep) xs
+            where
+                n = case lookup a rep of
+                        Nothing -> 0
+                        Just x -> x
+        f rep (x:xs) = x : f rep xs
