@@ -31,7 +31,7 @@ repBox x = x
 
 showSet [] = "?"
 showSet [x] = x
-showSet xs = "[" ++ intercatS "," xs ++ "]"
+showSet xs = "<" ++ intercat "," xs ++ ">"
 
 
 instance Union TSubtype where
