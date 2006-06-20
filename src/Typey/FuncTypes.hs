@@ -76,6 +76,7 @@ uniqueVars (TArr arg res) = [TArr lhs b | b <- rhss]
                else concatMap (replaceFrees [res]) $ concatMap g (allItems rhs)
         
         g (pre,TFree [x],post) = [map blank pre ++ [TFree [y]] ++ map blank post | y <- h x]
+        g _ = []
         
         blank (TFree [x]) = TFree []
         blank x = x
