@@ -5,14 +5,9 @@ import Typey.Type
 import Typey.Subtype
 import Typey.CtorTypes
 import Typey.FuncTypes
+import Typey.Eliminate
 import IO
 import Hite
-import General.General
-import Data.Maybe
-import Data.List
-import Data.Char
-import Data.Predicate
-import Debug.Trace
 
 
 
@@ -31,7 +26,7 @@ typeySolve2 file hndl hite datam funcm =
     where
         datat = ctorTypes datam
         funct = funcTypes datam funcm
-        funct2 = prune hite datam datat funct
+        funct2 = eliminate hite datam datat funct
     
         out = hPutStrLn hndl
         outBoth x = putStrLn x >> out x
