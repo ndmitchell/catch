@@ -11,10 +11,14 @@ import Control.Exception
 -- SHOW STUFF
 
 instance Show Large2T where
-    show (Free2T i) = i
-    show (Ctor2T x) = x
-    show (Bind2T x xs) = "(" ++ show x ++ concatMap ((' ':) . show) xs ++ ")"
-    show (Arr2T a b) = "(" ++ (concat $ intersperse " -> " $ map show a) ++ ") -> (" ++ show b ++ ")"
+    show x = f 0 x
+        where
+            f n (Free2T i) = i
+            f n (Ctor2T x) = x
+            f n (Bind2T x xs) = brack (n>=2) $ show x ++ concatMap ((' ':) . f 2) xs
+            f n (Arr2T xs x) = brack (n>=1) $ intercat " -> " $ map (f 1) (xs++[x])
+
+            brack b x = ['('|b] ++ x ++ [')'|b]
 
 instance Show FuncT where
     show (FuncT n args res) = "forall " ++ show n ++ " . " ++ (concat $ intersperse " -> " $ map show $ args ++ [res])

@@ -61,7 +61,7 @@ readArr = do spaces
                  return x
 
 joinArr :: Large2T -> Large2T -> Large2T
-joinArr (Arr2T xs x) y = Arr2T (xs ++ [x]) y
+joinArr x (Arr2T ys y) = Arr2T (x:ys) y
 joinArr x y = Arr2T [x] y
 
 
