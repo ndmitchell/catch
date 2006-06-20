@@ -3,6 +3,8 @@ module Typey.Solve2(typeySolve2) where
 
 import Typey.Type
 import Typey.Subtype
+import Typey.CtorTypes
+import Typey.FuncTypes
 import IO
 import Hite
 import General.General
@@ -27,7 +29,7 @@ typeySolve2 file hndl hite datam funcm =
         out $ showTypeList funct2
         return False
     where
-        datat = basicTypes datam
+        datat = ctorTypes datam
         funct = funcTypes datam funcm
         funct2 = prune hite datam datat funct
     
@@ -134,7 +136,6 @@ uniqueVars (TArr arg res) = [TArr lhs b | b <- rhss]
                else concatMap (replaceFrees [res]) $ concatMap g (allItems rhs)
         
         g (pre,TFree [x],post) = [map blank pre ++ [TFree [y]] ++ map blank post | y <- h x]
-        g _ = []
         
         blank (TFree [x]) = TFree []
         blank x = x
