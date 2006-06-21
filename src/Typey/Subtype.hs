@@ -38,7 +38,7 @@ showSet xs = "<" ++ intercat "," xs ++ ">"
 
 instance Union TSubtype where
     unionPair (TFree a) (TFree b) = TFree (a `union` b)
-    unionPair (TBind a) (TBind b) = TBind (zipWithEq unionPair a b)
+    unionPair (TBind a) (TBind b) = TBind (zipWithRest unionPair a b)
     unionPair (TArr a1 b1) (TArr a2 b2) = tArr (zipWithEq unionPair a1 a2) (b1 `unionPair` b2)
     unionPair a b = error $ show ("Union TSubtype",a,b)
 
