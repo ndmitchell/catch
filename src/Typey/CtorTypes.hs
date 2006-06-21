@@ -12,7 +12,7 @@ import Data.Char
 
 -- get all the basic type information for constructors
 ctorTypes :: DataM SmallT -> TypeList
-ctorTypes datam = concatMap (dataSubtypes . snd) $ tail datam
+ctorTypes datam = concatMap (dataSubtypes . snd) datam
 
 
 dataSubtypes :: DataT SmallT -> TypeList
