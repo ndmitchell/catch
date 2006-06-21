@@ -25,7 +25,8 @@ instance Show TSubtype where
     show TBot = "!"
 
 instance Show TPair where
-    show (TPair a b) = showSet (map repBox a) ++ " " ++ show b
+    show (TPair a []) = showSet (map repBox a)
+    show (TPair a b) = show (TPair a []) ++ " " ++ show b
 
 -- beacuse [] is overloaded in meaning enough already!
 repBox "[]" = "#"
