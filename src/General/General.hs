@@ -23,6 +23,8 @@ errorS a = error (show a)
 fsts = map fst
 snds = map snd
 
+box = (:[])
+
 filterFst f = filter (f . fst)
 filterSnd f = filter (f . snd)
 
