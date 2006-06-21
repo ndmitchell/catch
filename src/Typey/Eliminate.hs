@@ -45,6 +45,8 @@ validType env@(hite,datam,datat,funct) funcname (TArr argt res) =
         rep = zip args argt
         Func _ args (MCase opts) _ = getFunc hite funcname
 
+validType env funcname res = validType env funcname (TArr [] res)
+
 
 getTypeRec :: Env -> [(FuncArg, TSubtype)] -> Expr -> [TSubtype]
 getTypeRec env args expr = trace (show ("getTypeRec",args,expr,ans)) ans

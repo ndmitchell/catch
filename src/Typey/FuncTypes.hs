@@ -87,3 +87,8 @@ uniqueVars (TArr arg res) = [TArr lhs b | b <- rhss]
         f n (x:xs) = x : f n xs
         f n [] = []
 
+-- if there are any free variables, then die, since they have no input
+uniqueVars res | null frees = [res]
+               | otherwise = []
+    where
+        frees = [x |TFree [x] <- extractFrees [res]]
