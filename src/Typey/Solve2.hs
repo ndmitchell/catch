@@ -8,6 +8,7 @@ import Typey.FuncTypes
 import Typey.Eliminate
 import IO
 import Hite
+import General.General
 
 
 
@@ -26,6 +27,8 @@ typeySolve2 file hndl hite datam funcm =
         funct2 <- eliminate out hite datam datat funct
         outBoth "-- VALID SUBTYPES"
         outLn $ showTypeList funct2
+        outBoth "-- ANSWER, main ::"
+        outBoth $ unlines $ map show $ lookupJust "main" funct2
         return False
     where
         outLn = hPutStrLn hndl
