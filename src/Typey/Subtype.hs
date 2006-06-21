@@ -39,7 +39,7 @@ showSet xs = "<" ++ intercat "," xs ++ ">"
 instance Union TSubtype where
     unionPair (TFree a) (TFree b) = TFree (a `union` b)
     unionPair (TBind a) (TBind b) = TBind (zipWithEq unionPair a b)
-    unionPair (TArr a1 b1) (TArr a2 b2) = TArr (zipWithEq unionPair a1 a2) (b1 `unionPair` b2)
+    unionPair (TArr a1 b1) (TArr a2 b2) = tArr (zipWithEq unionPair a1 a2) (b1 `unionPair` b2)
     unionPair a b = error $ show ("Union TSubtype",a,b)
 
 instance Union TPair where
@@ -97,7 +97,7 @@ replaceFrees x ns = fSubtypes x ns
             
         fSubtype (TFree a) [n] = n
         fSubtype (TBot) [] = TBot
-        fSubtype (TArr a b) n = TArr (init ab) (last ab)
+        fSubtype (TArr a b) n = tArr (init ab) (last ab)
             where ab = fSubtypes (a ++ [b]) n
         fSubtype (TBind xs) n = TBind $ fPairs xs n
 

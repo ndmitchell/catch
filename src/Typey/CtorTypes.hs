@@ -18,7 +18,7 @@ ctorTypes datam = concatMap (dataSubtypes . snd) $ tail datam
 dataSubtypes :: DataT SmallT -> TypeList
 dataSubtypes dat@(DataT n xs) = map f xs
     where
-        f (CtorT name xs) = (,) name [TArr a (makeRes name (zip xs a)) | a <- args]
+        f (CtorT name xs) = (,) name [tArr a (makeRes name (zip xs a)) | a <- args]
             where args = map uniqueFrees $ crossProduct $ map g xs
         
         g Self = typePermutations dat

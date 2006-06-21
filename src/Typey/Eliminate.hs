@@ -90,7 +90,7 @@ applyUnify dat (TFree []) = TFree []
 applyUnify dat o@(TFree [n]) = case lookup n dat of
                                           Nothing -> o
                                           Just x -> x
-applyUnify dat (TArr x y) = TArr (map (applyUnify dat) x) (applyUnify dat y)
+applyUnify dat (TArr x y) = tArr (map (applyUnify dat) x) (applyUnify dat y)
 applyUnify dat TBot = TBot
 applyUnify dat x = error $ show ("applyUnify",dat,x)
 
