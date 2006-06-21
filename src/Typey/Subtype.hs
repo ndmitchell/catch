@@ -51,7 +51,7 @@ isTSubset (TBind xs) (TBind ys) | length xs > length ys = False
                                 | otherwise = and $ zipWith isTSubsetPair xs ys
 isTSubset TBot TBot = True
 isTSubset TBot _ = False
-isTSubset (TFree _) _ = True
+isTSubset (TFree xs) (TFree ys) = null $ xs \\ ys
 isTSubset x y = error $ show ("isTSubset",x,y)
 
 
