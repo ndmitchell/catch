@@ -10,18 +10,25 @@ import Data.List
 import Data.Char
 import Data.Predicate
 import Debug.Trace
+import Control.Monad
 
 
-eliminate :: Hite -> DataM SmallT -> TypeList -> TypeList -> TypeList
-eliminate hite datam datat funct =
+eliminate :: (String -> IO ()) -> Hite -> DataM SmallT -> TypeList -> TypeList -> IO TypeList
+eliminate record hite datam datat funct = do
+        funct2 <- mapM f funct
         if typeListLen funct == typeListLen funct2
-        then funct
-        else eliminate hite datam datat funct2
+            then return funct
+            else eliminate record hite datam datat funct2
     where
         typeListLen x = length $ concatMap snd x
     
-        funct2 = map f funct
-        f (name, typs) = (name, filter (validType (hite,datam,datat,funct) name) typs)
+        f (name, typs) = do typs2 <- filterM (g name) typs
+                            return (name, typs2)
+        
+        g name typ = do record $ name ++ " :: " ++ show typ
+                        res <- return $ validType (hite,datam,datat,funct) name typ
+                        record $ " " ++ (if res then "KEEP" else "DROP") ++ "\n"
+                        return res
 
 
 type Env = (Hite, DataM SmallT, TypeList, TypeList)
