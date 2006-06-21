@@ -153,15 +153,15 @@ unionListNote msg x = unionList x
 
 instance Union Subtype where
     unionPair (Subtype a1 b1) (Subtype a2 b2) = Subtype (unionPair a1 a2) (unionPair b1 b2)
-    unionPair (Atom a) (Atom b) = Atom $ unionPair a b
+    unionPair (Atom a) (Atom b) = Atom $ unionSubvalues a b
     unionPair Empty x = x
     unionPair x Empty = x
 
 instance Union Subpair where
-    unionPair (a1 :@ b1) (a2 :@ b2) = (unionPair a1 a2 :@ zipWithRest unionPair b1 b2)
+    unionPair (a1 :@ b1) (a2 :@ b2) = (unionSubvalues a1 a2 :@ zipWithRest unionPair b1 b2)
 
-instance Union [Subvalue] where
-    unionPair as bs = as `union` bs
+unionSubvalues :: [Subvalue] -> [Subvalue] -> [Subvalue]
+unionSubvalues as bs = as `union` bs
 
 
 hasBottom :: Subtype -> Bool
