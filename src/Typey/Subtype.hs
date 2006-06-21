@@ -52,6 +52,7 @@ isTSubset (TBind xs) (TBind ys) | length xs > length ys = False
 isTSubset TBot TBot = True
 isTSubset TBot _ = False
 isTSubset (TFree xs) (TFree ys) = null $ xs \\ ys
+isTSubset (TFree x) _ = True
 isTSubset x y = error $ show ("isTSubset",x,y)
 
 
