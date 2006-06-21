@@ -11,7 +11,7 @@ import Data.Char
 
 
 funcTypes :: DataM SmallT -> Func2M -> TypeList
-funcTypes datam funcm = [(name, getFuncSubtypes datam typ) | (name, typ) <- funcm]
+funcTypes datam funcm = [(name, nub $ getFuncSubtypes datam typ) | (name, typ) <- funcm]
 
 -- get all the possible subtypes of a function
 getFuncSubtypes :: DataM SmallT -> Large2T -> [TSubtype]

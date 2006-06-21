@@ -11,8 +11,10 @@ data TSubtype = TFree [String]
               | TBind [TPair]
               | TArr [TSubtype] TSubtype
               | TBot
+              deriving Eq
 
 data TPair = TPair [CtorName] [TSubtype]
+             deriving Eq
 
 isTBot (TBot{}) = True; isTBot _ = False
 
