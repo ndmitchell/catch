@@ -38,7 +38,7 @@ type Env = (Hite, DataM SmallT, TypeList, TypeList)
 -- given a datat and a funct, check that the function can have this type
 validType :: Logger -> Env -> String -> TSubtype -> IO Bool
 validType logger env@(hite,datam,datat,funct) funcname (TArr argt res) =
-        logger (" $ " ++ show (resb,resn) ++ " $") >>
+        -- logger (" $ " ++ show (resb,resn) ++ " $") >>
         (
         if isTBot res then return $ not $ null resb
         else if null resn then return False
