@@ -125,9 +125,14 @@ toHaskell (Hite datas funcs) = unlines $ prefix ++ concatMap fromData datas ++ c
             where
                 f (Ctor name args) = ["int_is_" ++ encode name ++ " (" ++ enUpper name ++ " {}) = True"
                                      ,"int_is_" ++ encode name ++ " _ = False"
-                                     ] ++
-                                     ["int_go_" ++ encode nam ++ lhs ++ show num | (num,nam) <- zip [1..] args]
-                    where lhs = " (" ++ enUpper name ++ concat [" a" ++ show n | n <- [1..length args]] ++ ") = a"
+                                     ] ++ concat
+                                     [
+                                        ["int_go_" ++ encode nam ++ " " ++ lhs ++ " = a" ++ show num
+                                        ,"int_gm_" ++ encode nam ++ " (Just " ++ lhs ++ ") = Just a" ++ show num
+                                        ,"int_gm_" ++ encode nam ++ " _ = Nothing"]
+                                        | (num,nam) <- zip [1..] args
+                                     ]
+                    where lhs = "(" ++ enUpper name ++ concat [" a" ++ show n | n <- [1..length args]] ++ ")"
         
         fromFunc (Func name args (MCase opts) _) =
             (enLower name ++ concatMap ((' ':) . enLower) args) : map fromOpt opts
@@ -144,7 +149,8 @@ toHaskell (Hite datas funcs) = unlines $ prefix ++ concatMap fromData datas ++ c
               
         -- first param, should the thing be maybe wrapped
         getVar safe (Var x) = if safe then "(Just " ++ enLower x ++ ")" else enLower x
-        getVar _ _ = "todo"
+        getVar safe (Sel x y) | safe = "(int_gm_" ++ encode y ++ " " ++ getVar safe x ++ ")"
+                              | otherwise = "(int_go_" ++ encode y ++ " " ++ getVar safe x ++ ")"
 
         fromExpr :: Expr -> String
         fromExpr (Call x xs) = fromExprs (fromExpr x) xs
