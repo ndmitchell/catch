@@ -7,6 +7,7 @@ import List
 import Monad
 import Data.Predicate
 import Data.Char
+import Foreign(unsafePerformIO)
 
 {-
 import IOExts
@@ -179,3 +180,13 @@ intercatS sep = intercat sep . map show
 
 numToChr :: Int -> Char
 numToChr i = chr (ord 'a' + i)
+
+
+traceFunc :: Show a => String -> a -> a
+traceFunc args res = unsafePerformIO $ do
+    let str = reverse $ reverse $ args ++ " = " ++ show res
+    appendFile "trace.log" (str ++ "\n")
+    return res
+
+traceNone :: Show a => String -> a -> a
+traceNone args res = res
