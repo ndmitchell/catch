@@ -195,6 +195,9 @@ notElem           = all . (/=)
 
 repeat x          = x : repeat x
 
+last [x] = x
+last (x:xs) = last xs
+
 ---------------------------------------------------------------------
 -- Prelude.Bool
 --
