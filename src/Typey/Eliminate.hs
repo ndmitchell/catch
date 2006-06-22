@@ -66,7 +66,7 @@ getType env@(hite,datam,datat,funct) args expr = traceNone ("getType " ++ show a
         Make x xs -> getTCall (lookupJust x datat) xs
         CallFunc name -> lookupJust name funct
         Var x -> [lookupJust x args]
-        Sel x path -> map (`getTSel` path) (getT x)
+        Sel x path -> concatMap (`getTSel` path) (getT x)
         Error _ -> [TBot]
         
         _ -> error $ show ("getType",args,expr)
@@ -76,10 +76,11 @@ getType env@(hite,datam,datat,funct) args expr = traceNone ("getType " ++ show a
         getTCall x [] = x
         getTCall x (y:ys) = getTCall (apply x (getT y)) ys
 
+        getTSel :: TSubtype -> String -> [TSubtype]
         getTSel (TBind (TPair _ x:xs)) path =
             case argElem of
-                Self -> TBind [head xs, head xs]
-                FreeS i -> x !! i
+                Self -> if null xs then [] else [TBind [head xs, head xs]]
+                FreeS i -> [x !! i]
             where
                 argElem = args2 !! (fromJust $ elemIndex path args) 
                 Ctor name args = getCtorFromArg hite path
@@ -132,5 +133,7 @@ unify x y = error $ show ("unify",x,y)
 doesMatch :: Env -> [(FuncArg, TSubtype)] -> Pred MCaseOpt -> Bool
 doesMatch env args p = mapPredBool f p
     where
-        f (MCaseOpt e c) = c `elem` a
-            where TBind (TPair a _:_) = unionList $ getType env args e
+        f (MCaseOpt e c) = not (null res) && (c `elem` a)
+            where
+                TBind (TPair a _:_) = unionList res
+                res = getType env args e
