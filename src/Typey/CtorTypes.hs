@@ -1,5 +1,5 @@
 
-module Typey.CtorTypes(ctorTypes,typePermutations) where
+module Typey.CtorTypes(ctorTypes) where
 
 import Typey.Type
 import Typey.Subtype
@@ -12,17 +12,14 @@ import Data.Char
 
 -- get all the basic type information for constructors
 ctorTypes :: DataM SmallT -> TypeList
-ctorTypes datam = concatMap (dataSubtypes . snd) datam
+ctorTypes datam = concatMap (dataSubtypes datam) datam
 
 
-dataSubtypes :: DataT SmallT -> TypeList
-dataSubtypes dat@(DataT n xs) = map f xs
+dataSubtypes :: DataM SmallT -> (String, DataT SmallT) -> TypeList
+dataSubtypes datam (datName, dat@(DataT n xs)) = map f xs
     where
-        f (CtorT name xs) = (,) name [tArr a (makeRes name (zip xs a)) | a <- args]
-            where args = map uniqueFrees $ crossProduct $ map g xs
-        
-        g Self = typePermutations dat
-        g (FreeS i) = [TFree [[numToChr i]]]
+        f (CtorT name xs) = (,) name [(a, makeRes name (zip xs a)) | a <- args]
+            where args = map uniqueFrees $ getSubtypesList datam $ smallToLarge n datName xs
         
         makeRes :: String -> [(SmallT,TSubtype)] -> TSubtype
         makeRes name xs | not $ any (isSelf.fst) xs = TBind [TPair [name] vars]
@@ -33,7 +30,14 @@ dataSubtypes dat@(DataT n xs) = map f xs
                 h i = unionList (TFree [] : [x | (FreeS j, x) <- xs, j == i])
 
 
+smallToLarge :: Int -> CtorName -> [SmallT] -> [Large2T]
+smallToLarge n ctr xs = map f xs
+    where
+        f Self = Bind2T (Ctor2T ctr) [Free2T [numToChr i] | i <- [0..n-1]]
+        f (FreeS i) = Free2T [numToChr i]
 
+
+{-
 typePermutations :: DataT SmallT -> [TSubtype]
 typePermutations (DataT n xs) =
         [TBind [x]| x <- nper] ++ [TBind [x,y] | x <- rper, y <- rper++nper]
@@ -45,3 +49,4 @@ typePermutations (DataT n xs) =
             where
                 g i = if i `elem` frees then TFree [[numToChr i]] else TFree []
                 frees = nub [i | FreeS i <- xs]
+-}

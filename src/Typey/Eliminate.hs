@@ -14,27 +14,40 @@ import Control.Monad
 
 
 type Logger = String -> IO ()
+type Env = (Hite, DataM SmallT, TypeList, TypeList)
 
 eliminate :: Logger -> Hite -> DataM SmallT -> TypeList -> TypeList -> IO TypeList
 eliminate logger hite datam datat funct = do
-        funct2 <- mapM f funct
-        if typeListLen funct == typeListLen funct2
-            then return funct
-            else eliminate logger hite datam datat funct2
+        logger "== ELIMINATE\n"
+        res <- newTypeList logger (hite,datam,datat,funct)
+        case res of
+            Nothing -> return funct
+            Just x -> eliminate logger hite datam datat x
+
+
+
+-- return Nothing if this is a fixed point
+-- otherwise return Just the new result
+newTypeList :: Logger -> Env -> IO (Maybe TypeList)
+newTypeList logger env@(hite,datam,datat,funct) = 
+    do
+        br <- mapM f funct
+        return $ if any fst br then Just $ map snd br else Nothing
     where
-        typeListLen x = length $ concatMap snd x
-    
-        f (name, typs) = do typs2 <- filterM (g name) typs
-                            return (name, typs2)
+        f (name, opts) = do
+            br <- mapM (g name) opts
+            return (any fst br, (name, map snd br))
         
-        g name typ = do logger $ name ++ " :: " ++ show typ
-                        res <- validType logger (hite,datam,datat,funct) name typ
-                        logger $ " " ++ (if res then "KEEP" else "DROP") ++ "\n"
-                        return res
+        g name (args,res) = do
+            logger $ name ++ " :: " ++ show (TArr args res)
+            let res2 = getFuncType env name args
+                res3 = unionPair res2 res
+                same = res == res3
+            logger $ if same then " KEEP\n" else " ===> " ++ show res3 ++ "\n"
+            return (not same, (args,res3))
 
 
-type Env = (Hite, DataM SmallT, TypeList, TypeList)
-
+{-
 -- given a datat and a funct, check that the function can have this type
 validType :: Logger -> Env -> String -> TSubtype -> IO Bool
 validType logger env@(hite,datam,datat,funct) funcname (TArr argt res) =
@@ -46,11 +59,17 @@ validType logger env@(hite,datam,datat,funct) funcname (TArr argt res) =
         )
     where
         (resb,resn) = partition isTBot ress
+
+validType logger env funcname res = validType logger env funcname (TArr [] res)
+-}
+
+getFuncType :: Env -> FuncName -> [TSubtype] -> TSubtype
+getFuncType env@(hite,datam,datat,funct) funcname argt = unionList ress
+    where
         ress = concat [getType env rep e | MCaseAlt p e <- opts, doesMatch env rep p]
         rep = zip args argt
         Func _ args (MCase opts) _ = getFunc hite funcname
 
-validType logger env funcname res = validType logger env funcname (TArr [] res)
 
 
 getTypeRec :: Env -> [(FuncArg, TSubtype)] -> Expr -> [TSubtype]
@@ -63,14 +82,16 @@ getType :: Env -> [(FuncArg, TSubtype)] -> Expr -> [TSubtype]
 getType env@(hite,datam,datat,funct) args expr = traceNone ("getType " ++ show args ++ ", " ++ output expr) $
     case expr of
         Call x xs -> getTCall (getT x) xs
-        Make x xs -> getTCall (lookupJust x datat) xs
-        CallFunc name -> lookupJust name funct
+        Make x xs -> getTCall (liftTypeList $ lookupJust x datat) xs
+        CallFunc name -> liftTypeList $ lookupJust name funct
         Var x -> [lookupJust x args]
         Sel x path -> concatMap (`getTSel` path) (getT x)
         Error _ -> [TBot]
         
         _ -> error $ show ("getType",args,expr)
     where
+        liftTypeList x = [tArr a b | (a,b) <- x]
+    
         getT = getType env args
         
         getTCall x [] = x

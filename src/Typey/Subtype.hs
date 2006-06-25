@@ -41,6 +41,8 @@ instance Union TSubtype where
     unionPair (TFree a) (TFree b) = TFree (a `union` b)
     unionPair (TBind a) (TBind b) = TBind (zipWithRest unionPair a b)
     unionPair (TArr a1 b1) (TArr a2 b2) = tArr (zipWithEq unionPair a1 a2) (b1 `unionPair` b2)
+    unionPair TBot _ = TBot
+    unionPair _ TBot = TBot
     unionPair a b = error $ show ("Union TSubtype",a,b)
 
 instance Union TPair where
@@ -62,13 +64,14 @@ isTSubsetPair (TPair x1 y1) (TPair x2 y2) = f x1 x2 && and (zipWithEq isTSubset 
         f xs ys = null $ xs \\ ys
 
 
-type TypeList = [(String, [TSubtype])]
+type TypeList = [(String, [([TSubtype],TSubtype)])]
 
 
 showTypeList :: TypeList -> String
 showTypeList x = unlines $ concatMap f x
     where
-        f (name,typs) = (name ++ " ::") : map show typs
+        f (name,typs) = (name ++ " ::") : map g typs
+        g (args,ress) = "    " ++ intercatS " -> " args ++ " = " ++ show ress
 
 
 tArr [] y = y
@@ -118,3 +121,42 @@ uniqueFrees x = replaceFrees x $ f [] $ extractFrees x
                         Nothing -> 0
                         Just x -> x
         f rep (x:xs) = x : f rep xs
+
+
+getSubtypesList :: DataM SmallT -> [Large2T] -> [[TSubtype]]
+getSubtypesList datam xs = crossProduct $ map (getSubtypes datam) xs
+
+
+getSubtypes :: DataM SmallT -> Large2T -> [TSubtype]
+getSubtypes datam (Free2T x) = [TFree [x]]
+getSubtypes datam (Ctor2T x) = getSubtypes datam (Bind2T (Ctor2T x) [])
+getSubtypes datam (Arr2T xs ys) = [TArr x y | x <- getSubtypesList datam xs, y <- TBot : getSubtypes datam ys]
+getSubtypes datam (Bind2T (Ctor2T x) y) = concatMap f typs
+    where
+        typs = typePermute $ lookupJust x datam
+        
+        f (TBind xs) = map TBind $ crossProduct $ map g xs
+        
+        g :: TPair -> [TPair]
+        g (TPair x y) = map (TPair x) $ crossProduct $ map h y
+        
+        h :: TSubtype -> [TSubtype]
+        h (TFree []) = [TFree []]
+        h (TFree [s]) = getSubtypes datam (y !! read s)
+        
+        
+
+
+-- generate all possible permutations
+-- use TFree to stand for all the free variables
+typePermute :: DataT SmallT -> [TSubtype]
+typePermute (DataT n xs) =
+        [TBind [x]| x <- nper] ++ [TBind [x,y] | x <- rper, y <- rper++nper]
+    where
+        (rper,nper) = (map f rctr, map f nctr)
+        (rctr,nctr) = partition isRecursive xs
+
+        f (CtorT name xs) = TPair [name] $ map g [0..n-1]
+            where
+                g i = if i `elem` frees then TFree [show i] else TFree []
+                frees = nub [i | FreeS i <- xs]

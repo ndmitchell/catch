@@ -11,16 +11,21 @@ import Data.Char
 
 
 funcTypes :: DataM SmallT -> Func2M -> TypeList
-funcTypes datam funcm = [(name, nub $ getFuncSubtypes datam typ) | (name, typ) <- funcm]
+funcTypes datam funcm = [(name, getFuncSubtypes datam typ) | (name, typ) <- funcm]
 
 -- get all the possible subtypes of a function
-getFuncSubtypes :: DataM SmallT -> Large2T -> [TSubtype]
-getFuncSubtypes datam = renameVars . addBottoms . getSubtypes datam
+getFuncSubtypes :: DataM SmallT -> Large2T -> [([TSubtype],TSubtype)]
+getFuncSubtypes datam (Arr2T a b) = [(uniqueFrees x,TFree []) | x <- getSubtypesList datam a]
+getFuncSubtypes datam x = [([], TFree [])]
+
+{-
+
+= renameVars . {- addBottoms . -} getSubtypes datam
 
 
-getSubtypes :: DataM SmallT -> Large2T -> [TSubtype]
-getSubtypes datam (Free2T a) = [TFree [a]]
-getSubtypes datam (Arr2T a b) = [TArr x y | x <- as, y <- getSubtypes datam b]
+getSubtypes :: DataM SmallT -> Large2T -> [([TSubtype], [TSubtype])]
+getSubtypes datam (Free2T a) = ([],[TFree [a]])
+getSubtypes datam (Arr2T a b) = [(x,getSubtypes datam b) | x <- as]
     where as = crossProduct $ map (getSubtypes datam) a
 getSubtypes datam (Ctor2T a) = getSubtypes datam $ Bind2T (Ctor2T a) []
 
@@ -92,3 +97,4 @@ uniqueVars res | null frees = [res]
                | otherwise = []
     where
         frees = [x |TFree [x] <- extractFrees [res]]
+-}
