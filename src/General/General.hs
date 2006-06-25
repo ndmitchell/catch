@@ -190,3 +190,15 @@ traceFunc args res = unsafePerformIO $ do
 
 traceNone :: Show a => String -> a -> a
 traceNone args res = res
+
+
+powerSet       :: [a] -> [[a]]
+powerSet []     = [[]]
+powerSet (x:xs) = xss /\/ map (x:) xss
+                 where xss = powerSet xs
+
+-- Mark Jones' interleave-two-lists
+(/\/)        :: [a] -> [a] -> [a]
+[]     /\/ ys = ys
+(x:xs) /\/ ys = x : (ys /\/ xs)
+
