@@ -151,12 +151,17 @@ getSubtypes datam (Bind2T (Ctor2T x) y) = concatMap f typs
 -- use TFree to stand for all the free variables
 typePermute :: DataT SmallT -> [TSubtype]
 typePermute (DataT n xs) =
-        [TBind [x]| x <- nper] ++ [TBind [x,y] | x <- rper, y <- rper++nper]
+        [TBind [x]| x <- nper] ++ [TBind [x,gs y] | x <- rper, y <- powerSet (rper++nper), not (null y)]
     where
         (rper,nper) = (map f rctr, map f nctr)
         (rctr,nctr) = partition isRecursive xs
-
+        
         f (CtorT name xs) = TPair [name] $ map g [0..n-1]
             where
                 g i = if i `elem` frees then TFree [show i] else TFree []
                 frees = nub [i | FreeS i <- xs]
+
+        gs = foldr1 g
+        g (TPair a1 b1) (TPair a2 b2) = TPair (a1 `union` a2) (zipWith h b1 b2)
+            where
+                h (TFree x) (TFree y) = TFree (x `union` y)
