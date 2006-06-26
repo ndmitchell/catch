@@ -27,9 +27,12 @@ typeySolve2 file hndl hite datam funcm =
         funct2 <- eliminate out hite datam datat funct
         outBoth "-- VALID SUBTYPES"
         outLn $ showTypeList funct2
-        outBoth "-- ANSWER, main ::"
-        outBoth $ unlines $ map show $ lookupJust "main" funct2
-        return False
+        outBoth "-- ANSWER"
+        outBoth $ showTypeList $ filter ((==) "main" . fst) funct2
+        outBoth "-- SUMMARY"
+        let failure = any isTBot $ map snd $ lookupJust "main" funct2
+        outBoth $ if failure then "Failed :(" else "Success :)"
+        return $ not failure
     where
         outLn = hPutStrLn hndl
         out = hPutStr hndl

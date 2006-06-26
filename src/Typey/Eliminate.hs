@@ -41,7 +41,7 @@ newTypeList logger env@(hite,datam,datat,funct) =
         g name (args,res) = do
             logger $ name ++ " :: " ++ show (TArr args res)
             let res2 = getFuncType env name args
-                res3 = unionPair res2 res
+                res3 = res2 -- unionPair res2 res
                 same = res == res3
             logger $ if same then " KEEP\n" else " ===> " ++ show res3 ++ "\n"
             return (not same, (args,res3))
@@ -146,6 +146,7 @@ unify (TBind xs) (TBind ys) = liftM concat $ sequence $ zipWith f xs ys
             then liftM concat $ sequence $ zipWith unify b1 b2
             else Nothing
 unify (TFree []) _ = Just []
+unify _ (TFree []) = Just []
 unify (TFree [a]) x = Just [(a,x)]
 
 unify x y = error $ show ("unify",x,y)

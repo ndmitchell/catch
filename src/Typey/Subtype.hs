@@ -43,6 +43,8 @@ instance Union TSubtype where
     unionPair (TArr a1 b1) (TArr a2 b2) = tArr (zipWithEq unionPair a1 a2) (b1 `unionPair` b2)
     unionPair TBot _ = TBot
     unionPair _ TBot = TBot
+    unionPair (TFree []) x = x
+    unionPair x (TFree []) = x
     unionPair a b = error $ show ("Union TSubtype",a,b)
 
 instance Union TPair where
