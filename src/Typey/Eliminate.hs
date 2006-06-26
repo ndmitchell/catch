@@ -139,12 +139,18 @@ applyUnify dat x = error $ show ("applyUnify",dat,x)
 -- roughly x `isTSubset` y (for constructors at least)
 -- figure what a variable in x would have to be mapped to
 unify :: TSubtype -> TSubtype -> Maybe [(String, TSubtype)]
-unify (TBind xs) (TBind ys) = liftM concat $ sequence $ zipWith f xs ys
+unify (TBind (x:xs)) (TBind (y:ys)) = liftM concat $ sequence $ f x y : zipWith g xs ys
     where
         f (TPair a1 b1) (TPair a2 b2) =
             if null $ a1 \\ a2
             then liftM concat $ sequence $ zipWith unify b1 b2
             else Nothing
+
+        -- demand equality for child types, because of the powerset rule
+        -- kinda hacky, needs formalising
+        g p1@(TPair a1 b1) p2@(TPair a2 b2) =
+            if a1 `setEq` a2 then f p1 p2 else Nothing
+            
 unify (TFree []) _ = Just []
 unify _ (TFree []) = Just []
 unify (TFree [a]) x = Just [(a,x)]
