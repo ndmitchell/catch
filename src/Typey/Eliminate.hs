@@ -152,10 +152,18 @@ unify (TBind (x:xs)) (TBind (y:ys)) = liftM concat $ sequence $ f x y : zipWith 
             if a1 `setEq` a2 then f p1 p2 else Nothing
             
 unify (TFree []) _ = Just []
+unify (TFree []) TBot = Nothing
+unify TBot (TFree []) = Nothing
+unify TBot TBot = Just []
 unify _ (TFree []) = Just []
 unify (TFree [a]) x = Just [(a,x)]
+unify TBot (TFree [a]) = Nothing
+unify (TArr a1 b1) (TArr a2 b2) =
+    liftM concat $ sequence $ zipWithEq unify (b1:a1) (b2:a2)
+
 
 unify x y = error $ show ("unify",x,y)
+
 
 
 doesMatch :: Env -> [(FuncArg, TSubtype)] -> Pred MCaseOpt -> Bool
