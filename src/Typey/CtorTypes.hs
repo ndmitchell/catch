@@ -18,7 +18,7 @@ ctorTypes datam = concatMap (dataSubtypes datam) datam
 dataSubtypes :: DataM SmallT -> (String, DataT SmallT) -> TypeList
 dataSubtypes datam (datName, dat@(DataT n xs)) = map f xs
     where
-        f (CtorT name xs) = (name, TFunc [TArr a (makeRes name $ zip xs a) | a <- args])
+        f (CtorT name xs) = (name, tFunc [TArr a (makeRes name $ zip xs a) | a <- args])
             where args = map uniqueFrees $ getSubtypesList datam $ smallToLarge n datName xs
         
         makeRes :: String -> [(SmallT,TSubtype)] -> TSubtype
