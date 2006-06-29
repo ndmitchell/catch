@@ -9,20 +9,36 @@ import General.General
 
 data TSubtype = TFree [String]
               | TBind [TPair]
-              | TArr [TSubtype] TSubtype
+              | TFunc [TArr]
               | TBot
               deriving Eq
+
+data TArr = TArr [TSubtype] TSubtype
+            deriving Eq
 
 data TPair = TPair [CtorName] [TSubtype]
              deriving Eq
 
 isTBot (TBot{}) = True; isTBot _ = False
 
+getTArrs :: TSubtype -> [TArr]
+getTArrs (TFunc x) = x
+getTArrs x = [TArr [] x]
+
+
+tFunc :: [TArr] -> TSubtype
+tFunc [TArr [] x] = x
+tFunc x = TFunc x
+
+
 instance Show TSubtype where
     show (TFree x) = showSet x
     show (TBind xs) = "{" ++ intercatS " | " xs ++ "}"
-    show (TArr a b) = "(" ++ intercatS " -> " (a++[b]) ++ ")"
+    show (TFunc x) = "<" ++ intercatS " | " x ++ ">"
     show TBot = "!"
+
+instance Show TArr where
+    show (TArr a b) = "(" ++ intercatS " -> " (a++[b]) ++ ")"
 
 instance Show TPair where
     show (TPair a []) = showSet (map repBox a)
@@ -40,7 +56,7 @@ showSet xs = "<" ++ intercat "," xs ++ ">"
 instance Union TSubtype where
     unionPair (TFree a) (TFree b) = TFree (a `union` b)
     unionPair (TBind a) (TBind b) = TBind (zipWithRest unionPair a b)
-    unionPair (TArr a1 b1) (TArr a2 b2) = tArr (zipWithEq unionPair a1 a2) (b1 `unionPair` b2)
+    --unionPair (TArr a1 b1) (TArr a2 b2) = tArr (zipWithEq unionPair a1 a2) (b1 `unionPair` b2)
     unionPair TBot _ = TBot
     unionPair _ TBot = TBot
     unionPair (TFree []) x = x
@@ -66,18 +82,20 @@ isTSubsetPair (TPair x1 y1) (TPair x2 y2) = f x1 x2 && and (zipWithEq isTSubset 
         f xs ys = null $ xs \\ ys
 
 
-type TypeList = [(String, [([TSubtype],TSubtype)])]
+type TypeList = [(String, TSubtype)]
 
 
 showTypeList :: TypeList -> String
 showTypeList x = unlines $ concatMap f x
     where
-        f (name,typs) = (name ++ " ::") : map g typs
-        g (args,ress) = "    " ++ intercatS " -> " args ++ " = " ++ show ress
+        f (name,typs) = (name ++ " ::") : g typs
+        g (TFunc xs) = map ((++) "    " . show) xs
+        g x = ["    " ++ show x]
 
 
-tArr [] y = y
-tArr xs y = TArr xs y
+tArr x y = error "tArr"
+--tArr [] y = y
+--tArr xs y = TArr xs y
 
 
 
@@ -86,9 +104,10 @@ extractFrees x = concatMap fSubtype x
     where
         fSubtype (TFree a) = [TFree a]
         fSubtype (TBind a) = concatMap fPair a
-        fSubtype (TArr a b) = concatMap fSubtype a ++ fSubtype b
+        fSubtype (TFunc a) = concatMap fArr a
         fSubtype (TBot) = []
         
+        fArr (TArr a b) = concatMap fSubtype a ++ fSubtype b
         fPair (TPair a b) = concatMap fSubtype b
 
 
@@ -104,7 +123,8 @@ replaceFrees x ns = fSubtypes x ns
             
         fSubtype (TFree a) [n] = n
         fSubtype (TBot) [] = TBot
-        fSubtype (TArr a b) n = tArr (init ab) (last ab)
+        fSubtype (TFunc as) ns = TFunc $ map (\(TFunc [a]) -> a) $ fSubtypes (map (TFunc . box) as) ns
+        fSubtype (TFunc [TArr a b]) n = TFunc [TArr (init ab) (last ab)]
             where ab = fSubtypes (a ++ [b]) n
         fSubtype (TBind xs) n = TBind $ fPairs xs n
 
@@ -132,7 +152,7 @@ getSubtypesList datam xs = crossProduct $ map (getSubtypes datam) xs
 getSubtypes :: DataM SmallT -> Large2T -> [TSubtype]
 getSubtypes datam (Free2T x) = [TFree [x]]
 getSubtypes datam (Ctor2T x) = getSubtypes datam (Bind2T (Ctor2T x) [])
-getSubtypes datam (Arr2T xs ys) = [TArr x y | x <- getSubtypesList datam xs, y <- TBot : getSubtypes datam ys]
+getSubtypes datam (Arr2T xs ys) = box $ TFunc [TArr x y | x <- getSubtypesList datam xs, y <- TBot : getSubtypes datam ys]
 getSubtypes datam (Bind2T (Ctor2T x) y) = concatMap f typs
     where
         typs = typePermute $ lookupJust x datam

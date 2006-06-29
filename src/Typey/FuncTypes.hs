@@ -14,9 +14,9 @@ funcTypes :: DataM SmallT -> Func2M -> TypeList
 funcTypes datam funcm = [(name, getFuncSubtypes datam typ) | (name, typ) <- funcm]
 
 -- get all the possible subtypes of a function
-getFuncSubtypes :: DataM SmallT -> Large2T -> [([TSubtype],TSubtype)]
-getFuncSubtypes datam (Arr2T a b) = [(uniqueFrees x,TFree []) | x <- getSubtypesList datam a]
-getFuncSubtypes datam x = [([], TFree [])]
+getFuncSubtypes :: DataM SmallT -> Large2T -> TSubtype
+getFuncSubtypes datam (Arr2T a b) = TFunc $ [TArr (uniqueFrees x) (TFree []) | x <- getSubtypesList datam a]
+getFuncSubtypes datam x = TFree []
 
 {-
 

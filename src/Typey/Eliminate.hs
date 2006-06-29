@@ -31,20 +31,26 @@ eliminate logger hite datam datat funct = do
 newTypeList :: Logger -> Env -> IO (Maybe TypeList)
 newTypeList logger env@(hite,datam,datat,funct) = 
     do
-        br <- mapM f funct
-        return $ if any fst br then Just $ map snd br else Nothing
+        (b,r) <- liftList f funct
+        return $ if b then Just r else Nothing
     where
-        f (name, opts) = do
-            br <- mapM (g name) opts
-            return (any fst br, (name, map snd br))
+        liftList f xs = do
+            br <- mapM f xs
+            return (any fst br, map snd br)
+    
+        f :: (String, TSubtype) -> IO (Bool, (String, TSubtype))
+        f (name,typ) = do
+            (b,r) <- liftList (g name) (getTArrs typ)
+            return (b,(name,TFunc r))
         
-        g name (args,res) = do
-            logger $ name ++ " :: " ++ show (TArr args res)
+        g :: String -> TArr -> IO (Bool, TArr)
+        g name t@(TArr args res) = do
+            logger $ name ++ " :: " ++ show t
             let res2 = getFuncType env name args
                 res3 = res2 -- unionPair res2 res
                 same = res == res3
             logger $ if same then " KEEP\n" else " ===> " ++ show res3 ++ "\n"
-            return (not same, (args,res3))
+            return (not same, TArr args res3)
 
 
 {-
@@ -66,59 +72,60 @@ validType logger env funcname res = validType logger env funcname (TArr [] res)
 getFuncType :: Env -> FuncName -> [TSubtype] -> TSubtype
 getFuncType env@(hite,datam,datat,funct) funcname argt = unionList ress
     where
-        ress = concat [getType env rep e | MCaseAlt p e <- opts, doesMatch env rep p]
+        ress = [getType env rep e | MCaseAlt p e <- opts, doesMatch env rep p]
         rep = zip args argt
         Func _ args (MCase opts) _ = getFunc hite funcname
 
 
 
-getTypeRec :: Env -> [(FuncArg, TSubtype)] -> Expr -> [TSubtype]
+getTypeRec :: Env -> [(FuncArg, TSubtype)] -> Expr -> TSubtype
 getTypeRec env args expr = trace (show ("getTypeRec",args,expr,ans)) ans
     where ans = getType env args expr
 
 
 -- get the type of an expression in an environment
-getType :: Env -> [(FuncArg, TSubtype)] -> Expr -> [TSubtype]
+getType :: Env -> [(FuncArg, TSubtype)] -> Expr -> TSubtype
 getType env@(hite,datam,datat,funct) args expr = traceNone ("getType " ++ show args ++ ", " ++ output expr) $
     case expr of
         Call x xs -> getTCall (getT x) xs
-        Make x xs -> getTCall (liftTypeList $ lookupJust x datat) xs
-        CallFunc name -> liftTypeList $ lookupJust name funct
-        Var x -> [lookupJust x args]
-        Sel x path -> concatMap (`getTSel` path) (getT x)
-        Error _ -> [TBot]
+        Make x xs -> getTCall (lookupJust x datat) xs
+        CallFunc name -> lookupJust name funct
+        Var x -> lookupJust x args
+        Sel x path -> getTSel (getT x) path
+        Error _ -> TBot
         
         _ -> error $ show ("getType",args,expr)
     where
-        liftTypeList x = [tArr a b | (a,b) <- x]
-    
         getT = getType env args
         
         getTCall x [] = x
         getTCall x (y:ys) = getTCall (apply x (getT y)) ys
 
-        getTSel :: TSubtype -> String -> [TSubtype]
+        getTSel :: TSubtype -> String -> TSubtype
         getTSel (TBind (TPair _ x:xs)) path =
             case argElem of
-                Self -> if null xs then [] else [TBind [head xs, head xs]]
-                FreeS i -> [x !! i]
+                Self -> if null xs then TFree [] else TBind [head xs, head xs]
+                FreeS i -> x !! i
             where
                 argElem = args2 !! (fromJust $ elemIndex path args) 
                 Ctor name args = getCtorFromArg hite path
                 args2 = head [args | DataT _ cs <- map snd datam, CtorT nam args <- cs, nam == name]
                 
         
-        apply :: [TSubtype] -> [TSubtype] -> [TSubtype]
-        apply xs ys = traceNone ("apply " ++ show xs ++ " AND " ++ show ys ++ " IS ") res
+        apply :: TSubtype -> TSubtype -> TSubtype
+        apply func args = f func args
             where
-                res = concat [f x y | x <- xs, y <- ys]
-                f _ TBot = [TBot]
-                f TBot _ = [TBot]
-                f (TArr (x:xs) y) z | isJust mapping = [tArr (map uni xs) (uni y)]
+                f _ TBot = TBot
+                f TBot _ = TBot
+                f (TFunc xs) y = tFunc $ concatMap (`g` y) xs
+                f _ _ = TFree []
+
+                g (TArr (x:xs) y) z | isJust mapping = [TArr (map uni xs) (uni y)]
                     where
                         uni = applyUnify $ fromJust mapping
                         mapping = unify x z
-                f _ _ = []
+                g _ _ = []
+
 
 applyUnify :: [(String, TSubtype)] -> TSubtype -> TSubtype
 applyUnify dat (TBind xs) = TBind $ map f xs
@@ -130,7 +137,8 @@ applyUnify dat o@(TFree [n]) = case lookup n dat of
                                           Nothing -> o
                                           Just x -> x
 applyUnify dat (TFree ns) = unionList $ map (applyUnify dat . TFree . box) ns
-applyUnify dat (TArr x y) = tArr (map (applyUnify dat) x) (applyUnify dat y)
+applyUnify dat (TFunc x) = TFunc $ map f x
+    where f (TArr a b) = TArr (map (applyUnify dat) a) (applyUnify dat b)
 applyUnify dat TBot = TBot
 applyUnify dat x = error $ show ("applyUnify",dat,x)
 
@@ -158,8 +166,8 @@ unify TBot TBot = Just []
 unify _ (TFree []) = Just []
 unify (TFree [a]) x = Just [(a,x)]
 unify TBot (TFree [a]) = Nothing
-unify (TArr a1 b1) (TArr a2 b2) =
-    liftM concat $ sequence $ zipWithEq unify (b1:a1) (b2:a2)
+--unify (TArr a1 b1) (TArr a2 b2) =
+--    liftM concat $ sequence $ zipWithEq unify (b1:a1) (b2:a2)
 
 
 unify x y = error $ show ("unify",x,y)
@@ -169,7 +177,6 @@ unify x y = error $ show ("unify",x,y)
 doesMatch :: Env -> [(FuncArg, TSubtype)] -> Pred MCaseOpt -> Bool
 doesMatch env args p = mapPredBool f p
     where
-        f (MCaseOpt e c) = not (null res) && (c `elem` a)
+        f (MCaseOpt e c) = c `elem` a
             where
-                TBind (TPair a _:_) = unionList res
-                res = getType env args e
+                TBind (TPair a _:_) = getType env args e
