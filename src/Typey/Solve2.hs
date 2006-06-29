@@ -30,7 +30,7 @@ typeySolve2 file hndl hite datam funcm =
         outBoth "-- ANSWER"
         outBoth $ showTypeList $ filter ((==) "main" . fst) funct2
         outBoth "-- SUMMARY"
-        let failure = True -- any isTBot $ map snd $ lookupJust "main" funct2
+        let failure = any isTBot [res | TArr args res <- getTArrs $ lookupJust "main" funct2]
         outBoth $ if failure then "Failed :(" else "Success :)"
         return $ not failure
     where
