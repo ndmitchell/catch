@@ -41,7 +41,7 @@ newTypeList logger env@(hite,datam,datat,funct) =
         f :: (String, TSubtype) -> IO (Bool, (String, TSubtype))
         f (name,typ) = do
             (b,r) <- liftList (g name) (getTArrs typ)
-            return (b,(name,TFunc r))
+            return (b,(name,tFunc r))
         
         g :: String -> TArr -> IO (Bool, TArr)
         g name t@(TArr args res) = do
@@ -117,7 +117,7 @@ getType env@(hite,datam,datat,funct) args expr = traceNone ("getType " ++ show a
             where
                 f _ TBot = TBot
                 f TBot _ = TBot
-                f (TFunc xs) y = tFunc $ concatMap (`g` y) xs
+                f (TFunc xs) y = tFunc $ nub $ concatMap (`g` y) xs
                 f _ _ = TFree []
 
                 g (TArr (x:xs) y) z | isJust mapping = [TArr (map uni xs) (uni y)]
@@ -137,7 +137,7 @@ applyUnify dat o@(TFree [n]) = case lookup n dat of
                                           Nothing -> o
                                           Just x -> x
 applyUnify dat (TFree ns) = unionList $ map (applyUnify dat . TFree . box) ns
-applyUnify dat (TFunc x) = TFunc $ map f x
+applyUnify dat (TFunc x) = tFunc $ map f x
     where f (TArr a b) = TArr (map (applyUnify dat) a) (applyUnify dat b)
 applyUnify dat TBot = TBot
 applyUnify dat x = error $ show ("applyUnify",dat,x)
