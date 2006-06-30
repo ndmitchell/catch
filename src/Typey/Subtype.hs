@@ -123,9 +123,9 @@ replaceFrees x ns = fSubtypes x ns
             
         fSubtype (TFree a) [n] = n
         fSubtype (TBot) [] = TBot
-        fSubtype (TFunc as) ns = TFunc $ map (\(TFunc [a]) -> a) $ fSubtypes (map (TFunc . box) as) ns
         fSubtype (TFunc [TArr a b]) n = TFunc [TArr (init ab) (last ab)]
             where ab = fSubtypes (a ++ [b]) n
+        fSubtype (TFunc as) ns = TFunc $ map (\(TFunc [a]) -> a) $ fSubtypes (map (TFunc . box) as) ns
         fSubtype (TBind xs) n = TBind $ fPairs xs n
 
         fPairs [] [] = []
