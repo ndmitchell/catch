@@ -13,7 +13,7 @@ import Data.Char
 permuteTypes :: DataM SmallT -> [Large2T] -> [[TSubtype]]
 permuteTypes datam x = concatMap perm $ getSubtypesList datam x
     where
-        perm x = [populateFuncs $ uniqueFrees x]
+        perm x = selectFuncs $ populateFuncs $ uniqueFrees x
 
         blankFuncs x = mapTSubtype f x
             where
@@ -23,7 +23,8 @@ permuteTypes datam x = concatMap perm $ getSubtypesList datam x
         collectVars x = [splitVar var | TFree [var] <- allTSubtype $ blankFuncs x]
         splitVar s = let (a,b) = span isAlpha s in (a, (read b) :: Int)
         joinVar a n = a ++ show n
-        
+
+        populateFuncs :: [TSubtype] -> [TSubtype]    
         populateFuncs x = mapTSubtype f x
             where
                 vars = collectVars x
@@ -38,7 +39,28 @@ permuteTypes datam x = concatMap perm $ getSubtypesList datam x
                         h (TFree [x]) = [TFree [joinVar a0 n1] | let (a0,n0) = splitVar x, (a1,n1) <- vars, a0 == a1]
                         h x = [x]
                         
+        selectFuncs :: [TSubtype] -> [[TSubtype]]
+        selectFuncs xs = map (replaceFrees xs2) frees
+            where
+                frees = crossProduct $ map splitFuncs $ extractFrees xs2
+                xs2 = mapTSubtype repFuncs xs
+                funcs = zip [TFunc x | TFunc x <- xs] [0..]
                 
+                repFuncs x@(TFunc _) = case lookup x funcs of
+                                           Nothing -> x
+                                           Just y -> TFree ["$" ++ show y]
+                repFuncs x = x
+                
+                splitFuncs (TFree ['$':n]) = allSets $ fst (funcs !! read n)
+                splitFuncs x = [x]
+                
+                allSets :: TSubtype -> [TSubtype]
+                allSets (TFunc xs) = map TFunc $ crossProduct $ groupSetBy sameLhs xs
+
+                sameLhs :: TArr -> TArr -> Bool
+                sameLhs (TArr a0 _) (TArr a1 _) = a0 == a1
+                
+        
 
 
 extractFrees :: [TSubtype] -> [TSubtype]
