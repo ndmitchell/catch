@@ -117,7 +117,7 @@ getType env@(hite,datam,datat,funct) args expr = traceNone ("getType " ++ show a
             where
                 f _ TBot = TBot
                 f TBot _ = TBot
-                f (TFunc xs) y = tFunc $ nub $ concatMap (`g` y) xs
+                f (TFunc xs) y = combine $ concatMap (`g` y) xs
                 f _ _ = TFree []
 
                 g (TArr (x:xs) y) z | isJust mapping = [TArr (map uni xs) (uni y)]
@@ -125,6 +125,12 @@ getType env@(hite,datam,datat,funct) args expr = traceNone ("getType " ++ show a
                         uni = applyUnify $ fromJust mapping
                         mapping = unify x z
                 g _ _ = []
+        
+        combine :: [TArr] -> TSubtype
+        combine xs = tFunc $ map g $ groupSetBy f xs
+            where
+                f (TArr a1 _) (TArr a2 _) = a1 == a2
+                g xs@((TArr a r):_) = TArr a $ unionList [x | TArr _ x <- xs]
 
 
 applyUnify :: [(String, TSubtype)] -> TSubtype -> TSubtype
