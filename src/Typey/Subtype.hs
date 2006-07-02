@@ -31,6 +31,37 @@ tFunc [TArr [] x] = x
 tFunc x = TFunc x
 
 
+
+class PlayTSubtype a where
+    mapTSubtype :: (TSubtype -> TSubtype) -> a -> a
+    allTSubtype :: a -> [TSubtype]
+
+instance PlayTSubtype a => PlayTSubtype [a] where
+    mapTSubtype f xs = map (mapTSubtype f) xs
+    allTSubtype xs = concatMap allTSubtype xs
+
+
+instance PlayTSubtype TSubtype where
+    mapTSubtype f x = f $ case x of
+        TBind xs -> TBind $ map (mapTSubtype f) xs
+        TFunc xs -> TFunc $ map (mapTSubtype f) xs
+        _ -> x
+
+    allTSubtype x = x : (case x of
+            TBind xs -> concatMap allTSubtype xs
+            TFunc xs -> concatMap allTSubtype xs
+            _ -> []
+        )
+
+instance PlayTSubtype TArr where
+    mapTSubtype f (TArr as a) = TArr (map (mapTSubtype f) as) (mapTSubtype f a)
+    allTSubtype (TArr as a) = concatMap allTSubtype (as ++ [a])
+
+instance PlayTSubtype TPair where
+    mapTSubtype f (TPair a as) = TPair a (map (mapTSubtype f) as)
+    allTSubtype (TPair a as) = concatMap allTSubtype as
+
+
 instance Show TSubtype where
     show (TFree x) = showSet x
     show (TBind xs) = "{" ++ intercatS " | " xs ++ "}"
