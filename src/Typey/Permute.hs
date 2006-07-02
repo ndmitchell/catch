@@ -13,7 +13,7 @@ import Data.Char
 permuteTypes :: DataM SmallT -> [Large2T] -> [[TSubtype]]
 permuteTypes datam x = concatMap perm $ getSubtypesList datam x
     where
-        perm x = selectFuncs $ populateFuncs $ uniqueFrees x
+        perm x = map uniqueRhs $ selectFuncs $ populateFuncs $ uniqueFrees x
 
         blankFuncs x = mapTSubtype f x
             where
@@ -60,6 +60,23 @@ permuteTypes datam x = concatMap perm $ getSubtypesList datam x
                 sameLhs :: TArr -> TArr -> Bool
                 sameLhs (TArr a0 _) (TArr a1 _) = a0 == a1
                 
+        
+        uniqueRhs :: [TSubtype] -> [TSubtype]
+        uniqueRhs xs = replaceFrees res (h nowVars frees)
+            where
+                res = mapTSubtype f xs
+                f (TFunc x) = TFunc [TArr a (mapTSubtype g b) | TArr a b <- x]
+                f x = x
+                g (TFree [x]) = TFree [fst $ splitVar x]
+                g x = x
+                
+                frees = extractFrees res
+                nowVars = [splitVar x | TFree [x] <- frees, any isDigit x]
+                
+                h vars [] = []
+                h vars (TFree [x]:xs) | not $ any isDigit x = TFree [uncurry joinVar next] : h (next:vars) xs
+                    where next = (x, head [i | i <- [0..], not $ (x,i) `elem` vars])
+                h vars (x:xs) = x : h vars xs
         
 
 
