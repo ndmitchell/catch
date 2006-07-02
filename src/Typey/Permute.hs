@@ -1,11 +1,18 @@
 
-module Typey.Permute(getSubtypes, getSubtypesList, uniqueFrees) where
+module Typey.Permute(permuteTypes) where
 
 import Typey.Type
 import Typey.Subtype
 import General.General
 
 import Data.List
+
+
+-- permute the types then rename them
+permuteTypes :: DataM SmallT -> [Large2T] -> [[TSubtype]]
+permuteTypes datam x = map uniqueFrees $ getSubtypesList datam x
+
+
 
 
 extractFrees :: [TSubtype] -> [TSubtype]
