@@ -6,13 +6,39 @@ import Typey.Subtype
 import General.General
 
 import Data.List
+import Data.Char
 
 
 -- permute the types then rename them
 permuteTypes :: DataM SmallT -> [Large2T] -> [[TSubtype]]
-permuteTypes datam x = map uniqueFrees $ getSubtypesList datam x
+permuteTypes datam x = concatMap perm $ getSubtypesList datam x
+    where
+        perm x = [populateFuncs $ uniqueFrees x]
 
-
+        blankFuncs x = mapTSubtype f x
+            where
+                f (TFunc _) = TFree []
+                f x = x
+        
+        collectVars x = [splitVar var | TFree [var] <- allTSubtype $ blankFuncs x]
+        splitVar s = let (a,b) = span isAlpha s in (a, (read b) :: Int)
+        joinVar a n = a ++ show n
+        
+        populateFuncs x = mapTSubtype f x
+            where
+                vars = collectVars x
+                f (TFunc a) = TFunc $ concatMap g a
+                f x = x
+                
+                g (TArr args res) = [TArr (replaceFrees args fr) res | fr <- frees]
+                    where
+                        argsres = args ++ [res]
+                        frees = crossProduct $ map h free
+                        free = extractFrees args
+                        h (TFree [x]) = [TFree [joinVar a0 n1] | let (a0,n0) = splitVar x, (a1,n1) <- vars, a0 == a1]
+                        h x = [x]
+                        
+                
 
 
 extractFrees :: [TSubtype] -> [TSubtype]
