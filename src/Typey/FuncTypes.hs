@@ -3,11 +3,7 @@ module Typey.FuncTypes(funcTypes) where
 
 import Typey.Type
 import Typey.Subtype
-import Hite
-import General.General
-import Data.Maybe
-import Data.List
-import Data.Char
+import Typey.Permute
 
 
 funcTypes :: DataM SmallT -> Func2M -> TypeList

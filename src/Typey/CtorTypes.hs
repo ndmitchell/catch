@@ -3,6 +3,7 @@ module Typey.CtorTypes(ctorTypes) where
 
 import Typey.Type
 import Typey.Subtype
+import Typey.Permute
 import Hite
 import General.General
 import Data.Maybe
