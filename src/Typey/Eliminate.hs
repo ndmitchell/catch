@@ -104,11 +104,7 @@ getType env@(hite,datam,datat,funct) args expr = traceNone ("getType " ++ show a
                 f TBot _ = TBot
                 f (TFunc xs) y = combine $ concatMap (`g` y) xs
                 f _ _ = TFree []
-
-                g (TArr (x:xs) y) z | isJust mapping = [TArr (map uni xs) (uni y)]
-                    where
-                        uni = applyUnify $ fromJust mapping
-                        mapping = unify x z
+                g (TArr (x:xs) y) z = [TArr (map uni xs) (uni y) | m <- unify x z, let uni = applyUnify m]
                 g _ _ = []
         
         combine :: [TArr] -> TSubtype

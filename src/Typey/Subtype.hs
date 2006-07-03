@@ -92,6 +92,7 @@ instance Union TSubtype where
     unionPair _ TBot = TBot
     unionPair (TFree []) x = x
     unionPair x (TFree []) = x
+    unionPair _ _ = TFree []
     unionPair a b = error $ show ("Union TSubtype",a,b)
 
 instance Union TPair where

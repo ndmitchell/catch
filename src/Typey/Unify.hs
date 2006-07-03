@@ -5,10 +5,14 @@ import Typey.Type
 import Typey.Subtype
 import General.General
 import Data.List
+import Data.Maybe
 import Control.Monad
 
 
-applyUnify :: [(String, TSubtype)] -> TSubtype -> TSubtype
+type Subst = [(String, TSubtype)]
+
+
+applyUnify :: Subst -> TSubtype -> TSubtype
 applyUnify dat (TBind xs) = TBind $ map f xs
     where
         f (TPair a1 b1) = TPair a1 (map (applyUnify dat) b1)
@@ -27,29 +31,35 @@ applyUnify dat x = error $ show ("applyUnify",dat,x)
 
 -- roughly x `isTSubset` y (for constructors at least)
 -- figure what a variable in x would have to be mapped to
-unify :: TSubtype -> TSubtype -> Maybe [(String, TSubtype)]
-unify (TBind (x:xs)) (TBind (y:ys)) = liftM concat $ sequence $ f x y : zipWith g xs ys
+unify :: TSubtype -> TSubtype -> [Subst]
+unify (TBind (x:xs)) (TBind (y:ys)) = unifyList $ f x y : zipWith g xs ys
     where
         f (TPair a1 b1) (TPair a2 b2) =
             if null $ a1 \\ a2
-            then liftM concat $ sequence $ zipWith unify b1 b2
-            else Nothing
+            then unifyList $ zipWith unify b1 b2
+            else []
 
         -- demand equality for child types, because of the powerset rule
         -- kinda hacky, needs formalising
         g p1@(TPair a1 b1) p2@(TPair a2 b2) =
-            if a1 `setEq` a2 then f p1 p2 else Nothing
+            if a1 `setEq` a2 then f p1 p2 else []
             
-unify (TFree []) _ = Just []
-unify (TFree []) TBot = Nothing
-unify TBot (TFree []) = Nothing
-unify TBot TBot = Just []
-unify _ (TFree []) = Just []
-unify (TFree [a]) x = Just [(a,x)]
-unify TBot (TFree [a]) = Nothing
+unify (TFree []) _ = [[]]
+unify (TFree []) TBot = []
+unify TBot (TFree []) = []
+unify TBot TBot = [[]]
+unify _ (TFree []) = [[]]
+unify (TFree [a]) x = [[(a,x)]]
+unify TBot (TFree [a]) = []
 
 
-unify (TFunc []) _ = Just []
+unify (TFunc []) _ = [[]]
+
+unify (TFunc lhs) (TFunc rhs) = concatMap f lhs
+    where
+        f (TArr x xs) = concat [unifyList $ zipWith unify x y ++ [unify xs ys] | TArr y ys <- rhs]
+
+
 --unify (TFunc l) (TFunc r) = liftM concat $ sequence $ map f l
 --    where
 --        f (TArr x y) = 
@@ -61,3 +71,7 @@ unify (TFunc []) _ = Just []
 
 
 unify x y = error $ show ("unify",x,y)
+
+
+unifyList :: [[Subst]] -> [Subst]
+unifyList x = liftM concat $ sequence x
