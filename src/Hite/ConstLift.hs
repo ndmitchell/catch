@@ -47,8 +47,8 @@ dropWrappers hite = mapExpr g hite
     where
         g x@(Call (CallFunc n) xs) =
             case lookup n res of
-                Nothing -> x
-                Just i -> xs !! i
+                Just i | length xs > i -> xs !! i
+                _ -> x
         g x = x
 
         res = concatMap f (funcs hite)
