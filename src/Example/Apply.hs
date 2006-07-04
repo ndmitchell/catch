@@ -1,5 +1,5 @@
 
-module MapId where
+module Apply where
 
 main = apply id True
 
