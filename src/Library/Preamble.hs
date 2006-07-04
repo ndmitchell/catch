@@ -101,7 +101,7 @@ otherwise = True
 (.) f g x = f (g x)
 fst (a,b) = a
 snd (a,b) = b
-
+id x = x
 
 ---------------------------------------------------------------------
 -- Prelude.List
