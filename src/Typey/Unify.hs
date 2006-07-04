@@ -69,6 +69,7 @@ unify (TFunc lhs) (TFunc rhs) = concatMap f lhs
 --unify (TArr a1 b1) (TArr a2 b2) =
 --    liftM concat $ sequence $ zipWithEq unify (b1:a1) (b2:a2)
 
+unify x y = []
 
 unify x y = error $ show ("unify",x,y)
 
