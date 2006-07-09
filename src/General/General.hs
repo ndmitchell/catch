@@ -46,6 +46,14 @@ eqUnordered :: Ord a => [a] -> [a] -> Bool
 eqUnordered xs ys = sort xs == sort ys
 
 
+sortExtract :: Ord b => (a -> b) -> [a] -> [a]
+sortExtract f xs = map snd $ sortBy cmp [(f x, x) | x <- xs]
+    where cmp a b = fst a `compare` fst b
+
+minimumExtract :: Ord b => (a -> b) -> [a] -> a
+minimumExtract f xs = head $ sortExtract f xs
+
+
 strSet :: [String] -> String
 strSet xs = "{" ++ concat (intersperse "," xs) ++ "}"
 
@@ -111,6 +119,17 @@ indents x = map indent x
 fix :: Eq a => (a -> a) -> a -> a
 fix f x = if x == x2 then x else fix f x2
     where x2 = f x
+
+
+-- find the fixed point of a set
+fixSet :: Eq a => (a -> [a]) -> [a] -> [a]
+fixSet f elems = fix2 f elems []
+    where
+        fix2 f [] _    = []
+        fix2 f x  done = x ++ fix2 f (x2 \\ done2) done2
+            where
+                done2 = x ++ done
+                x2 = nub $ concatMap f x
 
 
 (!!!) :: [a] -> (Int, a) -> [a]

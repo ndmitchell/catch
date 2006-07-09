@@ -43,14 +43,3 @@ reachableList names hite@(Hite datas funcs) = Hite aliveDatas aliveFuncs
         
         f x = [y | CallFunc y <- allExpr $ body $ getFunc hite x]
 
-
-
--- find the fixed point of a set
-fixSet :: Eq a => (a -> [a]) -> [a] -> [a]
-fixSet f elems = fix2 f elems []
-    where
-        fix2 f [] _    = []
-        fix2 f x  done = x ++ fix2 f (x2 \\ done2) done2
-            where
-                done2 = x ++ done
-                x2 = nub $ concatMap f x
