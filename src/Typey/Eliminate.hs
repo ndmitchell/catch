@@ -47,12 +47,16 @@ solveMany logger hite datam datat done todo = do
         logger $ "== SOLVING: " ++ (intercat " " $ nub $ map fst todo) ++ "\n"
         f todo
     where
-        f x = do
-            logger $ "== solve:\n"
-            res <- solveOnce logger (hite,datam,datat,done) x
+        f orig = do
+            when recursive $ logger "== solve:\n"
+            res <- solveOnce logger (hite,datam,datat,done) orig
             case res of
-                Just x -> f x
-                Nothing -> return x
+                Just x | recursive -> f x
+                Just x | otherwise -> return x
+                Nothing -> return orig
+
+        recursive = any (`elem` funcs) [y | name <- funcs, CallFunc y <- allExpr $ getFunc hite name]
+        funcs = map fst todo
 
 
 -- solve a list one, return Nothing for done, Just x for the next version
