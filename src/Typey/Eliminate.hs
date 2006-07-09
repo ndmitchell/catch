@@ -27,12 +27,14 @@ eliminate logger hite datam datat funct = do
                 res <- solveMany logger hite datam datat done this
                 f (res++done) next
             where
-                (this,next) = partition ((`elem` adeps) . fst) todo
-                adeps = fixSet (\x -> fromJust $ lookup x deps) [odeps]
-                odeps = fst $ minimumExtract (length . snd) deps
-                deps = [(name, tdeps) | (name,_) <- todo, let tdeps = filter (`elem` todos) $ getDeps name]
+                (this,next) = partition ((`elem` odeps) . fst) todo
+                odeps = let (a,b) = minimumExtract (length . snd) deps in a:b
+                deps = getDepsAll [(name, tdeps) | (name,_) <- todo,
+                                   let tdeps = filter (`elem` todos) $ getDeps name]
                 todos = map fst todo
     
+        getDepsAll :: [(String, [String])] -> [(String, [String])]
+        getDepsAll deps = [(a,fixSet (\x -> fromJust $ lookup x deps) b) | (a,b) <- deps]
         
         getDeps :: String -> [String]
         getDeps x = nub [y | CallFunc y <- allExpr $ getFunc hite x] \\ [x]
