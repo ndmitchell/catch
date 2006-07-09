@@ -20,13 +20,68 @@ type Env = (Hite, DataM SmallT, TypeList, TypeList)
 eliminate :: Logger -> Hite -> DataM SmallT -> TypeList -> TypeList -> IO TypeList
 eliminate logger hite datam datat funct = do
         logger "== ELIMINATE\n"
-        res <- newTypeList logger (hite,datam,datat,funct)
-        case res of
-            Nothing -> return funct
-            Just x -> eliminate logger hite datam datat x
+        f [] funct
+    where
+        f done [] = return done
+        f done todo = do
+                res <- solveMany logger hite datam datat done this
+                f (res++done) next
+            where
+                (this,next) = partition ((`elem` adeps) . fst) todo
+                adeps = fixSet (\x -> fromJust $ lookup x deps) [odeps]
+                odeps = fst $ minimumExtract (length . snd) deps
+                deps = [(name, tdeps) | (name,_) <- todo, let tdeps = filter (`elem` todos) $ getDeps name]
+                todos = map fst todo
+    
+        
+        getDeps :: String -> [String]
+        getDeps x = nub [y | CallFunc y <- allExpr $ getFunc hite x] \\ [x]
 
 
 
+-- try solving those todo
+solveMany :: Logger -> Hite -> DataM SmallT -> TypeList -> TypeList -> TypeList -> IO TypeList
+solveMany logger hite datam datat done todo = do
+        logger $ "== SOLVING: " ++ (intercat " " $ nub $ map fst todo) ++ "\n"
+        f todo
+    where
+        f x = do
+            logger $ "== solve:\n"
+            res <- solveOnce logger (hite,datam,datat,done) x
+            case res of
+                Just x -> f x
+                Nothing -> return x
+
+
+-- solve a list one, return Nothing for done, Just x for the next version
+solveOnce :: Logger -> Env -> TypeList -> IO (Maybe TypeList)
+solveOnce logger env@(hite,datam,datat,funct) todo =
+    do
+        (b,r) <- liftList f todo
+        return $ if b then Just r else Nothing
+    where
+        liftList f xs = do
+            br <- mapM f xs
+            return (any fst br, map snd br)
+    
+        f :: (String, TSubtype) -> IO (Bool, (String, TSubtype))
+        f (name,typ) = do
+            (b,r) <- liftList (g name) (getTArrs typ)
+            return (b,(name,tFunc r))
+        
+        g :: String -> TArr -> IO (Bool, TArr)
+        g name t@(TArr args res) = do
+            logger $ name ++ " :: " ++ show t
+            let res2 = getFuncType env name args
+                res3 = res2 -- unionPair res2 res
+                same = res == res3
+            logger $ if same then " KEEP\n" else " ===> " ++ show res3 ++ "\n"
+            return (not same, TArr args res3)
+
+
+
+
+{-
 -- return Nothing if this is a fixed point
 -- otherwise return Just the new result
 newTypeList :: Logger -> Env -> IO (Maybe TypeList)
@@ -52,6 +107,7 @@ newTypeList logger env@(hite,datam,datat,funct) =
                 same = res == res3
             logger $ if same then " KEEP\n" else " ===> " ++ show res3 ++ "\n"
             return (not same, TArr args res3)
+-}
 
 
 getFuncType :: Env -> FuncName -> [TSubtype] -> TSubtype
@@ -62,10 +118,11 @@ getFuncType env@(hite,datam,datat,funct) funcname argt = unionList ress
         Func _ args (MCase opts) _ = getFunc hite funcname
 
 
-
+{-
 getTypeRec :: Env -> [(FuncArg, TSubtype)] -> Expr -> TSubtype
 getTypeRec env args expr = trace (show ("getTypeRec",args,expr,ans)) ans
     where ans = getType env args expr
+-}
 
 
 -- get the type of an expression in an environment
