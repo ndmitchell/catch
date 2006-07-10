@@ -66,6 +66,8 @@ solveOnce logger env@(hite,datam,datat,funct) todo =
         (b,r) <- liftList f todo
         return $ if b then Just r else Nothing
     where
+        env2 = (hite,datam,datat,funct++todo)
+    
         liftList f xs = do
             br <- mapM f xs
             return (any fst br, map snd br)
@@ -78,7 +80,7 @@ solveOnce logger env@(hite,datam,datat,funct) todo =
         g :: String -> TArr -> IO (Bool, TArr)
         g name t@(TArr args res) = do
             logger $ name ++ " :: " ++ show t
-            let res2 = getFuncType env name args
+            let res2 = getFuncType env2 name args
                 res3 = res2 -- unionPair res2 res
                 same = res == res3
             logger $ if same then " KEEP\n" else " ===> " ++ show res3 ++ "\n"
