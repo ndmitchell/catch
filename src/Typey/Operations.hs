@@ -13,6 +13,25 @@ import Data.List
 import Data.Maybe
 import Control.Monad
 
+-- Compatability of subtypes
+-- It's hard to unify two lists of different length
+
+compatTPairs :: [TPair] -> [TPair] -> ([TPair], [TPair])
+compatTPairs (x:xs) (y:ys) = (x:f xs, y:f ys)
+    where
+        hasSecond = not $ null xs && null ys
+        f [] | hasSecond = [TPair [] []]
+        f x = x
+
+
+compatTLists :: [TSubtype] -> [TSubtype] -> ([TSubtype],[TSubtype])
+compatTLists xs ys = (demand len xs, demand len ys)
+    where
+        len = max (length xs) (length ys)
+        demand n (x:xs) = demand (n-1) xs
+        demand n [] = replicate n TAny
+
+
 -- A Subst is a mapping from variables to subtype values
 type Subst = [(String, TSubtype)]
 
