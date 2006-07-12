@@ -9,74 +9,52 @@ import Data.Predicate
 import Data.Char
 import Foreign(unsafePerformIO)
 
-{-
-import IOExts
 
-debugmsg msg val = unsafePerformIO $
-                        do putStrLn (show msg)
-                           return val
-
-debugmsgres msg val = debugmsg (msg, val) val
--}
+---------------------------------------------------------------------
+-- SIMPLE UTILITIES
 
 errorS a = error (show a)
+
+box = (:[])
 
 fsts = map fst
 snds = map snd
 
-box = (:[])
-
 filterFst f = filter (f . fst)
 filterSnd f = filter (f . snd)
-
-lookupDef def val lst = case lookup val lst of
-                            Nothing -> def
-                            Just x -> x
-
-
-readFileMaybe :: FilePath -> IO (Maybe String)
-readFileMaybe file = do x <- doesFileExist file
-                        if x
-                            then do y <- readFile file
-                                    return (Just y)
-                            else return Nothing
-
-
-eqUnordered :: Ord a => [a] -> [a] -> Bool
-eqUnordered xs ys = sort xs == sort ys
-
-
-allEqual :: Eq a => [a] -> Bool
-allEqual [] = True
-allEqual (x:xs) = all (==x) xs
-
-
-sortExtract :: Ord b => (a -> b) -> [a] -> [a]
-sortExtract f xs = map snd $ sortBy cmp [(f x, x) | x <- xs]
-    where cmp a b = fst a `compare` fst b
-
-minimumExtract :: Ord b => (a -> b) -> [a] -> a
-minimumExtract f xs = head $ sortExtract f xs
-
-groupSetExtract :: Eq b => (a -> b) -> [a] -> [[a]]
-groupSetExtract f x = groupSetBy cmp x
-    where cmp a b = f a == f b
-
-
-strSet :: [String] -> String
-strSet xs = "{" ++ concat (intersperse "," xs) ++ "}"
-
-
-allItems :: [a] -> [([a], a, [a])]
-allItems [] = []
-allItems (x:xs) = ([], x, xs) : [(x:a,b,c) | (a,b,c) <- allItems xs]
-
 
 splitEither :: [Either a b] -> ([a], [b])
 splitEither (Left  x:xs) = let (a,b) = splitEither xs in (x:a, b)
 splitEither (Right x:xs) = let (a,b) = splitEither xs in (a, x:b)
 splitEither [] = ([], [])
 
+interleave = (/\/)
+
+(/\/)        :: [a] -> [a] -> [a]
+[]     /\/ ys = ys
+(x:xs) /\/ ys = x : (ys /\/ xs)
+
+
+
+numToChr :: Int -> Char
+numToChr i = chr (ord 'a' + i)
+
+-- requires both arguments are the same length, or crashes
+zipWithEq :: (Show a, Show b) => (a -> b -> c) -> [a] -> [b] -> [c]
+zipWithEq f xs ys = g xs ys
+    where
+        g (x:xs) (y:ys) = f x y : g xs ys
+        g [] [] = []
+        g _ _ = error $ "zipWithEq, different lengths, " ++ show (xs,ys)
+
+zipWithRest :: (a -> a -> a) -> [a] -> [a] -> [a]
+zipWithRest f (x:xs) (y:ys) = f x y : zipWithRest f xs ys
+zipWithRest f xs ys = xs ++ ys
+
+
+
+---------------------------------------------------------------------
+-- SAFE VERSIONS
 
 headNote msg (x:xs) = x
 headNote msg [] = error $ "headNote: [] (" ++ msg ++ ")"
@@ -91,6 +69,33 @@ lookupJust x ys = case lookup x ys of
 lookupNote msg x ys = case lookup x ys of
                            Nothing -> error $ "lookupNote, " ++ show x ++ ", " ++ msg
                            Just y -> y
+
+
+
+
+
+lookupDef def val lst = case lookup val lst of
+                            Nothing -> def
+                            Just x -> x
+
+
+
+
+zipWithEqNote :: (Show a, Show b) => String -> (a -> b -> c) -> [a] -> [b] -> [c]
+zipWithEqNote msg f x y = g x y
+    where
+        g [] [] = []
+        g (x:xs) (y:ys) = f x y : g xs ys
+        g _ _ = error $ "zipWithEqNote " ++ msg ++ ", on " ++ show (x,y)
+
+
+
+---------------------------------------------------------------------
+-- LIST AS SET STUFF
+
+setEq :: Eq a => [a] -> [a] -> Bool
+setEq = setEqBy (==)
+
 
 -- | Are two sets eq, given the appropriate equality test.
 setEqBy :: (a -> a -> Bool) -> [a] -> [a] -> Bool
@@ -111,9 +116,14 @@ remElem f a xs = g [] xs
                       | otherwise = g (x:done) xs
 
 
-setEq :: Eq a => [a] -> [a] -> Bool
-setEq = setEqBy (==)
 
+eqUnordered :: Ord a => [a] -> [a] -> Bool
+eqUnordered xs ys = sort xs == sort ys
+
+
+allEqual :: Eq a => [a] -> Bool
+allEqual [] = True
+allEqual (x:xs) = all (==x) xs
 
 groupSetBy :: (a -> a -> Bool) -> [a] -> [[a]]
 groupSetBy f [] = []
@@ -121,8 +131,85 @@ groupSetBy f (x:xs) = (x:match) : groupSetBy f rest
     where (match,rest) = partition (f x) xs
 
 
+
+---------------------------------------------------------------------
+-- EXTRACT VERSIONS
+
+
+
+
+sortExtract :: Ord b => (a -> b) -> [a] -> [a]
+sortExtract f xs = map snd $ sortBy cmp [(f x, x) | x <- xs]
+    where cmp a b = fst a `compare` fst b
+
+minimumExtract :: Ord b => (a -> b) -> [a] -> a
+minimumExtract f xs = head $ sortExtract f xs
+
+groupSetExtract :: Eq b => (a -> b) -> [a] -> [[a]]
+groupSetExtract f x = groupSetBy cmp x
+    where cmp a b = f a == f b
+
+
+---------------------------------------------------------------------
+-- COMBINATORIAL STUFF
+
+allItems :: [a] -> [([a], a, [a])]
+allItems [] = []
+allItems (x:xs) = ([], x, xs) : [(x:a,b,c) | (a,b,c) <- allItems xs]
+
+
+crossProduct :: [[a]] -> [[a]]
+crossProduct (x:xs) = [y:ys | y <- x, ys <- crossProduct xs]
+crossProduct [] = [[]]
+
+
+
+powerSet       :: [a] -> [[a]]
+powerSet []     = [[]]
+powerSet (x:xs) = xss /\/ map (x:) xss
+                 where xss = powerSet xs
+
+
+
+
+---------------------------------------------------------------------
+-- OUTPUT STUFF
+
+
+class Output x where
+    output :: x -> String
+
+instance Output a => Output (Pred a) where
+    output x = showPredBy output x
+
+
+
+strSet :: [String] -> String
+strSet xs = "{" ++ intercat "," xs ++ "}"
+
+
 indent x = "  " ++ x
 indents x = map indent x
+
+
+intercat :: String -> [String] -> String
+intercat sep = concat . intersperse sep
+
+intercatS :: Show a => String -> [a] -> String
+intercatS sep = intercat sep . map show
+
+showLines :: Show a => [a] -> String
+showLines = unlines . map show
+
+
+
+---------------------------------------------------------------------
+-- FIXPOINT STUFF
+
+
+
+
+
 
 
 fix :: Eq a => (a -> a) -> a -> a
@@ -141,73 +228,27 @@ fixSet f elems = fix2 f elems []
                 x2 = nub $ concatMap f x
 
 
-(!!!) :: [a] -> (Int, a) -> [a]
-[] !!! _ = error "!!!"
-(x:xs) !!! (0,y) = y:xs
-(x:xs) !!! (n,y) = x : (xs !!! (n-1,y))
+---------------------------------------------------------------------
+-- IO STUFF
 
-
-
-class Output x where
-    output :: x -> String
-
-instance Output a => Output (Pred a) where
-    output x = showPredBy output x
-
-
-class Blur x where
-    blur :: x -> x
 
 
 ensureDirectory s = do b <- doesDirectoryExist s
                        when (not b) $ createDirectory s
 
 
-crossProduct :: [[a]] -> [[a]]
-crossProduct (x:xs) = [y:ys | y <- x, ys <- crossProduct xs]
-crossProduct [] = [[]]
+
+readFileMaybe :: FilePath -> IO (Maybe String)
+readFileMaybe file = do x <- doesFileExist file
+                        if x
+                            then do y <- readFile file
+                                    return (Just y)
+                            else return Nothing
 
 
--- requires both arguments are the same length, or crashes
-zipWithEq :: (Show a, Show b) => (a -> b -> c) -> [a] -> [b] -> [c]
-zipWithEq f xs ys = g xs ys
-    where
-        g (x:xs) (y:ys) = f x y : g xs ys
-        g [] [] = []
-        g _ _ = error $ "zipWithEq, different lengths, " ++ show (xs,ys)
+---------------------------------------------------------------------
+-- DEBUG STUFF
 
-zipWithEqNote :: (Show a, Show b) => String -> (a -> b -> c) -> [a] -> [b] -> [c]
-zipWithEqNote msg f x y = g x y
-    where
-        g [] [] = []
-        g (x:xs) (y:ys) = f x y : g xs ys
-        g _ _ = error $ "zipWithEqNote " ++ msg ++ ", on " ++ show (x,y)
-
-zipWithRest :: (a -> a -> a) -> [a] -> [a] -> [a]
-zipWithRest f (x:xs) (y:ys) = f x y : zipWithRest f xs ys
-zipWithRest f xs ys = xs ++ ys
-
-
-showLines :: Show a => [a] -> String
-showLines = unlines . map show
-
-
-mapId :: (a -> Int -> (Int, b)) -> [a] -> Int -> (Int, [b])
-mapId f [] n = (n,[])
-mapId f (x:xs) n = (n3, x2:x3)
-    where
-        (n2,x2) = f x n
-        (n3,x3) = mapId f xs n2
-
-
-intercat :: String -> [String] -> String
-intercat sep = concat . intersperse sep
-
-intercatS :: Show a => String -> [a] -> String
-intercatS sep = intercat sep . map show
-
-numToChr :: Int -> Char
-numToChr i = chr (ord 'a' + i)
 
 
 traceFunc :: Show a => String -> a -> a
@@ -220,13 +261,31 @@ traceNone :: Show a => String -> a -> a
 traceNone args res = res
 
 
-powerSet       :: [a] -> [[a]]
-powerSet []     = [[]]
-powerSet (x:xs) = xss /\/ map (x:) xss
-                 where xss = powerSet xs
 
--- Mark Jones' interleave-two-lists
-(/\/)        :: [a] -> [a] -> [a]
-[]     /\/ ys = ys
-(x:xs) /\/ ys = x : (ys /\/ xs)
+---------------------------------------------------------------------
+-- MISC STUFF
 
+
+
+
+
+(!!!) :: [a] -> (Int, a) -> [a]
+[] !!! _ = error "!!!"
+(x:xs) !!! (0,y) = y:xs
+(x:xs) !!! (n,y) = x : (xs !!! (n-1,y))
+
+
+
+
+class Blur x where
+    blur :: x -> x
+
+
+
+
+mapId :: (a -> Int -> (Int, b)) -> [a] -> Int -> (Int, [b])
+mapId f [] n = (n,[])
+mapId f (x:xs) n = (n3, x2:x3)
+    where
+        (n2,x2) = f x n
+        (n3,x3) = mapId f xs n2
