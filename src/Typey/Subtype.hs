@@ -11,6 +11,7 @@ data TSubtype = TFree [String]
               | TBind [TPair]
               | TFunc [TArr]
               | TBot
+              | TVoid
               deriving Eq
 
 data TArr = TArr [TSubtype] TSubtype
@@ -67,6 +68,7 @@ instance Show TSubtype where
     show (TBind xs) = "{" ++ intercatS " | " xs ++ "}"
     show (TFunc x) = "<" ++ intercatS " | " x ++ ">"
     show TBot = "!"
+    show TVoid = "*"
 
 instance Show TArr where
     show (TArr a b) = "(" ++ intercatS " -> " (a++[b]) ++ ")"
