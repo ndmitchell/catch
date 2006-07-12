@@ -131,6 +131,9 @@ groupSetBy f (x:xs) = (x:match) : groupSetBy f rest
     where (match,rest) = partition (f x) xs
 
 
+subset :: Eq a => [a] -> [a] -> Bool
+subset xs ys = all (`elem` ys) xs
+
 
 ---------------------------------------------------------------------
 -- EXTRACT VERSIONS
