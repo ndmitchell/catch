@@ -1,4 +1,9 @@
 
+{- |
+    These are the mathematical operations on TSubtypes.
+    They will all require proof and relate to each other, hence in the same module.
+-}
+
 module Typey.Operations(subst, applySubst) where
 
 import Typey.Type
@@ -8,10 +13,12 @@ import Data.List
 import Data.Maybe
 import Control.Monad
 
-
+-- A Subst is a mapping from variables to subtype values
 type Subst = [(String, TSubtype)]
 
 
+-- apply a substitution, there should be no free variables
+-- in the value that do not have a mapping
 applySubst :: Subst -> TSubtype -> TSubtype
 applySubst dat (TBind xs) = TBind $ map f xs
     where
@@ -28,6 +35,13 @@ applySubst dat TBot = TBot
 applySubst dat x = error $ show ("applySubst",dat,x)
 
 
+
+{-
+    Property:
+    
+    for each substitution $, $(LHS) `subset` RHS
+    only return coherent substitutions
+-}
 
 -- roughly x `isTSubset` y (for constructors at least)
 -- figure what a variable in x would have to be mapped to
@@ -95,6 +109,9 @@ instance Union TPair where
     unionPair (TPair a1 b1) (TPair a2 b2) = TPair (a1 `union` a2) (zipWithEq unionPair b1 b2)
 
 
+{-
+-- Currently not required.
+
 isTSubset :: TSubtype -> TSubtype -> Bool
 isTSubset (TBind xs) (TBind ys) | length xs > length ys = False
                                 | otherwise = and $ zipWith isTSubsetPair xs ys
@@ -108,7 +125,7 @@ isTSubset x y = error $ show ("isTSubset",x,y)
 isTSubsetPair (TPair x1 y1) (TPair x2 y2) = f x1 x2 && and (zipWithEq isTSubset y1 y2)
     where
         f xs ys = null $ xs \\ ys
-
+-}
 
 
 
