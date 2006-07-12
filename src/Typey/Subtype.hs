@@ -84,35 +84,6 @@ showSet [x] = x
 showSet xs = intercat "'" xs
 
 
-instance Union TSubtype where
-    unionPair (TFree a) (TFree b) = TFree (a `union` b)
-    unionPair (TBind a) (TBind b) = TBind (zipWithRest unionPair a b)
-    --unionPair (TArr a1 b1) (TArr a2 b2) = tArr (zipWithEq unionPair a1 a2) (b1 `unionPair` b2)
-    unionPair TBot _ = TBot
-    unionPair _ TBot = TBot
-    unionPair (TFree []) x = x
-    unionPair x (TFree []) = x
-    unionPair _ _ = TFree []
-    unionPair a b = error $ show ("Union TSubtype",a,b)
-
-instance Union TPair where
-    unionPair (TPair a1 b1) (TPair a2 b2) = TPair (a1 `union` a2) (zipWithEq unionPair b1 b2)
-
-
-isTSubset :: TSubtype -> TSubtype -> Bool
-isTSubset (TBind xs) (TBind ys) | length xs > length ys = False
-                                | otherwise = and $ zipWith isTSubsetPair xs ys
-isTSubset TBot TBot = True
-isTSubset TBot _ = False
-isTSubset (TFree xs) (TFree ys) = null $ xs \\ ys
-isTSubset (TFree x) _ = True
-isTSubset x y = error $ show ("isTSubset",x,y)
-
-
-isTSubsetPair (TPair x1 y1) (TPair x2 y2) = f x1 x2 && and (zipWithEq isTSubset y1 y2)
-    where
-        f xs ys = null $ xs \\ ys
-
 
 type TypeList = [(String, TSubtype)]
 

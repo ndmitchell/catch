@@ -3,7 +3,7 @@ module Typey.Eliminate(eliminate) where
 
 import Typey.Type
 import Typey.Subtype
-import Typey.Unify
+import Typey.Operations
 import Hite
 import General.General
 import Data.Maybe
