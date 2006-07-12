@@ -46,12 +46,21 @@ eqUnordered :: Ord a => [a] -> [a] -> Bool
 eqUnordered xs ys = sort xs == sort ys
 
 
+allEqual :: Eq a => [a] -> Bool
+allEqual [] = True
+allEqual (x:xs) = all (==x) xs
+
+
 sortExtract :: Ord b => (a -> b) -> [a] -> [a]
 sortExtract f xs = map snd $ sortBy cmp [(f x, x) | x <- xs]
     where cmp a b = fst a `compare` fst b
 
 minimumExtract :: Ord b => (a -> b) -> [a] -> a
 minimumExtract f xs = head $ sortExtract f xs
+
+groupSetExtract :: Eq b => (a -> b) -> [a] -> [[a]]
+groupSetExtract f x = groupSetBy cmp x
+    where cmp a b = f a == f b
 
 
 strSet :: [String] -> String
