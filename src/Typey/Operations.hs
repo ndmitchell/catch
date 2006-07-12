@@ -50,21 +50,22 @@ subst lhs rhs = filter validSubst $ getSubst lhs rhs
 -- roughly x `isTSubset` y (for constructors at least)
 -- figure what a variable in x would have to be mapped to
 getSubst :: TSubtype -> TSubtype -> [Subst]
-getSubst (TBind (x:xs)) (TBind (y:ys)) = getSubstList $ f x y : zipWith g xs ys
+getSubst (TBind (x:xs)) (TBind (y:ys)) =
+        getSubstList $ substTopPair x y : zipWith substBotPair xs ys
     where
-        f (TPair a1 b1) (TPair a2 b2) =
-            if null $ a1 \\ a2
-            then getSubstList $ zipWith getSubst b1 b2
-            else []
+        substTopPair :: TPair -> TPair -> [Subst]
+        substTopPair (TPair a1 b1) (TPair a2 b2) = 
+            if a1 `subset` a2 then substList b1 b2 else []
 
-        -- demand equality for child types, because of the powerset rule
-        -- kinda hacky, needs formalising
-        g p1@(TPair a1 b1) p2@(TPair a2 b2) =
-            if a1 `setEq` a2 then f p1 p2 else []
-            
+        substBotPair :: TPair -> TPair -> [Subst]
+        substBotPair (TPair a1 b1) (TPair a2 b2) =
+            if a1 `setEq` a2 then substList b1 b2 else []
+        
+        substList a b = getSubstList $ zipWith getSubst a b
+
+getSubst (TFree []) _ = [[]]
 getSubst (TFree []) _ = [[]]
 getSubst (TFree []) TBot = []
-getSubst TBot (TFree []) = []
 getSubst TBot TBot = [[]]
 getSubst _ (TFree []) = [[]]
 getSubst (TFree [a]) x = [[(a,x)]]
