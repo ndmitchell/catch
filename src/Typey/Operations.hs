@@ -30,22 +30,31 @@ applySubst dat x = mapTSubtype f x
                    Just x -> x
 
 
+validSubst :: Subst -> Bool
+validSubst = all allEqual . groupSetExtract fst
+
 
 {-
     Property:
     
     for each substitution $, $(LHS) `subset` RHS
     only return coherent substitutions
+    - a valid substitution will map everything to something different
 -}
+
+subst :: TSubtype -> TSubtype -> [Subst]
+subst lhs rhs = filter validSubst $ getSubst lhs rhs
+
+
 
 -- roughly x `isTSubset` y (for constructors at least)
 -- figure what a variable in x would have to be mapped to
-subst :: TSubtype -> TSubtype -> [Subst]
-subst (TBind (x:xs)) (TBind (y:ys)) = substList $ f x y : zipWith g xs ys
+getSubst :: TSubtype -> TSubtype -> [Subst]
+getSubst (TBind (x:xs)) (TBind (y:ys)) = getSubstList $ f x y : zipWith g xs ys
     where
         f (TPair a1 b1) (TPair a2 b2) =
             if null $ a1 \\ a2
-            then substList $ zipWith subst b1 b2
+            then getSubstList $ zipWith getSubst b1 b2
             else []
 
         -- demand equality for child types, because of the powerset rule
@@ -53,38 +62,38 @@ subst (TBind (x:xs)) (TBind (y:ys)) = substList $ f x y : zipWith g xs ys
         g p1@(TPair a1 b1) p2@(TPair a2 b2) =
             if a1 `setEq` a2 then f p1 p2 else []
             
-subst (TFree []) _ = [[]]
-subst (TFree []) TBot = []
-subst TBot (TFree []) = []
-subst TBot TBot = [[]]
-subst _ (TFree []) = [[]]
-subst (TFree [a]) x = [[(a,x)]]
-subst TBot (TFree [a]) = []
+getSubst (TFree []) _ = [[]]
+getSubst (TFree []) TBot = []
+getSubst TBot (TFree []) = []
+getSubst TBot TBot = [[]]
+getSubst _ (TFree []) = [[]]
+getSubst (TFree [a]) x = [[(a,x)]]
+getSubst TBot (TFree [a]) = []
 
 
-subst (TFunc []) _ = [[]]
+getSubst (TFunc []) _ = [[]]
 
-subst (TFunc lhs) (TFunc rhs) = concatMap f lhs
+getSubst (TFunc lhs) (TFunc rhs) = concatMap f lhs
     where
-        f (TArr x xs) = concat [substList $ zipWith subst x y ++ [subst xs ys] | TArr y ys <- rhs]
+        f (TArr x xs) = concat [getSubstList $ zipWith getSubst x y ++ [getSubst xs ys] | TArr y ys <- rhs]
 
 
---subst (TFunc l) (TFunc r) = liftM concat $ sequence $ map f l
+--getSubst (TFunc l) (TFunc r) = liftM concat $ sequence $ map f l
 --    where
 --        f (TArr x y) = 
 
 
 
---subst (TArr a1 b1) (TArr a2 b2) =
---    liftM concat $ sequence $ zipWithEq subst (b1:a1) (b2:a2)
+--getSubst (TArr a1 b1) (TArr a2 b2) =
+--    liftM concat $ sequence $ zipWithEq getSubst (b1:a1) (b2:a2)
 
-subst x y = []
+getSubst x y = []
 
-subst x y = error $ show ("subst",x,y)
+getSubst x y = error $ show ("getSubst",x,y)
 
 
-substList :: [[Subst]] -> [Subst]
-substList x = liftM concat $ sequence x
+getSubstList :: [[Subst]] -> [Subst]
+getSubstList x = liftM concat $ sequence x
 
 
 
