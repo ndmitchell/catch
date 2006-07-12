@@ -20,19 +20,14 @@ type Subst = [(String, TSubtype)]
 -- apply a substitution, there should be no free variables
 -- in the value that do not have a mapping
 applySubst :: Subst -> TSubtype -> TSubtype
-applySubst dat (TBind xs) = TBind $ map f xs
+applySubst dat x = mapTSubtype f x
     where
-        f (TPair a1 b1) = TPair a1 (map (applySubst dat) b1)
-
-applySubst dat (TFree []) = TFree []
-applySubst dat o@(TFree [n]) = case lookup n dat of
-                                          Nothing -> o
-                                          Just x -> x
-applySubst dat (TFree ns) = unionList $ map (applySubst dat . TFree . box) ns
-applySubst dat (TFunc x) = tFunc $ map f x
-    where f (TArr a b) = TArr (map (applySubst dat) a) (applySubst dat b)
-applySubst dat TBot = TBot
-applySubst dat x = error $ show ("applySubst",dat,x)
+        f (TFree ns@(_:_)) = unionList $ map g ns
+        f x = x
+        
+        g i = case lookup i dat of
+                   Nothing -> TFree [i]
+                   Just x -> x
 
 
 
