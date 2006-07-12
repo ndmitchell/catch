@@ -16,7 +16,6 @@ import Control.Monad
 -- A Subst is a mapping from variables to subtype values
 type Subst = [(String, TSubtype)]
 
-
 -- apply a substitution, there should be no free variables
 -- in the value that do not have a mapping
 applySubst :: Subst -> TSubtype -> TSubtype
@@ -107,7 +106,9 @@ instance Union TSubtype where
     unionPair _ TBot = TBot
     unionPair (TFree []) x = x
     unionPair x (TFree []) = x
-    unionPair _ _ = TFree []
+    unionPair TAny x = x
+    unionPair x TAny = x
+    unionPair _ _ = TAny -- HACK!!!!
     unionPair a b = error $ show ("Union TSubtype",a,b)
 
 instance Union TPair where

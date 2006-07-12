@@ -12,6 +12,7 @@ data TSubtype = TFree [String]
               | TFunc [TArr]
               | TBot
               | TVoid
+              | TAny
               deriving Eq
 
 data TArr = TArr [TSubtype] TSubtype
@@ -69,6 +70,7 @@ instance Show TSubtype where
     show (TFunc x) = "<" ++ intercatS " | " x ++ ">"
     show TBot = "!"
     show TVoid = "*"
+    show TAny = "?"
 
 instance Show TArr where
     show (TArr a b) = "(" ++ intercatS " -> " (a++[b]) ++ ")"
@@ -81,7 +83,7 @@ instance Show TPair where
 repBox "[]" = "#"
 repBox x = x
 
-showSet [] = "?"
+showSet [] = "<emtpy-set>"
 showSet [x] = x
 showSet xs = intercat "'" xs
 

@@ -11,6 +11,6 @@ funcTypes datam funcm = [(name, getFuncSubtypes datam typ) | (name, typ) <- func
 
 -- get all the possible subtypes of a function
 getFuncSubtypes :: DataM SmallT -> Large2T -> TSubtype
-getFuncSubtypes datam (Arr2T a b) = TFunc $ [TArr x (TFree []) | x <- permuteTypes datam a]
-getFuncSubtypes datam x = TFree []
+getFuncSubtypes datam (Arr2T a b) = TFunc $ [TArr x TVoid | x <- permuteTypes datam a]
+getFuncSubtypes datam x = TVoid
 

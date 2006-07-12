@@ -17,7 +17,7 @@ permuteTypes datam x = concatMap perm $ getSubtypesList datam x
 
         blankFuncs x = mapTSubtype f x
             where
-                f (TFunc _) = TFree []
+                f (TFunc _) = TAny
                 f x = x
         
         collectVars x = [splitVar var | TFree [var] <- allTSubtype $ blankFuncs x]
@@ -86,7 +86,7 @@ extractFrees x = concatMap fSubtype x
         fSubtype (TFree a) = [TFree a]
         fSubtype (TBind a) = concatMap fPair a
         fSubtype (TFunc a) = concatMap fArr a
-        fSubtype (TBot) = []
+        fSubtype _ = []
         
         fArr (TArr a b) = concatMap fSubtype a ++ fSubtype b
         fPair (TPair a b) = concatMap fSubtype b
@@ -103,11 +103,11 @@ replaceFrees x ns = fSubtypes x ns
 
             
         fSubtype (TFree a) [n] = n
-        fSubtype (TBot) [] = TBot
         fSubtype (TFunc [TArr a b]) n = TFunc [TArr (init ab) (last ab)]
             where ab = fSubtypes (a ++ [b]) n
         fSubtype (TFunc as) ns = TFunc $ map (\(TFunc [a]) -> a) $ fSubtypes (map (TFunc . box) as) ns
         fSubtype (TBind xs) n = TBind $ fPairs xs n
+        fSubtype x [] = x
 
         fPairs [] [] = []
         fPairs (TPair a b : xs) ns = TPair a (fSubtypes b n1) : fPairs xs n2
@@ -144,8 +144,8 @@ getSubtypes datam (Bind2T (Ctor2T x) y) = concatMap f typs
         g (TPair x y) = map (TPair x) $ crossProduct $ map h y
         
         h :: TSubtype -> [TSubtype]
-        h (TFree []) = [TFree []]
         h (TFree [s]) = getSubtypes datam (y !! read s)
+        h x = [x]
         
         
 
@@ -161,10 +161,12 @@ typePermute (DataT n xs) =
         
         f (CtorT name xs) = TPair [name] $ map g [0..n-1]
             where
-                g i = if i `elem` frees then TFree [show i] else TFree []
+                g i = if i `elem` frees then TFree [show i] else TAny
                 frees = nub [i | FreeS i <- xs]
 
         gs = foldr1 g
         g (TPair a1 b1) (TPair a2 b2) = TPair (a1 `union` a2) (zipWith h b1 b2)
             where
                 h (TFree x) (TFree y) = TFree (x `union` y)
+                h TAny x = x
+                h x TAny = x

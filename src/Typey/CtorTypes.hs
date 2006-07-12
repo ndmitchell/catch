@@ -29,7 +29,7 @@ dataSubtypes datam (datName, dat@(DataT n xs)) = map f xs
             where
                 selfs = unionListNote "dataSubtypes.selfs" [y | (Self,TBind x) <- xs, y <- x]
                 vars = map h [0..n-1]
-                h i = unionList (TFree [] : [x | (FreeS j, x) <- xs, j == i])
+                h i = unionList (TAny : [x | (FreeS j, x) <- xs, j == i])
 
 
 smallToLarge :: Int -> CtorName -> [SmallT] -> [Large2T]
