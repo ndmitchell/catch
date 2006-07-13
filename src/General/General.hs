@@ -8,12 +8,13 @@ import Monad
 import Data.Predicate
 import Data.Char
 import Foreign(unsafePerformIO)
-
+import Debug.Trace
 
 ---------------------------------------------------------------------
 -- SIMPLE UTILITIES
 
 errorS a = error (show a)
+traceS a b = trace (show a) b
 
 box = (:[])
 
