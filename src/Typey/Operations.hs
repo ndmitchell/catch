@@ -97,12 +97,13 @@ getSubst (TBind (x:xs)) (TBind (y:ys)) =
         substBotPair (TPair a1 b1) (TPair a2 b2) =
             if a1 `setEq` a2 then substList b1 b2 else []
         
-        substList a b = getSubstList $ zipWith getSubst a b
+        substList a b = getSubstList $ zipWithEq getSubst a b
 
-getSubst (TFunc []) _ = [[]]
-getSubst (TFunc lhs) (TFunc rhs) = concatMap f lhs
+getSubst (TFunc lhs) (TFunc rhs) = getSubstList $ map f lhs
     where
-        f (TArr x xs) = concat [getSubstList $ zipWith getSubst x y ++ [getSubst xs ys] | TArr y ys <- rhs]
+        f l = concatMap (g l) rhs
+        g (TArr l1 l2) (TArr r1 r2) = getSubstList $ zipWithEq getSubst (l2:l1) (r2:r1)
+        
 
 -- this is a possibility for errors to creep in
 getSubst x y = []
