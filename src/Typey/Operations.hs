@@ -79,6 +79,13 @@ subst lhs rhs | checkSubst && not (null no) = error $ "subst generated invalid, 
 -- roughly x `isTSubset` y (for constructors at least)
 -- figure what a variable in x would have to be mapped to
 getSubst :: TSubtype -> TSubtype -> [Subst]
+
+-- first handle bottom, only bottom is a subset of bottom
+getSubst x TBot = if x == TBot then [[]] else []
+
+getSubst TAny x = [[]]
+getSubst (TFree [a]) x = [[(a,x)]]
+
 getSubst (TBind (x:xs)) (TBind (y:ys)) =
         getSubstList $ substTopPair x y : zipWith substTopPair xs ys
     where
@@ -92,32 +99,12 @@ getSubst (TBind (x:xs)) (TBind (y:ys)) =
         
         substList a b = getSubstList $ zipWith getSubst a b
 
-
-getSubst TAny TBot = []
-getSubst TAny _ = [[]]
-
-getSubst TBot TBot = [[]]
-getSubst _ (TFree []) = [[]]
-getSubst (TFree [a]) x = [[(a,x)]]
-getSubst TBot (TFree [a]) = []
-
-
 getSubst (TFunc []) _ = [[]]
-
 getSubst (TFunc lhs) (TFunc rhs) = concatMap f lhs
     where
         f (TArr x xs) = concat [getSubstList $ zipWith getSubst x y ++ [getSubst xs ys] | TArr y ys <- rhs]
 
-
---getSubst (TFunc l) (TFunc r) = liftM concat $ sequence $ map f l
---    where
---        f (TArr x y) = 
-
-
-
---getSubst (TArr a1 b1) (TArr a2 b2) =
---    liftM concat $ sequence $ zipWithEq getSubst (b1:a1) (b2:a2)
-
+-- this is a possibility for errors to creep in
 getSubst x y = []
 
 getSubst x y = error $ show ("getSubst",x,y)
