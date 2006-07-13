@@ -161,21 +161,14 @@ getType env@(hite,datam,datat,funct) args expr = traceNone ("getType " ++ show a
                 
         
         apply :: TSubtype -> TSubtype -> TSubtype
-        apply func args = f func args
+        apply TVoid arg = apply (TFunc []) arg -- since void is untyped
+        apply (TFunc func) arg = res
             where
-                f _ TBot = TBot
-                f TBot _ = TBot
-                f (TFunc xs) y = combine $ concatMap (`g` y) xs
-                f _ _ = TFree []
-                g (TArr (x:xs) y) z = [TArr (map uni xs) (uni y) | m <- subst x z, let uni = applySubst m]
-                g _ _ = []
-        
-        combine :: [TArr] -> TSubtype
-        combine xs = tFunc $ map g $ groupSetBy f xs
-            where
-                f (TArr a1 _) (TArr a2 _) = a1 == a2
-                g xs@((TArr a r):_) = TArr a $ unionList [x | TArr _ x <- xs]
-
+                res = if null matches then TVoid
+                      else if null (fst $ head matches) then unionList (map snd matches)
+                      else TFunc (map (uncurry TArr) matches)
+                
+                matches = [(map (applySubst s) as, applySubst s y) | TArr (a:as) y <- func, s <- subst a arg]
 
 
 doesMatch :: Env -> [(FuncArg, TSubtype)] -> Pred MCaseOpt -> Bool
