@@ -256,10 +256,13 @@ readFileMaybe file = do x <- doesFileExist file
 
 
 traceFunc :: Show a => String -> a -> a
-traceFunc args res = unsafePerformIO $ do
+traceFunc args res = trace (args ++ " => " ++ show res) res
+
+{-unsafePerformIO $ do
     let str = reverse $ reverse $ args ++ " = " ++ show res
     appendFile "trace.log" (str ++ "\n")
     return res
+-}
 
 traceNone :: Show a => String -> a -> a
 traceNone args res = res
