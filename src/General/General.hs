@@ -1,5 +1,5 @@
 
-module General.General where
+module General.General(module General.General, trace) where
 
 import Maybe
 import Directory
