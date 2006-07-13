@@ -119,19 +119,20 @@ getSubstList x = liftM concat $ sequence x
 
 instance Union TSubtype where
     unionPair (TFree a) (TFree b) = TFree (a `union` b)
-    unionPair (TBind a) (TBind b) = TBind (zipWithRest unionPair a b)
-    --unionPair (TArr a1 b1) (TArr a2 b2) = tArr (zipWithEq unionPair a1 a2) (b1 `unionPair` b2)
-    unionPair TBot _ = TBot
-    unionPair _ TBot = TBot
-    unionPair (TFree []) x = x
-    unionPair x (TFree []) = x
-    unionPair TAny x = x
-    unionPair x TAny = x
-    unionPair _ _ = TAny -- HACK!!!!
-    unionPair a b = error $ show ("Union TSubtype",a,b)
+    unionPair (TBind a) (TBind b) = TBind $ zipWithEq unionPair a2 b2
+        where (a2,b2) = compatTPairs a b
+    unionPair a b = f False a b
+        where
+            f c TBot _ = TBot
+            f c TAny x = x
+            f c TVoid x = x
+            f False a b = f True b a
+            f True a b = error $ "Union TSubtype: " ++ show a ++ " vs " ++ show b
+
 
 instance Union TPair where
-    unionPair (TPair a1 b1) (TPair a2 b2) = TPair (a1 `union` a2) (zipWithEq unionPair b1 b2)
+    unionPair (TPair a1 b1) (TPair a2 b2) = TPair (a1 `union` a2) (zipWithEq unionPair b12 b22)
+        where (b12, b22) = compatTLists b1 b2
 
 
 {-
