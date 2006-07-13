@@ -80,7 +80,7 @@ subst lhs rhs | checkSubst && not (null no) = error $ "subst generated invalid, 
 -- figure what a variable in x would have to be mapped to
 getSubst :: TSubtype -> TSubtype -> [Subst]
 getSubst (TBind (x:xs)) (TBind (y:ys)) =
-        getSubstList $ substTopPair x y : zipWith substBotPair xs ys
+        getSubstList $ substTopPair x y : zipWith substTopPair xs ys
     where
         substTopPair :: TPair -> TPair -> [Subst]
         substTopPair (TPair a1 b1) (TPair a2 b2) = 
@@ -152,7 +152,7 @@ instance Union TPair where
 
 -- only required for checking subst
 isTSubset :: TSubtype -> TSubtype -> Bool
-isTSubset (TBind xs) (TBind ys) = isTSubsetPair subset x2 y2 && and (zipWithEq (isTSubsetPair setEq) xs2 ys2)
+isTSubset (TBind xs) (TBind ys) = isTSubsetPair subset x2 y2 && and (zipWithEq (isTSubsetPair subset) xs2 ys2)
     where (x2:xs2,y2:ys2) = compatTPairs xs ys
 isTSubset (TFree xs) (TFree ys) = xs `subset` ys
 isTSubset (TFunc xs) (TFunc ys) = all (\x-> any (f x) ys) xs
