@@ -85,6 +85,7 @@ getSubst x TBot = if x == TBot then [[]] else []
 
 getSubst TAny x = [[]]
 getSubst (TFree [a]) x = [[(a,x)]]
+getSubst TVoid TVoid = [[]]
 
 getSubst (TBind (x:xs)) (TBind (y:ys)) =
         getSubstList $ substTopPair x y : zipWith substTopPair xs ys
