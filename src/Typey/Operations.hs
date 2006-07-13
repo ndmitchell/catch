@@ -65,6 +65,7 @@ checkSubst = True
 
 subst :: TSubtype -> TSubtype -> [Subst]
 subst lhs rhs | checkSubst && not (null no) = error $ "subst generated invalid, " ++ show (lhs, rhs, no)
+              | checkSubst && lhs `isTSubset` rhs && null res = error $ "subst missed some, " ++ show (lhs,rhs)
               | otherwise = res
     where
         (yes,no) = partition check res
