@@ -165,6 +165,8 @@ getType env@(hite,datam,datat,funct) args expr = traceNone ("getType " ++ show a
                 
         
         apply :: TSubtype -> TSubtype -> TSubtype
+        apply _ TBot = TBot -- because of the bottom rule
+        apply TBot _ = TBot
         apply TVoid arg = apply (TFunc []) arg -- since void is untyped
         apply (TFunc func) arg = res
             where
