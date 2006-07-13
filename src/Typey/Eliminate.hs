@@ -79,11 +79,11 @@ solveOnce logger env@(hite,datam,datat,funct) todo =
         
         g :: String -> TArr -> IO (Bool, TArr)
         g name t@(TArr args res) = do
-            logger $ name ++ " :: " ++ show t
+            logger $ name ++ " :: " ++ output t
             let res2 = getFuncType env2 name args
                 res3 = res2 -- unionPair res2 res
                 same = res == res3
-            logger $ if same then " KEEP\n" else " ===> " ++ show res3 ++ "\n"
+            logger $ if same then " KEEP\n" else " ===> " ++ output res3 ++ "\n"
             return (not same, TArr args res3)
 
 
