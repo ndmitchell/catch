@@ -60,8 +60,18 @@ validSubst = all allEqual . groupSetExtract fst
     - a valid substitution will map everything to something different
 -}
 
+-- should the substitution be checked at runtime
+checkSubst = True
+
 subst :: TSubtype -> TSubtype -> [Subst]
-subst lhs rhs = filter validSubst $ getSubst lhs rhs
+subst lhs rhs | checkSubst && not (null no) = error $ "subst generated invalid, " ++ show (lhs, rhs, no)
+              | otherwise = res
+    where
+        (yes,no) = partition check res
+        check subst = applySubst subst lhs `isTSubset` rhs
+        
+        -- the results
+        res = filter validSubst $ getSubst lhs rhs
 
 
 
