@@ -28,7 +28,7 @@ compatTLists :: [TSubtype] -> [TSubtype] -> ([TSubtype],[TSubtype])
 compatTLists xs ys = (demand len xs, demand len ys)
     where
         len = max (length xs) (length ys)
-        demand n (x:xs) = demand (n-1) xs
+        demand n (x:xs) = x : demand (n-1) xs
         demand n [] = replicate n TAny
 
 
