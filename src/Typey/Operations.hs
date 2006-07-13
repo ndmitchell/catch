@@ -92,6 +92,10 @@ getSubst (TBind (x:xs)) (TBind (y:ys)) =
         
         substList a b = getSubstList $ zipWith getSubst a b
 
+
+getSubst _ TAny = [[]]
+
+
 getSubst (TFree []) _ = [[]]
 getSubst (TFree []) _ = [[]]
 getSubst (TFree []) TBot = []
