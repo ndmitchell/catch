@@ -93,12 +93,9 @@ getSubst (TBind (x:xs)) (TBind (y:ys)) =
         substList a b = getSubstList $ zipWith getSubst a b
 
 
-getSubst _ TAny = [[]]
+getSubst TAny TBot = []
+getSubst TAny _ = [[]]
 
-
-getSubst (TFree []) _ = [[]]
-getSubst (TFree []) _ = [[]]
-getSubst (TFree []) TBot = []
 getSubst TBot TBot = [[]]
 getSubst _ (TFree []) = [[]]
 getSubst (TFree [a]) x = [[(a,x)]]
@@ -152,12 +149,13 @@ instance Union TPair where
 
 -- only required for checking subst
 isTSubset :: TSubtype -> TSubtype -> Bool
+isTSubset a b | a == b = True
 isTSubset (TBind xs) (TBind ys) = isTSubsetPair subset x2 y2 && and (zipWithEq (isTSubsetPair subset) xs2 ys2)
     where (x2:xs2,y2:ys2) = compatTPairs xs ys
 isTSubset (TFree xs) (TFree ys) = xs `subset` ys
 isTSubset (TFunc xs) (TFunc ys) = all (\x-> any (f x) ys) xs
     where f (TArr x1 x2) (TArr y1 y2) = and $ zipWithEq isTSubset (x2:x1) (y2:y1)
-isTSubset a b | a == b = True
+isTSubset TAny (TFree xs) = True
 isTSubset _ _ = False
 
 isTSubsetPair eq (TPair x1 y1) (TPair x2 y2) = (x1 `eq` x2) && and (zipWithEq isTSubset y12 y22)
