@@ -126,11 +126,9 @@ getFuncType env@(hite,datam,datat,funct) funcname argt = unionList ress
         Func _ args (MCase opts) _ = getFunc hite funcname
 
 
-{-
 getTypeRec :: Env -> [(FuncArg, TSubtype)] -> Expr -> TSubtype
 getTypeRec env args expr = trace (show ("getTypeRec",args,expr,ans)) ans
     where ans = getType env args expr
--}
 
 
 -- get the type of an expression in an environment
