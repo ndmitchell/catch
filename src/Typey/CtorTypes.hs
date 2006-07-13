@@ -17,10 +17,15 @@ ctorTypes :: DataM SmallT -> TypeList
 ctorTypes datam = concatMap (dataSubtypes datam) datam
 
 
+consVoid = TArr [TFree ["a0"], TVoid] (TBind [TPair [":"] [TFree ["a0"]]])
+--    (a0 -> {: [a1] | :'# [a2]} -> {: [a0] | :'# [a1'a2]})
+
+
+
 dataSubtypes :: DataM SmallT -> (String, DataT SmallT) -> TypeList
 dataSubtypes datam (datName, dat@(DataT n xs)) = map f xs
     where
-        f (CtorT name xs) = (name, tFunc [TArr a (makeRes name $ zip xs a) | a <- args])
+        f (CtorT name xs) = (name, tFunc $ [TArr a (makeRes name $ zip xs a) | a <- args] ++ [consVoid | name == ":"])
             where args = permuteTypes datam $ smallToLarge n datName xs
         
         makeRes :: String -> [(SmallT,TSubtype)] -> TSubtype
