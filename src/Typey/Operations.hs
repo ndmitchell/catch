@@ -152,13 +152,13 @@ instance Union TPair where
 
 -- only required for checking subst
 isTSubset :: TSubtype -> TSubtype -> Bool
-isTSubset (TBind xs) (TBind ys) = and $ zipWithEq isTSubsetPair xs2 ys2
-    where (xs2,ys2) = compatTPairs xs ys
+isTSubset (TBind xs) (TBind ys) = isTSubsetPair subset x2 y2 && and (zipWithEq (isTSubsetPair setEq) xs2 ys2)
+    where (x2:xs2,y2:ys2) = compatTPairs xs ys
 isTSubset (TFree xs) (TFree ys) = xs `subset` ys
 isTSubset (TFunc xs) (TFunc ys) = all (\x-> any (f x) ys) xs
     where f (TArr x1 x2) (TArr y1 y2) = and $ zipWithEq isTSubset (x2:x1) (y2:y1)
 isTSubset a b | a == b = True
 isTSubset _ _ = False
 
-isTSubsetPair (TPair x1 y1) (TPair x2 y2) = (x1 `subset` x2) && and (zipWithEq isTSubset y12 y22)
+isTSubsetPair eq (TPair x1 y1) (TPair x2 y2) = (x1 `eq` x2) && and (zipWithEq isTSubset y12 y22)
     where (y12, y22) = compatTLists y1 y2
