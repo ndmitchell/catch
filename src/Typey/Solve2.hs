@@ -37,3 +37,5 @@ typeySolve2 file hndl hite datam funcm =
         outLn = hPutStrLn hndl
         out = hPutStr hndl
         outBoth x = putStrLn x >> outLn x
+
+        outDebug x = hPutStrLn stderr x >> out x
