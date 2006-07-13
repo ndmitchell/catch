@@ -152,9 +152,13 @@ getType env@(hite,datam,datat,funct) args expr = traceNone ("getType " ++ show a
         getTSel :: TSubtype -> String -> TSubtype
         getTSel (TBind (TPair _ x:xs)) path =
             case argElem of
-                Self -> if null xs then TFree [] else TBind [head xs, head xs]
+                Self -> if null xs then error "getTSel, unknown behaviour"
+                        else TBind (replicate (if isRec then 2 else 1) (head xs))
                 FreeS i -> x !! i
             where
+                isRec = any isSelf [a | (_,DataT _ ctr) <- datam, CtorT cn ars <- ctr, cn `elem` ctrs, a <- ars]
+                TPair ctrs _ = head xs
+            
                 argElem = args2 !! (fromJust $ elemIndex path args) 
                 Ctor name args = getCtorFromArg hite path
                 args2 = head [args | DataT _ cs <- map snd datam, CtorT nam args <- cs, nam == name]
