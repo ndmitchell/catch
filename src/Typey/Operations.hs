@@ -87,9 +87,11 @@ getSubst TAny x = [[]]
 getSubst (TFree [a]) x = [[(a,x)]]
 getSubst TVoid TVoid = [[]]
 
-getSubst (TBind (x:xs)) (TBind (y:ys)) =
-        getSubstList $ substTopPair x y : zipWith substTopPair xs ys
+getSubst (TBind x) (TBind y) =
+        getSubstList $ zipWithEq substTopPair xs ys
     where
+        (xs,ys) = compatTPairs x y
+    
         substTopPair :: TPair -> TPair -> [Subst]
         substTopPair (TPair a1 b1) (TPair a2 b2) = 
             if a1 `subset` a2 then substList b1 b2 else []
@@ -98,7 +100,8 @@ getSubst (TBind (x:xs)) (TBind (y:ys)) =
         substBotPair (TPair a1 b1) (TPair a2 b2) =
             if a1 `setEq` a2 then substList b1 b2 else []
         
-        substList a b = getSubstList $ zipWithEq getSubst a b
+        substList a b = getSubstList $ zipWithEq getSubst as bs
+            where (as,bs) = compatTLists a b
 
 getSubst (TFunc lhs) (TFunc rhs) = getSubstList $ map f lhs
     where
