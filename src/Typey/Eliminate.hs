@@ -44,14 +44,20 @@ eliminate logger hite datam datat funct = do
 -- try solving those todo
 solveMany :: Logger -> Hite -> DataM SmallT -> TypeList -> TypeList -> TypeList -> IO TypeList
 solveMany logger hite datam datat done todo = do
-        logger $ "== SOLVING: " ++ (intercat " " $ nub $ map fst todo) ++ "\n"
-        f todo
+        logger $ "== SOLVING: " ++ msg ++ "\n"
+        f bound todo
     where
-        f orig = do
-            when recursive $ logger "== solve:\n"
+        msg = intercat " " $ nub $ map fst todo
+        
+        -- a very generous bound, only for program error really
+        bound = 1 + length todo + length (concat [x | (a, TFunc x) <- todo])
+    
+        f 0 orig = error $ "Non termination when solving: " ++ msg
+        f (n+1) orig = do
+            when recursive $ logger $ "== solve " ++ show (bound-n) ++ ":\n"
             res <- solveOnce logger (hite,datam,datat,done) orig
             case res of
-                Just x | recursive -> f x
+                Just x | recursive -> f n x
                 Just x | otherwise -> return x
                 Nothing -> return orig
 
