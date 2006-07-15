@@ -143,21 +143,25 @@ getTypeRec env args expr = trace (show ("getTypeRec",args,expr,ans)) ans
 
 -- get the type of an expression in an environment
 getType :: Env -> [(FuncArg, TSubtype)] -> Expr -> Reason
-getType env@(hite,datam,datat,funct) args expr = (`ReasonLookup` "") $
+getType env@(hite,datam,datat,funct) args expr =
     case expr of
         Call x xs -> getTCall (getT x) xs
-        Make x xs -> getTCall (lookupJust x datat) xs
-        CallFunc name -> lookupJust name funct
-        Var x -> lookupJust x args
-        Sel x path -> getTSel (getT x) path
-        Error _ -> TBot
+        Make x xs -> getTCall (ReasonLookup (lookupJust x datat) x) xs
+        CallFunc name -> ReasonLookup (lookupJust name funct) name
+        Var x -> ReasonLookup (lookupJust x args) x
+        Sel x path -> getTSelR (getT x) path
+        Error _ -> ReasonLookup TBot "error"
         
         _ -> error $ show ("getType",args,expr)
     where
-        getT = reasonSubtype . getType env args
+        getT = getType env args
         
         getTCall x [] = x
-        getTCall x (y:ys) = getTCall (apply x (getT y)) ys
+        getTCall x (y:ys) = getTCall (applyR x (getT y)) ys
+
+        getTSelR :: Reason -> String -> Reason
+        getTSelR x path = ReasonFollow res path x
+            where res = getTSel (reasonSubtype x) path
 
         getTSel :: TSubtype -> String -> TSubtype
         getTSel (TBind (TPair _ x:xs)) path =
@@ -173,6 +177,10 @@ getType env@(hite,datam,datat,funct) args expr = (`ReasonLookup` "") $
                 Ctor name args = getCtorFromArg hite path
                 args2 = head [args | DataT _ cs <- map snd datam, CtorT nam args <- cs, nam == name]
                 
+        
+        applyR :: Reason -> Reason -> Reason
+        applyR lhs rhs = ReasonApply res lhs rhs
+            where res = apply (reasonSubtype lhs) (reasonSubtype rhs)
         
         apply :: TSubtype -> TSubtype -> TSubtype
         apply _ TBot = TBot -- because of the bottom rule
