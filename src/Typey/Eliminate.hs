@@ -94,37 +94,6 @@ solveOnce logger env@(hite,datam,datat,funct) todo =
             return (not same, TArr args res3)
 
 
-
-
-{-
--- return Nothing if this is a fixed point
--- otherwise return Just the new result
-newTypeList :: Logger -> Env -> IO (Maybe TypeList)
-newTypeList logger env@(hite,datam,datat,funct) = 
-    do
-        (b,r) <- liftList f funct
-        return $ if b then Just r else Nothing
-    where
-        liftList f xs = do
-            br <- mapM f xs
-            return (any fst br, map snd br)
-    
-        f :: (String, TSubtype) -> IO (Bool, (String, TSubtype))
-        f (name,typ) = do
-            (b,r) <- liftList (g name) (getTArrs typ)
-            return (b,(name,tFunc r))
-        
-        g :: String -> TArr -> IO (Bool, TArr)
-        g name t@(TArr args res) = do
-            logger $ name ++ " :: " ++ show t
-            let res2 = getFuncType env name args
-                res3 = res2 -- unionPair res2 res
-                same = res == res3
-            logger $ if same then " KEEP\n" else " ===> " ++ show res3 ++ "\n"
-            return (not same, TArr args res3)
--}
-
-
 getFuncType :: Env -> FuncName -> [TSubtype] -> Reason
 getFuncType env@(hite,datam,datat,funct) funcname argt = ReasonArgs rep (ReasonUnion res ress)
     where
@@ -132,13 +101,6 @@ getFuncType env@(hite,datam,datat,funct) funcname argt = ReasonArgs rep (ReasonU
         ress = [getType env rep e | MCaseAlt p e <- opts, doesMatch env rep p]
         rep = zip args argt
         Func _ args (MCase opts) _ = getFunc hite funcname
-
-
-{-
-getTypeRec :: Env -> [(FuncArg, TSubtype)] -> Expr -> TSubtype
-getTypeRec env args expr = trace (show ("getTypeRec",args,expr,ans)) ans
-    where ans = getType env args expr
--}
 
 
 -- get the type of an expression in an environment
