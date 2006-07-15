@@ -18,15 +18,18 @@ import Control.Monad
 type Logger = String -> IO ()
 type Env = (Hite, DataM SmallT, TypeList, TypeList)
 
-eliminate :: Logger -> Hite -> DataM SmallT -> TypeList -> TypeList -> IO TypeList
-eliminate logger hite datam datat funct = do
+eliminate :: FilePath -> Logger -> Hite -> DataM SmallT -> TypeList -> TypeList -> IO TypeList
+eliminate logfile logger hite datam datat funct = do
+        r <- reasonInit logfile
         logger "== ELIMINATE\n"
-        f [] funct
+        res <- f r [] funct
+        reasonTerm r
+        return res
     where
-        f done [] = return done
-        f done todo = do
-                res <- solveMany logger hite datam datat done this
-                f (res++done) next
+        f r done [] = return done
+        f r done todo = do
+                res <- solveMany r logger hite datam datat done this
+                f r (res++done) next
             where
                 (this,next) = partition ((`elem` odeps) . fst) todo
                 odeps = let (a,b) = minimumExtract (length . snd) deps in a:b
@@ -43,9 +46,10 @@ eliminate logger hite datam datat funct = do
 
 
 -- try solving those todo
-solveMany :: Logger -> Hite -> DataM SmallT -> TypeList -> TypeList -> TypeList -> IO TypeList
-solveMany logger hite datam datat done todo = do
+solveMany :: ReasonH -> Logger -> Hite -> DataM SmallT -> TypeList -> TypeList -> TypeList -> IO TypeList
+solveMany r logger hite datam datat done todo = do
         logger $ "== SOLVING: " ++ msg ++ "\n"
+        reasonSection r $ "Solving " ++ msg
         f bound todo
     where
         msg = intercat " " $ nub $ map fst todo
@@ -55,8 +59,9 @@ solveMany logger hite datam datat done todo = do
     
         f 0 orig = error $ "Non termination when solving: " ++ msg
         f (n+1) orig = do
+            reasonSubsection r $ "Solve " ++ show (bound-n)
             when recursive $ logger $ "== solve " ++ show (bound-n) ++ ":\n"
-            res <- solveOnce logger (hite,datam,datat,done) orig
+            res <- solveOnce r logger (hite,datam,datat,done) orig
             case res of
                 Just x | recursive -> f n x
                 Just x | otherwise -> return x
@@ -67,8 +72,8 @@ solveMany logger hite datam datat done todo = do
 
 
 -- solve a list one, return Nothing for done, Just x for the next version
-solveOnce :: Logger -> Env -> TypeList -> IO (Maybe TypeList)
-solveOnce logger env@(hite,datam,datat,funct) todo =
+solveOnce :: ReasonH -> Logger -> Env -> TypeList -> IO (Maybe TypeList)
+solveOnce r logger env@(hite,datam,datat,funct) todo =
     do
         (b,r) <- liftList f todo
         return $ if b then Just r else Nothing
@@ -87,10 +92,13 @@ solveOnce logger env@(hite,datam,datat,funct) todo =
         g :: String -> TArr -> IO (Bool, TArr)
         g name t@(TArr args res) = do
             logger $ name ++ " :: " ++ output t
-            let res2 = reasonSubtype $ getFuncType env2 name args
-                res3 = res2 -- unionPair res2 res
+            let res2 = getFuncType env2 name args
+                res3 = reasonSubtype res2
                 same = res == res3
-            logger $ if same then " KEEP\n" else " ===> " ++ output res3 ++ "\n"
+                msg = if same then " KEEP" else " ===> " ++ output res3
+            logger $ msg ++ "\n"
+            reasonSubsubsection r $ name ++ " :: " ++ output t ++ msg
+            reasonShow r $ res2
             return (not same, TArr args res3)
 
 

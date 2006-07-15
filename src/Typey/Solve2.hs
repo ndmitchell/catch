@@ -24,7 +24,7 @@ typeySolve2 file hndl hite datam funcm =
         funct <- return $ funcTypes datam funcm
         outLn $ showTypeList funct
         outBoth "-- CALCULATING SUBTYPES"
-        funct2 <- eliminate out hite datam datat funct
+        funct2 <- eliminate file2 out hite datam datat funct
         outBoth "-- VALID SUBTYPES"
         outLn $ showTypeList funct2
         outBoth "-- ANSWER"
@@ -34,6 +34,8 @@ typeySolve2 file hndl hite datam funcm =
         outBoth $ if failure then "Failed :(" else "Success :)"
         return $ not failure
     where
+        file2 = "Logs/" ++ file ++ ".html"
+    
         outLn = hPutStrLn hndl
         out = hPutStr hndl
         outBoth x = putStrLn x >> outLn x
