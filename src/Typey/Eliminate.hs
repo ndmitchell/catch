@@ -4,6 +4,7 @@ module Typey.Eliminate(eliminate) where
 import Typey.Type
 import Typey.Subtype
 import Typey.Operations
+import Typey.Reason
 import Hite
 import General.General
 import Data.Maybe
@@ -86,7 +87,7 @@ solveOnce logger env@(hite,datam,datat,funct) todo =
         g :: String -> TArr -> IO (Bool, TArr)
         g name t@(TArr args res) = do
             logger $ name ++ " :: " ++ output t
-            let res2 = getFuncType env2 name args
+            let res2 = reasonSubtype $ getFuncType env2 name args
                 res3 = res2 -- unionPair res2 res
                 same = res == res3
             logger $ if same then " KEEP\n" else " ===> " ++ output res3 ++ "\n"
@@ -124,22 +125,25 @@ newTypeList logger env@(hite,datam,datat,funct) =
 -}
 
 
-getFuncType :: Env -> FuncName -> [TSubtype] -> TSubtype
-getFuncType env@(hite,datam,datat,funct) funcname argt = unionList ress
+getFuncType :: Env -> FuncName -> [TSubtype] -> Reason
+getFuncType env@(hite,datam,datat,funct) funcname argt = ReasonArgs rep (ReasonUnion res ress)
     where
+        res = unionList $ map reasonSubtype ress
         ress = [getType env rep e | MCaseAlt p e <- opts, doesMatch env rep p]
         rep = zip args argt
         Func _ args (MCase opts) _ = getFunc hite funcname
 
 
+{-
 getTypeRec :: Env -> [(FuncArg, TSubtype)] -> Expr -> TSubtype
 getTypeRec env args expr = trace (show ("getTypeRec",args,expr,ans)) ans
     where ans = getType env args expr
+-}
 
 
 -- get the type of an expression in an environment
-getType :: Env -> [(FuncArg, TSubtype)] -> Expr -> TSubtype
-getType env@(hite,datam,datat,funct) args expr = traceNone ("getType " ++ show args ++ ", " ++ output expr) $
+getType :: Env -> [(FuncArg, TSubtype)] -> Expr -> Reason
+getType env@(hite,datam,datat,funct) args expr = (`ReasonLookup` "") $
     case expr of
         Call x xs -> getTCall (getT x) xs
         Make x xs -> getTCall (lookupJust x datat) xs
@@ -150,7 +154,7 @@ getType env@(hite,datam,datat,funct) args expr = traceNone ("getType " ++ show a
         
         _ -> error $ show ("getType",args,expr)
     where
-        getT = getType env args
+        getT = reasonSubtype . getType env args
         
         getTCall x [] = x
         getTCall x (y:ys) = getTCall (apply x (getT y)) ys
@@ -188,4 +192,4 @@ doesMatch env args p = mapPredBool f p
     where
         f (MCaseOpt e c) = c `elem` a
             where
-                TBind (TPair a _:_) = getType env args e
+                TBind (TPair a _:_) = reasonSubtype $ getType env args e
