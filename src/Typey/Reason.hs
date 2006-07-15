@@ -9,6 +9,8 @@ import Hite
 import IO
 import Typey.Subtype
 import General.General
+import Data.List
+import Data.Char
 
 
 data Reason = ReasonArgs [(FuncArg, TSubtype)] Reason
@@ -31,9 +33,17 @@ initial = unlines
     ["<html>"
     ,"<head>"
     ,"<style type='text/css'>"
+    ,"table {border-collapse: collapse;}"
     ,"td {text-align: center;}"
     ,"tr {vertical-align:bottom;}"
+    ,".var tr, .func tr {vertical-align:middle;}"
     ,".overline {border-top:1px solid black;}"
+    ,".bind {border-left: 1px solid red; border-right: 1px solid red;}"
+    ,".bindtop {border-top: 1px solid red;}"
+    ,".func {border-left: 1px solid blue; border-right: 1px solid blue;}"
+    ,".functop {border-top: 1px solid blue;}"
+    ,"sub {font-size: x-small;}"
+    ,"body {font-family: sans-serif;}"
     ,"</style>"
     ,"</head>"
     ,"<body>"
@@ -78,7 +88,10 @@ reasonShow r reason = hPutStrLn r (htmlReason reason)
 
 
 htmlReason :: Reason -> String
-htmlReason (ReasonArgs xs r) = concat [a ++ " := " ++ htmlSubtype b ++ "<br/>\n" | (a,b) <- xs] ++ htmlReason r
+htmlReason (ReasonArgs xs r) =
+    concat ["<table class='var'><tr><td>" ++ a ++ " = </td><td>" ++ htmlSubtype b ++ "</td></tr></table><br/>\n" | (a,b) <- xs] ++
+    htmlReason r
+    
 htmlReason (ReasonUnion r [x]) = htmlReason x
 
 htmlReason (ReasonLookup t x) =
@@ -97,4 +110,28 @@ htmlReason x = show x
 
 
 htmlSubtype :: TSubtype -> String
-htmlSubtype x = output x
+htmlSubtype (TFree xs) = intercat "'" $ map f xs
+    where
+        f x = a ++ "<sub>" ++ b ++ "</sub>"
+            where (a,b) = break isDigit x
+        
+
+htmlSubtype (TBind xs) = htmlTable "bind" (map htmlPair xs)
+htmlSubtype (TFunc xs) = htmlTable "func" (map htmlArr xs)
+htmlSubtype TBot = "&perp;"
+htmlSubtype TVoid = "*"
+htmlSubtype TAny = "?"
+
+htmlPair :: TPair -> [String]
+htmlPair (TPair x y) = intercat "'" x : map htmlSubtype y
+
+htmlArr :: TArr -> [String]
+htmlArr (TArr x y) = intersperse "&rarr;" $ map htmlSubtype x ++ [htmlSubtype y]
+
+
+htmlTable :: String -> [[String]] -> String
+htmlTable cls (c:ells) = "<table class='" ++ cls ++ "'>" ++ f False c ++ concatMap (f True) ells ++ "</table>"
+    where
+        f border row = tr ++ "<td>" ++ intercat "</td><td>" row ++ "</td></tr>"
+            where tr = if border then "<tr class='" ++ cls ++ "top'>" else "<tr>"
+        
