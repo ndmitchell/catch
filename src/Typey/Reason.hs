@@ -116,8 +116,8 @@ htmlReason x = show x
 htmlSubtype :: TSubtype -> String
 htmlSubtype (TFree xs) = intercat "'" $ map f xs
     where
-        f x = a ++ "<sub>" ++ b ++ "</sub>"
-            where (a,b) = break isDigit x
+        f x = a ++ "<sub>" ++ show b ++ "</sub>"
+            where (a,b) = splitVar x
         
 
 htmlSubtype (TBind xs) = htmlTable "bind" (map htmlPair xs)
