@@ -99,3 +99,6 @@ showTypeList x = unlines $ concatMap f x
         g (TFunc xs) = map ((++) "    " . output) xs
         g x = ["    " ++ output x]
 
+
+splitVar s = let (a,b) = span isAlpha s in (a, (read b) :: Int)
+joinVar a n = a ++ show n

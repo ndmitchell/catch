@@ -21,8 +21,6 @@ permuteTypes datam x = concatMap perm $ getSubtypesList datam x
                 f x = x
         
         collectVars x = [splitVar var | TFree [var] <- allTSubtype $ blankFuncs x]
-        splitVar s = let (a,b) = span isAlpha s in (a, (read b) :: Int)
-        joinVar a n = a ++ show n
 
         populateFuncs :: [TSubtype] -> [TSubtype]    
         populateFuncs x = mapTSubtype f x
