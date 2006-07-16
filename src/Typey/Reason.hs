@@ -134,6 +134,7 @@ htmlArr (TArr x y) = intersperse "&rarr;" $ map htmlSubtype x ++ [htmlSubtype y]
 
 
 htmlTable :: String -> [[String]] -> String
+htmlTable cls [] = "<table class='" ++ cls ++ "'><tr><td><i>none</i></td></tr></table>"
 htmlTable cls (c:ells) = "<table class='" ++ cls ++ "'>" ++ f False c ++ concatMap (f True) ells ++ "</table>"
     where
         f border row = tr ++ "<td>" ++ intercat "</td><td>" row ++ "</td></tr>"
