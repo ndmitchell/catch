@@ -72,16 +72,36 @@ validSubst = all allEqual . groupSetExtract fst
 checkSubst = True
 
 subst :: TSubtype -> TSubtype -> [Subst]
-subst lhs rhs | checkSubst && not (null no) = error $ "subst generated invalid, " ++ show (lhs, rhs, no)
-              | checkSubst && lhs `isTSubset` rhs && null res = error $ "subst missed some, " ++ show (lhs,rhs)
+subst lhs rhs | checkSubst && not (null no) = error $ "subst generated invalid, " ++ show (lhs, rhs2, no)
+              | checkSubst && lhs `isTSubset` rhs2 && null res = error $ "subst missed some, " ++ show (lhs,rhs2)
               | otherwise = res
     where
+        rhs2 = replicateSubtype 3 rhs
         (yes,no) = partition check res
-        check subst = applySubst subst lhs `isTSubset` rhs
+        check subst = applySubst subst lhs `isTSubset` rhs2
         
         -- the results
-        res = filter validSubst $ getSubst lhs rhs
+        res = filter validSubst $ getSubst lhs rhs2
 
+
+-- since forall a . x, then replicate the x with different free variables
+replicateSubtype :: Int -> TSubtype -> TSubtype
+replicateSubtype n x@(TFunc _) = foldr1 join $ take n $ iterate next x
+    where
+        maxVars = [(fst $ head x, (maximum $ map snd x) + 1) | x <- groupSetExtract fst $ map splitVar free]
+        free = nub $ concat [xs | TFree xs <- allTSubtype x]
+
+        next x = mapTSubtype f x
+            where
+                f (TFree xs) = TFree $ map g xs
+                f x = x
+                
+                g x = joinVar a $ b + fromJust (lookup a maxVars)
+                    where (a,b) = splitVar x
+                
+        join (TFunc x) (TFunc y) = TFunc (x++y)
+
+replicateSubtype n x = x
 
 
 -- roughly x `isTSubset` y (for constructors at least)
