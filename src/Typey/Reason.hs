@@ -94,6 +94,10 @@ htmlReason (ReasonArgs xs r) =
     
 htmlReason (ReasonUnion r [x]) = htmlReason x
 
+htmlReason (ReasonUnion r xs) = 
+    intercat "<br/>UNION<br/>" (map htmlReason xs) ++
+    "<br/>EQUALS<br/>" ++ htmlSubtype r
+
 htmlReason (ReasonLookup t x) =
     "<table><tr><td>" ++ htmlSubtype t ++ "</td></tr>" ++
     "<tr><td class='overline'>" ++ x ++ "</td></tr></table>"
