@@ -136,7 +136,7 @@ getType env@(hite,datam,datat,funct) args expr =
         getTSel :: TSubtype -> String -> TSubtype
         getTSel (TBind (TPair _ x:xs)) path =
             case argElem of
-                Self -> if null xs then error "getTSel, unknown behaviour"
+                Self -> if null xs then TVoid
                         else TBind (replicate (if isRec then 2 else 1) (head xs))
                 FreeS i -> x !! i
             where
@@ -168,6 +168,6 @@ getType env@(hite,datam,datat,funct) args expr =
 doesMatch :: Env -> [(FuncArg, TSubtype)] -> Pred MCaseOpt -> Bool
 doesMatch env args p = mapPredBool f p
     where
-        f (MCaseOpt e c) = c `elem` a
-            where
-                TBind (TPair a _:_) = reasonSubtype $ getType env args e
+        f (MCaseOpt e c) = case reasonSubtype $ getType env args e of
+                                TBind (TPair a _ : _) -> c `elem` a
+                                _ -> False
