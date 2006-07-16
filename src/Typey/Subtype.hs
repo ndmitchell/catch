@@ -4,6 +4,7 @@ module Typey.Subtype where
 import Typey.Type
 import Hite
 import Data.List
+import Data.Char
 import General.General
 
 
