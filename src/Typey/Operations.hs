@@ -13,6 +13,14 @@ import Data.List
 import Data.Maybe
 import Control.Monad
 
+
+-- is it a subset if the bottom is smaller?
+-- quite possibly no, as they all should exist
+-- possibly yes
+differentBottom :: Bool
+differentBottom = False
+
+
 -- Compatability of subtypes
 -- It's hard to unify two lists of different length
 
@@ -87,16 +95,17 @@ getSubst TAny x = [[]]
 getSubst (TFree [a]) x = [[(a,x)]]
 getSubst TVoid TVoid = [[]]
 
-getSubst (TBind x) (TBind y) =
-        getSubstList $ zipWithEq substTopPair xs ys
+getSubst (TBind x1) (TBind y1) =
+        getSubstList $ substTopPair x y : zipWithEq substBotPair xs ys
     where
-        (xs,ys) = compatTPairs x y
+        (x:xs,y:ys) = compatTPairs x1 y1
     
         substTopPair :: TPair -> TPair -> [Subst]
         substTopPair (TPair a1 b1) (TPair a2 b2) = 
             if a1 `subset` a2 then substList b1 b2 else []
 
         substBotPair :: TPair -> TPair -> [Subst]
+        substBotPair a b | not differentBottom = substTopPair a b
         substBotPair (TPair a1 b1) (TPair a2 b2) =
             if a1 `setEq` a2 then substList b1 b2 else []
         
@@ -142,8 +151,11 @@ instance Union TPair where
 -- only required for checking subst
 isTSubset :: TSubtype -> TSubtype -> Bool
 isTSubset a b | a == b = True
-isTSubset (TBind xs) (TBind ys) = isTSubsetPair subset x2 y2 && and (zipWithEq (isTSubsetPair subset) xs2 ys2)
-    where (x2:xs2,y2:ys2) = compatTPairs xs ys
+isTSubset (TBind xs) (TBind ys) = isTSubsetPair subset x2 y2 && and (zipWithEq botLine xs2 ys2)
+    where
+        (x2:xs2,y2:ys2) = compatTPairs xs ys
+        botLine = if differentBottom then isTSubsetPair setEq else isTSubsetPair subset
+    
 isTSubset (TFree xs) (TFree ys) = xs `subset` ys
 isTSubset (TFunc xs) (TFunc ys) = all (\x-> any (f x) ys) xs
     where f (TArr x1 x2) (TArr y1 y2) = and $ zipWithEq isTSubset (x2:x1) (y2:y1)
