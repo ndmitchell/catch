@@ -76,12 +76,16 @@ subst lhs rhs | checkSubst && not (null no) = error $ "subst generated invalid, 
               | checkSubst && lhs `isTSubset` rhs2 && null res = error $ "subst missed some, " ++ show (lhs,rhs2)
               | otherwise = res
     where
-        rhs2 = replicateSubtype 3 rhs
+        (free,rhs2) = unwrapForall rhs -- replicateSubtype 3 rhs
         (yes,no) = partition check res
         check subst = applySubst subst lhs `isTSubset` rhs2
         
         -- the results
-        res = filter validSubst $ getSubst lhs rhs2
+        res = filter freeSubst $ filter validSubst $ getSubst lhs rhs2
+        
+        freeSubst :: Subst -> Bool
+        freeSubst x = all f x
+            where f (a,b) = (a `elem` free) || (TFree [a] == b)
 
 
 -- since forall a . x, then replicate the x with different free variables

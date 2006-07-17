@@ -39,6 +39,11 @@ tForall :: TSubtype -> TSubtype
 tForall x = TForall (nub [y | TFree ys <- allTSubtype x, y <- ys]) x
 
 
+unwrapForall :: TSubtype -> ([String],TSubtype)
+unwrapForall (TForall x y) = (x,y)
+unwrapForall x = ([],x)
+
+
 class PlayTSubtype a where
     mapTSubtype :: (TSubtype -> TSubtype) -> a -> a
     allTSubtype :: a -> [TSubtype]
