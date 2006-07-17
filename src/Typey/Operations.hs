@@ -72,20 +72,22 @@ validSubst = all allEqual . groupSetExtract fst
 checkSubst = True
 
 subst :: TSubtype -> TSubtype -> [Subst]
-subst lhs rhs | checkSubst && not (null no) = error $ "subst generated invalid, " ++ show (lhs, rhs, no)
-              | checkSubst && lhs `isTSubset` rhs2 && null res = error $ "subst missed some, " ++ show (lhs,rhs)
+subst lht rht | checkSubst && not (null no) = error $ "subst generated invalid, " ++ show (lht, rht, no)
+              | checkSubst && lhs `isTSubset` rhs && null res = error $ "subst missed some, " ++ show (lht,rht)
               | otherwise = res
     where
-        (free,rhs2) = unwrapForall rhs -- replicateSubtype 3 rhs
+        (freer,rhs) = fromForall rht
+        (freel,lhs) = fromForall lht
+        
         (yes,no) = partition check res
-        check subst = applySubst subst lhs `isTSubset` rhs2
+        check subst = applySubst subst lhs `isTSubset` rhs
         
         -- the results
-        res = filter freeSubst $ filter validSubst $ getSubst lhs rhs2
+        res = filter freeSubst $ filter validSubst $ getSubst lhs rhs
         
         freeSubst :: Subst -> Bool
         freeSubst x = all f x
-            where f (a,b) = (a `elem` free) || (TFree [a] == b)
+            where f (a,b) = (a `elem` freer) || (TFree [a] == b)
 
 
 -- since forall a . x, then replicate the x with different free variables
