@@ -208,7 +208,7 @@ isTSubset (TBind xs) (TBind ys) = isTSubsetPair subset x2 y2 && and (zipWithEq b
 isTSubset (TFree xs) (TFree ys) = xs `subset` ys
 isTSubset (TFunc xs) (TFunc ys) = all (\x-> any (f x) ys) xs
     where f (TArr x1 x2) (TArr y1 y2) = and $ zipWithEq isTSubset (x2:x1) (y2:y1)
-isTSubset TAny (TFree xs) = True
+isTSubset TAny x = x /= TBot
 isTSubset _ _ = False
 
 isTSubsetPair eq (TPair x1 y1) (TPair x2 y2) = (x1 `eq` x2) && and (zipWithEq isTSubset y12 y22)
