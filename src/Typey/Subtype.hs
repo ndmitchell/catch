@@ -14,6 +14,7 @@ data TSubtype = TFree [String]
               | TBot
               | TVoid
               | TAny
+              | TForall [String] TSubtype
               deriving (Eq, Show)
 
 data TArr = TArr [TSubtype] TSubtype
@@ -33,6 +34,9 @@ tFunc :: [TArr] -> TSubtype
 tFunc [TArr [] x] = x
 tFunc x = TFunc x
 
+
+tForall :: TSubtype -> TSubtype
+tForall x = TForall (nub [y | TFree ys <- allTSubtype x, y <- ys]) x
 
 
 class PlayTSubtype a where

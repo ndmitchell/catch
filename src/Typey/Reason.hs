@@ -116,6 +116,7 @@ htmlReason x = show x
 htmlSubtype :: TSubtype -> String
 htmlSubtype (TFree xs) = intercat "'" $ map f xs
     where
+        f ('!':xs) = "<i>" ++ f xs ++ "</i>"
         f x = a ++ "<sub>" ++ show b ++ "</sub>"
             where (a,b) = splitVar x
         
@@ -125,6 +126,11 @@ htmlSubtype (TFunc xs) = htmlTable "func" (map htmlArr xs)
 htmlSubtype TBot = "&perp;"
 htmlSubtype TVoid = "*"
 htmlSubtype TAny = "?"
+htmlSubtype (TForall free x) = htmlSubtype $ mapTSubtype f x
+    where
+        f (TFree xs) = TFree $ map g xs
+        f x = x
+        g x = ['!' | x `elem` free] ++ x
 
 htmlPair :: TPair -> [String]
 htmlPair (TPair x y) = intercat "'" x : map htmlSubtype y

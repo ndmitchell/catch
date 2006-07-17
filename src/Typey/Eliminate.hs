@@ -116,8 +116,8 @@ getType :: Env -> [(FuncArg, TSubtype)] -> Expr -> Reason
 getType env@(hite,datam,datat,funct) args expr =
     case expr of
         Call x xs -> getTCall (getT x) xs
-        Make x xs -> getTCall (ReasonLookup (lookupJust x datat) x) xs
-        CallFunc name -> ReasonLookup (lookupJust name funct) name
+        Make x xs -> getTCall (ReasonLookup (tForall $ lookupJust x datat) x) xs
+        CallFunc name -> ReasonLookup (tForall $ lookupJust name funct) name
         Var x -> ReasonLookup (lookupJust x args) x
         Sel x path -> getTSelR (getT x) path
         Error _ -> ReasonLookup TBot "error"
@@ -156,6 +156,7 @@ getType env@(hite,datam,datat,funct) args expr =
         apply _ TBot = TBot -- because of the bottom rule
         apply TBot _ = TBot
         apply TVoid arg = apply (TFunc []) arg -- since void is untyped
+        apply (TForall _ f) arg = apply f arg
         apply (TFunc func) arg = res
             where
                 res = if null matches then TVoid
