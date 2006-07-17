@@ -103,11 +103,19 @@ solveOnce r logger env@(hite,datam,datat,funct) todo =
 
 
 getFuncType :: Env -> FuncName -> [TSubtype] -> Reason
-getFuncType env@(hite,datam,datat,funct) funcname argt = ReasonArgs rep (ReasonUnion res ress)
+getFuncType env@(hite,datam,datat,funct) funcname argt =
+        if null failed then 
+            ReasonArgs rep (ReasonUnion res ress)
+        else
+            error $ "getFuncType-free, " ++
+                    funcname ++ " :: " ++ intercat " -> " (map output argt) ++ "==" ++
+                    show failed
     where
-        res = unionList $ map reasonSubtype ress
+        failed = filter (not.isTBound) $ map reasonSubtype ress
+    
+        res = unionList $ map (tFree . reasonSubtype) ress
         ress = [getType env rep e | MCaseAlt p e <- opts, doesMatch env rep p]
-        rep = zip args argt
+        rep = zip args (map tBound argt)
         Func _ args (MCase opts) _ = getFunc hite funcname
 
 
@@ -116,8 +124,8 @@ getType :: Env -> [(FuncArg, TSubtype)] -> Expr -> Reason
 getType env@(hite,datam,datat,funct) args expr =
     case expr of
         Call x xs -> getTCall (getT x) xs
-        Make x xs -> getTCall (ReasonLookup (tForall $ lookupJust x datat) x) xs
-        CallFunc name -> ReasonLookup (tForall $ lookupJust name funct) name
+        Make x xs -> getTCall (ReasonLookup (tFree $ lookupJust x datat) x) xs
+        CallFunc name -> ReasonLookup (tFree $ lookupJust name funct) name
         Var x -> ReasonLookup (lookupJust x args) x
         Sel x path -> getTSelR (getT x) path
         Error _ -> ReasonLookup TBot "error"

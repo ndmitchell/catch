@@ -45,21 +45,14 @@ apply :: TSubtype -> TSubtype -> TSubtype
 apply _ TBot = TBot -- because of the bottom rule
 apply TBot _ = TBot
 apply TVoid arg = apply (TFunc []) arg -- since void is untyped
-apply (TForall _ f) arg = applyForall True f arg
-apply f arg = applyForall False f arg
-    where
-    
-applyForall :: Bool -> TSubtype -> TSubtype -> TSubtype
-applyForall alls (TFunc func) arg = lift res
+apply (TFunc func) arg = res
     where
         res = if null matches then TVoid
               else if null (fst $ head matches) then unionList (map snd matches)
               else TFunc (map (uncurry TArr) matches)
 
         matches = [(map (applySubst s) as, applySubst s y)
-                        | TArr (a:as) y <- func, s <- subst (lift a) arg]
-
-        lift = if alls then tForall else id
+                        | TArr (a:as) y <- func, s <- subst a arg]
 
 
 -- A Subst is a mapping from variables to subtype values
@@ -94,23 +87,22 @@ validSubst = all allEqual . groupSetExtract fst
 checkSubst = True
 
 subst :: TSubtype -> TSubtype -> [Subst]
-subst lht rht | checkSubst && not (null no) = error $ "subst generated invalid, " ++ show (lht, rht, no)
-              | checkSubst && lhs `isTSubset` rhs && null res = error $ "subst missed some, " ++ show (lht,rht)
+subst lhs rhs | checkSubst && not (null no) = error $ "subst generated invalid, " ++ show (rhs, rhs, no)
+              | checkSubst && lhs `isTSubset` rhs && null res = error $ "subst missed some, " ++ show (lhs,rhs)
               | otherwise = res
     where
-        (freer,rhs) = fromForall rht
-        (freel,lhs) = fromForall lht
-        
         (yes,no) = partition check res
         check subst = applySubst subst lhs `isTSubset` rhs
         
         -- the results
-        res = filter freeSubst $ filter validSubst $ getSubst lhs rhs
+        res = {- filter freeSubst $ -} filter validSubst $ getSubst lhs rhs
         
+        {-
         freeSubst :: Subst -> Bool
         freeSubst x | not (null freel) = True
         freeSubst x = all f x
             where f (a,b) = (a `elem` freer) || (TFree [a] == b)
+        -}
 
 
 -- since forall a . x, then replicate the x with different free variables
@@ -192,7 +184,6 @@ instance Union TSubtype where
             f c TBot _ = TBot
             f c TAny x = x
             f c TVoid x = x
-            f c (TForall _ x) y = unionPair x y
             f False a b = f True b a
             f True a b = error $ "Union TSubtype: " ++ show a ++ " vs " ++ show b
 

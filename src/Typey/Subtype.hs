@@ -14,7 +14,6 @@ data TSubtype = TFree [String]
               | TBot
               | TVoid
               | TAny
-              | TForall [String] TSubtype
               deriving (Show)
 
 data TArr = TArr [TSubtype] TSubtype
@@ -30,8 +29,6 @@ instance Eq TSubtype where
     TBot == TBot = True
     TVoid == TVoid = True
     TAny == TAny = True
-    (TForall _ x) == y = x == y
-    x == (TForall _ y) = x == y
     _ == _ = False
 
 
@@ -47,15 +44,20 @@ tFunc [TArr [] x] = x
 tFunc x = TFunc x
 
 
-tForall :: TSubtype -> TSubtype
-tForall (TForall _ x) = tForall x
-tForall x = TForall (nub [y | TFree ys <- allTSubtype x, y <- ys]) x
+tFree :: TSubtype -> TSubtype
+tFree x = mapTSubtype f x
+    where
+        f (TFree xs) = TFree $ map makeFreeVar xs
+        f x = x
 
+tBound :: TSubtype -> TSubtype
+tBound x = mapTSubtype f x
+    where
+        f (TFree xs) = TFree $ map makeBoundVar xs
+        f x = x
 
-fromForall :: TSubtype -> ([String],TSubtype)
-fromForall (TForall x y) = (x,y)
-fromForall x = ([],x)
-
+isTBound x = tBound x == x
+isTFree x = tFree x == x
 
 class PlayTSubtype a where
     mapTSubtype :: (TSubtype -> TSubtype) -> a -> a
@@ -94,7 +96,6 @@ instance Output TSubtype where
     output TBot = "!"
     output TVoid = "*"
     output TAny = "?"
-    output (TForall x y) = output y
 
 instance Output TArr where
     output (TArr a b) = "(" ++ intercat " -> " (map output $ a++[b]) ++ ")"
@@ -126,3 +127,15 @@ showTypeList x = unlines $ concatMap f x
 
 splitVar s = let (a,b) = span isAlpha s in (a, (read b) :: Int)
 joinVar a n = a ++ show n
+
+
+isFreeVar :: String -> Bool
+isFreeVar = isLower . head . fst . splitVar
+
+makeFreeVar :: String -> String
+makeFreeVar x = joinVar (toLower a : as) b
+    where (a:as,b) = splitVar x
+
+makeBoundVar :: String -> String
+makeBoundVar x = joinVar (toUpper a : as) b
+    where (a:as,b) = splitVar x

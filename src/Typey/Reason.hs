@@ -126,11 +126,7 @@ htmlSubtype (TFunc xs) = htmlTable "func" (map htmlArr xs)
 htmlSubtype TBot = "&perp;"
 htmlSubtype TVoid = "*"
 htmlSubtype TAny = "?"
-htmlSubtype (TForall free x) = htmlSubtype $ mapTSubtype f x
-    where
-        f (TFree xs) = TFree $ map g xs
-        f x = x
-        g x = ['!' | x `elem` free] ++ x
+
 
 htmlPair :: TPair -> [String]
 htmlPair (TPair x y) = intercat "'" x : map htmlSubtype y
