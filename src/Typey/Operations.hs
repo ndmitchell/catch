@@ -87,10 +87,12 @@ validSubst = all allEqual . groupSetExtract fst
 checkSubst = True
 
 subst :: TSubtype -> TSubtype -> [Subst]
-subst lhs rhs | checkSubst && not (null no) = error $ "subst generated invalid, " ++ show (rhs, rhs, no)
+subst lhs rh1 | checkSubst && not (null no) = error $ "subst generated invalid, " ++ show (lhs, rhs, no)
               | checkSubst && lhs `isTSubset` rhs && null res = error $ "subst missed some, " ++ show (lhs,rhs)
               | otherwise = res
     where
+        rhs = if isTFree rh1 then replicateSubtype 2 rh1 else rh1
+    
         (yes,no) = partition check res
         check subst = applySubst subst lhs `isTSubset` rhs
         
@@ -118,7 +120,8 @@ replicateSubtype n x@(TFunc _) = foldr1 join $ take n $ iterate next x
                 f (TFree xs) = TFree $ map g xs
                 f x = x
                 
-                g x = joinVar a $ b + fromJust (lookup a maxVars)
+                g x = if makeBoundVar x == x then x else
+                      joinVar a $ b + fromJust (lookup a maxVars)
                     where (a,b) = splitVar x
                 
         join (TFunc x) (TFunc y) = TFunc (x++y)
