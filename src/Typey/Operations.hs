@@ -45,14 +45,21 @@ apply :: TSubtype -> TSubtype -> TSubtype
 apply _ TBot = TBot -- because of the bottom rule
 apply TBot _ = TBot
 apply TVoid arg = apply (TFunc []) arg -- since void is untyped
-apply (TForall _ f) arg = apply f arg
-apply (TFunc func) arg = res
+apply (TForall _ f) arg = applyForall True f arg
+apply f arg = applyForall False f arg
+    where
+    
+applyForall :: Bool -> TSubtype -> TSubtype -> TSubtype
+applyForall alls (TFunc func) arg = lift res
     where
         res = if null matches then TVoid
               else if null (fst $ head matches) then unionList (map snd matches)
               else TFunc (map (uncurry TArr) matches)
 
-        matches = [(map (applySubst s) as, applySubst s y) | TArr (a:as) y <- func, s <- subst a arg]
+        matches = [(map (applySubst s) as, applySubst s y)
+                        | TArr (a:as) y <- func, s <- subst (lift a) arg]
+
+        lift = if alls then tForall else id
 
 
 -- A Subst is a mapping from variables to subtype values
@@ -101,6 +108,7 @@ subst lht rht | checkSubst && not (null no) = error $ "subst generated invalid, 
         res = filter freeSubst $ filter validSubst $ getSubst lhs rhs
         
         freeSubst :: Subst -> Bool
+        freeSubst x | not (null freel) = True
         freeSubst x = all f x
             where f (a,b) = (a `elem` freer) || (TFree [a] == b)
 
@@ -178,11 +186,13 @@ instance Union TSubtype where
     unionPair (TFree a) (TFree b) = TFree (a `union` b)
     unionPair (TBind a) (TBind b) = TBind $ zipWithEq unionPair a2 b2
         where (a2,b2) = compatTPairs a b
+        
     unionPair a b = f False a b
         where
             f c TBot _ = TBot
             f c TAny x = x
             f c TVoid x = x
+            f c (TForall _ x) y = unionPair x y
             f False a b = f True b a
             f True a b = error $ "Union TSubtype: " ++ show a ++ " vs " ++ show b
 

@@ -15,13 +15,25 @@ data TSubtype = TFree [String]
               | TVoid
               | TAny
               | TForall [String] TSubtype
-              deriving (Eq, Show)
+              deriving (Show)
 
 data TArr = TArr [TSubtype] TSubtype
             deriving (Eq, Show)
 
 data TPair = TPair [CtorName] [TSubtype]
              deriving (Eq, Show)
+
+instance Eq TSubtype where
+    (TFree a) == (TFree b) = a `setEq` b
+    (TBind a) == (TBind b) = a == b
+    (TFunc a) == (TFunc b) = a `setEq` b
+    TBot == TBot = True
+    TVoid == TVoid = True
+    TAny == TAny = True
+    (TForall _ x) == y = x == y
+    x == (TForall _ y) = x == y
+    _ == _ = False
+
 
 isTBot (TBot{}) = True; isTBot _ = False
 
@@ -36,6 +48,7 @@ tFunc x = TFunc x
 
 
 tForall :: TSubtype -> TSubtype
+tForall (TForall _ x) = tForall x
 tForall x = TForall (nub [y | TFree ys <- allTSubtype x, y <- ys]) x
 
 
@@ -81,6 +94,7 @@ instance Output TSubtype where
     output TBot = "!"
     output TVoid = "*"
     output TAny = "?"
+    output (TForall x y) = output y
 
 instance Output TArr where
     output (TArr a b) = "(" ++ intercat " -> " (map output $ a++[b]) ++ ")"
