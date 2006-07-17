@@ -6,6 +6,7 @@ import Hite.Type
 import List
 import Maybe
 import General.General
+import Data.Predicate
 
 
 cmd = cmdHitePure reachable "reachable"
@@ -31,6 +32,7 @@ reachableList names hite@(Hite datas funcs) = Hite aliveDatas aliveFuncs
         g (Case _ alts) = fsts alts
         g (Sel _ path) = [ctorName $ getCtorFromArg hite path]
         g (Msg x) = map charCtor x
+        g (MCase xs) = concat [ctor : concatMap g (allExpr x2) | MCaseAlt x y <- xs, MCaseOpt x2 ctor <- allPredLit x]
         g _ = []
         
         aliveDatas = concatMap h datas
