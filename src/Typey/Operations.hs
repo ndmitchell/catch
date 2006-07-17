@@ -72,8 +72,8 @@ validSubst = all allEqual . groupSetExtract fst
 checkSubst = True
 
 subst :: TSubtype -> TSubtype -> [Subst]
-subst lhs rhs | checkSubst && not (null no) = error $ "subst generated invalid, " ++ show (lhs, rhs2, no)
-              | checkSubst && lhs `isTSubset` rhs2 && null res = error $ "subst missed some, " ++ show (lhs,rhs2)
+subst lhs rhs | checkSubst && not (null no) = error $ "subst generated invalid, " ++ show (lhs, rhs, no)
+              | checkSubst && lhs `isTSubset` rhs2 && null res = error $ "subst missed some, " ++ show (lhs,rhs)
               | otherwise = res
     where
         (free,rhs2) = unwrapForall rhs -- replicateSubtype 3 rhs
@@ -116,8 +116,11 @@ getSubst :: TSubtype -> TSubtype -> [Subst]
 getSubst x TBot = if x == TBot then [[]] else []
 
 getSubst TAny x = [[]]
-getSubst (TFree [a]) x = [[(a,x)]]
 getSubst TVoid TVoid = [[]]
+
+getSubst (TFree [a]) (TFree xs) = [[(a,TFree x)] | x <- powerSet xs, not (null x)]
+getSubst (TFree [a]) x = [[(a,x)]]
+
 
 getSubst (TBind x1) (TBind y1) =
         getSubstList $ substTopPair x y : zipWithEq substBotPair xs ys
