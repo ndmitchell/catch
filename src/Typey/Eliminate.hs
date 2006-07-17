@@ -151,19 +151,6 @@ getType env@(hite,datam,datat,funct) args expr =
         applyR :: Reason -> Reason -> Reason
         applyR lhs rhs = ReasonApply res lhs rhs
             where res = apply (reasonSubtype lhs) (reasonSubtype rhs)
-        
-        apply :: TSubtype -> TSubtype -> TSubtype
-        apply _ TBot = TBot -- because of the bottom rule
-        apply TBot _ = TBot
-        apply TVoid arg = apply (TFunc []) arg -- since void is untyped
-        apply (TForall _ f) arg = apply f arg
-        apply (TFunc func) arg = res
-            where
-                res = if null matches then TVoid
-                      else if null (fst $ head matches) then unionList (map snd matches)
-                      else TFunc (map (uncurry TArr) matches)
-                
-                matches = [(map (applySubst s) as, applySubst s y) | TArr (a:as) y <- func, s <- subst a arg]
 
 
 doesMatch :: Env -> [(FuncArg, TSubtype)] -> Pred MCaseOpt -> Bool

@@ -4,7 +4,7 @@
     They will all require proof and relate to each other, hence in the same module.
 -}
 
-module Typey.Operations(subst, applySubst) where
+module Typey.Operations(apply) where
 
 import Typey.Type
 import Typey.Subtype
@@ -38,6 +38,21 @@ compatTLists xs ys = (demand len xs, demand len ys)
         len = max (length xs) (length ys)
         demand n (x:xs) = x : demand (n-1) xs
         demand n [] = replicate n TAny
+
+
+-- apply a function to an argument
+apply :: TSubtype -> TSubtype -> TSubtype
+apply _ TBot = TBot -- because of the bottom rule
+apply TBot _ = TBot
+apply TVoid arg = apply (TFunc []) arg -- since void is untyped
+apply (TForall _ f) arg = apply f arg
+apply (TFunc func) arg = res
+    where
+        res = if null matches then TVoid
+              else if null (fst $ head matches) then unionList (map snd matches)
+              else TFunc (map (uncurry TArr) matches)
+
+        matches = [(map (applySubst s) as, applySubst s y) | TArr (a:as) y <- func, s <- subst a arg]
 
 
 -- A Subst is a mapping from variables to subtype values
