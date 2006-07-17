@@ -95,14 +95,15 @@ subst lhs rhs | checkSubst && not (null no) = error $ "subst generated invalid, 
         check subst = applySubst subst lhs `isTSubset` rhs
         
         -- the results
-        res = {- filter freeSubst $ -} filter validSubst $ getSubst lhs rhs
+        res = filter (all freeSubst) $ filter validSubst $ getSubst lhs rhs
         
-        {-
-        freeSubst :: Subst -> Bool
-        freeSubst x | not (null freel) = True
-        freeSubst x = all f x
-            where f (a,b) = (a `elem` freer) || (TFree [a] == b)
-        -}
+        freeSubst :: (String, TSubtype) -> Bool
+        freeSubst (a,b) =
+                allFree aa || allFree b || aa == b
+            where
+                aa = TFree [a]
+                
+                allFree = not . isTBound
 
 
 -- since forall a . x, then replicate the x with different free variables
