@@ -125,7 +125,7 @@ getType env@(hite,datam,datat,funct) args expr =
     case expr of
         Call x xs -> getTCall (getT x) xs
         Make x xs -> getTCall (ReasonLookup (tFree $ lookupJust x datat) x) xs
-        CallFunc name -> ReasonLookup (tFree $ lookupJust name funct) name
+        CallFunc name -> ReasonLookup (getTFunc name) name
         Var x -> ReasonLookup (lookupJust x args) x
         Sel x path -> getTSelR (getT x) path
         Error _ -> ReasonLookup TBot "error"
@@ -133,6 +133,9 @@ getType env@(hite,datam,datat,funct) args expr =
         _ -> error $ show ("getType",args,expr)
     where
         getT = getType env args
+        
+        getTFunc "_" = TAny
+        getTFunc name = tFree $ lookupJust name funct
         
         getTCall x [] = x
         getTCall x (y:ys) = getTCall (applyR x (getT y)) ys
