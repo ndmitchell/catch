@@ -13,6 +13,10 @@ import Data.List
 import Data.Char
 
 
+disableReason :: Bool
+disableReason = False
+
+
 data Reason = ReasonArgs [(FuncArg, TSubtype)] Reason
             | ReasonUnion TSubtype [Reason]
             | ReasonLookup TSubtype String
@@ -59,11 +63,13 @@ final = unlines
 type ReasonH = Handle
 
 reasonInit :: FilePath -> IO ReasonH
+reasonInit s | disableReason = return undefined
 reasonInit s = do r <- openFile s WriteMode
                   hPutStrLn r initial
                   return r
 
 reasonTerm :: ReasonH -> IO ()
+reasonTerm r | disableReason = return ()
 reasonTerm r = do hPutStrLn r final
                   hClose r
 
@@ -77,11 +83,13 @@ reasonSubsubsection :: ReasonH -> String -> IO ()
 reasonSubsubsection r = reasonDo r 3
 
 reasonDo :: ReasonH -> Int -> String -> IO ()
+reasonDo r n s | disableReason = return ()
 reasonDo r n s = hPutStrLn r $ "<" ++ tag ++ s ++ "</" ++ tag
     where tag = "h" ++ show n ++ ">"
 
    
 reasonShow :: ReasonH -> Reason -> IO ()
+reasonShow r reason | disableReason = return ()
 reasonShow r reason = hPutStrLn r (htmlReason reason)
 
 
