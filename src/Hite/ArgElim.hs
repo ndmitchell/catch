@@ -25,7 +25,7 @@ useFuncs res hite = mapExpr f hite
         f x@(Call (CallFunc n) xs) =
             case lookup n res of
                 Just dead | last dead < length xs -> Call (CallFunc (n ++ "_ARG")) (dropDead dead xs)
-                Nothing -> x
+                _ -> x
         f x = x
             
 
