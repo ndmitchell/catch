@@ -83,13 +83,19 @@ getCommands hite = unlines $ map f (funcs hite)
 
 
 prefix = 
-    ["int_may f Nothing = False"
-    ,"int_may f (Just x) = f x"
-    ,"data " ++ box ++ " a = " ++ box ++ " | " ++ colon ++ " a (" ++ box ++ " a)"
-    ,"data " ++ enUpper "Bool" ++ " = " ++ enUpper "True" ++ " | " ++ enUpper "False"
-    ]
-    
+        ["int_may f Nothing = False"
+        ,"int_may f (Just x) = f x"
+        ,"data " ++ box ++ " a = " ++ box ++ " | " ++ colon ++ " a (" ++ box ++ " a)"
+        ,"data " ++ enUpper "Bool" ++ " = " ++ enUpper "True" ++ " | " ++ enUpper "False"
+        ,"data " ++ enUpper "Compare" ++ " = " ++ intercat " | " (map enUpper ["EQ","LT","GT"])
+        ] ++
+        map makeTuple [1..8]
     where
+        makeTuple n = "data " ++ tup ++ letters ++ " = " ++ tup ++ letters
+            where
+                tup = enUpper $ "Tup" ++ show n
+                letters = ' ' : (intersperse ' ' $ take n ['a'..])
+
         colon = enUpper ":"
         box = enUpper "[]"
 
