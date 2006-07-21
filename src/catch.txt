@@ -65,6 +65,10 @@ typeyho *Use higher order subtype analysis
 	typeyhop
 	typeyho-patterns
 
+abstract *Use abstract evaluation
+	typeyhop
+	abstract-patterns
+
 stats *Generate statistics about a Haskell program
 	short-name
 	reachable
