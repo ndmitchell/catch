@@ -65,8 +65,18 @@ typeyho *Use higher order subtype analysis
 	typeyhop
 	typeyho-patterns
 
+
+abstractp
+	short-name
+	reachable
+	case-expand
+	make-move
+	const-lift
+	error-call
+	reachable
+
 abstract *Use abstract evaluation
-	typeyhop
+	abstractp
 	abstract-patterns
 
 stats *Generate statistics about a Haskell program
