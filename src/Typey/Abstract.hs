@@ -36,8 +36,19 @@ unionAbs xs = foldr f AbsVoid xs
 
 
 
-getAbstract :: Large2T -> Abstract
-getAbstract x = List [b0,b0,b1,List[b0],b1,b1,List[b0]]
+-- List [b0,b0,b1,List[b0],b1,b1,List[b0]]
+
+getAbstract :: DataM SmallT -> Large2T -> Abstract
+getAbstract datam x = f x
+    where
+        f (Free2T _) = List [b0]
+        f (Arr2T _ _) = error "getAbstract: Cannot abstract for a higher order function"
+        f (Bind2T (Ctor2T ctor) args) = List $ b0 : lst ++ rlst
+            where
+                rlst = if any isRecursive ctrs then lst else []
+                lst = replicate (length ctrs) b1 ++ map f args
+                (DataT n ctrs) = lookupJust ctor datam
+
 
 {-
 f x

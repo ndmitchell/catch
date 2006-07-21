@@ -14,12 +14,12 @@ typeySolve3 file hndl hite datam funcm =
     do
         outBoth "-- TYPES OF FUNCTIONS"
         outLn $ unlines [a ++ " :: " ++ show b | (a,b) <- funcm]
-        let mainT = lookupJust "main" funcm
-            baseT = getAbstract mainT
-        outBoth $ "main value: " ++ show baseT
+        let mainT = getArgs $ lookupJust "main" funcm
+            baseT = map (getAbstract datam) mainT
+        outBoth $ "main args: " ++ intercatS " , " baseT
         outBoth "-- SOLVING"
-        res <- evaluate outLn hite datam funcm [baseT]
-        outBoth $ "result: " ++ show res
+        res <- evaluate outLn hite datam funcm baseT
+        outBoth $ "main result: " ++ show res
         error "typeySolve3, todo"
     where
         outLn = hPutStrLn hndl
@@ -27,3 +27,6 @@ typeySolve3 file hndl hite datam funcm =
         outBoth x = putStrLn x >> outLn x
 
         outDebug x = hPutStrLn stderr x >> out x
+
+        getArgs (Arr2T xs _) = xs
+        getArgs x = []
