@@ -14,6 +14,7 @@ data Abstract = Bit Bool
 b0 = Bit False
 b1 = Bit True
 
+fromBit (Bit x) = x
 
 instance Show Abstract where
     show (Bit x) = if x then "1" else "0"
@@ -50,24 +51,11 @@ getAbstract datam x = f x
                 (DataT n ctrs) = lookupJust ctor datam
 
 
-{-
-f x
-    where
-        f (Free2T x)
-        f (Ctor2T 
-
-
-        data Large2T = Ctor2T String
-                     | Free2T String
-                     | Bind2T Large2T [Large2T]
-             | Arr2T [Large2T] Large2T
--}
-
-
 hasCtorAbs :: DataM SmallT -> Abstract -> CtorName -> Bool
-hasCtorAbs _ (List [_,_,Bit a,_,_,_,_]) ":" = a
-hasCtorAbs _ (List [_,Bit a,_,_,_,_,_]) "[]" = a
-
+hasCtorAbs datam (List x) name = fromBit (x !! i)
+    where
+        i = head [i | (_, DataT n ctrs) <- datam,
+                      (i, CtorT n _) <- zip [1..] ctrs, n == name]
 
 followSelAbs :: DataM SmallT -> Abstract -> String -> Abstract
 followSelAbs _ (List [_,_,_,a,_,_,_]) "hd" = a
