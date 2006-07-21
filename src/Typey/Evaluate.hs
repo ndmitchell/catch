@@ -36,6 +36,8 @@ eval env@(hite,datam,funcm) args expr =
         
         Sel x y -> followSelAbs hite datam (eval env args x) y
         
+        Make name xs -> makeAbs datam name (map (eval env args) xs)
+        
         Error _ -> AbsBottom
         
         x -> error $ "eval: " ++ output x

@@ -7,6 +7,7 @@ import Hite
 import Data.List
 import Data.Maybe
 import Control.Exception
+import Debug.Trace
 
 
 data Abstract = Bit Bool
@@ -77,3 +78,35 @@ followSelAbs hite datam (List (x:xs)) name = assert (length (x:xs) == len) $
         i = fromJust $ elemIndex name args
         Ctor cname args = getCtorFromArg hite name
 
+
+makeAbs :: DataM SmallT -> CtorName -> [Abstract] -> Abstract
+makeAbs datam name args = assert (length as == length args && length void == len) $
+        trace (show (name,args,res)) res
+    where
+        res = List (foldr f (addBase void) (zip as args))
+        addBase x = x !!! (i+1, b1)
+        
+        f :: (SmallT, Abstract) -> [Abstract] -> [Abstract]
+        f (FreeS i, b) x = x !!! (ii, unionAbs [b, x !! ii])
+            where ii = i + length ctrs + 1
+    
+        f (Self, List (b:bs)) (x:xs) = unionAbs [x,b] : xs1 ++ xs2
+            where
+                (xs1,xs2) = splitAt lenHalf bs
+                (bs1,bs2) = splitAt lenHalf bs
+                List bss = unionAbs [List bs1, List bs2, List xs2]
+    
+        void = b0 : concat (replicate (if rec then 2 else 1) voidHalf)
+        voidHalf = replicate (length ctrs) b0 ++ replicate n AbsVoid
+        
+        lenHalf = length ctrs + n
+        len = 1 + (lenHalf * (if rec then 2 else 1))
+        rec = any isRecursive ctrs
+        (DataT n ctrs, CtorT _ as, i) = head [(d,c,i) | (_,d@(DataT n cs)) <- datam,
+                                                   (i, c@(CtorT n2 _)) <- zip [0..] cs,
+                                                   n2 == name]
+
+unionAbsTrace msg x =
+        trace (show msg ++ ": unionAbs " ++ show x) $
+        trace (show res) res
+    where res = unionAbs x
