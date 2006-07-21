@@ -142,6 +142,8 @@ toHaskell (Hite datas funcs) = unlines $ prefix ++ concatMap fromData datas ++ c
         
         fromFunc (Func name args (MCase opts) _) =
             (enLower name ++ concatMap ((' ':) . enLower) args) : map fromOpt opts
+        fromFunc (Func name args x _) =
+            (enLower name ++ concatMap ((' ':) . enLower) args ++ " =") : ("  " ++ fromExpr x) : []
         
         fromOpt :: MCaseAlt -> String
         fromOpt (MCaseAlt p x) = "   | " ++ fromCond p ++ " = " ++ fromExpr x
@@ -166,5 +168,8 @@ toHaskell (Hite datas funcs) = unlines $ prefix ++ concatMap fromData datas ++ c
         fromExpr (Sel x y) = "(int_go_" ++ encode y ++ " " ++ fromExpr x ++ ")"
         fromExpr (Msg x) = show x
         fromExpr (Error _) = "undefined"
+        fromExpr (Case x alts) = "(case " ++ fromExpr x ++ " of" ++ concatMap f alts ++ ")"
+            where
+                f (ctor,expr) = " ; (" ++ enUpper ctor ++ "{}) -> " ++ fromExpr expr
 
         fromExprs name xs = "(" ++ name ++ concatMap ((' ':) . fromExpr) xs ++ ")"
