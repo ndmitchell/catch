@@ -34,7 +34,7 @@ eval env@(hite,datam,funcm) args expr =
         
         Var x -> lookupJust x args
         
-        Sel x y -> followSelAbs datam (eval env args x) y
+        Sel x y -> followSelAbs hite datam (eval env args x) y
         
         Error _ -> AbsBottom
         
