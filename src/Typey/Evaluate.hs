@@ -9,7 +9,7 @@ import Data.Maybe
 
 
 type Env = (Hite, DataM SmallT, Func2M)
-type Stack = [((FuncName, [AExp]), Abstract)]
+type Stack = [((FuncName, [AExp]), AExp)]
 
 
 data AExp = Value Abstract
@@ -22,19 +22,33 @@ data AExp = Value Abstract
           deriving (Show,Eq)
 
 
+unionAExp :: [AExp] -> AExp
+unionAExp [] = Value AbsVoid
+unionAExp xs = foldr1 f xs
+    where
+        f (Union a) (Union b) = Union (a++b)
+        f (Union a) b = Union (b:a)
+        f a (Union b) = Union (a:b)
+        f (Value a) (Value b) = Value $ unionAbs [a,b]
+        f x y = Union [x,y]
+
+
+
 fromValue (Value x) = x
 
 
 evaluate :: (String -> IO ()) -> Hite -> DataM SmallT -> Func2M -> [Abstract] -> IO Abstract
-evaluate logger hite datam funcm args = evalCall logger (hite, datam, funcm) [] "main" (map Value args)
+evaluate logger hite datam funcm args = do
+    Value res <- evalCall logger (hite, datam, funcm) [] "main" (map Value args)
+    return res
 
 
-evalCall :: (String -> IO ()) -> Env -> Stack -> FuncName -> [AExp] -> IO Abstract
+evalCall :: (String -> IO ()) -> Env -> Stack -> FuncName -> [AExp] -> IO AExp
 evalCall logger env@(hite,datam,funcm) stack func args
         | isJust prev = return $ fromJust prev
-        | otherwise = f AbsVoid
+        | otherwise = f AbsVoid >>= return . Value
     where
-        f x = do res <- evalExpr logger env (((func,args),x):stack) abody
+        f x = do Value res <- evalExpr logger env (((func,args),Value x):stack) abody
                  let res2 = unionAbs [res,x]
                  if res2 == x
                     then return x
@@ -45,31 +59,31 @@ evalCall logger env@(hite,datam,funcm) stack func args
         prev = lookup (func,args) stack
 
 
-evalExpr :: (String -> IO ()) -> Env -> Stack -> AExp -> IO Abstract
+evalExpr :: (String -> IO ()) -> Env -> Stack -> AExp -> IO AExp
 evalExpr logger env@(hite,datam,funcm) stack x =
     case x of
         ACall (AFunc name) args -> do
             args2 <- mapM f args
-            evalCall logger env stack name (map Value args2)
+            evalCall logger env stack name args2
     
-        Value x -> return x
+        Value x -> return $ Value x
         
         ACase x alts -> do
-            x2 <- f x
+            Value x2 <- f x
             alts2 <- mapM (g x2) alts
-            return $ unionAbs $ concat alts2
+            return $ unionAExp $ concat alts2
             where
                 g x2 (opt,expr) = if hasCtorAbs datam x2 opt
                                      then f expr >>= return . (:[])
                                      else return []
     
         ASel x y -> do
-            x2 <- f x
-            return $ followSelAbs hite datam x2 y
+            Value x2 <- f x
+            return $ Value $ followSelAbs hite datam x2 y
     
         AMake name xs -> do
             xs2 <- mapM f xs
-            return $ makeAbs datam name xs2
+            return $ Value $ makeAbs datam name (map fromValue xs2)
     
         _ -> error $ "evalExpr, todo: " ++ show x
 
