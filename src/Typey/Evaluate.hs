@@ -46,13 +46,17 @@ evaluate logger hite datam funcm args = do
 evalCall :: (String -> IO ()) -> Env -> Stack -> FuncName -> [AExp] -> IO AExp
 evalCall logger env@(hite,datam,funcm) stack func args
         | isJust prev = return $ fromJust prev
-        | otherwise = f AbsVoid >>= return . Value
+        | otherwise = f 0 AbsVoid >>= return . Value
     where
-        f x = do Value res <- evalExpr logger env (((func,args),Value x):stack) abody
-                 let res2 = unionAbs [res,x]
-                 if res2 == x
-                    then return x
-                    else f res2
+        pad = replicate (length stack * 2) ' '
+    
+        f n x = do
+            logger $ pad ++ func ++ ":" ++ show n ++ " " ++ show args ++ " = " ++ show x
+            Value res <- evalExpr logger env (((func,args),Value x):stack) abody
+            let res2 = unionAbs [res,x]
+            if res2 == x
+                then logger (pad ++ "= " ++ show x) >> return x
+                else f (n+1) res2
     
         abody = exprToAExp (zip arg args) body
         Func _ arg body _ = getFunc hite func
