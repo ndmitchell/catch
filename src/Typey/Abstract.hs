@@ -29,6 +29,13 @@ instance Show Abstract where
     show (List xs) = "[" ++ concatMap show xs ++ "]"
 
 
+absBottom :: Abstract -> Bool
+absBottom (AbsBottom) = True
+absBottom (List (Bit b:xs)) = b || any absBottom xs
+absBottom (List xs) = any absBottom xs
+absBottom _ = False
+
+
 
 unionAbs :: [Abstract] -> Abstract
 unionAbs xs = foldr f AbsVoid xs
