@@ -25,6 +25,7 @@ instance Show Abstract where
     show (Bit x) = if x then "1" else "0"
     show (AbsBottom) = "!"
     show (AbsVoid) = "#"
+    show (List (Bit True:xs)) = "[!" ++ concatMap show xs ++ "]"
     show (List xs) = "[" ++ concatMap show xs ++ "]"
 
 
