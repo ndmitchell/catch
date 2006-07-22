@@ -57,6 +57,8 @@ getAbstract datam x = f x
     where
         f (Free2T _) = List [b0]
         f (Arr2T _ _) = error "getAbstract: Cannot abstract for a higher order function"
+        f (Ctor2T ctor) = f $ Bind2T (Ctor2T ctor) []
+        
         f (Bind2T (Ctor2T ctor) args) = List $ b0 : lst ++ rlst
             where
                 rlst = if any isRecursive ctrs then lst else []
