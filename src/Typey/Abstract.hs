@@ -61,6 +61,7 @@ permuteAbs x@(List b xs ys)
         bools = map fromBit bits
         (bits,others) = span isBit xs
 
+permuteAbs x = [x]
 
 
 -- List [b0,b0,b1,List[b0],b1,b1,List[b0]]
@@ -80,10 +81,12 @@ getAbstract datam x = f x
 
 
 hasCtorAbs :: DataM SmallT -> Abstract -> CtorName -> Bool
+hasCtorAbs datam AbsVoid _ = False
 hasCtorAbs datam (List b xs ys) name = fromBit (xs !! i)
     where
         i = head [i | (_, DataT n ctrs) <- datam,
                       (i, CtorT n _) <- zip [0..] ctrs, n == name]
+
 
 
 followSelAbs :: Hite -> DataM SmallT -> Abstract -> String -> Abstract
