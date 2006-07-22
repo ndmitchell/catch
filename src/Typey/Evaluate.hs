@@ -64,7 +64,15 @@ evalExpr logger env@(hite,datam,funcm) stack x =
     case x of
         ACall (AFunc name) args -> do
             args2 <- mapM f args
-            evalCall logger env stack name args2
+            let largs = length $ funcArgs $ getFunc hite name
+            if largs == length args then
+                evalCall logger env stack name args2
+             else if null args then
+                return $ AFunc name
+             else
+                return $ x
+    
+        AFunc x -> return $ AFunc x
     
         Value x -> return $ Value x
         
