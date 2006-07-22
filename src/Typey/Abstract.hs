@@ -18,6 +18,7 @@ data Abstract = Bit Bool
 
 
 fromBit (Bit x) = x
+isBit (Bit x) = True; isBit _ = False
 
 instance Show Abstract where
     show (Bit x) = if x then "1" else "0"
@@ -43,10 +44,22 @@ unionAbsNote msg xs = foldr f AbsVoid xs
         f x AbsVoid = x
         f AbsBottom (List b xs ys) = List True xs ys
         f (List b xs ys) AbsBottom = List True xs ys
+        f AbsBottom AbsBottom = AbsBottom
         f (Bit i) (Bit j) = Bit (i || j)
         f (List b1 xs1 ys1) (List b2 xs2 ys2) = List (b1||b2) (zipWithEq f xs1 xs2) (zipWithEq f ys1 ys2)
         f a b = error $ "unionAbs (" ++ msg ++ ") failed on " ++ show xs ++ " with " ++ show (a,b)
 
+
+permuteAbs :: Abstract -> [Abstract]
+permuteAbs x@(List b xs ys)
+        | lts <= 1 = [x]
+        | otherwise = [List b (bs++others) ys | i <- [0..lbs-1], bools !! i,
+                                                let bs = replicate lbs (Bit False) !!! (i, Bit True)]
+    where
+        lts = length $ filter (== True) bools
+        lbs = length bools
+        bools = map fromBit bits
+        (bits,others) = span isBit xs
 
 
 
