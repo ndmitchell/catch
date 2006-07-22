@@ -19,8 +19,10 @@ typeySolve3 file hndl hite datam funcm =
         outBoth $ "main args: " ++ intercatS " , " baseT
         outBoth "-- SOLVING"
         res <- evaluate outLn hite datam funcm baseT
+        let List (Bit bot:_) = res
         outBoth $ "main result: " ++ show res
-        error "typeySolve3, todo"
+        outBoth $ if bot then "failure" else "success"
+        return bot
     where
         outLn = hPutStrLn hndl
         out = hPutStr hndl
