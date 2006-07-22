@@ -81,7 +81,7 @@ followSelAbs hite datam (List (x:xs)) name = assert (length (x:xs) == len) $
 
 makeAbs :: DataM SmallT -> CtorName -> [Abstract] -> Abstract
 makeAbs datam name args = assert (length as == length args && length void == len) $
-        trace (show (name,args,res)) res
+        res
     where
         res = List (foldr f (addBase void) (zip as args))
         addBase x = x !!! (i+1, b1)
@@ -90,9 +90,9 @@ makeAbs datam name args = assert (length as == length args && length void == len
         f (FreeS i, b) x = x !!! (ii, unionAbs [b, x !! ii])
             where ii = i + length ctrs + 1
     
-        f (Self, List (b:bs)) (x:xs) = unionAbs [x,b] : xs1 ++ xs2
+        f (Self, List (b:bs)) (x:xs) = unionAbs [x,b] : xs1 ++ bss
             where
-                (xs1,xs2) = splitAt lenHalf bs
+                (xs1,xs2) = splitAt lenHalf xs
                 (bs1,bs2) = splitAt lenHalf bs
                 List bss = unionAbs [List bs1, List bs2, List xs2]
     
