@@ -35,7 +35,7 @@ unionAbs xs = foldr f AbsVoid xs
         f x AbsVoid = x
         f AbsBottom (List (x:xs)) = List (b1:xs)
         f (List (x:xs)) AbsBottom = List (b1:xs)
-        f (Bit i) (Bit j) = Bit (i && j)
+        f (Bit i) (Bit j) = Bit (i || j)
         f (List i) (List j) = List $ zipWithEq f i j
 
 
