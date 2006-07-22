@@ -14,6 +14,7 @@ data Abstract = Bit Bool
               | List [Abstract]
               | AbsBottom
               | AbsVoid
+              deriving Eq
 
 b0 = Bit False
 b1 = Bit True
