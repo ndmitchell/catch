@@ -72,6 +72,9 @@ lookupNote msg x ys = case lookup x ys of
                            Just y -> y
 
 
+assertNote :: String -> Bool -> x -> x
+assertNote msg False _ = error $ "Assertion failed: " ++ msg
+assertNote _ True x = x
 
 
 
