@@ -91,11 +91,14 @@ makeAbs datam name args = assert (length as == length args && length void == len
         f (FreeS i, b) x = x !!! (ii, unionAbs [b, x !! ii])
             where ii = i + length ctrs + 1
     
+        f (Self, AbsVoid) x = x
         f (Self, List (b:bs)) (x:xs) = unionAbs [x,b] : xs1 ++ bss
             where
                 (xs1,xs2) = splitAt lenHalf xs
                 (bs1,bs2) = splitAt lenHalf bs
                 List bss = unionAbs [List bs1, List bs2, List xs2]
+    
+        f a b = error $ "makeAbs.f " ++ show (a,b)
     
         void = b0 : concat (replicate (if rec then 2 else 1) voidHalf)
         voidHalf = replicate (length ctrs) b0 ++ replicate n AbsVoid
