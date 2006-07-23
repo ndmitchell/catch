@@ -12,8 +12,29 @@ import Typey.Faster
 type AbstractA = Abstract AExp
 
 
-type Env = (Hite, DataM SmallT, Func2M)
+type Env = (Hite, DataM SmallT, FunctionM)
 type Stack = [((FuncName, [AbstractA]), AbstractA)]
+
+
+
+type FunctionM = [(FuncName,Function)]
+
+data Function =
+    Function {
+        funArgLen :: Int,
+        funArgs :: [String],
+        funFixpoint :: Bool, -- do I need to fixed point
+        funArgsPower :: [Bool], -- do I need to take the power of these arguments
+        funBody :: Expr
+        }
+
+
+generateFunctions :: Hite -> FunctionM
+generateFunctions hite = map f (funcs hite)
+    where
+        f (Func name args body _) = (name, Function largs args True (replicate largs True) body)
+            where largs = length args
+
 
 
 data AExp = Value AbstractA
@@ -43,7 +64,7 @@ fromValue (Value x) = x
 
 evaluate :: (String -> IO ()) -> Hite -> DataM SmallT -> Func2M -> [Abstract ()] -> IO (Abstract ())
 evaluate logger hite datam funcm args = do
-    res <- evalCall logger (hite, datam, funcm) [] "main" (map liftAbs args)
+    res <- evalCall logger (hite, datam, generateFunctions hite) [] "main" (map liftAbs args)
     return $ liftAbs res
 
 
@@ -90,8 +111,8 @@ evalCall logger env@(hite,datam,funcm) stack func args
                 then logger (pad ++ "= " ++ show x) >> return x
                 else f (n+1) res2
     
-        abody = exprToAExp (zip arg args) body
-        Func _ arg body _ = getFunc hite func
+        abody = exprToAExp (zip (funArgs fun) args) (funBody fun)
+        fun = lookupJust func funcm
         prev = lookup (func,args) stack
 
 
@@ -100,7 +121,7 @@ evalExpr logger env@(hite,datam,funcm) stack x =
     case x of
         ACall (AFunc name) args -> do
             args2 <- mapM f args
-            let largs = length $ funcArgs $ getFunc hite name
+            let largs = funArgLen $ lookupJust name funcm
                 (argsNow, argsLater) = splitAt largs args2
             
             if length argsNow == largs then do
@@ -167,9 +188,9 @@ addValue x = Value x
 eval :: Env -> [(String, AbstractA )] -> Expr -> AbstractA
 eval env@(hite,datam,funcm) args expr =
     case expr of
-        Call (CallFunc name) params -> eval env (zip arg args2) body
+        Call (CallFunc name) params -> eval env (zip (funArgs func) args2) (funBody func)
             where
-                Func _ arg body _ = getFunc hite name
+                func = lookupJust name funcm
                 args2 = map (eval env args) params
         
         Case x alts -> unionAbs $ concatMap f alts
