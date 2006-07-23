@@ -10,34 +10,45 @@ import Control.Exception
 import Debug.Trace
 
 
-data Abstract = Bit Bool
-              | List Bool [Abstract] [Abstract]
-              | AbsBottom
-              | AbsVoid
-              deriving Eq
+data Abstract a = Bit Bool
+                | List Bool [Abstract a] [Abstract a]
+                | AbsBottom
+                | AbsVoid
+                | AbsOther [a]
+                deriving Eq
 
 
 fromBit (Bit x) = x
 isBit (Bit x) = True; isBit _ = False
 
-instance Show Abstract where
+instance Show a => Show (Abstract a) where
     show (Bit x) = if x then "1" else "0"
     show (AbsBottom) = "!"
     show (AbsVoid) = "#"
+    show (AbsOther x) = "(OTHER " ++ show x ++ ")"
     show (List b xs ys) = "[" ++ bot ++ concatMap show (xs++ys) ++ "]"
         where bot = if b then "!" else "_"
 
 
-absBottom :: Abstract -> Bool
+
+-- basically assert that there are no other statements
+liftAbs :: Abstract a -> Abstract b
+liftAbs (Bit x) = Bit x
+liftAbs (List b xs ys) = List b (map liftAbs xs) (map liftAbs ys)
+liftAbs AbsBottom = AbsBottom
+liftAbs AbsVoid = AbsVoid
+
+
+absBottom :: Abstract a -> Bool
 absBottom (AbsBottom) = True
 absBottom (List b xs ys) = b || any absBottom (xs++ys)
 absBottom _ = False
 
 
-unionAbs :: [Abstract] -> Abstract
+unionAbs :: Show a => [Abstract a] -> Abstract a
 unionAbs = unionAbsNote ""
 
-unionAbsNote :: String -> [Abstract] -> Abstract
+unionAbsNote :: Show a => String -> [Abstract a] -> Abstract a
 unionAbsNote msg xs = foldr f AbsVoid xs
     where
         f AbsVoid x = x
@@ -46,11 +57,12 @@ unionAbsNote msg xs = foldr f AbsVoid xs
         f (List b xs ys) AbsBottom = List True xs ys
         f AbsBottom AbsBottom = AbsBottom
         f (Bit i) (Bit j) = Bit (i || j)
+        f (AbsOther x) (AbsOther y) = AbsOther (x ++ y)
         f (List b1 xs1 ys1) (List b2 xs2 ys2) = List (b1||b2) (zipWithEq f xs1 xs2) (zipWithEq f ys1 ys2)
         f a b = error $ "unionAbs (" ++ msg ++ ") failed on " ++ show xs ++ " with " ++ show (a,b)
 
 
-permuteAbs :: Abstract -> [Abstract]
+permuteAbs :: Abstract a -> [Abstract a]
 permuteAbs x@(List b xs ys)
         | lts <= 1 = [x]
         | otherwise = [List b (bs++others) ys | i <- [0..lbs-1], bools !! i,
@@ -66,7 +78,7 @@ permuteAbs x = [x]
 
 -- List [b0,b0,b1,List[b0],b1,b1,List[b0]]
 
-getAbstract :: DataM SmallT -> Large2T -> Abstract
+getAbstract :: DataM SmallT -> Large2T -> Abstract ()
 getAbstract datam x = f x
     where
         f (Free2T _) = List False [] []
@@ -80,7 +92,7 @@ getAbstract datam x = f x
                 (DataT n ctrs) = lookupJust ctor datam
 
 
-hasCtorAbs :: DataM SmallT -> Abstract -> CtorName -> Bool
+hasCtorAbs :: DataM SmallT -> Abstract a -> CtorName -> Bool
 hasCtorAbs datam AbsVoid _ = False
 hasCtorAbs datam (List b xs ys) name = fromBit (xs !! i)
     where
@@ -89,7 +101,7 @@ hasCtorAbs datam (List b xs ys) name = fromBit (xs !! i)
 
 
 
-followSelAbs :: Hite -> DataM SmallT -> Abstract -> String -> Abstract
+followSelAbs :: Hite -> DataM SmallT -> Abstract a -> String -> Abstract a
 followSelAbs hite datam (List b xs ys) name = assertNote "followSelAbs"
         (len - 1 == length (xs++ys) && length xs == lenHalf) $
         case as !! i of
@@ -107,13 +119,13 @@ followSelAbs hite datam (List b xs ys) name = assertNote "followSelAbs"
         Ctor cname args = getCtorFromArg hite name
 
 
-makeAbs :: DataM SmallT -> CtorName -> [Abstract] -> Abstract
+makeAbs :: Show a => DataM SmallT -> CtorName -> [Abstract a] -> Abstract a
 makeAbs datam name args = assert (length as == length args) $
         foldr f (addBase void) (zip as args)
     where
         addBase (List b xs ys) = List b (xs !!! (i, Bit True)) ys
         
-        f :: (SmallT, Abstract) -> Abstract -> Abstract
+        f :: Show a => (SmallT, Abstract a) -> Abstract a -> Abstract a
         f (FreeS i, b) (List x x1 x2) = List x (x1 !!! (ii, unionAbs [b, x1 !! ii])) x2
             where ii = i + length ctrs
         

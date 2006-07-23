@@ -41,7 +41,7 @@ typeySolve3 file hndl hite datam funcm =
         getArgs x = []
 
 
-minimalFail :: Hite -> DataM SmallT -> Func2M -> [Abstract] -> IO [Abstract]
+minimalFail :: Hite -> DataM SmallT -> Func2M -> [Abstract ()] -> IO [Abstract ()]
 minimalFail hite datam funcm args = do
         putStrLn $ "From: " ++ show args
         f (minFails args)
@@ -56,30 +56,30 @@ minimalFail hite datam funcm args = do
                 else f xs
         
         -- return True if you get bottom
-        testArgs :: [Abstract] -> IO Bool
+        testArgs :: [Abstract ()] -> IO Bool
         testArgs args = do
             res <- evaluate (const $ return ()) hite datam funcm args
             return $ absBottom res
 
 
-minFails :: [Abstract] -> [[Abstract]]
+minFails :: [Abstract a] -> [[Abstract a]]
 minFails x = tail $ crossProduct $ map minAbs x
 
 
-minAbs :: Abstract -> [Abstract]
+minAbs :: Abstract a -> [Abstract a]
 minAbs x = map (unflatten x) bs2 
     where
         bs2 = bs : reverse [bs !!! (i,False) | i <- [0..length bs-1], bs !! i]
         bs = flatten x
 
 
-flatten :: Abstract -> [Bool]
+flatten :: Abstract a -> [Bool]
 flatten (List _ xs ys) = concatMap flatten (xs++ys)
 flatten (Bit x) = [x]
 flatten _ = []
 
 
-unflatten :: Abstract -> [Bool] -> Abstract
+unflatten :: Abstract a -> [Bool] -> Abstract a
 unflatten (List b xs ys) bs = List b (f xs xsb) (f ys ysb)
     where
         (xsb,ysb) = splitAt (length $ concatMap flatten xs) bs

@@ -8,11 +8,14 @@ import General.General
 import Data.Maybe
 
 
+type AbstractA = Abstract AExp
+
+
 type Env = (Hite, DataM SmallT, Func2M)
 type Stack = [((FuncName, [AExp]), AExp)]
 
 
-data AExp = Value Abstract
+data AExp = Value AbstractA
           | ASel AExp CtorArg
           | AMake CtorName [AExp]
           | AFunc FuncName
@@ -37,10 +40,10 @@ unionAExp xs = foldr1 f xs
 fromValue (Value x) = x
 
 
-evaluate :: (String -> IO ()) -> Hite -> DataM SmallT -> Func2M -> [Abstract] -> IO Abstract
+evaluate :: (String -> IO ()) -> Hite -> DataM SmallT -> Func2M -> [Abstract ()] -> IO (Abstract ())
 evaluate logger hite datam funcm args = do
-    Value res <- evalCall logger (hite, datam, funcm) [] "main" (map Value args)
-    return res
+    Value res <- evalCall logger (hite, datam, funcm) [] "main" (map (Value . liftAbs) args)
+    return $ liftAbs res
 
 
 permuteAExp :: AExp -> [AExp]
@@ -140,7 +143,7 @@ exprToAExp args x =
 
 
 
-eval :: Env -> [(String, Abstract)] -> Expr -> Abstract
+eval :: Env -> [(String, AbstractA )] -> Expr -> AbstractA
 eval env@(hite,datam,funcm) args expr =
     case expr of
         Call (CallFunc name) params -> eval env (zip arg args2) body
