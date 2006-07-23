@@ -32,8 +32,10 @@ data Function =
 generateFunctions :: Hite -> FunctionM
 generateFunctions hite = map f (funcs hite)
     where
-        f (Func name args body _) = (name, Function largs args True (replicate largs True) body)
-            where largs = length args
+        f (Func name args body _) = (name, Function largs args isRec (replicate largs True) body)
+            where
+                largs = length args
+                isRec = not $ null [() | Call _ _ <- allExpr body]
 
 
 
@@ -99,19 +101,20 @@ evalCall logger env@(hite,datam,funcm) stack func args
             logger $ msg n ++ show x
             res <- mapM (evalCall logger env (((func,args),x):stack) func) args2
             let res2 = unionAbs (x:res)
-            if res2 == x
-                then logger (pad ++ "= " ++ show x) >> return x
+            if norep || res2 == x
+                then logger (pad ++ "= " ++ show x) >> return res2
                 else g (n+1) res2
     
         f n x = do
             logger $ msg n ++ show x
             res <- evalExpr logger env (((func,args),x):stack) abody
             let res2 = unionAbs (x:res:[])
-            if res2 == x
-                then logger (pad ++ "= " ++ show x) >> return x
+            if norep || res2 == x
+                then logger (pad ++ "= " ++ show x) >> return res2
                 else f (n+1) res2
     
         abody = exprToAExp (zip (funArgs fun) args) (funBody fun)
+        norep = not $ funFixpoint fun
         fun = lookupJust func funcm
         prev = lookup (func,args) stack
 
