@@ -131,12 +131,17 @@ exprToAExp args x =
         Sel a b -> ASel (f a) b
         Error _ -> Value AbsBottom
         Case a as -> ACase (f a) [(a,f b) | (a,b) <- as]
-        Var a -> Value $ lookupJust a args
+        Var a -> addValue $ lookupJust a args
         Make a as -> AMake a (map f as)
         _ -> error $ "exprToAExp, todo: " ++ show x
 
     where
         f x = exprToAExp args x
+
+
+addValue :: AbstractA -> AExp
+addValue (AbsOther [x]) = x
+addValue x = Value x
 
 
 
