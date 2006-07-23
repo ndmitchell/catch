@@ -25,17 +25,21 @@ data Function =
         funArgs :: [String],
         funFixpoint :: Bool, -- do I need to fixed point
         funArgsPower :: [Bool], -- do I need to take the power of these arguments
-        funBody :: Expr
+        funBody :: Expr,
+        funFast :: Bool
         }
 
 
 generateFunctions :: Hite -> FunctionM
 generateFunctions hite = map f (funcs hite)
     where
-        f (Func name args body _) = (name, Function largs args isRec (replicate largs True) body)
+        f (Func name args body _) = (name, Function largs args isRec (map f args) body fast)
             where
+                fast = canFastEval name
                 largs = length args
                 isRec = not $ null [() | Call _ _ <- allExpr body]
+                f x = (length [() | Var a <- allExpr body, a == x] > 1) && (not fast)
+                
 
 
 
@@ -78,7 +82,7 @@ permuteAExp x = [x]
 evalCall :: (String -> IO ()) -> Env -> Stack -> FuncName -> [AbstractA] -> IO AbstractA
 evalCall logger env@(hite,datam,funcm) stack func args
         | isJust prev = return $ fromJust prev
-        | canFastEval func = solveFast
+        | funFast fun = solveFast
         | length args2 == 1 = f 0 AbsVoid
         | otherwise = g 0 AbsVoid
     where
@@ -92,7 +96,9 @@ evalCall logger env@(hite,datam,funcm) stack func args
         doEval :: [AbstractA] -> IO AbstractA
         doEval (x:xs) = evalExpr logger env (((func,args),AbsVoid):stack) (ACall (addValue x) (map addValue xs))
     
-        args2 = crossProduct $ map permuteAbs args
+        args2 = crossProduct $ zipWithEq perm (funArgsPower fun) args
+        perm True x = permuteAbs x
+        perm False x = [x]
         pad = replicate (length stack * 2) ' '
         
         msg n = pad ++ func ++ ":" ++ show n ++ " " ++ show args ++ " = "
