@@ -12,7 +12,7 @@ type AbstractA = Abstract AExp
 
 
 type Env = (Hite, DataM SmallT, Func2M)
-type Stack = [((FuncName, [AExp]), AExp)]
+type Stack = [((FuncName, [AbstractA]), AbstractA)]
 
 
 data AExp = Value AbstractA
@@ -42,7 +42,7 @@ fromValue (Value x) = x
 
 evaluate :: (String -> IO ()) -> Hite -> DataM SmallT -> Func2M -> [Abstract ()] -> IO (Abstract ())
 evaluate logger hite datam funcm args = do
-    Value res <- evalCall logger (hite, datam, funcm) [] "main" (map (Value . liftAbs) args)
+    res <- evalCall logger (hite, datam, funcm) [] "main" (map liftAbs args)
     return $ liftAbs res
 
 
@@ -51,30 +51,27 @@ permuteAExp (Value x) = map Value $ permuteAbs x
 permuteAExp x = [x]
 
 
-evalCall :: (String -> IO ()) -> Env -> Stack -> FuncName -> [AExp] -> IO AExp
+evalCall :: (String -> IO ()) -> Env -> Stack -> FuncName -> [AbstractA] -> IO AbstractA
 evalCall logger env@(hite,datam,funcm) stack func args
         | isJust prev = return $ fromJust prev
-        | length args2 == 1 = f 0 AbsVoid >>= return . Value
-        | otherwise = g 0 AbsVoid >>= return . Value
+        | length args2 == 1 = f 0 AbsVoid
+        | otherwise = g 0 AbsVoid
     where
-        args2 = crossProduct $ map permuteAExp args
+        args2 = crossProduct $ map permuteAbs args
         pad = replicate (length stack * 2) ' '
         
         g n x = do
             logger $ pad ++ func ++ "*" ++ show n ++ " " ++ show args ++ " = " ++ show x
-            res <- mapM (evalCall logger env (((func,args),Value x):stack) func) args2
-            let res2 = unionAbs (x:map fromValue res)
+            res <- mapM (evalCall logger env (((func,args),x):stack) func) args2
+            let res2 = unionAbs (x:res)
             if res2 == x
                 then logger (pad ++ "= " ++ show x) >> return x
                 else g (n+1) res2
     
         f n x = do
             logger $ pad ++ func ++ ":" ++ show n ++ " " ++ show args ++ " = " ++ show x
-            res <- evalExpr logger env (((func,args),Value x):stack) abody
-            let res1 = case res of
-                           Value x -> x
-                           _ -> error $ "evalCall " ++ func ++ " " ++ show args ++ " = " ++ show res
-            let res2 = unionAbs [res1,x]
+            res <- evalExpr logger env (((func,args),x):stack) abody
+            let res2 = unionAbs (x:res:[])
             if res2 == x
                 then logger (pad ++ "= " ++ show x) >> return x
                 else f (n+1) res2
@@ -84,7 +81,7 @@ evalCall logger env@(hite,datam,funcm) stack func args
         prev = lookup (func,args) stack
 
 
-evalExpr :: (String -> IO ()) -> Env -> Stack -> AExp -> IO AExp
+evalExpr :: (String -> IO ()) -> Env -> Stack -> AExp -> IO AbstractA
 evalExpr logger env@(hite,datam,funcm) stack x =
     case x of
         ACall (AFunc name) args -> do
@@ -93,32 +90,32 @@ evalExpr logger env@(hite,datam,funcm) stack x =
             if largs == length args then
                 evalCall logger env stack name args2
              else if null args then
-                return $ AFunc name
+                return $ AbsOther [AFunc name]
              else
-                return $ x
+                return $ AbsOther [x]
                 
         ACall (ACall x xs) ys -> f (ACall x (xs ++ ys))
     
-        AFunc x -> return $ AFunc x
+        AFunc x -> return $ AbsOther [AFunc x]
     
-        Value x -> return $ Value x
+        Value x -> return $ x
         
         ACase x alts -> do
-            Value x2 <- f x
+            x2 <- f x
             alts2 <- mapM (g x2) alts
-            return $ unionAExp $ [Value AbsBottom | headBottom x2] ++ concat alts2
+            return $ unionAbs $ [AbsBottom | headBottom x2] ++ concat alts2
             where
                 g x2 (opt,expr) = if hasCtorAbs datam x2 opt
                                      then f expr >>= return . (:[])
                                      else return []
     
         ASel x y -> do
-            Value x2 <- f x
-            return $ Value $ followSelAbs hite datam x2 y
+            x2 <- f x
+            return $ followSelAbs hite datam x2 y
     
         AMake name xs -> do
             xs2 <- mapM f xs
-            return $ Value $ makeAbs datam name (map fromValue xs2)
+            return $ makeAbs datam name xs2
     
         _ -> error $ "evalExpr, todo: " ++ show x
 
@@ -126,7 +123,7 @@ evalExpr logger env@(hite,datam,funcm) stack x =
         f x = evalExpr logger env stack x
 
 
-exprToAExp :: [(String, AExp)] -> Expr -> AExp
+exprToAExp :: [(String, AbstractA)] -> Expr -> AExp
 exprToAExp args x =
     case x of
         Call a as -> ACall (f a) (map f as)
@@ -134,7 +131,7 @@ exprToAExp args x =
         Sel a b -> ASel (f a) b
         Error _ -> Value AbsBottom
         Case a as -> ACase (f a) [(a,f b) | (a,b) <- as]
-        Var a -> lookupJust a args
+        Var a -> Value $ lookupJust a args
         Make a as -> AMake a (map f as)
         _ -> error $ "exprToAExp, todo: " ++ show x
 
