@@ -34,6 +34,7 @@ check (Hite datas funcs) =
                 checkExpr (Call name args) = all checkExpr (name:args)
                 checkExpr (Case on alts) = checkExpr on && all checkAlt alts
                 checkExpr (Msg x) = True
+                checkExpr (Error x) = True
                 checkExpr (MCase alts) = all checkCase alts
                 
                 checkExpr x = error $ "Disallowed language element, " ++ output x
