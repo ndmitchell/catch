@@ -93,6 +93,8 @@ evalExpr logger env@(hite,datam,funcm) stack x =
                 return $ AFunc name
              else
                 return $ x
+                
+        ACall (ACall x xs) ys -> f (ACall x (xs ++ ys))
     
         AFunc x -> return $ AFunc x
     
