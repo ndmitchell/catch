@@ -6,6 +6,7 @@ import Typey.Abstract
 import Hite
 import General.General
 import Data.Maybe
+import Typey.Faster
 
 
 type AbstractA = Abstract AExp
@@ -54,14 +55,27 @@ permuteAExp x = [x]
 evalCall :: (String -> IO ()) -> Env -> Stack -> FuncName -> [AbstractA] -> IO AbstractA
 evalCall logger env@(hite,datam,funcm) stack func args
         | isJust prev = return $ fromJust prev
+        | canFastEval func = solveFast
         | length args2 == 1 = f 0 AbsVoid
         | otherwise = g 0 AbsVoid
     where
+        solveFast = do
+            logger $ msg 0 ++ "(fast)"
+            res <- fastEval doEval func args
+            logger $ pad ++ "= " ++ show res
+            return res
+    
+        -- the fast eval helper
+        doEval :: [AbstractA] -> IO AbstractA
+        doEval (x:xs) = evalExpr logger env (((func,args),AbsVoid):stack) (ACall (addValue x) (map addValue xs))
+    
         args2 = crossProduct $ map permuteAbs args
         pad = replicate (length stack * 2) ' '
         
+        msg n = pad ++ func ++ ":" ++ show n ++ " " ++ show args ++ " = "
+        
         g n x = do
-            logger $ pad ++ func ++ "*" ++ show n ++ " " ++ show args ++ " = " ++ show x
+            logger $ msg n ++ show x
             res <- mapM (evalCall logger env (((func,args),x):stack) func) args2
             let res2 = unionAbs (x:res)
             if res2 == x
@@ -69,7 +83,7 @@ evalCall logger env@(hite,datam,funcm) stack func args
                 else g (n+1) res2
     
         f n x = do
-            logger $ pad ++ func ++ ":" ++ show n ++ " " ++ show args ++ " = " ++ show x
+            logger $ msg n ++ show x
             res <- evalExpr logger env (((func,args),x):stack) abody
             let res2 = unionAbs (x:res:[])
             if res2 == x
