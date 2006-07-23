@@ -45,6 +45,12 @@ absBottom (List b xs ys) = b || any absBottom (xs++ys)
 absBottom _ = False
 
 
+headBottom :: Abstract a -> Bool
+headBottom (AbsBottom) = True
+headBottom (List b xs ys) = b
+headBottom _ = False
+
+
 unionAbs :: Show a => [Abstract a] -> Abstract a
 unionAbs = unionAbsNote ""
 

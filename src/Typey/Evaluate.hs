@@ -106,7 +106,7 @@ evalExpr logger env@(hite,datam,funcm) stack x =
         ACase x alts -> do
             Value x2 <- f x
             alts2 <- mapM (g x2) alts
-            return $ unionAExp $ concat alts2
+            return $ unionAExp $ [Value AbsBottom | headBottom x2] ++ concat alts2
             where
                 g x2 (opt,expr) = if hasCtorAbs datam x2 opt
                                      then f expr >>= return . (:[])
