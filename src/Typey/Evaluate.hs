@@ -67,8 +67,11 @@ evalCall logger env@(hite,datam,funcm) stack func args
     
         f n x = do
             logger $ pad ++ func ++ ":" ++ show n ++ " " ++ show args ++ " = " ++ show x
-            Value res <- evalExpr logger env (((func,args),Value x):stack) abody
-            let res2 = unionAbs (x:res:[])
+            res <- evalExpr logger env (((func,args),Value x):stack) abody
+            let res1 = case res of
+                           Value x -> x
+                           _ -> error $ "evalCall " ++ func ++ " " ++ show args ++ " = " ++ show res
+            let res2 = unionAbs [res1,x]
             if res2 == x
                 then logger (pad ++ "= " ++ show x) >> return x
                 else f (n+1) res2
