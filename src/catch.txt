@@ -73,6 +73,7 @@ abstractp
 	make-move
 	const-lift
 	error-call
+	string-expand
 	reachable
 
 abstract *Use abstract evaluation
