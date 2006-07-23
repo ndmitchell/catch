@@ -51,10 +51,10 @@ headBottom (List b xs ys) = b
 headBottom _ = False
 
 
-unionAbs :: Show a => [Abstract a] -> Abstract a
+unionAbs :: (Eq a, Show a) => [Abstract a] -> Abstract a
 unionAbs = unionAbsNote ""
 
-unionAbsNote :: Show a => String -> [Abstract a] -> Abstract a
+unionAbsNote :: (Eq a, Show a) => String -> [Abstract a] -> Abstract a
 unionAbsNote msg xs = foldr f AbsVoid xs
     where
         f AbsVoid x = x
@@ -63,7 +63,7 @@ unionAbsNote msg xs = foldr f AbsVoid xs
         f (List b xs ys) AbsBottom = List True xs ys
         f AbsBottom AbsBottom = AbsBottom
         f (Bit i) (Bit j) = Bit (i || j)
-        f (AbsOther x) (AbsOther y) = AbsOther (x ++ y)
+        f (AbsOther x) (AbsOther y) = AbsOther (nub $ x ++ y)
         f (List b1 xs1 ys1) (List b2 xs2 ys2) = List (b1||b2) (zipWithEq f xs1 xs2) (zipWithEq f ys1 ys2)
         f a b = error $ "unionAbs (" ++ msg ++ ") failed on " ++ show xs ++ " with " ++ show (a,b)
 
@@ -98,13 +98,14 @@ getAbstract datam x = f x
                 (DataT n ctrs) = lookupJust ctor datam
 
 
-hasCtorAbs :: DataM SmallT -> Abstract a -> CtorName -> Bool
+hasCtorAbs :: Show a => DataM SmallT -> Abstract a -> CtorName -> Bool
 hasCtorAbs datam AbsVoid _ = False
 hasCtorAbs datam (List b xs ys) name = fromBit (xs !! i)
     where
         i = head [i | (_, DataT n ctrs) <- datam,
                       (i, CtorT n _) <- zip [0..] ctrs, n == name]
 
+hasCtorAbs datam x y = error $ show ("hasCtorAbs unhandled",x,y)
 
 
 followSelAbs :: Hite -> DataM SmallT -> Abstract a -> String -> Abstract a
@@ -125,13 +126,13 @@ followSelAbs hite datam (List b xs ys) name = assertNote "followSelAbs"
         Ctor cname args = getCtorFromArg hite name
 
 
-makeAbs :: Show a => DataM SmallT -> CtorName -> [Abstract a] -> Abstract a
+makeAbs :: (Eq a, Show a) => DataM SmallT -> CtorName -> [Abstract a] -> Abstract a
 makeAbs datam name args = assert (length as == length args) $
         foldr f (addBase void) (zip as args)
     where
         addBase (List b xs ys) = List b (xs !!! (i, Bit True)) ys
         
-        f :: Show a => (SmallT, Abstract a) -> Abstract a -> Abstract a
+        f :: (Eq a, Show a) => (SmallT, Abstract a) -> Abstract a -> Abstract a
         f (FreeS i, b) (List x x1 x2) = List x (x1 !!! (ii, unionAbs [b, x1 !! ii])) x2
             where ii = i + length ctrs
         
