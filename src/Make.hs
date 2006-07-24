@@ -52,16 +52,16 @@ make x = do ensureDirectory "Cache"
             MdHite res <- General.Make.make (final:datas++parts++exist) ("Cache/" ++ src ++ ".hite")
             return res
     where
-        crData file get = do let MdCore (Core name items) = get $ "Cache/" ++ file ++ ".core"
-                             return $ MdCore $ Core name $ filter isCoreData items
+        crData file get = do let MdCore (Core name dep items) = get $ "Cache/" ++ file ++ ".core"
+                             return $ MdCore $ Core name dep $ filter isCoreData items
             
         crPart file dep get = return $ MdHite $ Hite (filter validData datas) funcs
             where
                 Hite datas funcs = coreHite res
                 validData dat = not (dataName dat `elem` addDatas)
-                addDatas = [name | Core _ x <- cores, CoreData name _ <- x]
-                res = Core name (concatMap (\(Core _ x) -> x) cores ++ dat)
-                (Core name dat) = fromMdCore $ get $ "Cache/" ++ file ++ ".core"
+                addDatas = [name | Core _ _ x <- cores, CoreData name _ _ <- x]
+                res = Core name [] (concatMap (\(Core _ _ x) -> x) cores ++ dat)
+                (Core name _ dat) = fromMdCore $ get $ "Cache/" ++ file ++ ".core"
                 cores = map (\x -> fromMdCore $ get $ "Cache/" ++ x ++ ".data") dep
             
         rdHite src = readCacheHite src >>= return . MdHite

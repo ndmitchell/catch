@@ -8,7 +8,7 @@ import qualified Data.Map as Map
 import List
 
 coreReachable :: Core -> Core
-coreReachable (Core n x) = Core n (f True Set.empty Set.empty Map.empty x)
+coreReachable (Core n d x) = Core n d (f True Set.empty Set.empty Map.empty x)
     where
         -- f False    []   xs = filter isCoreData xs
 

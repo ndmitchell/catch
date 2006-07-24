@@ -1,35 +1,8 @@
 
-module Core.Type where
+module Core.Type(module Core.CoreType, module Core.Type) where
 
--- stuff below copied from Yhc.Core
+import Core.CoreType
 
-data Core = Core String [CoreItem]
-            deriving (Show, Read)
-
-
-data CoreItem = CoreFunc CoreExpr CoreExpr
-              | CoreData String [CoreCtor]
-                deriving (Show, Read, Eq)
-
-
--- Name, then list of maybe field names
-data CoreCtor = CoreCtor String [Maybe String]
-                deriving (Show, Read, Eq)
-
-
-data CoreExpr = CoreCon String
-              | CoreVar String
-              | CoreApp CoreExpr [CoreExpr]
-              | CoreInt Int
-              | CoreInteger Integer
-              | CoreChr Char
-              | CoreStr String
-              | CoreCase CoreExpr [(CoreExpr,CoreExpr)]
-              | CoreLet [CoreItem] CoreExpr
-              | CorePos String CoreExpr
-                deriving (Show, Read, Eq)
-
--- stop copied
 
 isCoreData (CoreData {}) = True
 isCoreData _ = False
@@ -48,8 +21,8 @@ instance PlayCore a => PlayCore [a] where
 
 
 instance PlayCore Core where
-    mapCore f (Core n x) = Core n $ mapCore f x
-    allCore (Core n x) = allCore x
+    mapCore f (Core n d x) = Core n d $ mapCore f x
+    allCore (Core n d x) = allCore x
 
 
 instance PlayCore CoreItem where

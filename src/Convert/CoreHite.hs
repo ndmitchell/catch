@@ -11,7 +11,7 @@ import General.General
 
 
 coreHite :: Core -> Hite
-coreHite (Core n xs) = Hite newData (concatMap (convFunc newData) funcs)
+coreHite (Core n d xs) = Hite newData (concatMap (convFunc newData) funcs)
     where
         (datas, funcs) = partition isCoreData xs
         newData = map convData datas
@@ -43,12 +43,12 @@ letExpand x = mapCore f x
 
 
 convData :: CoreItem -> Data
-convData (CoreData dname ctors) = Data dname (map f ctors)
+convData (CoreData dname typ ctors) = Data dname (map f ctors)
     where
         f (CoreCtor cname args) = Ctor cname (zipWith g [1..] args)
             where
-                g n (Just x) = x
-                g n Nothing = dname ++ "_" ++ cname ++ "_" ++ show n
+                g n (t, Just x) = x
+                g n (t, Nothing) = dname ++ "_" ++ cname ++ "_" ++ show n
 
 
 

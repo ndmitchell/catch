@@ -165,7 +165,8 @@ getDataFromCtor hite name = headNote ("Hite.Type.getDataFromCtor, asking for " +
     [d | d <- datas hite, c <- ctors d, name == ctorName c]
 
 getCtorFromArg :: Hite -> CtorArg -> Ctor
-getCtorFromArg hite name = headNote "Hite.Type.getCtorFromArg" [c | d <- datas hite, c <- ctors d, name `elem` ctorArgs c]
+getCtorFromArg hite name = headNote ("Hite.Type.getCtorFromArg, " ++ name)
+    [c | d <- datas hite, c <- ctors d, name `elem` ctorArgs c]
 
 
 -- Compound, do common operations

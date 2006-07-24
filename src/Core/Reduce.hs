@@ -9,20 +9,20 @@ import Numeric
 import Char
 
 
-reduce (Core n x) = Core n $ map f x
+reduce (Core n d x) = Core n d $ map (f n) x
 
-f (CoreFunc a b) = CoreFunc (mapCore g a) (mapCore g b)
+f name (CoreFunc (CoreApp (CoreVar a) as) b) = CoreFunc (CoreApp a2 (mapCore g as)) (mapCore g b)
     where
+        a2 = CoreVar $ redName (if '.' `elem` a && any isKeyChar a then a else name ++ "." ++ a)
         g (CoreCon x) = CoreCon (redName x)
         g (CoreVar x) = CoreVar (redName x)
         g x = x
-
-f (CoreData n x) = CoreData (redName n) (map g x)
-    where
-        g (CoreCtor n xs) = CoreCtor (redName n) (map h xs)
         
-        h Nothing = Nothing
-        h (Just x) = Just (redName x)
+        isKeyChar x = isAlphaNum x || x `elem` "'_"
+
+f name (CoreData n t x) = CoreData (redName n) t (map g x)
+    where
+        g (CoreCtor n xs) = CoreCtor (redName n) xs
 
 
 redName "Preamble.." = "o"
