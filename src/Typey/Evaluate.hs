@@ -119,7 +119,7 @@ evalCall logger env@(hite,datam,funcm) stack func args
             res <- mapM (evalCall logger env (((func,args),x):stack) func) args2
             let res2 = unionAbs (x:res)
             if norep || res2 == x
-                then logger (pad ++ "= " ++ show x) >> return res2
+                then logger (pad ++ "= " ++ show res2) >> return res2
                 else g (n+1) res2
     
         f n x = do
@@ -127,7 +127,7 @@ evalCall logger env@(hite,datam,funcm) stack func args
             res <- evalExpr logger env (((func,args),x):stack) abody
             let res2 = unionAbs (x:res:[])
             if norep || res2 == x
-                then logger (pad ++ "= " ++ show x) >> return res2
+                then logger (pad ++ "= " ++ show res) >> return res2
                 else f (n+1) res2
     
         abody = exprToAExp (zip (funArgs fun) args) (funBody fun)
