@@ -63,7 +63,7 @@ pickSel :: Hite -> Expr -> CtorArg -> Expr
 pickSel hite x path = params !! pos
     where
         Make n params = getValue hite x
-        Ctor _ args = getCtor hite n
+        args = ctorArgs $ getCtor hite n
         pos = head [i | (i,a) <- zip [0..] args, a == path]
 
 

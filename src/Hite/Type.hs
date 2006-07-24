@@ -27,10 +27,10 @@ type FuncArg  = String
 data Hite = Hite {datas :: [Data], funcs :: [Func]}
             deriving (Show, Read)
 
-data Data = Data {dataName :: DataName, ctors :: [Ctor]}
+data Data = Data {dataName :: DataName, ctors :: [Ctor], frees :: [String]}
             deriving (Show, Read)
 
-data Ctor = Ctor {ctorName :: CtorName, ctorArgs :: [CtorArg]}
+data Ctor = Ctor {ctorName :: CtorName, ctorArgs :: [CtorArg], types :: [String]}
           deriving (Eq, Show, Read)
 
 data Func = Func {funcName :: FuncName, funcArgs :: [FuncArg], body :: Expr, pos :: String}

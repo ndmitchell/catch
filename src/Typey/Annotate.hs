@@ -127,17 +127,17 @@ toHaskell (Hite datas funcs) = unlines $ prefix ++ concatMap fromData datas ++ c
     
     
         fromData :: Data -> [String]
-        fromData (Data name ctors) = if name == "Char" then [] else concatMap f ctors
+        fromData (Data name ctors _) = if name == "Char" then [] else concatMap f ctors
             where
-                f (Ctor name args) = ["int_is_" ++ encode name ++ " (" ++ enUpper name ++ " {}) = True"
-                                     ,"int_is_" ++ encode name ++ " _ = False"
-                                     ] ++ concat
-                                     [
-                                        ["int_go_" ++ encode nam ++ " " ++ lhs ++ " = a" ++ show num
-                                        ,"int_gm_" ++ encode nam ++ " (Just " ++ lhs ++ ") = Just a" ++ show num
-                                        ,"int_gm_" ++ encode nam ++ " _ = Nothing"]
-                                        | (num,nam) <- zip [1..] args
-                                     ]
+                f (Ctor name args _) = ["int_is_" ++ encode name ++ " (" ++ enUpper name ++ " {}) = True"
+                                       ,"int_is_" ++ encode name ++ " _ = False"
+                                       ] ++ concat
+                                       [
+                                          ["int_go_" ++ encode nam ++ " " ++ lhs ++ " = a" ++ show num
+                                          ,"int_gm_" ++ encode nam ++ " (Just " ++ lhs ++ ") = Just a" ++ show num
+                                          ,"int_gm_" ++ encode nam ++ " _ = Nothing"]
+                                          | (num,nam) <- zip [1..] args
+                                       ]
                     where lhs = "(" ++ enUpper name ++ concat [" a" ++ show n | n <- [1..length args]] ++ ")"
         
         fromFunc (Func name args (MCase opts) _) =

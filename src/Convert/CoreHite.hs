@@ -43,9 +43,9 @@ letExpand x = mapCore f x
 
 
 convData :: CoreItem -> Data
-convData (CoreData dname typ ctors) = Data dname (map f ctors)
+convData (CoreData dname typ ctors) = Data dname (map f ctors) typ
     where
-        f (CoreCtor cname args) = Ctor cname (zipWith g [1..] args)
+        f (CoreCtor cname args) = Ctor cname (zipWith g [1..] args) (map fst args)
             where
                 g n (t, Just x) = x
                 g n (t, Nothing) = dname ++ "_" ++ cname ++ "_" ++ show n
@@ -139,7 +139,7 @@ convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) =
                 dealMatch (CoreCon con) = dealMatch (CoreApp (CoreCon con) [])
                 dealMatch (CoreApp (CoreCon con) args) = (con,
                         [(v, Sel newOn x) | (CoreVar v, x) <- zip args sels])
-                    where (Ctor _ sels) = getCtor (Hite datas []) con
+                    where sels = ctorArgs $ getCtor (Hite datas []) con
                 
                 dealMatch x = error $ "Convert.CoreHite.dealMatch, " ++ show x
                 

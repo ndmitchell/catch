@@ -49,9 +49,9 @@ defunc bad_hite = Hite (newData ++ datas) (newFuncs ++ oldFuncs)
 
 
 generateData :: Hite -> [(FuncName, Int)] -> Data
-generateData hite xs = Data "%Ap" (map f xs)
+generateData hite xs = Data "%Ap" (map f xs) []
     where
-        f (name, size) = Ctor t [t ++ "_" ++ show i | i <- [1..size]]
+        f (name, size) = Ctor t [t ++ "_" ++ show i | i <- [1..size]] []
             where t = "%Ap_" ++ name ++ "_" ++ show size
 
 

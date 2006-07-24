@@ -20,6 +20,6 @@ instance Eq Hite where
         compareUnordered funcName fa fb
 
 instance Eq Data where
-    (Data na ca) == (Data nb cb) =
+    (Data na ca _) == (Data nb cb _) =
         na == nb &&
         compareUnordered ctorName ca cb

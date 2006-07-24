@@ -11,10 +11,14 @@ instance Output Hite where
     output (Hite datas funcs) = unlines (map output datas ++ map output funcs)
     
 instance Output Data where
-    output (Data name ctors) = "data " ++ name ++ " = " ++ concat (intersperse " | " $ map output ctors)
+    output (Data name ctors frees) =
+        "data " ++ name ++ concatMap (' ':) frees ++ " = " ++ 
+        (intercat " | " $ map output ctors)
     
 instance Output Ctor where
-    output (Ctor name args) = name ++ concatMap (' ':) args
+    output (Ctor name [] []) = name
+    output (Ctor name args types) = name ++ " {" ++ intercat ", " (zipWith f args types) ++ "}"
+        where f arg typ = arg ++ " :: " ++ typ
     
 instance Output Func where
     output (Func name args expr pos) =

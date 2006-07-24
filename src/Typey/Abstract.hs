@@ -128,7 +128,7 @@ followSelAbs hite datam (List b xs ys) name = assertNote "followSelAbs"
                                                    n2 == cname]
         
         i = fromJust $ elemIndex name args
-        Ctor cname args = getCtorFromArg hite name
+        Ctor cname args _ = getCtorFromArg hite name
 
 
 makeAbs :: (Eq a, Show a) => DataM SmallT -> CtorName -> [Abstract a] -> Abstract a

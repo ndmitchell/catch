@@ -12,7 +12,7 @@ cmd = cmdHitePure (const caseLift) "case-lift"
 caseLift :: Hite -> Hite
 caseLift hite = mapExpr f hite
     where
-        valid = [name | Data _ [Ctor name args] <- datas hite]
+        valid = [name | Data _ [Ctor name args _] _ <- datas hite]
         
         f (Case on [(lhs, rhs)]) | lhs `elem` valid = rhs
         f x = x
