@@ -4,17 +4,12 @@ module Hite.Cache(readCacheHite, writeCacheHite) where
 import Hite.Type
 import Directory
 import Monad
+import General.General
 
 
 readCacheHite :: FilePath -> IO Hite
 readCacheHite file = do src <- readFile file
-                        return $ safeRead "Failed while reading cached hite" src
-
-
-safeRead msg s = case reads s of
-                    [(x,"")] -> x
-                    _ -> error msg
-                    
+                        return $ readNote ("Failed while reading cached hite: " ++ file) src
 
 
 writeCacheHite :: Hite -> FilePath -> IO ()
