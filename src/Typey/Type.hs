@@ -82,6 +82,11 @@ mapLarge2T f x = f $ case x of
         Arr2T a b -> Arr2T (map (mapLarge2T f) a) (mapLarge2T f b)
         x -> x
 
+isHigherOrder :: Large2T -> Bool
+isHigherOrder (Arr2T _ _) = True
+isHigherOrder (Bind2T x xs) = any isHigherOrder (x:xs)
+isHigherOrder _ = False
+
 
 isRecursive (CtorT name xs) = any isSelf xs
 isSelf (Self) = True; isSelf _ = False

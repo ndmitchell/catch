@@ -30,15 +30,25 @@ data Function =
         }
 
 
-generateFunctions :: Hite -> FunctionM
-generateFunctions hite = map f (funcs hite)
+generateFunctions :: Hite -> Func2M -> FunctionM
+generateFunctions hite types = map f (funcs hite)
     where
-        f (Func name args body _) = (name, Function largs args isRec (map f args) body fast)
+        f (Func name args bod _) = (name, Function largs args requiresFix (map f args) bod fast)
             where
                 fast = canFastEval name
                 largs = length args
-                isRec = not $ null [() | Call _ _ <- allExpr body]
-                f x = (length [() | Var a <- allExpr body, a == x] > 1) && (not fast)
+                f x = (length [() | Var a <- allExpr bod, a == x] > 1) && (not fast)
+
+                typ = lookupJust name types
+                
+                isHigher = case typ of
+                               Arr2T xs res -> any isHigherOrder xs
+                               x -> False
+                
+                requiresFix = isHigher || (name `elem` callSet)
+                                
+                callSet = fixSet g (g name)
+                g name = [x | CallFunc x <- allExpr $ body $ getFunc hite name]
                 
 
 
@@ -70,7 +80,7 @@ fromValue (Value x) = x
 
 evaluate :: (String -> IO ()) -> Hite -> DataM SmallT -> Func2M -> [Abstract ()] -> IO (Abstract ())
 evaluate logger hite datam funcm args = do
-    res <- evalCall logger (hite, datam, generateFunctions hite) [] "main" (map liftAbs args)
+    res <- evalCall logger (hite, datam, generateFunctions hite funcm) [] "main" (map liftAbs args)
     return $ liftAbs res
 
 
