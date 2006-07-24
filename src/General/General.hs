@@ -77,6 +77,13 @@ assertNote msg False _ = error $ "Assertion failed: " ++ msg
 assertNote _ True x = x
 
 
+readNote :: Read a => String -> String -> a
+readNote msg s =  case [x | (x,t) <- reads s, ("","") <- lex t] of
+              [x] -> x
+              []  -> error $ "readNote: " ++ msg ++ " no parse: " ++ s
+              _   -> error $ "readNote: " ++ msg ++ " ambiguous parse: " ++ s
+
+
 
 lookupDef def val lst = case lookup val lst of
                             Nothing -> def
