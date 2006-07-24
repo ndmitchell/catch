@@ -92,6 +92,7 @@ permuteAExp x = [x]
 evalCall :: (String -> IO ()) -> Env -> Stack -> FuncName -> [AbstractA] -> IO AbstractA
 evalCall logger env@(hite,datam,funcm) stack func args
         | isJust prev = return $ fromJust prev
+        | func == "_" = return AbsAny
         | funFast fun = solveFast
         | length args2 == 1 = f 0 AbsVoid
         | otherwise = g 0 AbsVoid

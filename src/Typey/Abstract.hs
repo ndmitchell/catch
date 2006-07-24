@@ -14,6 +14,7 @@ data Abstract a = Bit Bool
                 | List Bool [Abstract a] [Abstract a]
                 | AbsBottom
                 | AbsVoid
+                | AbsAny -- any value except bottom
                 | AbsOther [a]
                 deriving Eq
 
@@ -25,6 +26,7 @@ instance Show a => Show (Abstract a) where
     show (Bit x) = if x then "1" else "0"
     show (AbsBottom) = "!"
     show (AbsVoid) = "#"
+    show (AbsAny) = "*"
     show (AbsOther x) = "(OTHER " ++ show x ++ ")"
     show (List b xs ys) = "[" ++ bot ++ concatMap show (xs++ys) ++ "]"
         where bot = if b then "!" else "_"
@@ -37,6 +39,7 @@ liftAbs (Bit x) = Bit x
 liftAbs (List b xs ys) = List b (map liftAbs xs) (map liftAbs ys)
 liftAbs AbsBottom = AbsBottom
 liftAbs AbsVoid = AbsVoid
+liftAbs AbsAny = AbsAny
 
 
 absBottom :: Abstract a -> Bool
@@ -65,6 +68,7 @@ unionAbsNote msg xs = foldr f AbsVoid xs
         f (Bit i) (Bit j) = Bit (i || j)
         f (AbsOther x) (AbsOther y) = AbsOther (nub $ x ++ y)
         f (List b1 xs1 ys1) (List b2 xs2 ys2) = List (b1||b2) (zipWithEq f xs1 xs2) (zipWithEq f ys1 ys2)
+        f (AbsAny) (AbsAny) = AbsAny
         f a b = error $ "unionAbs (" ++ msg ++ ") failed on " ++ show xs ++ " with " ++ show (a,b)
 
 
@@ -99,6 +103,7 @@ getAbstract datam x = f x
 
 
 hasCtorAbs :: Show a => DataM SmallT -> Abstract a -> CtorName -> Bool
+hasCtorAbs datam AbsAny _ = True
 hasCtorAbs datam AbsVoid _ = False
 hasCtorAbs datam (List b xs ys) name = fromBit (xs !! i)
     where
