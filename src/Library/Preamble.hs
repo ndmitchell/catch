@@ -99,6 +99,7 @@ flip f x y  = f y x
 undefined = error ""
 otherwise = True
 (.) f g x = f (g x)
+($) f x = f x
 fst (a,b) = a
 snd (a,b) = b
 id x = x
