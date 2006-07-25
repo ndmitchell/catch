@@ -20,9 +20,10 @@ f name (CoreFunc (CoreApp (CoreVar a) as) b) = CoreFunc (CoreApp a2 (mapCore g a
         
         isKeyChar x = isAlphaNum x || x `elem` "'_"
 
-f name (CoreData n t x) = CoreData (redName n) t (map g x)
+f name (CoreData n t x) = CoreData dname t (map g x)
     where
-        g (CoreCtor n xs) = CoreCtor (redName n) xs
+        dname = redName $ name ++ "." ++ n
+        g (CoreCtor n xs) = CoreCtor (redName $ name ++ "." ++ n) xs
 
 
 redName "Preamble.." = "o"
