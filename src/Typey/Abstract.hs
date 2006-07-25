@@ -15,6 +15,7 @@ data Abstract a = Bit Bool
                 | AbsBottom
                 | AbsVoid
                 | AbsAny -- any value except bottom
+                | AbsTop -- any valud including bottom
                 | AbsOther [a]
                 deriving Eq
 
@@ -26,7 +27,8 @@ instance Show a => Show (Abstract a) where
     show (Bit x) = if x then "1" else "0"
     show (AbsBottom) = "!"
     show (AbsVoid) = "#"
-    show (AbsAny) = "*"
+    show (AbsAny) = "+"
+    show (AbsTop) = "*" -- union Bottom and Any
     show (AbsOther x) = "(OTHER " ++ show x ++ ")"
     show (List b xs ys) = "[" ++ bot ++ concatMap show (xs++ys) ++ "]"
         where bot = if b then "!" else "_"
@@ -40,16 +42,19 @@ liftAbs (List b xs ys) = List b (map liftAbs xs) (map liftAbs ys)
 liftAbs AbsBottom = AbsBottom
 liftAbs AbsVoid = AbsVoid
 liftAbs AbsAny = AbsAny
+liftAbs AbsTop = AbsTop
 
 
 absBottom :: Abstract a -> Bool
 absBottom (AbsBottom) = True
+absBottom (AbsAny) = True
 absBottom (List b xs ys) = b || any absBottom (xs++ys)
 absBottom _ = False
 
 
 headBottom :: Abstract a -> Bool
 headBottom (AbsBottom) = True
+headBottom (AbsAny) = True
 headBottom (List b xs ys) = b
 headBottom _ = False
 
@@ -69,6 +74,10 @@ unionAbsNote msg xs = foldr f AbsVoid xs
         f (AbsOther x) (AbsOther y) = AbsOther (nub $ x ++ y)
         f (List b1 xs1 ys1) (List b2 xs2 ys2) = List (b1||b2) (zipWithEq f xs1 xs2) (zipWithEq f ys1 ys2)
         f (AbsAny) (AbsAny) = AbsAny
+        f AbsTop _ = AbsTop
+        f _ AbsTop = AbsTop
+        f AbsAny AbsBottom = AbsTop
+        f AbsBottom AbsAny = AbsTop
         f a b = error $ "unionAbs (" ++ msg ++ ") failed on " ++ show xs ++ " with " ++ show (a,b)
 
 
@@ -114,6 +123,7 @@ hasCtorAbs datam x y = error $ show ("hasCtorAbs unhandled",x,y)
 
 
 followSelAbs :: Hite -> DataM SmallT -> Abstract a -> String -> Abstract a
+followSelAbs hite datam AbsAny name = AbsAny
 followSelAbs hite datam (List b xs ys) name = assertNote "followSelAbs"
         (len - 1 == length (xs++ys) && length xs == lenHalf) $
         case as !! i of
