@@ -47,14 +47,14 @@ liftAbs AbsTop = AbsTop
 
 absBottom :: Abstract a -> Bool
 absBottom (AbsBottom) = True
-absBottom (AbsAny) = True
+absBottom (AbsTop) = True
 absBottom (List b xs ys) = b || any absBottom (xs++ys)
 absBottom _ = False
 
 
 headBottom :: Abstract a -> Bool
 headBottom (AbsBottom) = True
-headBottom (AbsAny) = True
+headBottom (AbsTop) = True
 headBottom (List b xs ys) = b
 headBottom _ = False
 
