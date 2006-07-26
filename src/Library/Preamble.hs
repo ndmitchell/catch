@@ -126,9 +126,7 @@ filter f [] = []
 filter f (x:xs) = if f x then x:res else res
     where res = filter f xs
 
-_filter f [] = []
-_filter f (x:xs) = if f x then x:res else res
-    where res = _filter f xs
+_filter b e r = if b then e r else r
 
 concat = foldr (++) []
 
