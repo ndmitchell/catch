@@ -284,6 +284,11 @@ traceNone args res = res
 
 
 
+lexes :: String -> [String]
+lexes x = case lex x of
+              [("","")] -> []
+              [(y,ys)] -> y : lexes ys
+
 
 
 (!!!) :: [a] -> (Int, a) -> [a]
