@@ -22,6 +22,7 @@ fastEval eval "map" [f, List b [n,c,x] [ns,cs,xs]] = do
     return $ List b [n,c,x2] [ns,cs,xs2]
 
 -- or is perfectly specified
+fastEval eval "or" [AbsVoid] = return AbsVoid
 fastEval eval "or" [List b [Bit n ,Bit c ,v ]
                            [Bit ns,Bit cs,vs]] = return res
     where
@@ -30,6 +31,8 @@ fastEval eval "or" [List b [Bit n ,Bit c ,v ]
         
         lift (x@List{}) = x
         lift AbsAny = List False [Bit True, Bit True] []
+        lift AbsVoid = List False [Bit False, Bit False] []
+        lift x = error $ "fastEval or failed with lift of: " ++ show x
         
                            
         res = List (b || b1 || b2)
