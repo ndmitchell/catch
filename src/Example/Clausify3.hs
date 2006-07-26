@@ -39,7 +39,7 @@ module Clausify(main) where
 -- import Ix -- 1.3
 -- import System
 
-main = clauses undefined {- do
+main x = clauses x {- do
   -- (n:_) <- getArgs
   putStr (res 3)
 
