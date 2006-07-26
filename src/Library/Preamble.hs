@@ -185,11 +185,11 @@ span p xs@(x:xs')
                        where (ys,zs) = span p xs'
 break p              = span (not . p)
 
-and        = foldr (&&) True
-or         = foldr (||) False
+and        x = foldr (&&) True x
+or         x = foldr (||) False x
 
-any p      = or  . map p
-all p      = and . map p
+any p x = or  (map p x)
+all p x = and (map p x)
 
 elem              = any . (==)
 notElem           = all . (/=)
