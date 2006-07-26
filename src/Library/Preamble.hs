@@ -400,10 +400,12 @@ _fromEnum x = catch_any
 -- Prelude.Monad
 --
 
+-- its very important to match the same order as Yhc for
+-- these definitions
 class Preamble_Monad m where
-    return :: a -> m a
     (>>=)  :: m a -> (a -> m b) -> m b
     (>>)   :: m a -> m b -> m b
+    return :: a -> m a
     fail   :: String -> m a
 
     -- Minimal complete definition: (>>=), return
