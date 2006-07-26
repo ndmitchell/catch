@@ -81,6 +81,14 @@ unionAbsNote msg xs = foldr f AbsVoid xs
         f a b = error $ "unionAbs (" ++ msg ++ ") failed on " ++ show xs ++ " with " ++ show (a,b)
 
 
+-- consider it as union with AbsAny, but keeping the type structure
+makeAny :: Show a => Abstract a -> Abstract a
+makeAny (Bit i) = Bit True
+makeAny (List b xs ys) = List b (map makeAny xs) (map makeAny ys)
+makeAny AbsVoid = AbsAny
+makeAny x = error $ "Abstract.makeAny: " ++ show x
+
+
 permuteAbs :: Abstract a -> [Abstract a]
 permuteAbs x@(List b xs ys)
         | lts <= 1 = [x]
@@ -152,6 +160,9 @@ makeAbs datam name args = assert (length as == length args) $
             where ii = i + length ctrs
         
         f (Self, AbsVoid) x = x
+        
+        f (Self, AbsAny) (List bx xs1 xs2) = List bx xs1 (map makeAny xs2)
+        
         f (Self, List b bs1 bs2) (List bx xs1 xs2) = List (b||bx) xs1 bss
             where bss = map unionAbs $ transpose [bs1, bs2, xs2]
 
