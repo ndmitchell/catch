@@ -74,6 +74,7 @@ abstractp
 	const-lift
 	error-call
 	string-expand
+	ctor-collapse
 	reachable
 
 abstract *Use abstract evaluation
