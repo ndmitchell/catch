@@ -45,11 +45,24 @@ letExpand x = mapCore f x
 convData :: CoreItem -> Data
 convData (CoreData dname typ ctors) = Data dname (map f ctors) typ
     where
-        f (CoreCtor cname args) = Ctor cname (zipWith g [1..] args) (map fst args)
+        f (CoreCtor cname args) = Ctor cname (zipWith g [1..] $ map snd args) (map (convType . fst) args)
             where
-                g n (t, Just x) = x
-                g n (t, Nothing) = dname ++ "_" ++ cname ++ "_" ++ show n
+                g n (Just x) = x
+                g n (Nothing) = dname ++ "_" ++ cname ++ "_" ++ show n
 
+
+-- hacky, will work a bit
+convType :: String -> TyType
+convType "" = TyNone
+convType ('(':xs) = convType (init xs)
+convType x = f (words x)
+    where
+        f [x] | isLower (head x) = TyFree x
+        f (x:xs) = TyCon (g x) (map TyFree xs)
+        
+        g x | "Prelude."  `isPrefixOf` x = drop 8 x
+            | "Preamble." `isPrefixOf` x = drop 9 x
+            | otherwise = x
 
 
 getPos :: CoreExpr -> Maybe String

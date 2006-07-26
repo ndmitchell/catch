@@ -18,7 +18,7 @@ instance Output Data where
 instance Output Ctor where
     output (Ctor name [] []) = name
     output (Ctor name args types) = name ++ " {" ++ intercat ", " (zipWith f args types) ++ "}"
-        where f arg typ = arg ++ " :: " ++ typ
+        where f arg typ = arg ++ " :: " ++ output typ
     
 instance Output Func where
     output (Func name args expr pos) =
@@ -64,3 +64,9 @@ instance Output MCaseAlt where
     
 instance Output MCaseOpt where
     output (MCaseOpt expr ctor) = output expr ++ "{" ++ ctor ++ "}"
+
+instance Output TyType where
+    output x = f False x
+        where
+            f b (TyFree x) = x
+            f b (TyCon n xs) = ['('|b] ++ n ++ concatMap ((' ':) . f True) xs ++ [')'|b]

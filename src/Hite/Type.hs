@@ -30,7 +30,7 @@ data Hite = Hite {datas :: [Data], funcs :: [Func]}
 data Data = Data {dataName :: DataName, ctors :: [Ctor], frees :: [String]}
             deriving (Show, Read)
 
-data Ctor = Ctor {ctorName :: CtorName, ctorArgs :: [CtorArg], types :: [String]}
+data Ctor = Ctor {ctorName :: CtorName, ctorArgs :: [CtorArg], types :: [TyType]}
           deriving (Eq, Show, Read)
 
 data Func = Func {funcName :: FuncName, funcArgs :: [FuncArg], body :: Expr, pos :: String}
@@ -58,6 +58,12 @@ data MCaseOpt = MCaseOpt Expr CtorName
 
 data MCaseAlt = MCaseAlt (Pred MCaseOpt) Expr
                 deriving (Eq, Show, Read)
+
+data TyType = TyCon String [TyType]
+            | TyFree String
+            | TyNone
+            deriving (Eq, Show, Read)
+
 
 instance PredLit MCaseOpt where
     a ?=> b = a == b
