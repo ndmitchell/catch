@@ -144,8 +144,9 @@ reverse xs = reverse_acc xs []
 foldr f z []      = z
 foldr f z (x:xs)  = f x (foldr f z xs)
 
-_foldr f z []      = z
-_foldr f z (x:xs)  = f x (_foldr f z xs)
+-- NOTE! Different argument orders, this is just STUPID!!!
+_foldr f [] d = d
+_foldr f ((:) x xs) d = f x (_foldr f xs d)
 
 foldr1 f [x]      = x
 foldr1 f (x:xs)   = f x (foldr1 f xs)
