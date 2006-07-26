@@ -89,7 +89,7 @@ prefix =
         ,"data " ++ enUpper "Bool" ++ " = " ++ enUpper "True" ++ " | " ++ enUpper "False"
         ,"data " ++ enUpper "Compare" ++ " = " ++ intercat " | " (map enUpper ["EQ","LT","GT"])
         ] ++
-        map makeTuple [1..8]
+        map makeTuple [0..8]
     where
         makeTuple n = "data " ++ tup ++ letters ++ " = " ++ tup ++ letters
             where
