@@ -52,6 +52,8 @@ zipWithRest :: (a -> a -> a) -> [a] -> [a] -> [a]
 zipWithRest f (x:xs) (y:ys) = f x y : zipWithRest f xs ys
 zipWithRest f xs ys = xs ++ ys
 
+singleton [x] = True
+singleton _ = False
 
 
 ---------------------------------------------------------------------
@@ -149,8 +151,9 @@ subset xs ys = all (`elem` ys) xs
 ---------------------------------------------------------------------
 -- EXTRACT VERSIONS
 
-
-
+nubExtract :: Eq b => (a -> b) -> [a] -> [a]
+nubExtract f xs = nubBy cmp xs
+    where cmp a b = f a == f b
 
 sortExtract :: Ord b => (a -> b) -> [a] -> [a]
 sortExtract f xs = map snd $ sortBy cmp [(f x, x) | x <- xs]
