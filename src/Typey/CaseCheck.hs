@@ -16,18 +16,17 @@ import General.General
 typeyCaseCheck :: String -> Handle -> Hite -> IO Bool
 typeyCaseCheck file hndl hite =
     do funcT <- annotate file hite
-       dataT <- return []
-       (dataT, funcT) <- return $ liftData dataT funcT
+       (dataT, funcT) <- return $ liftData hite funcT
        typeySolve file hndl hite dataT funcT
 
 
 typeyHoCaseCheck :: String -> Handle -> Hite -> IO Bool
 typeyHoCaseCheck file hndl hite =
     do funcT <- annotate2 file hite
-       typeySolve2 file hndl hite getDatas funcT
+       typeySolve2 file hndl hite (getDatas hite) funcT
 
 
 abstractCaseCheck :: String -> Handle -> Hite -> IO Bool
 abstractCaseCheck file hndl hite =
     do funcT <- annotate2 file hite
-       typeySolve3 file hndl hite getDatas funcT
+       typeySolve3 file hndl hite (getDatas hite) funcT

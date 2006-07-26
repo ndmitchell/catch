@@ -1,6 +1,7 @@
 
 module Typey.LiftData(liftData, getDatas) where
 
+import Hite
 import Typey.Type
 
 
@@ -14,9 +15,9 @@ injectData = [("Bool",DataT 0 [CtorT "True" [], CtorT "False" []])
             where
                 tup = "Tup" ++ show n
 
-liftData :: DataM LargeT -> FuncM -> (DataM SmallT, FuncM)
-liftData datas funcs = (injectData, funcs)
+liftData :: Hite -> FuncM -> (DataM SmallT, FuncM)
+liftData hite funcs = (getDatas hite, funcs)
 
 
-getDatas :: DataM SmallT
-getDatas = injectData
+getDatas :: Hite -> DataM SmallT
+getDatas x = injectData
