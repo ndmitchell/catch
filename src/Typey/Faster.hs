@@ -9,7 +9,7 @@ import Typey.Abstract
 
 
 canFastEval :: FuncName -> Bool
-canFastEval x = x `elem` ["map"] -- , "++"]
+canFastEval x = x `elem` ["map", "or"] -- , "++"]
 
 
 fastEval :: (Eq a, Show a) => ([Abstract a] -> IO (Abstract a)) -> FuncName -> [Abstract a] -> IO (Abstract a)
@@ -20,6 +20,23 @@ fastEval eval "map" [f, List b [n,c,x] [ns,cs,xs]] = do
     x2 <- eval [f,x]
     xs2 <- eval [f,xs]
     return $ List b [n,c,x2] [ns,cs,xs2]
+
+-- or is perfectly specified
+fastEval eval "or" [List b [Bit n ,Bit c ,v ]
+                           [Bit ns,Bit cs,vs]] = return res
+    where
+        List b1 [Bit f ,Bit t ] [] = lift v
+        List b2 [Bit fs,Bit ts] [] = lift vs
+        
+        lift (x@List{}) = x
+        lift AbsAny = List False [Bit True, Bit True] []
+        
+                           
+        res = List (b || b1 || b2)
+                   [(Bit (n || (not t && not ts)))
+                   ,(Bit (t || ts))]
+                   []
+ 
  
 -- ++ is reasonable, but a little bit general in some cases
 -- mainly in the x cases, I think
