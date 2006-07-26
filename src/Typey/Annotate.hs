@@ -85,20 +85,7 @@ getCommands hite = unlines $ map f (funcs hite)
 prefix = 
         ["int_may f Nothing = False"
         ,"int_may f (Just x) = f x"
-        ,"data " ++ box ++ " a = " ++ box ++ " | " ++ colon ++ " a (" ++ box ++ " a)"
-        ,"data " ++ enUpper "Bool" ++ " = " ++ enUpper "True" ++ " | " ++ enUpper "False"
-        ,"data " ++ enUpper "Compare" ++ " = " ++ intercat " | " (map enUpper ["EQ","LT","GT"])
-        ] ++
-        map makeTuple [0..8]
-    where
-        makeTuple n = "data " ++ tup ++ letters ++ " = " ++ tup ++ letters
-            where
-                tup = enUpper $ "Tup" ++ show n
-                letters = ' ' : (intersperse ' ' $ take n ['a'..])
-
-        colon = enUpper ":"
-        box = enUpper "[]"
-
+        ]
 
 enUpper x = "CATCH_" ++ encode x
 enLower x = "catch_" ++ encode x
@@ -124,11 +111,17 @@ decode x = f $ g $ dropWhile (/= '_') x
 toHaskell :: Hite -> String
 toHaskell (Hite datas funcs) = unlines $ prefix ++ concatMap fromData datas ++ concatMap fromFunc funcs
     where
-    
-    
         fromData :: Data -> [String]
-        fromData (Data name ctors _) = if name == "Char" then [] else concatMap f ctors
+        fromData (Data name ctors frees) = dataDefn : concatMap f ctors
             where
+                dataDefn = "data " ++ enUpper name ++ concatMap (' ':) frees ++ " = " ++ intercat " | " (map g ctors)
+                
+                g (Ctor name _ ty) = enUpper name ++ concatMap ((' ':) . h) ty
+                
+                h (TyCon x xs) = "(" ++ enUpper x ++ concatMap ((' ':) . h) xs ++ ")"
+                h (TyFree x) = x
+                
+            
                 f (Ctor name args _) = ["int_is_" ++ encode name ++ " (" ++ enUpper name ++ " {}) = True"
                                        ,"int_is_" ++ encode name ++ " _ = False"
                                        ] ++ concat
