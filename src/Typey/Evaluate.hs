@@ -8,13 +8,44 @@ import General.General
 import Data.Maybe
 import Typey.Faster
 
+import Data.IORef
+import qualified Data.Map as Map
 
 type AbstractA = Abstract AExp
 
 
-type Env = (Hite, DataM SmallT, FunctionM)
+type Env = (Hite, DataM SmallT, FunctionM, Cache)
 type Stack = [((FuncName, [AbstractA]), AbstractA)]
 
+type Cache = IORef (Map.Map FuncName [([AbstractA], AbstractA)])
+
+
+newCache :: IO Cache
+newCache = newIORef Map.empty
+
+getCache :: Cache -> FuncName -> [AbstractA] -> IO (Maybe AbstractA)
+getCache cache func args = do
+    c <- readIORef cache
+    case Map.lookup func c of
+        Nothing -> return Nothing
+        Just x -> case lookup args x of
+                      Nothing -> return Nothing
+                      Just x -> do putStrLn $ "Cache hit, " ++ show (func,args,x)
+                                   return $ Just x
+
+addCache :: Cache -> FuncName -> [AbstractA] -> AbstractA -> IO ()
+addCache cache func args res = return ()
+addCache cache func args res = do
+    putStrLn $ "Cache add, " ++ show (func,args,res)
+    c <- readIORef cache
+    let c2 = Map.insertWith (++) func [(args,res)] c
+    writeIORef cache c2
+
+
+dumpCache :: (String -> IO ()) -> Cache -> IO ()
+dumpCache logger cache = do
+    c <- readIORef cache
+    logger $ show $ Map.toList c
 
 
 type FunctionM = [(FuncName,Function)]
@@ -80,7 +111,9 @@ fromValue (Value x) = x
 
 evaluate :: (String -> IO ()) -> Hite -> DataM SmallT -> Func2M -> [Abstract ()] -> IO (Abstract ())
 evaluate logger hite datam funcm args = do
-    res <- evalCall logger (hite, datam, generateFunctions hite funcm) [] "main" (map liftAbs args)
+    c <- newCache
+    res <- evalCall logger (hite, datam, generateFunctions hite funcm, c) [] "main" (map liftAbs args)
+    dumpCache logger c
     return $ liftAbs res
 
 
@@ -90,18 +123,29 @@ permuteAExp x = [x]
 
 
 evalCall :: (String -> IO ()) -> Env -> Stack -> FuncName -> [AbstractA] -> IO AbstractA
-evalCall logger env@(hite,datam,funcm) stack func args
+evalCall logger env@(hite,datam,funcm,cache) stack func args
         | isJust prev = return $ fromJust prev
         | func == "_" = return AbsAny
         | funFast fun = solveFast
-        | length args2 == 1 = f 0 AbsVoid
-        | otherwise = g 0 AbsVoid
+        | otherwise = solveSlow
     where
         solveFast = do
             logger $ msg 0 ++ "(fast)"
             res <- fastEval doEval func args
             logger $ pad ++ "= " ++ show res
             return res
+
+        solveSlow = do
+            ca <- getCache cache func args
+            case ca of
+                Just r -> return r
+                Nothing -> do
+                    res <- if length args2 == 1
+                              then f 0 AbsVoid
+                              else g 0 AbsVoid
+                    addCache cache func args res
+                    return res
+
     
         -- the fast eval helper
         doEval :: [AbstractA] -> IO AbstractA
@@ -137,7 +181,7 @@ evalCall logger env@(hite,datam,funcm) stack func args
 
 
 evalExpr :: (String -> IO ()) -> Env -> Stack -> AExp -> IO AbstractA
-evalExpr logger env@(hite,datam,funcm) stack x =
+evalExpr logger env@(hite,datam,funcm,cache) stack x =
     case x of
         ACall (AFunc name) args -> do
             args2 <- mapM f args
@@ -206,7 +250,7 @@ addValue x = Value x
 
 
 eval :: Env -> [(String, AbstractA )] -> Expr -> AbstractA
-eval env@(hite,datam,funcm) args expr =
+eval env@(hite,datam,funcm,cache) args expr =
     case expr of
         Call (CallFunc name) params -> eval env (zip (funArgs func) args2) (funBody func)
             where
