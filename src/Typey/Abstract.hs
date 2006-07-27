@@ -17,7 +17,13 @@ data Abstract a = Bit Bool
                 | AbsAny -- any value except bottom
                 | AbsTop -- any valud including bottom
                 | AbsOther [a]
+                | AbsFunc (AbsFunc a)
                 deriving Eq
+
+data AbsFunc a = AbsFuncName FuncName
+               | AbsFuncUnion [AbsFunc a]
+               | AbsApply (AbsFunc a) [Abstract a]
+               deriving Eq
 
 
 fromBit (Bit x) = x
@@ -28,11 +34,16 @@ instance Show a => Show (Abstract a) where
     show (AbsBottom) = "!"
     show (AbsVoid) = "#"
     show (AbsAny) = "+"
+    show (AbsFunc x) = show x
     show (AbsTop) = "*" -- union Bottom and Any
     show (AbsOther x) = "(OTHER " ++ show x ++ ")"
     show (List b xs ys) = "[" ++ bot ++ concatMap show (xs++ys) ++ "]"
         where bot = if b then "!" else "_"
 
+instance Show a => Show (AbsFunc a) where
+    show (AbsFuncName x) = x
+    show (AbsFuncUnion xs) = show xs
+    show (AbsApply f xs) = "(" ++ show f ++ concatMap ((' ':) . show) xs ++ ")"
 
 
 -- basically assert that there are no other statements
