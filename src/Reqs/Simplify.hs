@@ -47,9 +47,10 @@ simpMore x = mapPredLit f x
 
 
 (Req a1 b1 c1 hite) $!/\ (Req a2 b2 c2 _)
-    | a1 == a2 && c1 `setEq` c2
-        = Single $ Req a1 (b1 `pathUnion` b2) c1 hite
+    | a1 == a2 && c1 `setEq` c2 && isJust b0
+        = Single $ Req a1 (fromJust b0) c1 hite
     | otherwise = Same
+        where b0 = b1 `pathUnion` b2
 
 
 
