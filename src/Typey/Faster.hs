@@ -7,14 +7,18 @@ module Typey.Faster(canFastEval, fastEval) where
 import Hite
 import Typey.Abstract
 
+fakeFast = [] -- ["subset","dif","insert"]
+
 
 canFastEval :: FuncName -> Bool
-canFastEval x = x `elem` ["map", "or"] -- , "++"]
+canFastEval x = x `elem` (["map", "or"] ++ fakeFast)
 
 
 fastEval :: (Eq a, Show a) => ([Abstract a] -> IO (Abstract a)) -> FuncName -> [Abstract a] -> IO (Abstract a)
 
 -- map is perfectly specified
+fastEval eval "map" [f, AbsAny] = fastEval eval "map" [f, full]
+    where full = List False [Bit True, Bit True, AbsAny] [Bit True, Bit True, AbsAny]
 fastEval eval "map" [f, AbsVoid] = return $ AbsVoid
 fastEval eval "map" [f, List b [n,c,x] [ns,cs,xs]] = do
     x2 <- eval [f,x]
@@ -54,5 +58,8 @@ fastEval eval "++" [List b1 [Bit n1,Bit c1,x1] [Bit ns1,Bit cs1,xs1]
         ,Bit (cs1 || c2 || cs2)
         ,(unionAbs [x1,xs1,x2,xs2])]
           
+
+fastEval eval x _ | x `elem` fakeFast = return AbsAny
+
 
 fastEval _ f xs = error $ "Can't fastEval " ++ f ++ " " ++ show xs

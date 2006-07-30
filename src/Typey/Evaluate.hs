@@ -6,7 +6,9 @@ import Typey.Abstract
 import Hite
 import General.General
 import Data.Maybe
+import Data.List
 import Typey.Faster
+import Control.Monad
 
 import Data.IORef
 import qualified Data.Map as Map
@@ -30,13 +32,13 @@ getCache cache func args = do
         Nothing -> return Nothing
         Just x -> case lookup args x of
                       Nothing -> return Nothing
-                      Just x -> do putStrLn $ "Cache hit, " ++ show (func,args,x)
+                      Just x -> do return () -- putStrLn $ "Cache hit, " ++ show (func,args,x)
                                    return $ Just x
 
 addCache :: Cache -> FuncName -> [AbstractA] -> AbstractA -> IO ()
-addCache cache func args res = return ()
+-- addCache cache func args res = return ()
 addCache cache func args res = do
-    putStrLn $ "Cache add, " ++ show (func,args,res)
+    -- putStrLn $ "Cache add, " ++ show (func,args,res)
     c <- readIORef cache
     let c2 = Map.insertWith (++) func [(args,res)] c
     writeIORef cache c2
@@ -54,6 +56,7 @@ data Function =
     Function {
         funArgLen :: Int,
         funArgs :: [String],
+        funCallset :: [FuncName], -- the functions i call
         funFixpoint :: Bool, -- do I need to fixed point
         funArgsPower :: [Bool], -- do I need to take the power of these arguments
         funBody :: Expr,
@@ -64,7 +67,9 @@ data Function =
 generateFunctions :: Hite -> Func2M -> FunctionM
 generateFunctions hite types = map f (funcs hite)
     where
-        f (Func name args bod _) = (name, Function largs args requiresFix (map f args) bod fast)
+        f (Func name args bod _) = (name,
+                Function largs args callSet requiresFix (map f args) bod fast
+                )
             where
                 fast = canFastEval name
                 largs = length args
@@ -82,6 +87,16 @@ generateFunctions hite types = map f (funcs hite)
                 g name = [x | CallFunc x <- allExpr $ body $ getFunc hite name]
                 
 
+absFuncAExp :: AbstractA -> [FuncName]
+absFuncAExp x = absFunc f x
+    where
+        f (Value x) = absFuncAExp x
+        f (ASel x y) = f x
+        f (AMake x y) = concatMap f y
+        f (AFunc x) = [x]
+        f (ACall x xs) = concatMap f (x:xs)
+        f (Union xs) = concatMap f xs
+        f (ACase x y) = concatMap f (x:map snd y)
 
 
 data AExp = Value AbstractA
@@ -129,20 +144,27 @@ evalCall logger env@(hite,datam,funcm,cache) stack func args
         | funFast fun = solveFast
         | otherwise = solveSlow
     where
+        cacheSafe = not $ any (`elem` stackSet) thisCallset
+            where
+                stackSet = map (fst . fst) stack
+                thisCallset = nub $ funCallset fun ++ concatMap absFuncAExp args
+    
         solveFast = do
             logger $ msg 0 ++ "(fast)"
             res <- fastEval doEval func args
             logger $ pad ++ "= " ++ show res
             return res
+            
+        solveSlow = if cacheSafe then solveCache else solveNoCache
 
-        solveSlow = do
+        solveNoCache = if length args2 == 1 then f 0 AbsVoid else g 0 AbsVoid
+
+        solveCache = do
             ca <- getCache cache func args
             case ca of
                 Just r -> return r
                 Nothing -> do
-                    res <- if length args2 == 1
-                              then f 0 AbsVoid
-                              else g 0 AbsVoid
+                    res <- solveNoCache
                     addCache cache func args res
                     return res
 

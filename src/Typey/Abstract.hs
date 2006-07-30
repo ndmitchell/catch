@@ -56,6 +56,18 @@ liftAbs AbsAny = AbsAny
 liftAbs AbsTop = AbsTop
 
 
+absFunc :: (a -> [FuncName]) -> Abstract a -> [FuncName]
+absFunc f (List _ a b) = concatMap (absFunc f) (a++b)
+absFunc f (AbsOther xs) = concatMap f xs
+absFunc f (AbsFunc x) = g x
+    where
+        g (AbsFuncName x) = [x]
+        g (AbsFuncUnion x) = concatMap g x
+        g (AbsApply x xs) = g x ++ concatMap (absFunc f) xs
+absFunc f x = []
+
+
+
 absBottom :: Abstract a -> Bool
 absBottom (AbsBottom) = True
 absBottom (AbsTop) = True
@@ -85,6 +97,8 @@ unionAbsNote msg xs = foldr f AbsVoid xs
         f (AbsOther x) (AbsOther y) = AbsOther (nub $ x ++ y)
         f (List b1 xs1 ys1) (List b2 xs2 ys2) = List (b1||b2) (zipWithEq f xs1 xs2) (zipWithEq f ys1 ys2)
         f (AbsAny) (AbsAny) = AbsAny
+        f AbsAny x@(List{}) = makeAny x
+        f x@(List{}) AbsAny = makeAny x
         f AbsTop _ = AbsTop
         f _ AbsTop = AbsTop
         f AbsAny AbsBottom = AbsTop

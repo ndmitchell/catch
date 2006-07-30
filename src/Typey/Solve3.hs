@@ -24,7 +24,7 @@ typeySolve3 file hndl hite datam funcm =
         outBoth $ "main result: " ++ show res
         outBoth $ if bot then "Failure" else "Success"
         
-        when bot $ do
+        when (False && bot) $ do
             putStrLn "Searching for a minimal failing example"
             minimalFail hite datam funcm baseT
             return ()
