@@ -56,6 +56,9 @@ singleton [x] = True
 singleton _ = False
 
 
+fromRight (Right x) = x
+fromLeft  (Left  x) = x
+
 ---------------------------------------------------------------------
 -- SAFE VERSIONS
 
