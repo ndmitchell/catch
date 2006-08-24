@@ -27,6 +27,7 @@ import Checker.Statistics
 import Graph.CaseCheck
 import Subst.CaseCheck
 import Typey.CaseCheck
+import Train.Driver
 
 
 import General.Commands
@@ -60,7 +61,8 @@ terminals = [("safe-patterns",term "safe-patterns" caseCheck),
              ("subst-patterns",term "subst-patterns" substCaseCheck),
              ("typey-patterns",term "typey-patterns" typeyCaseCheck),
              ("typeyho-patterns",term "typeyho-patterns" typeyHoCaseCheck),
-             ("abstract-patterns", term "abstract-patterns" abstractCaseCheck)
+             ("abstract-patterns", term "abstract-patterns" abstractCaseCheck),
+             ("train-patterns", term "train-patterns" trainDriver)
              {- ,
              ("statistics", \a b -> statistics) -} ]
 

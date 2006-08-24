@@ -31,6 +31,12 @@ case *Try to prove a program is free from pattern match errors
 	prepare
 	safe-patterns
 
+train *Pattern match detection, designed on a train
+	prepare
+	error-call
+	reachable
+	train-patterns
+
 ncase *Find the circumstances under which a program will definately crash
 	prepare
 	unsafe-patterns
