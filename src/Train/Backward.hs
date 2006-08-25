@@ -13,11 +13,14 @@ import Data.Predicate
 
 backward :: ZHite -> Template -> Handle -> Scopes -> IO Scopes
 backward zhite template hndl x = do
-		hPutStrLn hndl ("Solving: " ++ output x)
+		outBoth $ "Solving: " ++ output x
 		res <- mapPredLitM f x
-		hPutStrLn hndl $ "Result: " ++ output res
+		outBoth $ "Result: " ++ output res
+		
 		return res
 	where
+		outBoth x = hPutStrLn hndl x >> putStrLn x
+	
 		f scope = do
 			scope2 <- backs scope
 			fixp predTrue g scope2
@@ -25,7 +28,6 @@ backward zhite template hndl x = do
 		g (Scope "main" x) gen = return $ predLit $ Scope "main" x
 
 		g scope gen = do
-			putStrLn $ "Propagate: " ++ output scope
 			let scopes = propagate zhite scope
 			mapPredLitM (\x -> backs x >>= gen) scopes
 		
