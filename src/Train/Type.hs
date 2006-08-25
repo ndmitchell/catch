@@ -68,12 +68,12 @@ instance PredLitNot Req where
 
 
 instance Output ZExpr where
-	output x = output $ f x
-		where
-			f (ZCall x xs) = Call (CallFunc x) (map f xs)
-			f (ZMake x xs) = Make x (map f xs)
-			f (ZSel x y) = Sel (f x) y
-			f (ZVar x) = Var x
+	output x = case x of
+		ZCall x xs -> "(" ++ x ++ concatMap ((' ':) . output) xs ++ ")"
+		ZMake x xs -> output (ZCall x xs)
+		ZSel x y -> output x ++ "." ++ y
+		ZVar x -> x
+
 
 instance Output Scope where
 	output (Scope name reqs) = "(\\forall " ++ name ++ ", " ++ output reqs ++ ")"
