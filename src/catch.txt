@@ -15,6 +15,7 @@ prep
 	reachable
 	case-lift
 	arity-raise
+	case-expand
 	consts
 	reachable
 	make-move
