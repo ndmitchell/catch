@@ -62,6 +62,9 @@ instance PredLit Req where
 
 instance PredLit Scope where
 	a ?=> b = a == b
+	
+	simp (Scope a b) | isTrue b = Just True
+					 | otherwise = Nothing
 
 instance PredLitNot Req where
 	litNot (Req hite expr path ctors) = predLit $ Req hite expr path (getCtorsFromCtor hite (head ctors) \\ ctors)
