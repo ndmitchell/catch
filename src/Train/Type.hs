@@ -17,22 +17,37 @@ data ZExpr = ZCall FuncName [ZExpr]
 		   | ZMake CtorName [ZExpr]
 		   | ZSel ZExpr CtorArg
 		   | ZVar FuncArg
-		   deriving Show
+		   deriving (Eq, Show)
+
+
+instance Manipulate ZExpr where
+	getChildren x = case x of
+		ZCall _ x -> x
+		ZMake _ x -> x
+		ZSel x _ -> [x]
+		ZVar _ -> []
+
+	setChildren x ys = case x of
+		ZCall x _ -> ZCall x ys
+		ZMake x _ -> ZMake x ys
+		ZSel _ x -> let [y] = ys in ZSel y x
+		ZVar x -> ZVar x
+
 
 
 type Scopes = Pred Scope
 data Scope = Scope FuncName Reqs
-			 deriving Show
+			 deriving (Eq, Show)
 
 
 type Reqs = Pred Req
 data Req = Req Hite ZExpr [Path] [CtorName]
-		   deriving Show
+		   deriving (Eq, Show)
 
 
 data Path = PathAtom CtorArg
 	      | PathStar CtorArg
-	      deriving Show
+	      deriving (Eq, Show)
 
 
 instance PredLit Req
