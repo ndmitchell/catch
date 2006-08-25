@@ -50,8 +50,18 @@ data Path = PathAtom CtorArg
 	      deriving (Eq, Show)
 
 
-instance PredLit Req
-instance PredLit Scope
+isStar x = x `elem` ["tl"]
+
+integrate :: [Path] -> CtorArg -> [Path]
+integrate ys@(PathStar y:_) x | x == y = ys
+integrate ys x = (if isStar x then PathStar x else PathAtom x) : ys
+
+
+instance PredLit Req where
+	a ?=> b = a == b
+
+instance PredLit Scope where
+	a ?=> b = a == b
 
 instance PredLitNot Req where
 	litNot (Req hite expr path ctors) = predLit $ Req hite expr path (getCtorsFromCtor hite (head ctors) \\ ctors)
