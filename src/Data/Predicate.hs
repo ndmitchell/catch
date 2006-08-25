@@ -17,7 +17,7 @@ module Data.Predicate(
     -- * Show
     showPred, showPredBy,
     -- * Play
-    mapPredLit, allPredLit, foldPred,
+    mapPredLit, allPredLit, foldPred, mapPredLitM,
     -- * Null instance
     PredNull, demandBool, mapPredBool
     ) where
@@ -25,6 +25,7 @@ module Data.Predicate(
 
 import Data.List
 import Data.Maybe
+import Control.Monad
 
 
 -- * Debugging options
@@ -299,6 +300,17 @@ mapPredLit f x =
         PredLit x  -> f x
     where
         fs = map (mapPredLit f)
+
+-- | Perform a map over every literal, mondically
+mapPredLitM :: (Monad m, PredLit b) => (a -> m (Pred b)) -> Pred a -> m (Pred b)
+mapPredLitM f x =
+	case x of
+		PredOr  xs -> liftM predOr  $ fs xs
+		PredAnd xs -> liftM predAnd $ fs xs
+		PredLit x  -> f x
+	where
+		fs = mapM (mapPredLitM f)
+
 
 -- | Get all literals in a predicate
 allPredLit :: Pred a -> [a]
