@@ -249,6 +249,22 @@ fixSet f elems = fix2 f elems []
 
 
 ---------------------------------------------------------------------
+-- MANIPULATE STUFF
+
+class Manipulate a where
+	getChildren :: a -> [a]
+	setChildren :: a -> [a] -> a
+
+
+allOver :: Manipulate a => a -> [a]
+allOver x = x : concatMap allOver (getChildren x)
+
+
+mapOver :: Manipulate a => (a -> a) -> a -> a
+mapOver f x = f $ setChildren x $ map f $ getChildren x
+
+
+---------------------------------------------------------------------
 -- IO STUFF
 
 
