@@ -63,6 +63,10 @@ instance PredLit Req where
 instance PredLit Scope where
 	a ?=> b = a == b
 	
+	(Scope a1 b1) ?/\ (Scope a2 b2)
+		| a1 == a2 = Single $ Scope a1 (predAnd [b1,b2])
+		| otherwise = Same
+	
 	simp (Scope a b) | isTrue b = Just True
 					 | otherwise = Nothing
 
