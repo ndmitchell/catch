@@ -38,7 +38,8 @@ backward zhite template hndl x = do
 backwardReqs :: ZHite -> Template -> Handle -> Reqs -> IO Reqs
 backwardReqs zhite template hndl x = mapPredLitM f x
 	where
-		f x = case expr of
-				  ZVar y -> return $ predLit req
-				  ZCall name xs -> templateGet template req
-			where req@(Req hite expr path ctor) = reduce x
+		f x = mapPredLitM g (reduce x)
+		
+		g req@(Req hite expr path ctor) = case expr of
+			ZVar y -> return $ predLit req
+			ZCall name xs -> templateGet template req
