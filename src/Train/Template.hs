@@ -60,6 +60,16 @@ templateCalc zhite hndl req = do
 	where
 		f req gen = do
 			let reqs = instantiate zhite req
+			reducesWithM (g gen) reqs
+
+		g gen req = do
+			let abstract = templateAbstract req
+			answer <- gen abstract
+			let res = templateConcrete req answer
+			return res
+
+{-			
+			
 			mapPredLitM (g gen) reqs
 		
 		g gen req = do
@@ -77,6 +87,7 @@ templateCalc zhite hndl req = do
 				putStrLn $ "Answer: " ++ output answer
 				return $ templateConcrete req answer
 			_ -> return $ predLit req
+-}
 
 
 instantiate :: ZHite -> Req -> Reqs
