@@ -42,7 +42,10 @@ data Scope = Scope FuncName Reqs
 
 type Reqs = Pred Req
 data Req = Req Hite ZExpr [Path] [CtorName]
-		   deriving (Eq, Show)
+		   deriving (Show)
+
+instance Eq Req where
+	(Req _ a1 b1 c1) == (Req _ a2 b2 c2) = a1 == a2 && b1 == b2 && c1 == c2
 
 
 data Path = PathAtom CtorArg
