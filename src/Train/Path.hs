@@ -1,9 +1,10 @@
 
-module Train.Path(Path, nullPath, emptyPath, integrate) where
+module Train.Path(Path, nullPath, ewpPath, emptyPath, integrate, differentiate) where
 
 import General.General
 import Data.Char
 import Hite
+import Control.Monad
 
 
 data Path = Path [PathElem]
@@ -23,13 +24,31 @@ instance Output PathElem where
 	output (PathStar x) = x ++ "*"
 
 
+isPathStar (PathStar{}) = True ; isPathStar _ = False
+isPathAtom = not . isPathStar
+
+
 nullPath (Path x) = null x
 
 emptyPath = Path []
 
 
+ewpPath (Path x) = all isPathStar x
+
 
 isStar x = x `elem` ["tl"]
+
+
+differentiate :: Path -> CtorArg -> Maybe Path
+differentiate (Path xs) ctor = liftM Path $ f xs
+	where
+		f [] = Nothing
+		f (PathAtom x:xs) | x == ctor = Just xs
+						  | otherwise = Nothing
+		f (PathStar x:xs) | x == ctor = Just (PathStar x:xs)
+						  | otherwise = f xs
+						  
+
 
 integrate :: Path -> CtorArg -> Path
 integrate (Path x) ctor = Path (f x)

@@ -4,6 +4,7 @@ module Train.Reduce(reduce, reduces, reduceWithM, reducesWithM) where
 import Train.Type
 import General.General
 import Data.Predicate
+import Hite
 
 
 reduces :: Reqs -> Reqs
@@ -22,7 +23,17 @@ reduce req@(Req hite expr path ctors) = case expr of
 reduceOne :: Req -> Reqs
 reduceOne req@(Req hite expr path ctors) = case expr of
 	ZSel x y -> predLit $ Req hite x (path `integrate` y) ctors
-	ZMake y xs | nullPath path -> predBool $ y `elem` ctors
+	ZMake y xs -> predAnd (p1:ps)
+		where
+			cargs = ctorArgs $ getCtor hite y
+
+			p1 = if ewpPath path then predBool (y `elem` ctors) else predTrue
+			ps = zipWithEq f xs cargs
+			
+			f x carg = case path `differentiate` carg of
+						   Nothing -> predTrue
+						   Just path2 -> predLit $ Req hite x path2 ctors
+	
 	_ -> error $ "reduceOne: " ++ output req
 	
 
