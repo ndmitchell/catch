@@ -23,7 +23,7 @@ import Data.Predicate
 
 -- * Super Simplify Section
 
-data Wrap = Wrap {unwrap :: Req}
+data Wrap = Wrap {unwrap :: Req} deriving Eq
 
 instance PredLit Wrap where
     a ?=> b = unwrap a $=> unwrap b
