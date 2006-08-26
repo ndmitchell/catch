@@ -1,11 +1,12 @@
 
-module Train.Type where
+module Train.Type(module Train.Path, module Train.Type) where
 
 import Data.Predicate
 import Data.List
 import Data.Char
 import Hite
 import General.General
+import Train.Path
 
 
 data ZHite = ZHite [Data] [ZFunc]
@@ -42,29 +43,19 @@ data Scope = Scope FuncName Reqs
 
 
 type Reqs = Pred Req
-data Req = Req Hite ZExpr [Path] [CtorName]
+data Req = Req Hite ZExpr Path [CtorName]
 		   deriving (Show)
 
 instance Eq Req where
 	(Req _ a1 b1 c1) == (Req _ a2 b2 c2) = a1 == a2 && b1 == b2 && c1 == c2
 
 
-data Path = PathAtom CtorArg
-	      | PathStar CtorArg
-	      deriving (Eq, Show)
-
-
-isStar x = x `elem` ["tl"]
-
-integrate :: [Path] -> CtorArg -> [Path]
-integrate ys@(PathStar y:_) x | x == y = ys
-integrate ys x = (if isStar x then PathStar x else PathAtom x) : ys
-
 
 instance PredLit Req where
 	a ?=> b = a == b
 	
-	(Req _ a1 [] c1) ?/\ (Req _ a2 [] c2) | a1 == a2 && null (c1 `intersect` c2) = Value False
+	(Req _ a1 b1 c1) ?/\ (Req _ a2 b2 c2)
+		| a1 == a2 && nullPath b1 && nullPath b2 && null (c1 `intersect` c2) = Value False
 	_ ?/\ _ = Same
 
 
@@ -95,8 +86,4 @@ instance Output Scope where
 
 instance Output Req where
 	output (Req _ expr path ctor) =
-		output expr ++ concatMap (('.':) . map toUpper . output) path ++ strSet ctor
-
-instance Output Path where
-	output (PathAtom x) = x
-	output (PathStar x) = x ++ "*"
+		output expr ++ output path ++ strSet ctor

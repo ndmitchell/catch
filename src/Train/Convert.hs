@@ -17,7 +17,7 @@ convertFunc hite (Func name args body _) = ZFunc name args (convertBody hite bod
 
 convertBody :: Hite -> Expr -> [(Reqs, Either String ZExpr)]
 convertBody hite (MCase alts) = [(mapPredLit f a, convertExpr b) | MCaseAlt a b <- alts]
-	where f (MCaseOpt x c) = predLit $ Req hite (fromRight $ convertExpr x) [] [c]
+	where f (MCaseOpt x c) = predLit $ Req hite (fromRight $ convertExpr x) emptyPath [c]
 convertBody hite x = [(predTrue, convertExpr x)]
 
 

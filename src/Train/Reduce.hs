@@ -22,7 +22,7 @@ reduce req@(Req hite expr path ctors) = case expr of
 reduceOne :: Req -> Reqs
 reduceOne req@(Req hite expr path ctors) = case expr of
 	ZSel x y -> predLit $ Req hite x (path `integrate` y) ctors
-	ZMake y xs | null path -> predBool $ y `elem` ctors
+	ZMake y xs | nullPath path -> predBool $ y `elem` ctors
 	_ -> error $ "reduceOne: " ++ output req
 	
 
