@@ -32,10 +32,14 @@ case *Try to prove a program is free from pattern match errors
 	prepare
 	safe-patterns
 
-train *Pattern match detection, designed on a train
+tprep
 	prepare
 	error-call
+	string-expand
 	reachable
+
+train *Pattern match detection, designed on a train
+	tprep
 	train-patterns
 
 ncase *Find the circumstances under which a program will definately crash
