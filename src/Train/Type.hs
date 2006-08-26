@@ -62,6 +62,10 @@ integrate ys x = (if isStar x then PathStar x else PathAtom x) : ys
 
 instance PredLit Req where
 	a ?=> b = a == b
+	
+	(Req _ a1 [] c1) ?/\ (Req _ a2 [] c2) | a1 == a2 && null (c1 `intersect` c2) = Value False
+	_ ?/\ _ = Same
+
 
 instance PredLit Scope where
 	a ?=> b = a == b
