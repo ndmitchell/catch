@@ -54,8 +54,9 @@ templateConcrete (Req _ (ZCall name args) _ _) y = mapPredLit (predLit . f) y
 -- expr is ZCall
 templateCalc :: ZHite -> Handle -> Req -> IO Reqs
 templateCalc zhite hndl req = do
-		putStrLn $ "templateCalc: " ++ output req
+		putStrLn $ "BEGIN: templateCalc, " ++ output req
 		res <- fixp predTrue f req
+		putStrLn $ "END  : templateCalc, " ++ output res
 		return res
 	where
 		f req gen = do
@@ -65,7 +66,9 @@ templateCalc zhite hndl req = do
 		g gen req = do
 			let abstract = templateAbstract req
 			answer <- gen abstract
-			let res = templateConcrete req answer
+			res <- liftM predDnf $ reducesWithM (g gen) (templateConcrete req answer)
+			putStrLn $ "ASK: " ++ output abstract
+			putStrLn $ "GET: " ++ output res
 			return res
 
 {-			
