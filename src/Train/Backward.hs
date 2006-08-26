@@ -32,10 +32,10 @@ backward zhite template hndl x = do
 			mapPredLitM (\x -> backs x >>= gen) scopes
 		
 		backs (Scope name x) = do
-			x2 <- backwardReqs zhite template hndl x
+			x2 <- reducesWithM (templateGet template) x
 			return (Scope name x2)
 			
-			
+{-
 -- solve all but propagate
 backwardReqs :: ZHite -> Template -> Handle -> Reqs -> IO Reqs
 backwardReqs zhite template hndl x = mapPredLitM f x
@@ -45,3 +45,4 @@ backwardReqs zhite template hndl x = mapPredLitM f x
 		g req@(Req hite expr path ctor) = case expr of
 			ZVar y -> return $ predLit req
 			ZCall name xs -> templateGet template req
+-}
