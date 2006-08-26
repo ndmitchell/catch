@@ -261,7 +261,7 @@ allOver x = x : concatMap allOver (getChildren x)
 
 
 mapOver :: Manipulate a => (a -> a) -> a -> a
-mapOver f x = f $ setChildren x $ map f $ getChildren x
+mapOver f x = f $ setChildren x $ map (mapOver f) $ getChildren x
 
 
 ---------------------------------------------------------------------
