@@ -11,6 +11,8 @@ module Data.Predicate(
     Pred, Reduction(..), PredLit(..), PredLitNot(..),
     -- * Predicate Creation
     predTrue, predFalse, predLit, predAnd, predOr, predNot, predBool,
+    -- * Predicate manipulation
+    predDnf, predCnf,
     -- * Extract and Test
     fromAnd, fromOr, fromLit,
     isFalse, isTrue, isLit,
@@ -52,7 +54,7 @@ data Reduction a = Same           -- ^ These two items do not simplify
                  | Priority Int a -- ^ The items collapse, but with a given priority - higher gets done first
 
 -- | A predicate that has simplifications on it, all methods are optional
-class PredLit a where
+class Eq a => PredLit a where
     -- | the first item implies the second
     (?=>) :: a -> a -> Bool
     -- | how two items combine under or
@@ -76,7 +78,7 @@ class PredLit a => PredLitNot a where
 -- | A Null PredLit type, if required
 instance PredLit () where
 
-data PredNull = PredNull
+data PredNull = PredNull deriving Eq
 instance PredLit PredNull where
 
 -- * Useful utilities
@@ -192,7 +194,7 @@ predAnd xs = case items of
                 xs | any isFalse xs -> predFalse
                    | otherwise -> PredAnd xs
     where
-        items = filter (not . isTrue) $ solveTerms (??/\) $ concatMap fromAnd xs
+        items = nub $ filter (not . isTrue) $ solveTerms (??/\) $ concatMap fromAnd xs
 
 
 -- | Combine a list of predicates with or
@@ -202,7 +204,7 @@ predOr xs = case items of
                 xs | any isTrue xs -> predTrue
                    | otherwise -> PredOr xs
     where
-        items = filter (not . isFalse) $ solveTerms (??\/) $ concatMap fromOr xs
+        items = nub $ filter (not . isFalse) $ solveTerms (??\/) $ concatMap fromOr xs
 
 
 -- | Return True only if the predicate is definately False. Note that predFalse /is not/ not . predTrue
@@ -332,3 +334,25 @@ foldPred for fand fone x =
         PredLit x -> fone x
     where
         f = map (foldPred for fand fone)
+
+
+-- | convert to DNF
+predDnf :: PredLit a => Pred a -> Pred a
+predDnf (PredLit x) = PredLit x
+predDnf (PredOr  x) = predOr $ map predDnf x
+predDnf (PredAnd []) = PredAnd []
+predDnf (PredAnd x) = foldr1 f $ map predDnf x
+	where
+		f as bs = predOr [predAnd [a,b] | a <- fromOr as, b <- fromOr bs]
+
+
+predCnf :: PredLit a => Pred a -> Pred a
+predCnf = error "todo" -- swapAndOr . predDnf . swapAndOr -- WRONG
+
+
+swapAndOr :: Pred a -> Pred a
+swapAndOr x =
+	case x of
+		PredOr  x -> PredAnd (map swapAndOr x)
+		PredAnd x -> PredOr  (map swapAndOr x)
+		PredLit x -> PredLit x
