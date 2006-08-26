@@ -3,6 +3,7 @@ module Train.Type where
 
 import Data.Predicate
 import Data.List
+import Data.Char
 import Hite
 import General.General
 
@@ -94,7 +95,7 @@ instance Output Scope where
 
 instance Output Req where
 	output (Req _ expr path ctor) =
-		output expr ++ concatMap (('.':) . output) path ++ strSet ctor
+		output expr ++ concatMap (('.':) . map toUpper . output) path ++ strSet ctor
 
 instance Output Path where
 	output (PathAtom x) = x
