@@ -17,5 +17,5 @@ propagate (ZHite _ funcs) (Scope func reqs) = predAnd $ map predLit $ concatMap 
 			
 		g args (Req hite expr path ctor) = predLit $ Req hite (mapOver (h args) expr) path ctor
 		
-		h args (ZVar name) = fromJust $ lookup name (zip funcArgs args)
+		h args (ZVar name) = lookupJust name (zip funcArgs args)
 		h args x = x
