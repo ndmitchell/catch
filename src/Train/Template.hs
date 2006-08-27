@@ -39,14 +39,14 @@ templateGet (Template zhite hndl cache) req = do
 
 -- need to make it more abstract, and then more concrete, to satisfy the cache
 templateAbstract :: Req -> Req
-templateAbstract (Req a (ZCall name xs) b c) = Req a (ZCall name args) b c
+templateAbstract (Req a (ZCall name xs) b c) = newReq a (ZCall name args) b c
 	where args = map ZVar [['?',chr (i + ord 'a')] | i <- [0..length xs-1]]
 
 
 templateConcrete :: Req -> Reqs -> Reqs
 templateConcrete (Req _ (ZCall name args) _ _) y = mapBDD (bddLit . f) y
 	where
-		f (Req a b c d) = Req a (mapOver g b) c d
+		f (Req a b c d) = newReq a (mapOver g b) c d
 		g (ZVar ['?',x]) = args !! (ord x - ord 'a')
 		g x = x
 
@@ -99,9 +99,9 @@ instantiate (ZHite datas funcs) r1@(Req a (ZCall name args) b c) = res
 		(args2, body) = head [(a,b) | ZFunc nam a b <- funcs, nam == name]
 		
 		f (cond, Left _) = []
-		f (cond, Right body) = [reqsNot cond `bddOr` (bddLit $ Req a body b c)]
+		f (cond, Right body) = [reqsNot cond `bddOr` (bddLit $ newReq a body b c)]
 		
-		rep (Req a b c d) = bddLit (Req a (mapOver g b) c d)
+		rep (Req a b c d) = bddLit (newReq a (mapOver g b) c d)
 		
 		g (ZVar x) = case lookup x (zip args2 args) of
 						  Nothing -> error $ "Train.Template.instantiate: not found" -- ZVar x

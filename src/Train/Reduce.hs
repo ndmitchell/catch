@@ -22,7 +22,7 @@ reduce req@(Req hite expr path ctors) = case expr of
 -- this function does the real work!
 reduceOne :: Req -> Reqs
 reduceOne req@(Req hite expr path ctors) = case expr of
-	ZSel x y -> bddLit $ Req hite x (path `integrate` y) ctors
+	ZSel x y -> bddLit $ newReq hite x (path `integrate` y) ctors
 	ZMake y xs -> bddAnds (p1:ps)
 		where
 			cargs = ctorArgs $ getCtor hite y
@@ -32,7 +32,7 @@ reduceOne req@(Req hite expr path ctors) = case expr of
 			
 			f x carg = case path `differentiate` carg of
 						   Nothing -> bddTrue
-						   Just path2 -> bddLit $ Req hite x path2 ctors
+						   Just path2 -> bddLit $ newReq hite x path2 ctors
 	
 	_ -> error $ "reduceOne: " ++ output req
 	

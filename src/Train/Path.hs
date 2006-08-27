@@ -1,5 +1,5 @@
 
-module Train.Path(Path, nullPath, ewpPath, emptyPath, integrate, differentiate) where
+module Train.Path(Path, nullPath, newPath, ewpPath, emptyPath, integrate, differentiate) where
 
 import General.General
 import Data.Char
@@ -31,6 +31,8 @@ isPathAtom = not . isPathStar
 nullPath (Path x) = null x
 
 emptyPath = Path []
+
+newPath xs = foldl integrate emptyPath xs
 
 
 ewpPath (Path x) = all isPathStar x

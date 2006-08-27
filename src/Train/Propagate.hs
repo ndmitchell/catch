@@ -19,7 +19,7 @@ propagate (ZHite _ funcs) (Scope func reqs) = res
 			(cond, Right code) <- xs, ZCall calls args <- allOver code, calls == func,
 			let newReq = reqsNot cond `bddOr` mapBDD (g args) reqs, not $ bddIsTrue newReq]
 			
-		g args (Req hite expr path ctor) = bddLit $ Req hite (mapOver (h args) expr) path ctor
+		g args (Req hite expr path ctor) = bddLit $ newReq hite (mapOver (h args) expr) path ctor
 		
 		h args (ZVar name) = lookupJust name (zip funcArgs args)
 		h args x = x

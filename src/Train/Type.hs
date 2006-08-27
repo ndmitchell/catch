@@ -56,6 +56,10 @@ instance Ord Req where
 			f x a = x
 
 
+newReq :: Hite -> ZExpr -> Path -> [CtorName] -> Req
+newReq hite zexpr path ctors
+	| path == newPath ["tl"] && ctors == ["[]"] = Req hite zexpr emptyPath ctors
+	| otherwise = Req hite zexpr path ctors
 
 
 {-
@@ -87,7 +91,7 @@ instance BDDLit Scope where
 -}
 
 reqNot :: Req -> Req
-reqNot (Req hite expr path ctors) = Req hite expr path (getCtorsFromCtor hite (head ctors) \\ ctors)
+reqNot (Req hite expr path ctors) = newReq hite expr path (getCtorsFromCtor hite (head ctors) \\ ctors)
 
 reqsNot :: Reqs -> Reqs
 reqsNot x | bddIsTrue  x = bddFalse
