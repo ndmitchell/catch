@@ -8,13 +8,13 @@ import Train.Reduce
 import Train.Fixp
 import System.IO
 import General.General
-import Data.Predicate
+import Data.BDD
 
 
 backward :: ZHite -> Template -> Handle -> Scopes -> IO Scopes
 backward zhite template hndl x = do
 		outBoth $ "Solving: " ++ output x
-		res <- mapPredLitM f x
+		res <- mapBDDM f x
 		outBoth $ "Result: " ++ output res
 		
 		return res
@@ -23,13 +23,17 @@ backward zhite template hndl x = do
 	
 		f scope = do
 			scope2 <- backs scope
-			fixp predTrue g scope2
+			fixp bddTrue g scope2
 
-		g (Scope "main" x) gen = return $ predLit $ Scope "main" x
+		g (Scope "main" x) gen = return $ bddLit $ Scope "main" x
 
 		g scope gen = do
+			putStrLn $ "PROP: " ++ output scope
 			let scopes = propagate zhite scope
-			mapPredLitM (\x -> backs x >>= gen) scopes
+			putStrLn $ "GIVE: " ++ output scopes
+			res <- mapBDDM (\x -> backs x >>= gen) scopes
+			putStrLn $ "BACK: " ++ output res
+			return res
 		
 		backs (Scope name x) = do
 			x2 <- reducesWithM (templateGet template) x

@@ -8,12 +8,12 @@ import Control.Monad
 
 
 data Path = Path [PathElem]
-			deriving (Eq, Show)
+			deriving (Eq, Show, Ord)
 
 
 data PathElem = PathAtom CtorArg
 	          | PathStar CtorArg
-	          deriving (Eq, Show)
+	          deriving (Eq, Show, Ord)
 
 
 instance Output Path where

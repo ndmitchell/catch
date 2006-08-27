@@ -5,7 +5,7 @@ import Train.Type
 import Train.Reduce
 import Train.Fixp
 import System.IO
-import Data.Predicate
+import Data.BDD
 import General.General
 import Data.IORef
 import Data.Char
@@ -44,7 +44,7 @@ templateAbstract (Req a (ZCall name xs) b c) = Req a (ZCall name args) b c
 
 
 templateConcrete :: Req -> Reqs -> Reqs
-templateConcrete (Req _ (ZCall name args) _ _) y = mapPredLit (predLit . f) y
+templateConcrete (Req _ (ZCall name args) _ _) y = mapBDD (bddLit . f) y
 	where
 		f (Req a b c d) = Req a (mapOver g b) c d
 		g (ZVar ['?',x]) = args !! (ord x - ord 'a')
@@ -55,7 +55,7 @@ templateConcrete (Req _ (ZCall name args) _ _) y = mapPredLit (predLit . f) y
 templateCalc :: ZHite -> Handle -> Req -> IO Reqs
 templateCalc zhite hndl req = do
 		putStrLn $ "BEGIN: templateCalc, " ++ output req
-		res <- fixp predTrue f req
+		res <- fixp bddTrue f req
 		putStrLn $ "END  : templateCalc, " ++ output res
 		return res
 	where
@@ -66,9 +66,9 @@ templateCalc zhite hndl req = do
 		g gen req = do
 			let abstract = templateAbstract req
 			answer <- gen abstract
-			res <- liftM predDnf $ reducesWithM (g gen) (templateConcrete req answer)
+			res <- liftM id $ reducesWithM (g gen) (templateConcrete req answer)
 			putStrLn $ "ASK: " ++ output abstract
-			putStrLn $ "GET: " ++ output res
+			putStrLn $ "GET: " ++ output answer
 			return res
 
 {-			
@@ -94,18 +94,19 @@ templateCalc zhite hndl req = do
 
 
 instantiate :: ZHite -> Req -> Reqs
-instantiate (ZHite datas funcs) r1@(Req a (ZCall name args) b c) =
-		mapPredLit rep $ predAnd $ concatMap f body
+instantiate (ZHite datas funcs) r1@(Req a (ZCall name args) b c) = res
 	where
+		res = mapBDD rep $ bddAnds $ concatMap f body
+	
 		(args2, body) = head [(a,b) | ZFunc nam a b <- funcs, nam == name]
 		
 		f (cond, Left _) = []
-		f (cond, Right body) = [predOr [predNot cond, predLit $ Req a body b c]]
+		f (cond, Right body) = [reqsNot cond `bddOr` (bddLit $ Req a body b c)]
 		
-		rep (Req a b c d) = predLit (Req a (mapOver g b) c d)
+		rep (Req a b c d) = bddLit (Req a (mapOver g b) c d)
 		
 		g (ZVar x) = case lookup x (zip args2 args) of
-						  Nothing -> ZVar x
+						  Nothing -> error $ "Train.Template.instantiate: not found" -- ZVar x
 						  Just y -> y
 		g x = x
 		

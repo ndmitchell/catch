@@ -5,6 +5,7 @@ import Hite
 import Train.Type
 import General.General
 import Data.Predicate
+import Data.BDD
 
 
 convertHite :: Hite -> ZHite
@@ -16,9 +17,13 @@ convertFunc hite (Func name args body _) = ZFunc name args (convertBody hite bod
 
 
 convertBody :: Hite -> Expr -> [(Reqs, Either String ZExpr)]
-convertBody hite (MCase alts) = [(mapPredLit f a, convertExpr b) | MCaseAlt a b <- alts]
-	where f (MCaseOpt x c) = predLit $ Req hite (fromRight $ convertExpr x) emptyPath [c]
-convertBody hite x = [(predTrue, convertExpr x)]
+convertBody hite (MCase alts) = [(foldPred for fand fone a, convertExpr b) | MCaseAlt a b <- alts]
+	where
+		for xs = bddOrs xs
+		fand xs = bddAnds xs
+		fone (MCaseOpt x c) = bddLit $ Req hite (fromRight $ convertExpr x) emptyPath [c]
+	
+convertBody hite x = [(bddTrue, convertExpr x)]
 
 
 convertExpr :: Expr -> Either String ZExpr

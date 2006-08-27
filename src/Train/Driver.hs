@@ -2,7 +2,7 @@
 module Train.Driver(trainDriver) where
 
 import System.IO
-import Data.Predicate
+import Data.BDD
 
 import Train.Template
 import Train.Type
@@ -17,7 +17,7 @@ trainDriver file hndl hite = do
 		hndlBackward <- openFile (logFile "backward") WriteMode
 		template <- templateInit zhite hndlTemplate
 		res <- mapM (backward zhite template hndlBackward) conds
-		return $ all isTrue res
+		return $ all bddIsTrue res
 	where
 		conds = initialReqs zhite
 		zhite = convertHite hite
@@ -28,4 +28,4 @@ trainDriver file hndl hite = do
 initialReqs :: ZHite -> [Scopes]
 initialReqs (ZHite _ funcs) = concatMap f funcs
 	where
-		f (ZFunc name _ alts) = [predLit $ Scope name (predNot cond) | (cond,Left _) <- alts]
+		f (ZFunc name _ alts) = [bddLit $ Scope name (reqsNot cond) | (cond,Left _) <- alts]

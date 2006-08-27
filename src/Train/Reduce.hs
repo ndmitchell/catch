@@ -3,18 +3,18 @@ module Train.Reduce(reduce, reduces, reduceWithM, reducesWithM) where
 
 import Train.Type
 import General.General
-import Data.Predicate
+import Data.BDD
 import Hite
 
 
 reduces :: Reqs -> Reqs
-reduces reqs = mapPredLit reduce reqs
+reduces reqs = mapBDD reduce reqs
 
 
 reduce :: Req -> Reqs
 reduce req@(Req hite expr path ctors) = case expr of
-	ZCall{} -> predLit req
-	ZVar{} -> predLit req
+	ZCall{} -> bddLit req
+	ZVar{} -> bddLit req
 	_ -> reduces $ reduceOne req
 
 
@@ -22,17 +22,17 @@ reduce req@(Req hite expr path ctors) = case expr of
 -- this function does the real work!
 reduceOne :: Req -> Reqs
 reduceOne req@(Req hite expr path ctors) = case expr of
-	ZSel x y -> predLit $ Req hite x (path `integrate` y) ctors
-	ZMake y xs -> predAnd (p1:ps)
+	ZSel x y -> bddLit $ Req hite x (path `integrate` y) ctors
+	ZMake y xs -> bddAnds (p1:ps)
 		where
 			cargs = ctorArgs $ getCtor hite y
 
-			p1 = if ewpPath path then predBool (y `elem` ctors) else predTrue
+			p1 = if ewpPath path then bddBool (y `elem` ctors) else bddTrue
 			ps = zipWithEq f xs cargs
 			
 			f x carg = case path `differentiate` carg of
-						   Nothing -> predTrue
-						   Just path2 -> predLit $ Req hite x path2 ctors
+						   Nothing -> bddTrue
+						   Just path2 -> bddLit $ Req hite x path2 ctors
 	
 	_ -> error $ "reduceOne: " ++ output req
 	
@@ -40,13 +40,13 @@ reduceOne req@(Req hite expr path ctors) = case expr of
 
 -- take a function that reduces a Call
 -- and reduce the entire thing
-reducesWithM :: Monad m => (Req -> m Reqs) -> Reqs -> m Reqs
-reducesWithM f reqs = mapPredLitM (reduceWithM f) reqs
+reducesWithM :: (Req -> IO Reqs) -> Reqs -> IO Reqs
+reducesWithM f reqs = mapBDDM (reduceWithM f) reqs
 
 
-reduceWithM :: Monad m => (Req -> m Reqs) -> Req -> m Reqs
+reduceWithM :: (Req -> IO Reqs) -> Req -> IO Reqs
 reduceWithM f req@(Req hite expr path ctors) = case expr of
 	ZCall{} -> f req >>= reducesWithM f
-	ZVar{} -> return $ predLit req
+	ZVar{} -> return $ bddLit req
 	_ -> reducesWithM f $ reduceOne req
 	
