@@ -28,11 +28,8 @@ backward zhite template hndl x = do
 		g (Scope "main" x) gen = return $ bddLit $ Scope "main" x
 
 		g scope gen = do
-			putStrLn $ "PROP: " ++ output scope
 			let scopes = propagate zhite scope
-			putStrLn $ "GIVE: " ++ output scopes
 			res <- mapBDDM (\x -> backs x >>= gen) scopes
-			putStrLn $ "BACK: " ++ output res
 			return res
 		
 		backs (Scope name x) = do
