@@ -9,11 +9,12 @@ import Data.BDD
 
 
 convertHite :: Hite -> ZHite
-convertHite hite@(Hite datas funcs) = ZHite datas (map (convertFunc hite) funcs)
+convertHite hite@(Hite datas funcs) = ZHite datas (concatMap (convertFunc hite) funcs)
 
 
-convertFunc :: Hite -> Func -> ZFunc
-convertFunc hite (Func name args body _) = ZFunc name args (convertBody hite body)
+convertFunc :: Hite -> Func -> [ZFunc]
+convertFunc hite (Func "_" _ _ _) = []
+convertFunc hite (Func name args body _) = [ZFunc name args (convertBody hite body)]
 
 
 convertBody :: Hite -> Expr -> [(Reqs, Either String ZExpr)]
@@ -29,6 +30,7 @@ convertBody hite x = [(bddTrue, convertExpr x)]
 convertExpr :: Expr -> Either String ZExpr
 convertExpr (Error x) = Left x
 convertExpr x = Right $ case x of
+		Call (CallFunc "_") [] -> ZAny
 		Call (CallFunc x) xs -> ZCall x (fs xs)
 		Make x xs -> ZMake x (fs xs)
 		Var x -> ZVar x

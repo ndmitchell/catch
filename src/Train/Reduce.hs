@@ -22,6 +22,7 @@ reduce req@(Req hite expr path ctors) = case expr of
 -- this function does the real work!
 reduceOne :: Req -> Reqs
 reduceOne req@(Req hite expr path ctors) = case expr of
+	ZAny -> bddFalse
 	ZSel x y -> bddLit $ newReq hite x (path `integrate` y) ctors
 	ZMake y xs -> bddAnds (p1:ps)
 		where

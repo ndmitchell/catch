@@ -19,6 +19,7 @@ data ZExpr = ZCall FuncName [ZExpr]
 		   | ZMake CtorName [ZExpr]
 		   | ZSel ZExpr CtorArg
 		   | ZVar FuncArg
+		   | ZAny
 		   deriving (Eq, Show, Ord)
 
 
@@ -27,13 +28,13 @@ instance Manipulate ZExpr where
 		ZCall _ x -> x
 		ZMake _ x -> x
 		ZSel x _ -> [x]
-		ZVar _ -> []
+		_ -> []
 
 	setChildren x ys = case x of
 		ZCall x _ -> ZCall x ys
 		ZMake x _ -> ZMake x ys
 		ZSel _ x -> let [y] = ys in ZSel y x
-		ZVar x -> ZVar x
+		_ -> x
 
 
 
@@ -105,6 +106,7 @@ instance Output ZExpr where
 		ZMake x xs -> output (ZCall x xs)
 		ZSel x y -> output x ++ "." ++ y
 		ZVar x -> x
+		ZAny -> "_"
 
 
 instance Output Scope where
