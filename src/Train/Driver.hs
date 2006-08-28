@@ -3,6 +3,7 @@ module Train.Driver(trainDriver) where
 
 import System.IO
 import Data.BDD
+import Control.Monad
 
 import Train.Template
 import Train.Type
@@ -17,6 +18,8 @@ trainDriver file hndl hite = do
 		hndlBackward <- openFile (logFile "backward") WriteMode
 		template <- templateInit zhite hndlTemplate
 		res <- mapM (backward zhite template hndlBackward) conds
+		when (null conds) $
+			putStrLn "No pattern match errors, trivially safe"
 		return $ all bddIsTrue res
 	where
 		conds = initialReqs zhite
