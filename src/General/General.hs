@@ -210,6 +210,8 @@ strSet xs = "{" ++ intercat "," xs ++ "}"
 
 indent x = "  " ++ x
 indents x = map indent x
+indentStr = unlines . map ("    " ++) . lines
+
 
 
 intercat :: String -> [String] -> String
