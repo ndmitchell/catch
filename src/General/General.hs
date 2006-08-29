@@ -228,8 +228,10 @@ showLines = unlines . map show
 
 
 
-
-
+fixBound :: Eq a => Int -> (a -> a) -> a -> a
+fixBound 0 f x = x
+fixBound n f x = if x == x2 then x else fixBound (n-1) f x2
+	where x2 = f x
 
 
 fix :: Eq a => (a -> a) -> a -> a
