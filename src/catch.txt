@@ -9,6 +9,13 @@ help Show this help list
 verbose Show the Hite at each step
 version Show version information
 
+trans
+	short-name
+	reachable
+	error-call
+	reachable
+	string-expand
+	transform
 
 prep
 	short-name
