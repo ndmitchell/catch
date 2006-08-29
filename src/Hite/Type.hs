@@ -3,7 +3,10 @@
     A signature for the abstract type
 -}
 
-module Hite.Type where
+module Hite.Type(module Hite.Type, module Hite.DataType, module Hite.TypeType) where
+
+import Hite.DataType
+import Hite.TypeType
 
 import General.General
 import General.Commands
@@ -19,19 +22,13 @@ cmdHite f name desc = Command f name desc
 cmdHitePure f = cmdHite (\a b -> return (f a b))
 
 type FuncName = String
-type DataName = String
-type CtorName = String
-type CtorArg  = String
 type FuncArg  = String
 
 data Hite = Hite {datas :: [Data], funcs :: [Func]}
             deriving (Show, Read)
 
-data Data = Data {dataName :: DataName, ctors :: [Ctor], frees :: [String]}
-            deriving (Show, Read)
-
-data Ctor = Ctor {ctorName :: CtorName, ctorArgs :: [CtorArg], types :: [TyType]}
-          deriving (Eq, Show, Read)
+instance QDatas Hite where
+	qDatas = datas
 
 data Func = Func {funcName :: FuncName, funcArgs :: [FuncArg], body :: Expr, pos :: String}
           deriving (Eq, Show, Read)
@@ -58,11 +55,6 @@ data MCaseOpt = MCaseOpt Expr CtorName
 
 data MCaseAlt = MCaseAlt (Pred MCaseOpt) Expr
                 deriving (Eq, Show, Read)
-
-data TyType = TyCon String [TyType]
-            | TyFree String
-            | TyNone
-            deriving (Eq, Show, Read)
 
 
 instance PredLit MCaseOpt where
@@ -157,30 +149,6 @@ getWith name f xs = case filter (\x -> f x == name) xs of
 -- Get simple items, travel down the tree
 getFunc :: Hite -> FuncName -> Func
 getFunc hite name = getWith name funcName (funcs hite)
-
-getData :: Hite -> DataName -> Data
-getData hite name = getWith name dataName (datas hite)
-
-getCtor :: Hite -> CtorName -> Ctor
-getCtor hite name = getWith name ctorName (concatMap ctors (datas hite))
-
-
--- More complex, travel up the tree
-getDataFromCtor :: Hite -> CtorName -> Data
-getDataFromCtor hite name = headNote ("Hite.Type.getDataFromCtor, asking for " ++ name)
-    [d | d <- datas hite, c <- ctors d, name == ctorName c]
-
-getCtorFromArg :: Hite -> CtorArg -> Ctor
-getCtorFromArg hite name = headNote ("Hite.Type.getCtorFromArg, " ++ name)
-    [c | d <- datas hite, c <- ctors d, name `elem` ctorArgs c]
-
-
--- Compound, do common operations
-getCtorsFromCtor :: Hite -> CtorName -> [CtorName]
-getCtorsFromCtor hite name = map ctorName $ ctors $ getDataFromCtor hite name
-
-getOtherCtors :: Hite -> CtorName -> [CtorName]
-getOtherCtors hite name = delete name (getCtorsFromCtor hite name)
 
 
 -- Argument functions (these are a bit dubious)
