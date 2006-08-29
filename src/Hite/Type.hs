@@ -232,3 +232,13 @@ charCtor c = "Char_" ++ (if isAlphaNum c then [c] else pad3 (show (ord c)))
 
 blankMCase :: Expr -> Expr
 blankMCase x = MCase [MCaseAlt predTrue x]
+
+
+
+-- try and find an expression, following down basic calls
+followExpr :: (Expr -> Maybe a) -> Hite -> Expr -> Maybe a
+followExpr f hite x | isJust x2 = x2
+	where x2 = f x
+followExpr f hite (Call x []) = followExpr f hite x
+followExpr f hite (CallFunc x) = followExpr f hite $ body $ getFunc hite x
+followExpr f hite _ = Nothing

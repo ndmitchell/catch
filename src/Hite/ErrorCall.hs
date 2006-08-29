@@ -5,6 +5,7 @@
 module Hite.ErrorCall(cmd) where
 
 import Hite.Type
+import Data.Maybe
 
 
 cmd = cmdHitePure (const errorCall) "error-call"
@@ -14,5 +15,9 @@ cmd = cmdHitePure (const errorCall) "error-call"
 errorCall :: Hite -> Hite
 errorCall hite = mapExpr f hite
     where
-        f (Call (CallFunc "error") [Msg x]) = Error x
+        f (Call (CallFunc "error") [x]) | isJust y = Error $ fromJust y
+        	where y = followExpr isMsg hite x
         f x = x
+
+isMsg (Msg x) = Just x
+isMsg _ = Nothing
