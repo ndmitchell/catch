@@ -17,7 +17,7 @@ caseExpand hite = mapExpr f hite
         
         g on (lhs,rhs) = (lhs,mapExpr (h on val) rhs)
             where
-                Ctor name args _ = getCtor hite lhs
+                Ctor name args _ = rawCtor $ getCtor hite lhs
                 val = Make name (map (Sel on) args)
         
         h from to x | x == from = to

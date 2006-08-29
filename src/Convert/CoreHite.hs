@@ -157,7 +157,7 @@ convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) =
                 dealMatch x = error $ "Convert.CoreHite.dealMatch, " ++ show x
                 
                 givenCtors = filter (/= "_") $ map (fst . dealMatch . fst) opts
-                underCtors = getCtorsFromCtor (Hite datas []) (head givenCtors) \\ givenCtors
+                underCtors = ctorNames (getCtor (Hite datas []) (head givenCtors)) \\ givenCtors
                 
                 g path (lhs, rhs) =
                         if c == "_"

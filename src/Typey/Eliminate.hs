@@ -155,7 +155,7 @@ getType env@(hite,datam,datat,funct) args expr =
                 TPair ctrs _ = head xs
             
                 argElem = args2 !! (fromJust $ elemIndex path args) 
-                Ctor name args _ = getCtorFromArg hite path
+                Ctor name args _ = rawCtor $ getCArg hite path
                 args2 = head [args | DataT _ cs <- map snd datam, CtorT nam args <- cs, nam == name]
                 
         

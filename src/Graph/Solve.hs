@@ -160,7 +160,7 @@ expand hite graph = newzero : (map change $ concat newnodes)
         
         ensurePath :: Expr -> [MCaseOpt]
         ensurePath (Var _) = []
-        ensurePath (Sel x y) = MCaseOpt x (ctorName $ getCtorFromArg hite y) : ensurePath x
+        ensurePath (Sel x y) = MCaseOpt x (ctorName $ getCArg hite y) : ensurePath x
         
 
 -- evaluate all functions, every function must be evaluated

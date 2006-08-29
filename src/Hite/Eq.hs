@@ -22,4 +22,4 @@ instance Eq Hite where
 instance Eq Data where
     (Data na ca _) == (Data nb cb _) =
         na == nb &&
-        compareUnordered ctorName ca cb
+        compareUnordered ctorNameRaw ca cb

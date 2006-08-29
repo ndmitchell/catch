@@ -92,7 +92,7 @@ instance BDDLit Scope where
 -}
 
 reqNot :: Req -> Req
-reqNot (Req hite expr path ctors) = newReq hite expr path (getCtorsFromCtor hite (head ctors) \\ ctors)
+reqNot (Req hite expr path ctors) = newReq hite expr path (ctorNames (getCtor hite (head ctors)) \\ ctors)
 
 reqsNot :: Reqs -> Reqs
 reqsNot x | bddIsTrue  x = bddFalse

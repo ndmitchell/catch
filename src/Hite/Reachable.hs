@@ -30,7 +30,7 @@ reachableList names hite@(Hite datas funcs) = Hite aliveDatas aliveFuncs
         
         g (Make x _) = [x]
         g (Case _ alts) = fsts alts
-        g (Sel _ path) = [ctorName $ getCtorFromArg hite path]
+        g (Sel _ path) = [ctorName $ getCArg hite path]
         g (Msg x) = map charCtor x
         g (MCase xs) = concat [ctor : concatMap g (allExpr x2) | MCaseAlt x y <- xs, MCaseOpt x2 ctor <- allPredLit x]
         g _ = []
@@ -41,7 +41,7 @@ reachableList names hite@(Hite datas funcs) = Hite aliveDatas aliveFuncs
                           else if x == "%Ap" then [Data x xs2 t]
                           else if length xs - length xs2 <= 1 then [Data x xs t]
                           else [Data x (Ctor (x ++ "_?") [] [] : xs2) []]
-            where xs2 = filter (\y -> ctorName y `elem` aliveCtorNames) xs
+            where xs2 = filter (\y -> ctorNameRaw y `elem` aliveCtorNames) xs
         
         f x = [y | CallFunc y <- allExpr $ body $ getFunc hite x]
 

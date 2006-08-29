@@ -64,7 +64,7 @@ instance PredLit ReqAll where
 
 
 instance PredLitNot Req where
-    litNot (Req on path set hite) = predLit $ Req on path (getCtorsFromCtor hite (head set) \\ set) hite
+    litNot (Req on path set hite) = predLit $ Req on path (ctorNames (getCtor hite (head set)) \\ set) hite
 
 
 instance PredLit Req where
@@ -77,7 +77,7 @@ instance PredLit Req where
     
 
 simpReq (Req a1 b1 c1 hite)
-    | c1 `setEq` (getCtorsFromCtor hite (head c1))
+    | c1 `setEq` (ctorNames $ getCtor hite (head c1))
         = Just True
     | otherwise
         = Nothing
@@ -109,7 +109,7 @@ superImply hite b1 c1 b2 = all (\l2 -> any (f l2) b1s) b2s
                   not (ctorName ctr `elem` c1)
             where
                 c = headNote "Reqs.Simplify.superImply" (drop (length l1) l2)
-                ctr = getCtorFromArg hite c
+                ctr = getCArg hite c
 
 
 

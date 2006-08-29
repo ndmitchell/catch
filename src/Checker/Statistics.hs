@@ -19,4 +19,4 @@ statistics hite@(Hite dat func) = do
         
         isComplete (Case _ []) = False
         isComplete (Case _ alts@((one,_):_)) = cs `setEq` (map fst alts)
-            where cs = map ctorName $ ctors $ getDataFromCtor hite one
+            where cs = map ctorName $ ctors $ getCtor hite one

@@ -33,7 +33,7 @@ makeMove hite = mapExpr f hite
         f (Sel x path) | ctor == Just want = pickSel hite x path
             where
                 ctor = getMake hite x
-                want = ctorName $ getCtorFromArg hite path
+                want = ctorName $ getCArg hite path
         
         f x = x
 

@@ -28,7 +28,7 @@ data Hite = Hite {datas :: [Data], funcs :: [Func]}
             deriving (Show, Read)
 
 instance QDatas Hite where
-	qDatas = datas
+	rawDatas = datas
 
 data Func = Func {funcName :: FuncName, funcArgs :: [FuncArg], body :: Expr, pos :: String}
           deriving (Eq, Show, Read)

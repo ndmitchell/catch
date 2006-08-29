@@ -85,7 +85,7 @@ getRenameOne hite expr (MCaseOpt on ctor) = mergeRename $ map (demand expr) unro
         -- all the demands, in order
         unroll = (map f $ tail $ inits path) ++ [(path,ctor)]
             where
-                f x = (pth, ctorName $ getCtorFromArg hite res)
+                f x = (pth, ctorName $ getCArg hite res)
                     where (pth,res) = (init x, last x)
 
         newCtor :: CtorName -> String -> GExp

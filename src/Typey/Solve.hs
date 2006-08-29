@@ -147,9 +147,9 @@ expandRhs state@(hite,datam,funcm) xs n = (n2, map head xs2 ++ concatMap tail xs
         getExpr ren (Sel x y) = res
             where
                 s@(Subtype (_ :@ inside) _) = getExpr ren x
-                ctor = getCtorFromArg hite y
+                ctor = getCArg hite y
                 cname = ctorName ctor
-                dname = dataName $ getDataFromCtor hite cname
+                dname = dataName ctor
                 dtype@(DataT free ctors) = lookupJust dname datam
                 cargs = head [xs | CtorT n xs <- ctors, n == cname]
                 argPos = fromJust $ elemIndex y (ctorArgs ctor)
@@ -162,7 +162,7 @@ expandRhs state@(hite,datam,funcm) xs n = (n2, map head xs2 ++ concatMap tail xs
         getType ren (Make name xs) = foldr f (Subtype ([SCtor name]:@blanks) ([]:@blanks)) (zip cargs xs2)
             where
                 blanks = replicate free Empty
-                dname = dataName $ getDataFromCtor hite name
+                dname = dataName $ getCtor hite name
                 dtype@(DataT free ctors) = lookupJust dname datam
                 cargs = head [xs | CtorT n xs <- ctors, n == name]
                 xs2 = map (getType ren) xs

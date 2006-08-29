@@ -25,8 +25,8 @@ ctorCollapse hite@(Hite datas funcs) = Hite (map mergeData datas) (mapExpr merge
                         [x] -> shorten $ intercat "+" x
                         _ -> x
         
-        mergeData dat = dat{ctors = nubExtract ctorName $ map f $ ctors dat}
-            where f ctr = ctr{ctorName = getName $ ctorName ctr}
+        mergeData (Data nam ctrs t) = Data nam (nubExtract ctorNameRaw $ map f ctrs) t
+            where f (Ctor nam a b) = Ctor (getName nam) a b
 
         mergeFunc (Make x xs) = Make (getName x) xs
         mergeFunc (Case on alts) = Case on $ nubExtract fst $ map f alts
