@@ -2,6 +2,7 @@
 module Hite.Dedict(cmd) where
 
 import Hite.Type
+import Hite.Eq
 import Hite.Normalise
 import Hite.Reachable(reachable)
 import General.General

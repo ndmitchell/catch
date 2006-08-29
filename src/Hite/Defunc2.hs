@@ -2,6 +2,7 @@
 module Hite.Defunc2(cmd) where
 
 import Hite.Type
+import Hite.Eq
 import General.General
 import Hite.Normalise
 import Data.List
@@ -43,7 +44,8 @@ encode hite = mapExpr f hite
 
 
 decode :: Hite -> Hite
-decode hite = if null calls2 && null makes2 then hite else error $ show (calls2, makes2) ++ "\n" ++ output hite
+decode hite = if null calls2 && null makes2 then hite else error $ "failed in Defunc2.decode" 
+	-- show (calls2, makes2) ++ "\n" ++ output hite
 	where
 		calls2 = g calls
 		makes2 = g makes
