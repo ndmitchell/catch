@@ -38,6 +38,29 @@ tprep
 	string-expand
 	reachable
 
+tprep2
+	short-name
+	reachable
+	dedict
+	make-move
+	defunc2
+
+tpreptodo
+	case-lift
+	arity-raise
+	case-expand
+	consts
+	reachable
+	make-move
+	inline
+	make-move
+	reachable
+	defunc
+	mcase
+	error-call
+	string-expand
+	reachable
+
 train *Pattern match detection, designed on a train
 	tprep
 	train-patterns

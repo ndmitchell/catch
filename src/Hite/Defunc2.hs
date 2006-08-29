@@ -5,6 +5,7 @@ import Hite.Type
 import General.General
 import Hite.Normalise
 import Data.List
+import Data.Maybe
 
 
 cmd = cmdHitePure (const defunc2) "defunc2"
@@ -14,7 +15,9 @@ cmd = cmdHitePure (const defunc2) "defunc2"
 defunc2 :: Hite -> Hite
 defunc2 bad_hite = decode $ f $ encode hite
 	where
-		f = fix (reachy . specialise . fix (promote . arityRaise))
+		f = fixBound 5 (reachy . specialise . fix (promote . arityRaise))
+		
+		fix f = f
 	
 		hite = normalise bad_hite
 
@@ -118,8 +121,7 @@ specialise hite = useSpec
 				f (Call (CallFunc name) xs)
 					| head name /= '%' && not (null spec) = [Spec name spec]
 					where
-						spec = [SpecArg pos str num | (pos, Make nam _) <- zip [0..] xs,
-									head nam == '%', let (str,num) = fromCtor nam]
+						spec = getSpec xs
 		
 				f x = []
 		
@@ -165,11 +167,12 @@ specialise hite = useSpec
 				rep = map (\(a,b) -> (b,a)) nameSpec
 			
 				f (Call (CallFunc name) xs)
-					| head name /= '%' && not (null spec) = Call (CallFunc newname) (concatMap g xs)
+					| head name /= '%' && isJust newnamej && not (null spec)
+					= Call (CallFunc newname) (concatMap g xs)
 					where
-						newname = lookupJust (Spec name spec) rep
-						spec = [SpecArg pos str num | (pos, Make nam _) <- zip [0..] xs,
-									head nam == '%', let (str,num) = fromCtor nam]
+						newname = fromJust newnamej
+						newnamej = lookup (Spec name spec) rep
+						spec = getSpec xs
 		
 						g (Make nam xs) | head nam == '%' = xs
 						g x = [x]
@@ -177,6 +180,9 @@ specialise hite = useSpec
 				f x = x
 
 
+		getSpec :: [Expr] -> [SpecArg]
+		getSpec xs = [SpecArg pos str num | (pos, Make nam _) <- zip [0..] xs,
+						head nam == '%', let (str,num) = fromCtor nam]
 
 
 
