@@ -7,9 +7,9 @@ import Control.Exception
 import Data.List
 
 
-exprTweak = exprTweaks [basicExpr]
+exprTweak = joinTweaks [basicExpr]
 
-funcTweak = funcTweaks [deadArg, lambdaRaise]
+funcTweak = joinTweaks [deadArg, lambdaRaise]
 
 
 ---------------------------------------------------------------------
@@ -19,24 +19,24 @@ funcTweak = funcTweaks [deadArg, lambdaRaise]
 basicExpr :: ExprTweak
 
 -- structural simplifications
-basicExpr ihite (Apply x []) = Change x
-basicExpr ihite (Lambda [] x) = Change x
-basicExpr ihite (Call "_" []) = Change Unknown
+basicExpr ihite (Apply x []) = Just x
+basicExpr ihite (Lambda [] x) = Just x
+basicExpr ihite (Call "_" []) = Just Unknown
 
 -- (Cons a b).head ==> a
 basicExpr ihite (Sel (Make name args) arg) =
-		assert (ctorName x == name) $ Change $ args !! cargPos x
+		assert (ctorName x == name) $ Just $ args !! cargPos x
 	where x = getCArg ihite arg
 
 -- case Nil of {Nil -> a; Cons -> b} ==> a
-basicExpr ihite (Case (Make name args) xs) = Change $ head ys
+basicExpr ihite (Case (Make name args) xs) = Just $ head ys
 	where ys = [b | (a,b) <- xs, a == name]
 
 -- Apply (Lambda free expr) args  ==> expr[free/args]
 basicExpr ihite (Apply (Lambda (f:ree) expr) (a:rgs)) =
-	Change $ Apply (Lambda ree (replaceFree [(f,a)] expr)) rgs
+	Just $ Apply (Lambda ree (replaceFree [(f,a)] expr)) rgs
 
-basicExpr ihite _ = None
+basicExpr ihite _ = Nothing
 
 
 

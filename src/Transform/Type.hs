@@ -31,30 +31,22 @@ data IExpr = Var Int
 
 type FuncTweak = IHite -> IFunc -> Maybe (IFunc, IExpr -> IExpr)
 
-type ExprTweak = IHite -> IExpr -> Alteration
+type ExprTweak = IHite -> IExpr -> Maybe IExpr
 
-data Alteration = None
-				| Change IExpr
-				| Insert IFunc (FuncName -> IExpr)
+type FuncCreate = IHite -> IExpr -> Maybe (IFunc, FuncName -> IExpr)
 
 
 getFunc :: IHite -> FuncName -> IFunc
 getFunc (IHite _ funcs) name = head $ filter (\x -> funcName x == name) funcs
 
 
-exprTweaks :: [ExprTweak] -> ExprTweak
-exprTweaks [] ihite expr = None
-exprTweaks (x:xs) ihite expr =
-	case x ihite expr of
-		None -> exprTweaks xs ihite expr
-		x -> x
 
-funcTweaks :: [FuncTweak] -> FuncTweak
-funcTweaks [] ihite func = Nothing
-funcTweaks (x:xs) ihite func =
-	case x ihite func of
-		Nothing -> funcTweaks xs ihite func
-		x -> x
+joinTweaks :: [a -> b -> Maybe c] -> a -> b -> Maybe c
+joinTweaks [] a b = Nothing
+joinTweaks (x:xs) a b =
+	case x a b of
+		Nothing -> joinTweaks xs a b
+		res -> res
 
 
 

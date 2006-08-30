@@ -9,25 +9,43 @@ import General.General
 import Control.Monad
 import Data.List
 
-
+---------------------------------------------------------------------
+-- DRIVER
 
 applyTransform :: IHite -> IHite
-applyTransform ihite = f ihite
+applyTransform ihite = maybe ihite id res
 	where
-		f x = case applyFuncs x of
-				  Nothing -> g x
-				  Just x -> f x
-		
-		g x = case applyExprs x of
-				  Nothing -> x
-				  Just x -> f x
+		res = fixMay (applyFuncCreate <*> fixMay (fixMay applyExprTweak <*> applyFuncTweak)) ihite
+
+
+fixMay :: (a -> Maybe a) -> (a -> Maybe a)
+fixMay f x = case f x of
+				 Nothing -> Nothing
+				 Just a -> case fixMay f a of
+				 			   Nothing -> Just a
+				 			   Just q -> Just q
+
+
+(<*>) :: (a -> Maybe a) -> (a -> Maybe a) -> (a -> Maybe a)
+(<*>) f g x = case f x of
+				Nothing -> g x
+				Just x -> case g x of
+					Nothing -> Just x
+					Just x -> Just x
+
+
+---------------------------------------------------------------------
+-- TRANSFORMS
+
+applyFuncCreate ihite = Nothing
+
 
 
 -- apply all the functions
 -- Nothing implies a fixed point has been reached
 -- Just means it hasn't, use this new value
-applyFuncs :: IHite -> Maybe IHite
-applyFuncs ihite@(IHite hite funcs) = liftM normalHite $ f $ allItems funcs
+applyFuncTweak :: IHite -> Maybe IHite
+applyFuncTweak ihite@(IHite hite funcs) = liftM normalHite $ f $ allItems funcs
 	where
 		f [] = Nothing
 		f ((pre,x,post):rest) = case funcTweak ihite x of
@@ -36,6 +54,41 @@ applyFuncs ihite@(IHite hite funcs) = liftM normalHite $ f $ allItems funcs
 
 		applyAll g funcs = [normaliseIFunc func{funcExpr=mapIExpr g (funcExpr func)} | func <- funcs]
 
+
+
+
+applyExprTweak :: IHite -> Maybe IHite
+applyExprTweak ihite@(IHite hite funcs) = f False [] funcs
+	where
+		f False acc [] = Nothing
+		f True acc [] = Just $ IHite hite (reverse acc)
+		
+		f change acc (x:xs) = case applyExpr ihite (funcExpr x) of
+			Nothing -> f change (x:acc) xs
+			Just y -> f True (normaliseIFunc x{funcExpr=y} :acc) xs
+		
+
+
+
+applyExpr :: IHite -> IExpr -> Maybe IExpr
+applyExpr ihite expr = f False [] children
+	where
+		children = getChildren expr
+		
+		f change acc [] = case exprTweak ihite x2 of
+				Nothing -> if change then Just x2 else Nothing
+				x -> x
+			where
+				x2 = setChildren expr (reverse acc)
+
+		f change acc (x:xs) = case applyExpr ihite x of
+			Nothing -> f change (x:acc) xs
+			Just x -> f True (x:acc) xs
+
+
+
+---------------------------------------------------------------------
+-- SMALL UTILITY
 
 getName :: [IFunc] -> FuncName -> FuncName
 getName funcs name = joinName name n
@@ -51,41 +104,8 @@ joinName xs 0 = xs
 joinName xs i = xs ++ "~" ++ show i
 
 
-
-applyExprs :: IHite -> Maybe IHite
-applyExprs ihite@(IHite hite funcs) = f False [] funcs
-	where
-		f False acc [] = Nothing
-		f True acc [] = Just $ IHite hite (reverse acc)
-		
-		f change acc (x:xs) = case applyExpr ihite (funcExpr x) of
-			None -> f change (x:acc) xs
-			Change y -> f True (normaliseIFunc x{funcExpr=y} :acc) xs
-			Insert func rep -> Just $ IHite hite
-					(normaliseIFunc func{funcName=newname}:x{funcExpr=rep newname}:acc++xs)
-				where newname = getName funcs (funcName func)
-		
-
-
-
-applyExpr :: IHite -> IExpr -> Alteration
-applyExpr ihite expr = f False [] children
-	where
-		children = getChildren expr
-		
-		f change acc [] = case exprTweak ihite x2 of
-				None -> if change then Change x2 else None
-				x -> x
-			where
-				x2 = setChildren expr (reverse acc)
-
-		f change acc (x:xs) = case applyExpr ihite x of
-			None -> f change (x:acc) xs
-			Change x -> f True (x:acc) xs
-			Insert func rep -> Insert func
-				(\name -> setChildren expr (take (length acc) children ++ [rep name] ++ xs))
-
-
+---------------------------------------------------------------------
+-- NORMALISATION AND REACHABILITY
 
 -- if two functions are equal, reduce them to one
 normalHite :: IHite -> IHite
