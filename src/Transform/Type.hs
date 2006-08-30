@@ -115,3 +115,12 @@ instance Output IFunc where
 
 instance Output IExpr where
 	output x = show x
+
+
+
+validIHite :: IHite -> Bool
+validIHite (IHite _ xs) = all validIFunc xs && length names == length (nub names)
+	where names = map funcName xs
+
+validIFunc :: IFunc -> Bool
+validIFunc (Func name args body) = sort args == sort (collectFree body)
