@@ -21,16 +21,9 @@ normaliseIExpr :: Int -> [(Int,Int)] -> IExpr -> IExpr
 normaliseIExpr free rep x =
 	case x of
 		Var i -> Var $ lookupJust i rep
-		Make x xs -> Make x (fs xs)
-		Call x xs -> Call x (fs xs)
-		Apply x xs -> Apply (f x) (fs xs)
-		Sel x y -> Sel (f x) y
 		Lambda is x -> Lambda newis $ normaliseIExpr newfree (zip is newis ++ rep) x
 			where
 				newis = [free..newfree-1]
 				newfree = free + length is
 
-		x -> x
-	where
-		f = normaliseIExpr free rep
-		fs = map f
+		_ -> setChildren x (map (normaliseIExpr free rep) (getChildren x))
