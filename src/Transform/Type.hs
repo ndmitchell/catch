@@ -93,7 +93,7 @@ mapIExpr = mapOver
 freshFree :: [IExpr] -> [Int]
 freshFree xs = filter (`notElem` used) [0..]
 	where
-		used = nub [concatMap f $ allExpr x | x <- xs]
+		used = nub $ concat [concatMap f $ allIExpr x | x <- xs]
 		
 		f (Var i) = [i]
 		f (Lambda i _) = i
