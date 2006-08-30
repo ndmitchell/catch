@@ -34,10 +34,7 @@ basicExpr ihite (Case (Make name args) xs) = Change $ head ys
 
 -- Apply (Lambda free expr) args  ==> expr[free/args]
 basicExpr ihite (Apply (Lambda (f:ree) expr) (a:rgs)) =
-	Change $ Apply (Lambda ree (mapIExpr rep expr)) rgs
-	where
-		rep (Var i) | i == f = a
-		rep x = x
+	Change $ Apply (Lambda ree (replaceFree [(f,a)] expr)) rgs
 
 basicExpr ihite _ = None
 
