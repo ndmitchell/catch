@@ -13,9 +13,11 @@ import Data.List
 -- DRIVER
 
 applyTransform :: IHite -> IHite
-applyTransform ihite = maybe ihite id res
+applyTransform ihite = maybe ihite id (apply ihite)
 	where
-		res = fixMay (applyFuncCreate <*> fixMay (fixMay applyExprTweak <*> applyFuncTweak)) ihite
+		apply = fixMay item
+		
+		item = (applyFuncCreate <*> fixMay (fixMay applyExprTweak <*> applyFuncTweak))
 
 
 fixMay :: (a -> Maybe a) -> (a -> Maybe a)
@@ -27,7 +29,7 @@ fixMay f x = case f x of
 
 
 (<*>) :: (a -> Maybe a) -> (a -> Maybe a) -> (a -> Maybe a)
-(<*>) f g x = case f x of
+(<*>) g f x = case f x of
 				Nothing -> g x
 				Just x -> case g x of
 					Nothing -> Just x
@@ -37,7 +39,46 @@ fixMay f x = case f x of
 ---------------------------------------------------------------------
 -- TRANSFORMS
 
-applyFuncCreate ihite = Nothing
+applyFuncCreate :: IHite -> Maybe IHite
+applyFuncCreate ihite@(IHite hite funcs) = liftM normalHite $ f False [] funcs
+	where
+		f False acc [] = Nothing
+		f True acc [] = Just $ IHite hite (reverse acc)
+		
+		f changed acc (x:xs) = case applyCreate (IHite hite (acc++x:xs)) x of
+			Nothing -> f changed (x:acc) xs
+			Just (func2,create) -> let func3 = normaliseIFunc func2 in
+				case askFunc func3 (acc++x:xs) of
+					Just newname -> f True (create newname:acc) xs
+					Nothing -> f True (create newname:acc) (func3{funcName=newname}:xs)
+						where newname = getName (acc++x:xs) (funcName func3)
+
+
+-- does the function already exist, under a different name
+askFunc :: IFunc -> [IFunc] -> Maybe FuncName
+askFunc (Func name args body) funcs =
+		listToMaybe [name2 | Func name2 args2 body2 <- funcs,
+					         fst (splitName name2) == str, args == args2, body == body2]
+	where (str,num) = splitName name
+
+
+
+applyCreate :: IHite -> IFunc -> Maybe (IFunc, FuncName -> IFunc)
+applyCreate ihite (Func name args body) =
+	case f body of
+		Nothing -> Nothing
+		Just (a,b) -> Just (a, \nam -> Func name args (b nam))
+	where
+		f expr = case g [] children of
+					 Nothing -> funcCreate ihite expr
+					 Just (a,b) -> Just (a, \nam -> setChildren expr (b nam))
+			where
+				children = getChildren expr
+	
+		g acc [] = Nothing
+		g acc (x:xs) = case f x of
+						   Nothing -> g (x:acc) xs
+						   Just (a,b) -> Just (a, \nam -> reverse acc ++ b nam : xs)
 
 
 
@@ -58,7 +99,7 @@ applyFuncTweak ihite@(IHite hite funcs) = liftM normalHite $ f $ allItems funcs
 
 
 applyExprTweak :: IHite -> Maybe IHite
-applyExprTweak ihite@(IHite hite funcs) = f False [] funcs
+applyExprTweak ihite@(IHite hite funcs) = liftM normalHite $ f False [] funcs
 	where
 		f False acc [] = Nothing
 		f True acc [] = Just $ IHite hite (reverse acc)

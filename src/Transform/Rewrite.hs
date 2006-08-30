@@ -98,3 +98,5 @@ defuncExpr ihite (Call name xs) | any isHO xs
 		
 		isHO (Lambda _ (Call _ _)) = True
 		isHO _ = False
+
+defuncExpr _ _ = Nothing
