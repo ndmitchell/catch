@@ -68,8 +68,8 @@ lambdaRaise :: FuncTweak
 lambdaRaise ihite (Func name args (Lambda xs body))
 		= Just (Func name (args ++ xs) body, f)
 	where
-		f (Call nam xs) | nam == name = Lambda free (Call nam (xs ++ map Var free))
-			where free = take (length xs) $ freshFree xs
+		f o@(Call nam xs) | nam == name = Lambda free (Call nam (xs ++ map Var free))
+			where free = take (length xs) $ freshFree o
 		f x = x
 
 lambdaRaise _ _ = Nothing

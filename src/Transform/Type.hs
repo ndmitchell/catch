@@ -90,10 +90,10 @@ mapIExpr :: (IExpr -> IExpr) -> IExpr -> IExpr
 mapIExpr = mapOver
 
 
-freshFree :: [IExpr] -> [Int]
-freshFree xs = filter (`notElem` used) [0..]
+freshFree :: IExpr -> [Int]
+freshFree x = filter (`notElem` used) [0..]
 	where
-		used = nub $ concat [concatMap f $ allIExpr x | x <- xs]
+		used = nub $ concatMap f $ allIExpr x
 		
 		f (Var i) = [i]
 		f (Lambda i _) = i
