@@ -92,7 +92,18 @@ mapIExpr = mapOver
 
 freshFree :: [IExpr] -> [Int]
 freshFree xs = filter (`notElem` used) [0..]
-	where used = nub [i | x <- xs, Var i <- allIExpr x]
+	where
+		used = nub [concatMap f $ allExpr x | x <- xs]
+		
+		f (Var i) = [i]
+		f (Lambda i _) = i
+		f _ = []
+
+
+collectFree :: IExpr -> [Int]
+collectFree (Lambda x y) = collectFree y \\ x
+collectFree (Var i) = [i]
+collectFree x = nub $ concatMap collectFree $ getChildren x
 
 
 instance Output IHite where
