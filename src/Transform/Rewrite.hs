@@ -11,7 +11,7 @@ exprTweak = joinTweaks [basicExpr, inlineTuple]
 
 funcTweak = joinTweaks [deadArg, lambdaRaise]
 
-funcCreate = joinTweaks [defuncExpr]
+funcCreate = joinTweaks [defuncExpr, dedictExpr]
 
 
 ---------------------------------------------------------------------
@@ -107,13 +107,31 @@ defuncExpr _ _ = Nothing
 
 -- remove dictionaries, see MonadFail2 for an example
 
+isTuple (Make ('T':'u':'p':_) _) = True
+isTuple _ = False
+
+
 -- f, where f = Tup _ _ ==> Tup _ _
 inlineTuple :: ExprTweak
 inlineTuple ihite (Call name []) | isTuple body = Just body
-	where
-		isTuple (Make ('T':'u':'p':_) _) = True
-		isTuple _ = False
-	
-		body = funcExpr $ getFunc ihite name
-
+	where body = funcExpr $ getFunc ihite name
 inlineTuple _ _ = Nothing
+
+
+dedictExpr :: FuncCreate
+dedictExpr ihite (Call name xs) | any isTuple xs
+		= Just (newfunc, newexpr)
+	where
+		(pre,Make tupn tupArgs:post) = break isTuple xs
+		
+		newexpr newname = Call newname (pre ++ tupArgs ++ post)
+		
+		Func _ args body = getFunc ihite name
+		newargs = take (length tupArgs) $ freshFree body \\ args
+
+		lpre = length pre
+		newfunc = Func name
+			(take lpre args ++ newargs ++ drop (lpre+1) args)
+			(replaceFree [(args!!lpre,Make tupn (map Var newargs))] body)
+
+dedictExpr _ _ = Nothing
