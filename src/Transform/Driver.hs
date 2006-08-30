@@ -132,8 +132,10 @@ applyExpr ihite expr = f False [] children
 -- SMALL UTILITY
 
 getName :: [IFunc] -> FuncName -> FuncName
-getName funcs name = joinName name n
-	where n = 1 + maximum (-1 : [b | func <- funcs, let (a,b) = splitName (funcName func), a == name])
+getName funcs name = joinName nam n
+	where
+		n = 1 + maximum (-1 : [b | func <- funcs, let (a,b) = splitName (funcName func), a == nam])
+		nam = fst $ splitName name
 
 
 splitName :: FuncName -> (String, Int)
