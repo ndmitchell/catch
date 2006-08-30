@@ -7,7 +7,7 @@ import Control.Exception
 import Data.List
 
 
-exprTweak = joinTweaks [basicExpr]
+exprTweak = joinTweaks [basicExpr, inlineTuple]
 
 funcTweak = joinTweaks [deadArg, lambdaRaise]
 
@@ -100,3 +100,20 @@ defuncExpr ihite (Call name xs) | any isHO xs
 		isHO _ = False
 
 defuncExpr _ _ = Nothing
+
+
+---------------------------------------------------------------------
+-- DICTIONARY REMOVAL
+
+-- remove dictionaries, see MonadFail2 for an example
+
+-- f, where f = Tup _ _ ==> Tup _ _
+inlineTuple :: ExprTweak
+inlineTuple ihite (Call name []) | isTuple body = Just body
+	where
+		isTuple (Make ('T':'u':'p':_) _) = True
+		isTuple _ = False
+	
+		body = funcExpr $ getFunc ihite name
+
+inlineTuple _ _ = Nothing
