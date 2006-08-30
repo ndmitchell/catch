@@ -72,6 +72,10 @@ lookupJust x ys = case lookup x ys of
                        Nothing -> error $ "lookupJust, " ++ show x
                        Just y -> y
 
+lookupDefault def x ys = case lookup x ys of
+							  Nothing -> def
+							  Just y -> y
+
 lookupNote msg x ys = case lookup x ys of
                            Nothing -> error $ "lookupNote, " ++ show x ++ ", " ++ msg
                            Just y -> y
