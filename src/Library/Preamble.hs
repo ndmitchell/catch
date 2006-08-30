@@ -417,7 +417,7 @@ data IO a = OI {io :: a}
 instance Preamble_Monad IO where
     return x = OI x
     OI a >>= f = f a
-    a >> b = b
+    OI a >> b = b
 
 
 getContents = OI catch_any
