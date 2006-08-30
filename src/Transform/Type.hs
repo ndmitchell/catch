@@ -90,6 +90,11 @@ mapIExpr :: (IExpr -> IExpr) -> IExpr -> IExpr
 mapIExpr = mapOver
 
 
+freshFree :: [IExpr] -> [Int]
+freshFree xs = filter (`notElem` used) [0..]
+	where used = nub [i | x <- xs, Var i <- allIExpr x]
+
+
 instance Output IHite where
 	output (IHite _ xs) = concat $ intersperse "\n" $ map output xs
 

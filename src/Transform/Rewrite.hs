@@ -9,7 +9,7 @@ import Data.List
 
 exprTweak = exprTweaks [basicExpr]
 
-funcTweak = funcTweaks [deadArg]
+funcTweak = funcTweaks [deadArg, lambdaRaise]
 
 
 ---------------------------------------------------------------------
@@ -21,6 +21,7 @@ basicExpr :: ExprTweak
 -- structural simplifications
 basicExpr ihite (Apply x []) = Change x
 basicExpr ihite (Lambda [] x) = Change x
+basicExpr ihite (Call "_" []) = Change Unknown
 
 -- (Cons a b).head ==> a
 basicExpr ihite (Sel (Make name args) arg) =
@@ -58,3 +59,17 @@ deadArg ihite (Func name args body)
 
 deadArg ihite _ = Nothing
 
+
+---------------------------------------------------------------------
+-- LAMBDA RAISE
+
+-- f a = Lambda n b ==> f a n = b
+lambdaRaise :: FuncTweak
+lambdaRaise ihite (Func name args (Lambda xs body))
+		= Just (Func name (args ++ xs) body, f)
+	where
+		f (Call nam xs) | nam == name = Lambda free (Call nam (xs ++ map Var free))
+			where free = take (length xs) $ freshFree xs
+		f x = x
+
+lambdaRaise _ _ = Nothing
