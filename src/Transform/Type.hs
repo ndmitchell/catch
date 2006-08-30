@@ -106,6 +106,13 @@ collectFree (Var i) = [i]
 collectFree x = nub $ concatMap collectFree $ getChildren x
 
 
+replaceFree :: [(Int,IExpr)] -> IExpr -> IExpr
+replaceFree rep x = case x of
+	Var i -> lookupDefault (Var i) i rep
+	Lambda i x -> Lambda i $ replaceFree [(a,b) | (a,b) <- rep, a `notElem` i] x
+	x -> setChildren x (map (replaceFree rep) (getChildren x))
+
+
 instance Output IHite where
 	output (IHite _ xs) = concat $ intersperse "\n" $ map output xs
 
