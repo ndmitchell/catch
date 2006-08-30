@@ -1,5 +1,5 @@
 
-module Transform.Rewrite(exprTweak, funcTweak) where
+module Transform.Rewrite(exprTweak, funcTweak, funcCreate) where
 
 import Transform.Type
 
@@ -10,6 +10,8 @@ import Data.List
 exprTweak = joinTweaks [basicExpr]
 
 funcTweak = joinTweaks [deadArg, lambdaRaise]
+
+funcCreate = joinTweaks [defuncExpr]
 
 
 ---------------------------------------------------------------------
@@ -70,3 +72,29 @@ lambdaRaise ihite (Func name args (Lambda xs body))
 		f x = x
 
 lambdaRaise _ _ = Nothing
+
+
+---------------------------------------------------------------------
+-- DEFUNCTIONALISE FUNCTION
+
+-- f (pre:Lambda args (Call x xs):pre)  ==>
+--     f' pre:fv:post,  f'=f[arg/Lambda args (Call x xs)]
+defuncExpr :: FuncCreate
+defuncExpr ihite (Call name xs) | any isHO xs
+		= Just (newfunc, newexpr)
+	where
+		(pre,spec:post) = break isHO xs
+		fvSpec = collectFree spec
+		
+		newexpr name2 = Call name2 (pre ++ map Var fvSpec ++ post)
+		
+		Func _ args body = getFunc ihite name
+		newargs = take (length fvSpec) $ freshFree body \\ args
+		
+		lpre = length pre
+		newfunc = Func name
+			(take lpre args ++ newargs ++ drop (lpre+1) args)
+			(replaceFree [(args!!lpre, replaceFree (zip fvSpec (map Var newargs)) spec)] body)
+		
+		isHO (Lambda _ (Call _ _)) = True
+		isHO _ = False
