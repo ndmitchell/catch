@@ -7,7 +7,7 @@ import Control.Exception
 import Data.List
 
 
-exprTweak = joinTweaks [basicExpr, inlineTuple]
+exprTweak = joinTweaks [basicExpr, inlineTuple, inlineExpr]
 
 funcTweak = joinTweaks [deadArg, lambdaRaise]
 
@@ -141,3 +141,14 @@ dedictExpr ihite (Call name xs) | any isTuple xs
 			(replaceFree [(args!!lpre,Make tupn (map Var newargs))] body)
 
 dedictExpr _ _ = Nothing
+
+
+---------------------------------------------------------------------
+-- GENERAL INLINING
+
+-- move Unknown's up the chain
+inlineExpr :: ExprTweak
+inlineExpr ihite (Call name []) | body == Unknown = Just Unknown
+	where body = funcExpr $ getFunc ihite name
+inlineExpr _ _ = Nothing
+	
