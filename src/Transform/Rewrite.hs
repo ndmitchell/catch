@@ -96,7 +96,13 @@ defuncExpr ihite (Call name xs) | any isHO xs
 			(take lpre args ++ newargs ++ drop (lpre+1) args)
 			(replaceFree [(args!!lpre, replaceFree (zip fvSpec (map Var newargs)) spec)] body)
 		
+		-- UNSURE IF THIS IS CORRECT
+		-- WHAT IF ARBITRARY EXPRESSION, LEADS TO NON-TERM?
+		-- Potentially unsafe generalisation
+		-- isHO (Lambda _ _) = True
+
 		isHO (Lambda _ (Call _ _)) = True
+		isHO (Lambda _ Unknown) = True
 		isHO _ = False
 
 defuncExpr _ _ = Nothing
