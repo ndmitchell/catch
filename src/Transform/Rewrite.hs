@@ -9,7 +9,7 @@ import Data.List
 
 exprTweak = joinTweaks [basicExpr, inlineTuple, inlineExpr]
 
-funcTweak = joinTweaks [deadArg, lambdaRaise]
+funcTweak = joinTweaks [deadArg, lambdaRaise, inlineFunc]
 
 funcCreate = joinTweaks [defuncExpr, dedictExpr]
 
@@ -152,3 +152,22 @@ inlineExpr ihite (Call name []) | body == Unknown = Just Unknown
 	where body = funcExpr $ getFunc ihite name
 inlineExpr _ _ = Nothing
 	
+
+-- f x y = g x y  ==> replace f with g
+-- note, must do something to f, or will repeatedly be inlined
+-- so check there is a caller of f
+inlineFunc :: FuncTweak
+inlineFunc ihite@(IHite _ funcs) func@(Func name args (Call nam params))
+		| name /= nam && name /= "main" && all isVar params && not (null callers)
+		= assert (args == [0..length args - 1]) $ Just (func, f)
+	where
+		callers = [() | fun <- funcs, Call n _ <- allIExpr $ funcExpr fun, n == name]
+	
+		isVar (Var _) = True
+		isVar _ = False
+		
+		f (Call n xs) | n == name = Call nam (map g params)
+			where g (Var i) = xs !! i
+		f x = x
+
+inlineFunc _ _ = Nothing
