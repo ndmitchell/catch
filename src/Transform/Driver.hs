@@ -40,18 +40,23 @@ fixMay f x = case f x of
 -- TRANSFORMS
 
 applyFuncCreate :: IHite -> Maybe IHite
-applyFuncCreate ihite@(IHite hite funcs) = liftM normalHite $ f False [] funcs
+applyFuncCreate ihite@(IHite hite funcs) =
+		liftM normalHite $ case f False funcs [] funcs of
+			(True, a) -> Just $ IHite hite a
+			(False,a) -> Nothing
 	where
-		f False acc [] = Nothing
-		f True acc [] = Just $ IHite hite (reverse acc)
-		
-		f changed acc (x:xs) = case applyCreate (IHite hite (acc++x:xs)) x of
-			Nothing -> f changed (x:acc) xs
-			Just (func2,create) -> let func3 = normaliseIFunc func2 in
-				case askFunc func3 (acc++x:xs) of
-					Just newname -> f True (create newname:acc) xs
-					Nothing -> f True (create newname:acc) (func3{funcName=newname}:xs)
-						where newname = getName (acc++x:xs) (funcName func3)
+		f :: Bool -> [IFunc] -> [IFunc] -> [IFunc] -> (Bool, [IFunc])
+		f changed oldfuncs newfuncs [] = (changed,reverse newfuncs)
+		f changed oldfuncs newfuncs (t:odo) =
+			case applyCreate ihite t of
+				Nothing -> f changed oldfuncs (t:newfuncs) odo
+				Just (newfunc,oldfunc) ->
+					case askFunc newfunc oldfuncs of
+						Just name -> f True oldfuncs (oldfunc name : newfuncs) odo
+						Nothing -> f True (newfunc2:oldfuncs) (oldfunc newname : newfuncs) (newfunc2:odo)
+							where
+								newname = getName oldfuncs (funcName newfunc)
+								newfunc2 = newfunc{funcName = newname}
 
 
 -- does the function already exist, under a different name
@@ -67,7 +72,7 @@ applyCreate :: IHite -> IFunc -> Maybe (IFunc, FuncName -> IFunc)
 applyCreate ihite (Func name args body) =
 	case f body of
 		Nothing -> Nothing
-		Just (a,b) -> Just (a, \nam -> Func name args (b nam))
+		Just (a,b) -> Just (normaliseIFunc a, \nam -> normaliseIFunc (Func name args (b nam)))
 	where
 		f expr = case g [] children of
 					 Nothing -> funcCreate ihite expr
