@@ -49,7 +49,7 @@ basicExpr ihite _ = Nothing
 deadArg :: FuncTweak
 deadArg ihite (Func name args body)
 		| not (null deads)
-		= Just (Func name (args \\ deads) body, f)
+		= Just (Just $ Func name (args \\ deads) body, f)
 	where
 		deads = args \\ [i | Var i <- allIExpr body]
 		
@@ -65,7 +65,7 @@ deadArg ihite _ = Nothing
 -- f a = Lambda n b ==> f a n = b
 lambdaRaise :: FuncTweak
 lambdaRaise ihite (Func name args (Lambda xs body))
-		= Just (Func name (args ++ xs) body, f)
+		= Just (Just $ Func name (args ++ xs) body, f)
 	where
 		f o@(Call nam params) | nam == name = Lambda free (Call nam (params ++ map Var free))
 			where free = take (length xs) $ freshFree o
@@ -154,15 +154,11 @@ inlineExpr _ _ = Nothing
 	
 
 -- f x y = g x y  ==> replace f with g
--- note, must do something to f, or will repeatedly be inlined
--- so check there is a caller of f
 inlineFunc :: FuncTweak
 inlineFunc ihite@(IHite _ funcs) func@(Func name args (Call nam params))
-		| name /= nam && name /= "main" && all isVar params && not (null callers)
-		= assert (args == [0..length args - 1]) $ Just (func, f)
+		| name /= nam && name /= "main" && all isVar params
+		= assert (args == [0..length args - 1]) $ Just (Nothing, f)
 	where
-		callers = [() | fun <- funcs, Call n _ <- allIExpr $ funcExpr fun, n == name]
-	
 		isVar (Var _) = True
 		isVar _ = False
 		

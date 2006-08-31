@@ -96,7 +96,7 @@ applyFuncTweak ihite@(IHite hite funcs) = liftM normalHite $ f $ allItems funcs
 		f [] = Nothing
 		f ((pre,x,post):rest) = case funcTweak ihite x of
 			Nothing -> f rest
-			Just (x2,modify) -> Just $ IHite hite $ applyAll modify (pre++[x2]++post)
+			Just (x2,modify) -> Just $ IHite hite $ applyAll modify (pre++maybeToList x2++post)
 
 		applyAll g funcs = [normaliseIFunc func{funcExpr=mapIExpr g (funcExpr func)} | func <- funcs]
 

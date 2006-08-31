@@ -29,7 +29,7 @@ data IExpr = Var Int
 
 
 
-type FuncTweak = IHite -> IFunc -> Maybe (IFunc, IExpr -> IExpr)
+type FuncTweak = IHite -> IFunc -> Maybe (Maybe IFunc, IExpr -> IExpr)
 
 type ExprTweak = IHite -> IExpr -> Maybe IExpr
 
