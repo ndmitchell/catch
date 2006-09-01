@@ -14,6 +14,7 @@ import Hite
 
 trainDriver :: String -> Handle -> Hite -> IO Bool
 trainDriver file hndl hite = do
+		hFlush hndl
 		hndlTemplate <- openFile (logFile "template") WriteMode
 		hndlBackward <- openFile (logFile "backward") WriteMode
 		template <- templateInit zhite hndlTemplate
