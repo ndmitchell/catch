@@ -13,7 +13,7 @@ import Data.List
 -- DRIVER
 
 applyTransform :: IHite -> IHite
-applyTransform ihite = res
+applyTransform ihite = reachHite res
 	where
 		res = maybe ihite id (apply ihite)
 		apply = fixMay item
@@ -223,9 +223,7 @@ joinName xs i = xs ++ "~" ++ show i
 -- NORMALISATION AND REACHABILITY
 
 {-
--- if two functions are equal, reduce them to one
--- MAY NOT BE TWEAK SAFE, HENCE DO NOT USE
--}
+-- bad version of uniqueness
 uniqueBad ihite@(IHite datas funcs) =
 		applyMerge ihite reps
 	where
@@ -235,11 +233,11 @@ uniqueBad ihite@(IHite datas funcs) =
 		
 		g [x] = (x,[funcName x])
 		g (x:xs) = (x, funcName x : map funcName xs)
+-}
 
 
 normalHite :: IHite -> IHite
-normalHite = reachHite . uniqueBad
-
+normalHite = uniqueHite
 
 reachHite :: IHite -> IHite
 reachHite ihite@(IHite datas funcs) = res
@@ -254,7 +252,7 @@ reachHite ihite@(IHite datas funcs) = res
 -- perserves the tweak information
 uniqueHite :: IHite -> IHite
 uniqueHite ihite@(IHite datas funcs) =
-		reachHite $ applyMerge ihite (map box rawSets ++ minSets)
+		applyMerge ihite (map box rawSets ++ minSets)
 	where
 		-- ((a,b):xs) a == b, if all xs hold
 		depPairs :: [[(FuncName,FuncName)]]
