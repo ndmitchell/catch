@@ -16,6 +16,14 @@ trans
 	reachable
 	string-expand
 	transform
+	reachable
+	ctor-collapse
+	reachable
+	mcase
+
+train2
+	trans
+	train-patterns
 
 prep
 	short-name
