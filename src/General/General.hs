@@ -136,6 +136,13 @@ remElem f a xs = g [] xs
                       | otherwise = g (x:done) xs
 
 
+disjoint :: Eq a => [a] -> [a] -> Bool
+disjoint x = null . intersect x
+
+
+overlap :: Eq a => [a] -> [a] -> Bool
+overlap x = not . disjoint x
+
 
 eqUnordered :: Ord a => [a] -> [a] -> Bool
 eqUnordered xs ys = sort xs == sort ys

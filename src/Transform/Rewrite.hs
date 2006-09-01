@@ -132,7 +132,10 @@ defuncExpr ihite (Call name xs) | any isHO xs
 		-- Potentially unsafe generalisation
 		-- isHO (Lambda _ _) = True
 
-		isHO (Lambda _ (Call _ _)) = True
+		isHO (Lambda xs (Call _ args)) |
+				fake == map Var xs &&
+				(nub (concatMap collectFree real) `disjoint` xs) = True
+			where (real,fake) = splitAt (length args - length xs) args
 		isHO (Lambda _ Unknown) = True
 		isHO _ = False
 

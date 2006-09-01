@@ -205,7 +205,7 @@ uniqueHite ihite@(IHite datas funcs) =
 		
 		
 		addSet :: [FuncName] -> [[FuncName]] -> [[FuncName]]
-		addSet xs (y:ys) | null (xs `intersect` y) = y : addSet xs ys
+		addSet xs (y:ys) | disjoint xs y = y : addSet xs ys
 						 | otherwise = nub (xs++y) : ys
 		addSet xs [] = [xs]
 
