@@ -33,20 +33,3 @@ enExpr hite free rep x = case x of
 	where
 		f = enExpr hite free rep
 		fs = map f
-
-{-	
-	
-	
-	data Expr = Call {callFunc :: Expr, callArgs :: [Expr]}
-	          | Var {varArg :: FuncArg}
-	          | Sel {expr :: Expr, path :: CtorArg}
-	          | CallFunc {callName :: FuncName}
-	          | Make {makeName :: CtorName, makeArgs :: [Expr]}
-	          | Case Expr [(CtorName, Expr)] -- case x of Cons a b, Nil -> Case "x" (Cons, ["a", "b"]), (Nil, [])
-	          | MCase [MCaseAlt]
-	          | Msg String
-	          
-	          -- constructor, list of arguments (nothing is recurse), expr is alt
-	          | Error String
-
--}
