@@ -79,7 +79,7 @@ basicExpr ihite _ = Nothing
 -- f a b = expr_on_b  ==>  f b = expr_on_b
 deadArg :: FuncTweak
 deadArg ihite (Func name args body _)
-		| name == "main" && not (null deads)
+		| name /= "main" && not (null deads)
 		= Just (newexpr, Tweak "deadArg" (map show deads), Func "" alives body [])
 	where
 		alives = collectFree body
