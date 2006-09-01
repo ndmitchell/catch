@@ -194,7 +194,9 @@ powerSet (x:xs) = xss /\/ map (x:) xss
                  where xss = powerSet xs
 
 
-
+allPairs :: [a] -> [(a,a)]
+allPairs [] = []
+allPairs (x:xs) = map ((,) x) xs ++ allPairs xs
 
 ---------------------------------------------------------------------
 -- OUTPUT STUFF
