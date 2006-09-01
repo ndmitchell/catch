@@ -222,11 +222,66 @@ joinName xs i = xs ++ "~" ++ show i
 ---------------------------------------------------------------------
 -- NORMALISATION AND REACHABILITY
 
+{-
 -- if two functions are equal, reduce them to one
-normalHite :: IHite -> IHite
-normalHite (IHite datas funcs) =
-		reachHite $ IHite datas [func{funcExpr=mapIExpr h (funcExpr func)} | func <- funcs2]
+-- MAY NOT BE TWEAK SAFE, HENCE DO NOT USE
+-}
+uniqueBad ihite@(IHite datas funcs) =
+		applyMerge ihite reps
 	where
+		(funcs2, reps) = unzip $ concatMap f $ groupSetExtract (fst . splitName . funcName) funcs
+		
+		f xs = map g $ groupSetExtract (\(Func _ a b _) -> (a,b)) xs
+		
+		g [x] = (x,[funcName x])
+		g (x:xs) = (x, funcName x : map funcName xs)
+
+
+normalHite :: IHite -> IHite
+normalHite = reachHite . uniqueBad
+
+
+reachHite :: IHite -> IHite
+reachHite ihite@(IHite datas funcs) = res
+	where
+		reach = fixSet f ["main"]
+		res = IHite datas [g func | func <- funcs, funcName func `elem` reach]
+		f x = nub [nam | Call nam _ <- allIExpr $ funcExpr $ getFunc ihite x]
+		
+		g func = func{funcTweaks = [(a,b) | (a,b) <- funcTweaks func, b `elem` reach]}
+
+
+-- perserves the tweak information
+uniqueHite :: IHite -> IHite
+uniqueHite ihite@(IHite datas funcs) =
+		reachHite $ applyMerge ihite (map box rawSets ++ minSets)
+	where
+		-- ((a,b):xs) a == b, if all xs hold
+		depPairs :: [[(FuncName,FuncName)]]
+		depPairs = concatMap f $ groupSetExtract (fst . splitName . funcName) funcs
+		
+		f xs = map (map sortPair) $ mapMaybe (uncurry equalGiven) $ allPairs xs
+		
+		sortPair (a,b) | a > b = (b,a)
+					   | otherwise = (a,b)
+		
+		minSets = foldr addSet [] $ map (\(a,b) -> [a,b]) $ map head $ fix remPairs depPairs
+		rawSets = filter (`notElem` concat minSets) (map funcName funcs)
+		
+		remPairs pairs = filter g pairs
+			where
+				valid = map head pairs
+				g (prove:require) = all (`elem` valid) require
+		
+		
+		addSet :: [FuncName] -> [[FuncName]] -> [[FuncName]]
+		addSet xs (y:ys) | null (xs `intersect` y) = y : addSet xs ys
+						 | otherwise = nub (xs++y) : ys
+		addSet xs [] = [xs]
+		
+		
+	{-	
+	
 		reps2 = concat reps
 		(funcs2, reps) = unzip $ concatMap f $ groupSetExtract (fst . splitName . funcName) funcs
 		
@@ -239,13 +294,46 @@ normalHite (IHite datas funcs) =
 								Nothing -> Call name xs
 								Just x -> Call x xs
 		h x = x
+-}
 
-
-reachHite :: IHite -> IHite
-reachHite ihite@(IHite datas funcs) = res
+equalGiven :: IFunc -> IFunc -> Maybe [(FuncName, FuncName)]
+equalGiven (Func name1 args1 body1 _) (Func name2 args2 body2 _)
+	| args1 /= args2 = Nothing
+	| otherwise = do res <- f body1 body2 ; return ((name1,name2):res)
 	where
-		reach = fixSet f ["main"]
-		res = IHite datas [g func | func <- funcs, funcName func `elem` reach]
-		f x = nub [nam | Call nam _ <- allIExpr $ funcExpr $ getFunc ihite x]
+		f :: IExpr -> IExpr -> Maybe [(FuncName, FuncName)]
+		f (Var a) (Var b) | a == b = Just []
+		f (Make a xs) (Make b ys) | a == b = fs xs ys
+		f (Call a xs) (Call b ys) | a == b = fs xs ys
+								  | fst (splitName a) == fst (splitName b) =
+			case fs xs ys of {Nothing -> Nothing; Just res -> Just ((a,b):res)}
+		f (Case a xs) (Case b ys) | map fst xs == map fst ys = fs (a:map snd xs) (b:map snd ys)
+		f (Lambda a x) (Lambda b y) | a == b = f x y
+		f (Apply a xs) (Apply b ys) = fs (a:xs) (b:ys)
+		f (Sel x a) (Sel y b) | a == b = f x y
+		f (Error _) (Error _) = Just []
+		f (Unknown) (Unknown) = Just []
+		f _ _ = Nothing
+
+		fs xs ys = gs [] xs ys
 		
-		g func = func{funcTweaks = [(a,b) | (a,b) <- funcTweaks func, b `elem` reach]}
+		gs acc [] [] = Just acc
+		gs acc (x:xs) (y:ys) = case f x y of
+									Nothing -> Nothing
+									Just res -> gs (res++acc) xs ys
+		gs acc _ _ = Nothing -- Call to name~1 vs name~2
+
+-- only the first one in each set is the main one
+-- all others get dropped
+applyMerge :: IHite -> [[FuncName]] -> IHite
+applyMerge ihite@(IHite datas funcs) merges = IHite datas (map f merges)
+	where
+		f set@(name:_) = Func name args (mapIExpr g body) $
+						 nub [(a,repStr b) | (a,b) <- concatMap (funcTweaks . getFunc ihite) set]
+			where Func _ args body _ = getFunc ihite name
+		
+		g (Call x xs) = Call (repStr x) xs
+		g x = x
+
+		repStr :: FuncName -> FuncName
+		repStr x = head $ head $ filter (x `elem`) merges
