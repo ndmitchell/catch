@@ -35,6 +35,7 @@ convertExpr x = Right $ case x of
 		Make x xs -> ZMake x (fs xs)
 		Var x -> ZVar x
 		Sel x y -> ZSel (f x) y
+		Unknown -> ZAny
 	where
 		f = fromRight . convertExpr
 		fs = map f
