@@ -41,7 +41,7 @@ canInline :: String -> IExpr -> Bool
 canInline name Unknown = True
 canInline name x | isTuple x = True
 canInline name (Call nam xs) | nam /= name && all isVar xs = True
-canInline name (Lambda _ (Call nam xs)) | all isVar xs = True
+canInline name (Lambda _ x) | canInline name x = True
 canInline name _ = False
 
 
@@ -94,8 +94,8 @@ deadArg ihite _ = Nothing
 
 -- f a = Lambda n b ==> f a n = b
 lambdaRaise :: FuncTweak
-lambdaRaise ihite (Func name args (Lambda xs body) _)
-		| not $ canInline name body
+lambdaRaise ihite (Func name args lam@(Lambda xs body) _)
+		| not $ canInline name lam
 		= Just (Lambda xs $ Call "" (map Var (args++xs)),
 				Tweak "lambdaRaise" [show $ length xs],
 				Func "" (args++xs) body [])
