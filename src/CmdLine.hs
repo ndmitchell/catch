@@ -38,7 +38,7 @@ data Arg = File String
          | Special SpecialArg
          | Terminal (FilePath -> Hite -> IO Bool)
          | Single String (Command Hite)
-         | Unknown String
+         | UnknownArg String
 
 data SpecialArg = Verbose | Help | Version | Profile | Clean | Reclean
                   deriving Eq
@@ -117,9 +117,9 @@ exec args = do comp <- composite
                let (spec,rarg) = partition isSpecial (parseArgs comp args)
                    specs = [x | Special x <- spec]
                    
-               let unknown = [x | Unknown x <- rarg]
+               let unknown = [x | UnknownArg x <- rarg]
                when (not (null unknown)) $
-                    do putStrLn $ "Unknown arguments: " ++ concat (intersperse ", " unknown)
+                    do putStrLn $ "UnknownArg arguments: " ++ concat (intersperse ", " unknown)
                        exitWith (ExitFailure 1)
 
                when (Help `elem` specs) $
@@ -223,7 +223,7 @@ parseArg comp s = [File s]
 
 applyComposite :: [Composite] -> String -> [Arg]
 applyComposite comp cmd = if null comps
-                          then [Unknown cmd]
+                          then [UnknownArg cmd]
                           else parseArgs comp (head comps)
     where
         comps = [cmds | Composite name _ cmds <- comp, name == cmd]
@@ -446,7 +446,7 @@ execEither inp args =
         getCmd name = case [c | c@(CmdLine n _ _ _ _) <- fullCmdLine, n == nam2] of
                            (x:_) -> (x, if null opt then [] else tail opt)
                            [] -> error $
-                                "Unknown argument: " ++ name ++ ", try -help for valid arguments"
+                                "UnknownArg argument: " ++ name ++ ", try -help for valid arguments"
             where
                 nam2 = map toLower nam
                 (nam, opt) = break (== '=') name
