@@ -5,6 +5,7 @@ import Transform.Type
 
 import Control.Exception
 import Data.List
+import Data.Maybe
 import General.General
 
 
@@ -109,38 +110,46 @@ lambdaRaise _ _ = Nothing
 -- f (pre:Lambda args (Call x xs):pre)  ==>
 --     f' pre:fv:post,  f'=f[arg/Lambda args (Call x xs)]
 defuncExpr :: FuncCreate
-defuncExpr ihite (Call name xs) | any isHO xs
+defuncExpr ihite (Call name xs) | any (isJust . testHO) xs
 		= Just (newcall,name,tweak,newfunc)
 	where
-		(pre,spec:post) = break isHO xs
-		fvSpec = collectFree spec
+		(pre,rep:post) = break (isJust . testHO) xs
+		Just (addArgs,twk,caller,bod) = testHO rep
 		
-		newcall = Call "" (pre ++ map Var fvSpec ++ post)
-		tweak = Tweak "defuncExpr" [show $ length pre, show spec] -- too specific, can be loosend
+		newcall = Call "" (pre ++ caller ++ post)
+		tweak = Tweak "defuncExpr" (show (length pre) : twk)
 		
 		Func _ args body _ = getFunc ihite name
-		newargs = take (length fvSpec) $ freshFree body \\ args
+		newargs = freshFree body \\ args
 		
 		lpre = length pre
 		newfunc = Func ""
-			(take lpre args ++ newargs ++ drop (lpre+1) args)
-			(replaceFree [(args!!lpre, replaceFree (zip fvSpec (map Var newargs)) spec)] body)
+			(take lpre args ++ addArgs ++ drop (lpre+1) args)
+			(replaceFree [(args!!lpre, bod)] body)
 			[]
 		
-		-- UNSURE IF THIS IS CORRECT
-		-- WHAT IF ARBITRARY EXPRESSION, LEADS TO NON-TERM?
-		-- Potentially unsafe generalisation
-		-- isHO (Lambda _ _) = True
-
-		{-
-		isHO (Lambda xs (Call _ args)) |
-				fake == map Var xs &&
-				(nub (concatMap collectFree real) `disjoint` xs) = True
-			where (real,fake) = splitAt (length args - length xs) args
-		-}
-		isHO (Lambda _ (Call _ _)) = True
-		isHO (Lambda _ Unknown) = True
-		isHO _ = False
+		
+		testHO :: IExpr -> Maybe ([Int],[String],[IExpr],IExpr)
+		
+		-- defunc those which have no free variables
+		testHO (Lambda xs x) | collectFree x `disjoint` xs =
+			Just ([thisarg], [show lxs], [x], Lambda lfree (Var thisarg))
+			where
+				lfree = take lxs $ filter (/= thisarg) [1..]
+				lxs = length xs
+				thisarg = head newargs
+		
+		-- defunc function calls, where all additional vars are passed straight through
+		testHO (Lambda args (Call nam xs))
+				| concatMap collectFree real `disjoint` args && fake == map Var args
+				= Just (thisargs,[nam,show $ length real],real,
+				 	    Lambda lfree (Call nam (map Var (thisargs++lfree))))
+			where
+				lfree = take (length args) $ filter (`notElem` thisargs) [1..]
+				thisargs = take (length real) newargs
+				(real,fake) = splitAt (length xs - length args) xs
+		
+		testHO _ = Nothing
 
 defuncExpr _ _ = Nothing
 
