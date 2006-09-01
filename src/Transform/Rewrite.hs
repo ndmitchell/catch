@@ -79,7 +79,7 @@ basicExpr ihite _ = Nothing
 -- f a b = expr_on_b  ==>  f b = expr_on_b
 deadArg :: FuncTweak
 deadArg ihite (Func name args body _)
-		| name /= "main" && not (null deads)
+		| name /= "main" && not (null deads) && not (canInline name body)
 		= Just (newexpr, Tweak "deadArg" (map show deads), Func "" alives body [])
 	where
 		alives = collectFree body
@@ -95,13 +95,10 @@ deadArg ihite _ = Nothing
 -- f a = Lambda n b ==> f a n = b
 lambdaRaise :: FuncTweak
 lambdaRaise ihite (Func name args (Lambda xs body) _)
-		| not $ simpleCall body
+		| not $ canInline name body
 		= Just (Lambda xs $ Call "" (map Var (args++xs)),
 				Tweak "lambdaRaise" [show $ length xs],
 				Func "" (args++xs) body [])
-	where
-		simpleCall (Call _ xs) | all isVar xs = True
-		simpleCall _ = False
 
 lambdaRaise _ _ = Nothing
 
