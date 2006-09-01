@@ -49,6 +49,7 @@ getFunc :: IHite -> FuncName -> IFunc
 getFunc ihite@(IHite _ funcs) name = case filter (\x -> funcName x == name) funcs of
 	[] -> error $ "Could not find " ++ name ++ " in " ++ show (map funcName funcs) ++ ":\n" ++ output ihite
 	[x] -> x
+	xs -> error $ "Multiple defn of " ++ name ++ " in " ++ strSet (map funcName funcs) ++ ":\n" ++ output ihite
 
 
 
