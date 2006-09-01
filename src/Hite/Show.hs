@@ -33,6 +33,7 @@ instance Output Expr where
             brack False x = x
             
             f b i (Var name) = name
+            f b i (Unknown) = "Unknown"
             f b i (Bottom) = "_|_"
             f b i (RepeatNow) = "***"
             f b i (Repeat expr alt) = brack b $ f b i expr ++ " | " ++ f b i alt
