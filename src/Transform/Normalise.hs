@@ -10,8 +10,8 @@ normaliseIHite (IHite datas funcs) = IHite datas (map normaliseIFunc funcs)
 
 
 normaliseIFunc :: IFunc -> IFunc
-normaliseIFunc (Func name args body) =
-		Func name newargs $ normaliseIExpr newfree (zip args newargs) body
+normaliseIFunc (Func name args body tweaks) =
+		Func name newargs (normaliseIExpr newfree (zip args newargs) body) tweaks
 	where
 		newargs = [0..newfree-1]
 		newfree = length args

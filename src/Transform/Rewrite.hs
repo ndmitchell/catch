@@ -5,13 +5,44 @@ import Transform.Type
 
 import Control.Exception
 import Data.List
+import General.General
 
 
-exprTweak = joinTweaks [basicExpr, inlineTuple, inlineExpr]
+exprTweak = joinTweaks [basicExpr, inlineExpr]
 
-funcTweak = joinTweaks [deadArg, lambdaRaise, inlineFunc]
+funcTweak = joinTweaks [deadArg, lambdaRaise]
 
 funcCreate = joinTweaks [defuncExpr, dedictExpr]
+
+
+---------------------------------------------------------------------
+-- ATOM TESTS
+
+isTuple (Make ('T':'u':'p':_) _) = True
+isTuple _ = False
+
+isVar (Var _) = True
+isVar _ = False
+
+
+---------------------------------------------------------------------
+-- INLINE RULES
+
+-- a lot of things will require inline stuff
+
+inlineExpr :: ExprTweak
+inlineExpr ihite (Call name params) | canInline name body
+		= Just (replaceFree (zip args params) body)
+	where Func _ args body _ = getFunc ihite name
+inlineExpr _ _ = Nothing
+
+
+canInline :: String -> IExpr -> Bool
+canInline name Unknown = True
+canInline name x | isTuple x = True
+canInline name (Call nam xs) | nam /= name && all isVar xs = True
+canInline name (Lambda _ (Call nam xs)) | all isVar xs = True
+canInline name _ = False
 
 
 ---------------------------------------------------------------------
@@ -31,7 +62,7 @@ basicExpr ihite (Sel (Make name args) arg) =
 	where x = getCArg ihite arg
 
 -- case Nil of {Nil -> a; Cons -> b} ==> a
-basicExpr ihite (Case (Make name args) xs) = Just $ head ys
+basicExpr ihite (Case (Make name args) xs) = Just $ headNote "Tranform.Rewrite.basicExpr" ys
 	where ys = [b | (a,b) <- xs, a == name]
 
 -- Apply (Lambda free expr) args  ==> expr[free/args]
@@ -47,14 +78,13 @@ basicExpr ihite _ = Nothing
 
 -- f a b = expr_on_b  ==>  f b = expr_on_b
 deadArg :: FuncTweak
-deadArg ihite (Func name args body)
-		| not (null deads)
-		= Just (Just $ Func name (args \\ deads) body, f)
+deadArg ihite (Func name args body _)
+		| name == "main" && not (null deads)
+		= Just (newexpr, Tweak "deadArg" (map show deads), Func "" alives body [])
 	where
-		deads = args \\ [i | Var i <- allIExpr body]
-		
-		f (Call nam xs) | nam == name = Call nam [x | (i,x) <- zip [0..] xs, i `notElem` deads]
-		f x = x
+		alives = collectFree body
+		deads = args \\ alives
+		newexpr = Call "" (map Var alives)
 
 deadArg ihite _ = Nothing
 
@@ -64,12 +94,14 @@ deadArg ihite _ = Nothing
 
 -- f a = Lambda n b ==> f a n = b
 lambdaRaise :: FuncTweak
-lambdaRaise ihite (Func name args (Lambda xs body))
-		= Just (Just $ Func name (args ++ xs) body, f)
+lambdaRaise ihite (Func name args (Lambda xs body) _)
+		| not $ simpleCall body
+		= Just (Lambda xs $ Call "" (map Var (args++xs)),
+				Tweak "lambdaRaise" [show $ length xs],
+				Func "" (args++xs) body [])
 	where
-		f o@(Call nam params) | nam == name = Lambda free (Call nam (params ++ map Var free))
-			where free = take (length xs) $ freshFree o
-		f x = x
+		simpleCall (Call _ xs) | all isVar xs = True
+		simpleCall _ = False
 
 lambdaRaise _ _ = Nothing
 
@@ -81,20 +113,22 @@ lambdaRaise _ _ = Nothing
 --     f' pre:fv:post,  f'=f[arg/Lambda args (Call x xs)]
 defuncExpr :: FuncCreate
 defuncExpr ihite (Call name xs) | any isHO xs
-		= Just (newfunc, newexpr)
+		= Just (newcall,name,tweak,newfunc)
 	where
 		(pre,spec:post) = break isHO xs
 		fvSpec = collectFree spec
 		
-		newexpr name2 = Call name2 (pre ++ map Var fvSpec ++ post)
+		newcall = Call "" (pre ++ map Var fvSpec ++ post)
+		tweak = Tweak "defuncExpr" [show $ length pre, show spec] -- too specific, can be loosend
 		
-		Func _ args body = getFunc ihite name
+		Func _ args body _ = getFunc ihite name
 		newargs = take (length fvSpec) $ freshFree body \\ args
 		
 		lpre = length pre
-		newfunc = Func name
+		newfunc = Func ""
 			(take lpre args ++ newargs ++ drop (lpre+1) args)
 			(replaceFree [(args!!lpre, replaceFree (zip fvSpec (map Var newargs)) spec)] body)
+			[]
 		
 		-- UNSURE IF THIS IS CORRECT
 		-- WHAT IF ARBITRARY EXPRESSION, LEADS TO NON-TERM?
@@ -108,62 +142,28 @@ defuncExpr ihite (Call name xs) | any isHO xs
 defuncExpr _ _ = Nothing
 
 
+
 ---------------------------------------------------------------------
 -- DICTIONARY REMOVAL
 
 -- remove dictionaries, see MonadFail2 for an example
 
-isTuple (Make ('T':'u':'p':_) _) = True
-isTuple _ = False
-
-
--- f, where f = Tup _ _ ==> Tup _ _
-inlineTuple :: ExprTweak
-inlineTuple ihite (Call name []) | isTuple body = Just body
-	where body = funcExpr $ getFunc ihite name
-inlineTuple _ _ = Nothing
-
-
 dedictExpr :: FuncCreate
 dedictExpr ihite (Call name xs) | any isTuple xs
-		= Just (newfunc, newexpr)
+		= Just (newcall,name,tweak,newfunc)
 	where
 		(pre,Make tupn tupArgs:post) = break isTuple xs
+		tweak = Tweak "dedictExpr" [show lpre,show $ length tupArgs]
 		
-		newexpr newname = Call newname (pre ++ tupArgs ++ post)
+		newcall = Call "" (pre ++ tupArgs ++ post)
 		
-		Func _ args body = getFunc ihite name
+		Func _ args body _ = getFunc ihite name
 		newargs = take (length tupArgs) $ freshFree body \\ args
 
 		lpre = length pre
 		newfunc = Func name
 			(take lpre args ++ newargs ++ drop (lpre+1) args)
 			(replaceFree [(args!!lpre,Make tupn (map Var newargs))] body)
+			[]
 
 dedictExpr _ _ = Nothing
-
-
----------------------------------------------------------------------
--- GENERAL INLINING
-
--- move Unknown's up the chain
-inlineExpr :: ExprTweak
-inlineExpr ihite (Call name []) | body == Unknown = Just Unknown
-	where body = funcExpr $ getFunc ihite name
-inlineExpr _ _ = Nothing
-	
-
--- f x y = g x y  ==> replace f with g
-inlineFunc :: FuncTweak
-inlineFunc ihite@(IHite _ funcs) func@(Func name args (Call nam params))
-		| name /= nam && name /= "main" && all isVar params
-		= assert (args == [0..length args - 1]) $ Just (Nothing, f)
-	where
-		isVar (Var _) = True
-		isVar _ = False
-		
-		f (Call n xs) | n == name = Call nam (map g params)
-			where g (Var i) = xs !! i
-		f x = x
-
-inlineFunc _ _ = Nothing

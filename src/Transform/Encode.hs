@@ -11,7 +11,7 @@ encode hite@(Hite datas funcs) = IHite datas (map (enFunc hite) funcs)
 
 
 enFunc :: Hite -> Func -> IFunc
-enFunc hite (L.Func name args body _) = R.Func name newargs (enExpr hite nargs (zip args newargs) body)
+enFunc hite (L.Func name args body _) = R.Func name newargs (enExpr hite nargs (zip args newargs) body) []
 	where
 		nargs = length args
 		newargs = [0..nargs-1]

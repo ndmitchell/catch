@@ -16,8 +16,7 @@ applyTransform :: IHite -> IHite
 applyTransform ihite = maybe ihite id (apply ihite)
 	where
 		apply = fixMay item
-		
-		item = (applyFuncCreate <*> fixMay (fixMay applyExprTweak <*> applyFuncTweak))
+		item = applyFuncTweak <*> fixMay applyExprTweak
 
 
 fixMay :: (a -> Maybe a) -> (a -> Maybe a)
@@ -38,6 +37,8 @@ fixMay f x = case f x of
 
 ---------------------------------------------------------------------
 -- TRANSFORMS
+
+{-
 
 applyFuncCreate :: IHite -> Maybe IHite
 applyFuncCreate ihite@(IHite hite funcs) =
@@ -60,8 +61,11 @@ applyFuncCreate ihite@(IHite hite funcs) =
 
 
 -- does the function already exist, under a different name
-askFunc :: IFunc -> [IFunc] -> Maybe FuncName
-askFunc (Func name args body) funcs =
+askFunc :: FuncName -> Tweak -> [IFunc] -> Maybe FuncName
+askFunc name tweak  funcs =
+	where
+		getFunc (IHite undefined funcs) 
+
 		listToMaybe [name2 | Func name2 args2 body2 <- funcs,
 					         fst (splitName name2) == str, args == args2, body == body2]
 	where (str,num) = splitName name
@@ -91,14 +95,76 @@ applyCreate ihite (Func name args body) =
 -- Nothing implies a fixed point has been reached
 -- Just means it hasn't, use this new value
 applyFuncTweak :: IHite -> Maybe IHite
-applyFuncTweak ihite@(IHite hite funcs) = liftM normalHite $ f $ allItems funcs
+applyFuncTweak ihite@(IHite hite funcs) = liftM normalHite $ f [] funcs
 	where
+		f acc [] = reverse
+		
+		f acc (x:xs) = case funcTweak ihite of
+			
+	
 		f [] = Nothing
 		f ((pre,x,post):rest) = case funcTweak ihite x of
 			Nothing -> f rest
 			Just (x2,modify) -> Just $ IHite hite $ applyAll modify (pre++maybeToList x2++post)
 
 		applyAll g funcs = [normaliseIFunc func{funcExpr=mapIExpr g (funcExpr func)} | func <- funcs]
+
+
+
+newFuncName :: [IFunc]
+
+-}
+
+applyFuncTweak :: IHite -> Maybe IHite
+applyFuncTweak ihite@(IHite hite funcs) = liftM normalHite $ f False [] funcs
+	where
+		f changed acc [] = if changed then Just (IHite hite (reverse acc)) else Nothing
+		
+		f changed acc (x:xs) = case applyFuncAny ihite2 x of
+			Nothing -> f changed (x:acc) xs
+			Just (x2,name,tweak,newfunc) ->
+					case lookup tweak $ funcTweaks $ getFunc ihite2 name of
+						Just newname -> f True (rep newname x2 : acc) xs
+						Nothing -> f True (addTweak name tweak newname (rep newname x2 : acc))
+										  (addTweak name tweak newname (rep newname newfunc{funcName=newname} : xs))
+							where
+								newname = getName (acc++x:xs) name
+						
+			where
+				ihite2 = IHite hite (acc++x:xs)
+
+		rep newname func = normaliseIFunc func{funcExpr = mapIExpr g (funcExpr func)}
+			where
+				g (Call "" xs) = Call newname xs
+				g x = x
+
+		addTweak name tweak newname xs = map g xs
+			where
+				g x | funcName x == name = x{funcTweaks = (tweak,newname) : funcTweaks x}
+					| otherwise = x
+
+
+-- take a function, and return Just (newversion, tweaked, tweak, newversion)
+applyFuncAny :: IHite -> IFunc -> Maybe (IFunc, FuncName, Tweak, IFunc)
+applyFuncAny ihite func@(Func name args body tweaks) | isJust res
+		= Just (Func name args newbody tweaks,name,tweak,newfunc)
+	where
+		Just (newbody,tweak,newfunc) = res
+		res = funcTweak ihite func
+
+applyFuncAny ihite func@(Func name args body tweaks) = do
+		(newexpr,a,b,c) <- f body
+		return (Func name args newexpr tweaks,a,b,c)
+	where
+		f expr = case g $ allItems $ getChildren expr of
+					 Nothing -> funcCreate ihite expr
+					 Just (newchildren,a,b,c) -> Just (setChildren expr newchildren,a,b,c)
+
+		g [] = Nothing
+		g ((pre,x,post):rest) = case f x of
+			Nothing -> g rest
+			Just (newexpr,a,b,c) -> Just (pre++newexpr:post,a,b,c)
+					 
 
 
 
@@ -163,7 +229,7 @@ normalHite (IHite datas funcs) =
 		reps2 = concat reps
 		(funcs2, reps) = unzip $ concatMap f $ groupSetExtract (fst . splitName . funcName) funcs
 		
-		f xs = map g $ groupSetExtract (\(Func _ a b) -> (a,b)) xs
+		f xs = map g $ groupSetExtract (\(Func _ a b _) -> (a,b)) xs
 		
 		g [x] = (x,[])
 		g (x:xs) = (x,[(funcName y,funcName x) | y <- xs])
@@ -175,10 +241,10 @@ normalHite (IHite datas funcs) =
 
 
 reachHite :: IHite -> IHite
-reachHite ihite@(IHite datas funcs) = IHite datas $ filter (\x -> funcName x `elem` reach) funcs
+reachHite ihite@(IHite datas funcs) = res
 	where
-		mainSet = [name | func <- funcs, let name = funcName func, fst (splitName name) == "main"]
-		
-		reach = fixSet f mainSet
-		
+		reach = fixSet f ["main"]
+		res = IHite datas [g func | func <- funcs, funcName func `elem` reach]
 		f x = nub [nam | Call nam _ <- allIExpr $ funcExpr $ getFunc ihite x]
+		
+		g func = func{funcTweaks = [(a,b) | (a,b) <- funcTweaks func, b `elem` reach]}

@@ -13,8 +13,8 @@ instance QDatas IHite where
 	rawDatas (IHite res _) = res
 
 
-data IFunc = Func {funcName :: FuncName, funcArgs :: [Int], funcExpr :: IExpr} deriving Show
-
+data IFunc = Func {funcName :: FuncName, funcArgs :: [Int], funcExpr :: IExpr, funcTweaks :: [(Tweak, FuncName)]}
+			 deriving Show
 
 data IExpr = Var Int
 		   | Make CtorName [IExpr]
@@ -27,17 +27,28 @@ data IExpr = Var Int
 		   | Unknown
 		   deriving (Eq,Show)
 
+data Tweak = Tweak String [String]
+			 deriving (Eq,Show)
 
 
-type FuncTweak = IHite -> IFunc -> Maybe (Maybe IFunc, IExpr -> IExpr)
+-- the name of the introduce function should always be "" - blank
 
+-- how you change a single expression
+-- must be semantics preserving
 type ExprTweak = IHite -> IExpr -> Maybe IExpr
 
-type FuncCreate = IHite -> IExpr -> Maybe (IFunc, FuncName -> IExpr)
+-- how you change a function - the new body, the tweak, and the new function
+type FuncTweak = IHite -> IFunc -> Maybe (IExpr, Tweak, IFunc)
+
+-- how you change an expression that creates a new function
+-- the new expression, the name of the func tweaked, the tweak, the new func
+type FuncCreate = IHite -> IExpr -> Maybe (IExpr, FuncName, Tweak, IFunc)
 
 
 getFunc :: IHite -> FuncName -> IFunc
-getFunc (IHite _ funcs) name = head $ filter (\x -> funcName x == name) funcs
+getFunc ihite@(IHite _ funcs) name = case filter (\x -> funcName x == name) funcs of
+	[] -> error $ "Could not find " ++ name ++ " in " ++ show (map funcName funcs) ++ ":\n" ++ output ihite
+	[x] -> x
 
 
 
@@ -110,7 +121,11 @@ instance Output IHite where
 
 
 instance Output IFunc where
-	output (Func name args body) = name ++ concatMap ((' ':) . show) args ++ " = \n" ++ indentStr (output body)
+	output (Func name args body tweaks) =
+		name ++ concatMap ((' ':) . show) args ++ " = " ++ t ++
+		"\n" ++ indentStr (output body)
+		where
+			t = show tweaks
 
 
 instance Output IExpr where
@@ -123,4 +138,4 @@ validIHite (IHite _ xs) = all validIFunc xs && length names == length (nub names
 	where names = map funcName xs
 
 validIFunc :: IFunc -> Bool
-validIFunc (Func name args body) = sort args == sort (collectFree body)
+validIFunc (Func name args body _) = sort args == sort (collectFree body)
