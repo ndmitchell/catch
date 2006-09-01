@@ -8,6 +8,13 @@ import Data.Maybe
 import General.General
 import Control.Monad
 import Data.List
+import Debug.Trace
+
+
+-- should details be Debug.Trace'd
+logFuncCreate = False
+
+mayTrace msg x = if logFuncCreate then trace msg x else x
 
 ---------------------------------------------------------------------
 -- DRIVER
@@ -125,8 +132,10 @@ applyFuncTweak ihite@(IHite hite funcs) = liftM normalHite $ f False [] funcs
 			Nothing -> f changed (x:acc) xs
 			Just (x2,name,tweak,newfunc) ->
 					case lookup tweak $ funcTweaks $ getFunc ihite2 name of
-						Just newname -> f True (rep newname x2 : acc) xs
-						Nothing -> f True (addTweak name tweak newname (rep newname x2 : acc))
+						Just newname -> mayTrace ("Using " ++ newname ++ " as " ++ name ++ " " ++ show tweak) $
+										f True (rep newname x2 : acc) xs
+						Nothing -> mayTrace ("Creating " ++ newname ++ " as " ++ name ++ " " ++ show tweak) $
+								   f True (addTweak name tweak newname (rep newname x2 : acc))
 										  (addTweak name tweak newname (rep newname newfunc{funcName=newname} : xs))
 							where
 								newname = getName (acc++x:xs) name
