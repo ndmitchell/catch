@@ -46,83 +46,6 @@ fixMay f x = case f x of
 ---------------------------------------------------------------------
 -- TRANSFORMS
 
-{-
-
-applyFuncCreate :: IHite -> Maybe IHite
-applyFuncCreate ihite@(IHite hite funcs) =
-		liftM normalHite $ case f False funcs [] funcs of
-			(True, a) -> Just $ IHite hite a
-			(False,a) -> Nothing
-	where
-		f :: Bool -> [IFunc] -> [IFunc] -> [IFunc] -> (Bool, [IFunc])
-		f changed oldfuncs newfuncs [] = (changed,reverse newfuncs)
-		f changed oldfuncs newfuncs (t:odo) =
-			case applyCreate ihite t of
-				Nothing -> f changed oldfuncs (t:newfuncs) odo
-				Just (newfunc,oldfunc) ->
-					case askFunc newfunc oldfuncs of
-						Just name -> f True oldfuncs (oldfunc name : newfuncs) odo
-						Nothing -> f True (newfunc2:oldfuncs) (oldfunc newname : newfuncs) (newfunc2:odo)
-							where
-								newname = getName oldfuncs (funcName newfunc)
-								newfunc2 = newfunc{funcName = newname}
-
-
--- does the function already exist, under a different name
-askFunc :: FuncName -> Tweak -> [IFunc] -> Maybe FuncName
-askFunc name tweak  funcs =
-	where
-		getFunc (IHite undefined funcs) 
-
-		listToMaybe [name2 | Func name2 args2 body2 <- funcs,
-					         fst (splitName name2) == str, args == args2, body == body2]
-	where (str,num) = splitName name
-
-
-
-applyCreate :: IHite -> IFunc -> Maybe (IFunc, FuncName -> IFunc)
-applyCreate ihite (Func name args body) =
-	case f body of
-		Nothing -> Nothing
-		Just (a,b) -> Just (normaliseIFunc a, \nam -> normaliseIFunc (Func name args (b nam)))
-	where
-		f expr = case g [] children of
-					 Nothing -> funcCreate ihite expr
-					 Just (a,b) -> Just (a, \nam -> setChildren expr (b nam))
-			where
-				children = getChildren expr
-	
-		g acc [] = Nothing
-		g acc (x:xs) = case f x of
-						   Nothing -> g (x:acc) xs
-						   Just (a,b) -> Just (a, \nam -> reverse acc ++ b nam : xs)
-
-
-
--- apply all the functions
--- Nothing implies a fixed point has been reached
--- Just means it hasn't, use this new value
-applyFuncTweak :: IHite -> Maybe IHite
-applyFuncTweak ihite@(IHite hite funcs) = liftM normalHite $ f [] funcs
-	where
-		f acc [] = reverse
-		
-		f acc (x:xs) = case funcTweak ihite of
-			
-	
-		f [] = Nothing
-		f ((pre,x,post):rest) = case funcTweak ihite x of
-			Nothing -> f rest
-			Just (x2,modify) -> Just $ IHite hite $ applyAll modify (pre++maybeToList x2++post)
-
-		applyAll g funcs = [normaliseIFunc func{funcExpr=mapIExpr g (funcExpr func)} | func <- funcs]
-
-
-
-newFuncName :: [IFunc]
-
--}
-
 applyFuncTweak :: IHite -> Maybe IHite
 applyFuncTweak ihite@(IHite hite funcs) = liftM normalHite $ f False [] funcs
 	where
@@ -285,23 +208,7 @@ uniqueHite ihite@(IHite datas funcs) =
 		addSet xs (y:ys) | null (xs `intersect` y) = y : addSet xs ys
 						 | otherwise = nub (xs++y) : ys
 		addSet xs [] = [xs]
-		
-		
-	{-	
-	
-		reps2 = concat reps
-		(funcs2, reps) = unzip $ concatMap f $ groupSetExtract (fst . splitName . funcName) funcs
-		
-		f xs = map g $ groupSetExtract (\(Func _ a b _) -> (a,b)) xs
-		
-		g [x] = (x,[])
-		g (x:xs) = (x,[(funcName y,funcName x) | y <- xs])
 
-		h (Call name xs) = case lookup name reps2 of
-								Nothing -> Call name xs
-								Just x -> Call x xs
-		h x = x
--}
 
 equalGiven :: IFunc -> IFunc -> Maybe [(FuncName, FuncName)]
 equalGiven (Func name1 args1 body1 _) (Func name2 args2 body2 _)
