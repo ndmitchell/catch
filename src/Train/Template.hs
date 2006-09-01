@@ -30,7 +30,7 @@ templateGet (Template zhite hndl cache) req = do
 			   Just x -> return x
 			   Nothing -> do
 			   	   ans <- templateCalc zhite hndl abstract
-			   	   writeIORef cache ((abstract,ans):res)
+			   	   modifyIORef cache ((abstract,ans):)
 			   	   hPutStrLn hndl $ "Add: " ++ output abstract ++ " = " ++ output ans
 			   	   return ans
 	return $ templateConcrete req ans
