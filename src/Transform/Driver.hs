@@ -13,8 +13,9 @@ import Data.List
 -- DRIVER
 
 applyTransform :: IHite -> IHite
-applyTransform ihite = maybe ihite id (apply ihite)
+applyTransform ihite = res
 	where
+		res = maybe ihite id (apply ihite)
 		apply = fixMay item
 		item = applyFuncTweak <*> fixMay applyExprTweak
 
