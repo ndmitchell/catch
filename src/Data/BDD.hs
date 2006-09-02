@@ -1,6 +1,6 @@
 
 module Data.BDD(BDD, {-BDDLit(..), -} showBDDBy, bddAnd, {- bddNot, -} bddOr, bddLit, bddAnds, bddOrs,
-	bddIsTrue, mapBDDM, bddIsFalse, mapBDD, bddBool, bddTrue, bddFalse) where
+	bddIsTrue, mapBDDM, bddIsFalse, mapBDD, bddBool, bddTrue, bddFalse, bddSimplify) where
 
 import qualified Data.Map as Map
 import Data.IORef
@@ -120,6 +120,16 @@ rebalance (Choice a f t) = g (Choice a f2 t2)
 			| t == f = g $ t
 		
 		g x = x
+
+
+bddSimplify :: Ord a => ([(a,Bool)] -> a -> Maybe Bool) -> BDD a -> BDD a
+bddSimplify test x = f [] x
+	where
+		f context (Choice on false true) =
+			case test context on of
+				Nothing -> choice on (f ((on,False):context) false) (f ((on,True):context) true)
+				Just b -> f context (if b then true else false)
+		f _ x = x
 
 
 {-
