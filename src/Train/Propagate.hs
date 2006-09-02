@@ -13,8 +13,6 @@ propagate zhite@(ZHite _ funcs) (Scope func reqs) = res
 		res = bddAnds $ map bddLit $ concatMap f funcs
 		ZFunc _ funcArgs _ = getZFunc zhite func
 	
-		--f (ZFunc name _ xs) = [error $ output reqs ++ " --> " ++ output (mapBDD (g args) reqs) |
-		--	(cond, Right code) <- xs, ZCall calls args <- allOver code, calls == func]
 		f (ZFunc name _ xs) = [Scope name newReq |
 			(cond, Right code) <- xs, ZCall calls args <- allOver code, calls == func,
 			let newReq = reqsNot cond `bddOr` mapBDD (g args) reqs, not $ bddIsTrue newReq]
