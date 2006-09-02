@@ -109,9 +109,9 @@ instantiate (ZHite datas funcs) r1@(Req a (ZCall name args) b c) = res
 		(args2, body) = head [(a,b) | ZFunc nam a b <- funcs, nam == name]
 		
 		f (cond, Left _) = []
-		f (cond, Right body) = [reqsNot cond `bddOr` (bddLit $ newReq a body b c)]
+		f (cond, Right body) = [reqsNot cond `bddOr` (newReqs a body b c)]
 		
-		rep (Req a b c d) = bddLit (newReq a (mapOver g b) c d)
+		rep (Req a b c d) = newReqs a (mapOver g b) c d
 		
 		g (ZVar x) = case lookup x (zip args2 args) of
 						  Nothing -> error $ "Train.Template.instantiate: not found" -- ZVar x

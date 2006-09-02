@@ -22,7 +22,7 @@ convertBody hite (MCase alts) = [(foldPred for fand fone a, convertExpr b) | MCa
 	where
 		for xs = bddOrs xs
 		fand xs = bddAnds xs
-		fone (MCaseOpt x c) = bddLit $ newReq hite (fromRight $ convertExpr x) emptyPath [c]
+		fone (MCaseOpt x c) = newReqs hite (fromRight $ convertExpr x) emptyPath [c]
 	
 convertBody hite x = [(bddTrue, convertExpr x)]
 

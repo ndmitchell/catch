@@ -67,6 +67,14 @@ newReq hite zexpr path ctors
 	| path == newPath ["tl"] && ctors == ["[]"] = Req hite zexpr emptyPath ctors
 	| otherwise = Req hite zexpr path (nub $ sort ctors)
 
+newReqs :: Hite -> ZExpr -> Path -> [CtorName] -> Reqs
+newReqs hite zexpr path ctors | null ctors = bddFalse
+							  | ctors `setEq` baseSet = bddTrue
+							  | otherwise = bddLit $ newReq hite zexpr path ctors
+	where
+		baseSet = ctorNames $ getCtor hite (headNote "Train.Type.impliesReq" ctors)
+		
+
 
 simplifyReqs = bddSimplify impliesReq
 
