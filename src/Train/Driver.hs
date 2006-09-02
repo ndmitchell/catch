@@ -21,6 +21,10 @@ trainDriver file hndl hite = do
 		res <- mapM (backward zhite template hndlBackward) conds
 		when (null conds) $
 			putStrLn "No pattern match errors, trivially safe"
+		
+		hFlush hndl
+		hClose hndlTemplate
+		hClose hndlBackward
 		return $ all bddIsTrue res
 	where
 		conds = initialReqs zhite
