@@ -1,5 +1,5 @@
 
-module Data.BDD(BDD, {-BDDLit(..), -} showBDDBy, bddAnd, {- bddNot, -} bddOr, bddLit, bddAnds, bddOrs,
+module Data.BDD(BDD, {-BDDLit(..), -} showBDDBy, bddAnd, bddNot, bddOr, bddLit, bddAnds, bddOrs,
 	bddIsTrue, mapBDDM, bddIsFalse, mapBDD, bddBool, bddTrue, bddFalse, bddSimplify) where
 
 import qualified Data.Map as Map
@@ -41,7 +41,13 @@ bddAnds x = foldr bddAnd AtomTrue  x
 bddOrs  x = foldr bddOr  AtomFalse x
 
 
---bddNot :: BDDLit a => BDD a -> BDD a
+bddNot :: Ord a => (a -> a) -> BDD a -> BDD a
+bddNot invert = rebalance . swap
+	where
+		swap AtomFalse = AtomTrue
+		swap AtomTrue  = AtomFalse
+		swap (Choice a f t) = Choice (invert a) (swap t) (swap f)
+
 --bddNot AtomFalse = AtomTrue
 --bddNot AtomTrue  = AtomFalse
 --bddNot c = error $ showBDDBy show c ++ " ==> " ++ showBDDBy show (mapBDD litNot c)
