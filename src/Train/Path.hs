@@ -3,6 +3,7 @@ module Train.Path(Path, nullPath, newPath, ewpPath, emptyPath, finitePath, makeF
 
 import General.General
 import Data.Char
+import Data.List
 import Hite
 import Control.Monad
 
@@ -18,7 +19,7 @@ instance Ord Path where
 
 
 data PathElem = PathAtom CtorArg
-	          | PathStar CtorArg
+	          | PathStar [CtorArg]
 	          deriving (Eq, Show, Ord)
 
 
@@ -27,7 +28,8 @@ instance Output Path where
 
 instance Output PathElem where
 	output (PathAtom x) = x
-	output (PathStar x) = x ++ "*"
+	output (PathStar [x]) = x ++ "*"
+	output (PathStar xs) = "(" ++ intercat "+" xs ++ ")*"
 
 
 isPathStar (PathStar{}) = True ; isPathStar _ = False
@@ -47,26 +49,31 @@ finitePath (Path _ x) = all (not . isPathStar) x
 makeFinitePath (Path hite x) = Path hite $ filter (not . isPathStar) x
 
 
-isStar hite x = TyCon (dataName obj) (map TyFree $ frees obj) == cargType obj
-	where obj = getCArg hite x
-
 
 differentiate :: Path -> CtorArg -> Maybe Path
 differentiate (Path hite xs) ctor = liftM (Path hite) $ f xs
 	where
 		f [] = Nothing
-		f (PathAtom x:xs) | x == ctor = Just xs
+		f (PathAtom x:xs) | ctor == x = Just xs
 						  | otherwise = Nothing
-		f (PathStar x:xs) | x == ctor = Just (PathStar x:xs)
+		f (PathStar x:xs) | ctor `elem` x = Just (PathStar x:xs)
 						  | otherwise = f xs
 						  
+
+isStar hite x = TyCon (dataName obj) (map TyFree $ frees obj) == cargType obj
+	where obj = getCArg hite x
 
 
 integrate :: Path -> CtorArg -> Path
 integrate (Path hite x) ctor = Path hite (f x)
 	where
-		f ys@(PathStar y:_) | ctor == y = ys
-		f ys = (if isStar hite ctor then PathStar ctor else PathAtom ctor) : ys
+		carg = getCArg hite ctor
+		star = TyCon (dataName carg) (map TyFree $ frees carg) == cargType carg
+	
+		f (PathStar y:ys) 
+			| star && dataName (getCArg hite $ head y) == dataName carg
+			= PathStar (sort $ nub $ ctor:y) : ys
+		f ys = (if star then PathStar [ctor] else PathAtom ctor) : ys
 
 
 
