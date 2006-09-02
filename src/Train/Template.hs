@@ -9,7 +9,9 @@ import Data.BDD
 import General.General
 import Data.IORef
 import Data.Char
+import Data.List
 import Control.Monad
+import Hite
 
 
 data Template = Template ZHite Handle (IORef [(Req, Reqs)])
@@ -23,13 +25,13 @@ templateInit zhite hndl = do
 
 -- first element of Req must be a ZCall
 templateGet :: Template -> Req -> IO Reqs
-templateGet (Template zhite hndl cache) req = do
+templateGet template@(Template zhite hndl cache) req = do
 	let abstract = templateAbstract req
 	res <- readIORef cache
 	ans <- case lookup abstract res of
 			   Just x -> return x
 			   Nothing -> do
-			   	   ans <- templateCalc zhite hndl abstract
+			   	   ans <- templateCalc template zhite hndl abstract
 			   	   modifyIORef cache ((abstract,ans):)
 			   	   hPutStrLn hndl $ "Add: " ++ output abstract ++ " = " ++ output ans
 			   	   return ans
@@ -52,16 +54,22 @@ templateConcrete (Req _ (ZCall name args) _ _) y = mapBDD (bddLit . f) y
 
 
 -- expr is ZCall
-templateCalc :: ZHite -> Handle -> Req -> IO Reqs
-templateCalc zhite hndl req = do
+templateCalc :: Template -> ZHite -> Handle -> Req -> IO Reqs
+templateCalc template zhite hndl req = do
 		putStrLn $ "BEGIN: templateCalc, " ++ output req
 		res <- fixp bddTrue f req
 		putStrLn $ "END  : templateCalc, " ++ output res
 		return res
 	where
+		parent = getFuncName req
+	
 		f req gen = do
 			let reqs = instantiate zhite req
 			reducesWithM (g gen) reqs
+
+		-- can do it more efficiently, a fixp cut
+		g gen req | parent `notElem` reachSet zhite (getFuncName req) =
+			templateGet template req
 
 		g gen req = do
 			let abstract = templateAbstract req
@@ -109,4 +117,16 @@ instantiate (ZHite datas funcs) r1@(Req a (ZCall name args) b c) = res
 						  Nothing -> error $ "Train.Template.instantiate: not found" -- ZVar x
 						  Just y -> y
 		g x = x
-		
+
+
+
+getFuncName :: Req -> FuncName
+getFuncName (Req _ (ZCall nam _) _ _) = nam
+
+
+reachSet :: ZHite -> FuncName -> [FuncName]
+reachSet zhite name = fixSet f [name]
+	where
+		f :: FuncName -> [FuncName]
+		f x = nub [y | (_, Right expr) <- body, ZCall y _ <- allOver expr]
+			where ZFunc _ _ body = getZFunc zhite x
