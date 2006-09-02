@@ -1,5 +1,5 @@
 
-module Train.Path(Path, nullPath, newPath, ewpPath, emptyPath, integrate, differentiate) where
+module Train.Path(Path, nullPath, newPath, ewpPath, emptyPath, finitePath, makeFinitePath, integrate, differentiate) where
 
 import General.General
 import Data.Char
@@ -36,6 +36,9 @@ newPath xs = foldl integrate emptyPath xs
 
 
 ewpPath (Path x) = all isPathStar x
+
+finitePath (Path x) = all (not . isPathStar) x
+makeFinitePath (Path x) = Path $ filter (not . isPathStar) x
 
 
 isStar x = x `elem` ["tl"]
