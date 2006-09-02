@@ -17,7 +17,7 @@ backward zhite template hndl x = do
 		res <- mapBDDM f x
 		outBoth $ "Result: " ++ output res
 		
-		return res
+		return $ simplifyScopes res
 	where
 		outBoth x = hPutStrLn hndl x >> putStrLn x
 	
@@ -28,9 +28,9 @@ backward zhite template hndl x = do
 		g (Scope "main" x) gen = return $ bddLit $ Scope "main" x
 
 		g scope gen = do
-			let scopes = propagate zhite scope
+			let scopes = simplifyScopes $ propagate zhite scope
 			res <- mapBDDM (\x -> backs x >>= gen) scopes
-			return res
+			return $ simplifyScopes res
 		
 		backs (Scope name x) = do
 			x2 <- reducesWithM (templateGet template) x

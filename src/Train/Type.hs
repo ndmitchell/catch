@@ -70,6 +70,12 @@ newReq hite zexpr path ctors
 
 simplifyReqs = bddSimplify impliesReq
 
+simplifyScopes = mapBDD f
+	where
+		f (Scope func xs) = if bddIsTrue res then bddTrue else bddLit $ Scope func res
+			where res = simplifyReqs xs
+
+
 impliesReq :: [(Req, Bool)] -> Req -> Maybe Bool
 impliesReq given req@(Req hite on path ctors) | finitePath path = 
 		if poss `subset` ctors then Just True
