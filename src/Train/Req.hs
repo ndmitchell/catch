@@ -31,6 +31,7 @@ instance Output ZExpr where
 -- end
 
 
+-- DATA DEFINITIONS
 
 type Scopes = BDD Scope
 data Scope = Scope FuncName Reqs
@@ -47,6 +48,20 @@ instance Eq Req where
 instance Ord Req where
 	compare (Req _ a1 b1 c1) (Req _ a2 b2 c2) = compare (a1,b1,c1) (a2,b2,c2)
 
+instance Output Scope where
+	output (Scope name reqs) = "(\\forall " ++ name ++ ", " ++ output reqs ++ ")"
+
+instance Output a => Output (BDD a) where
+	output x = showBDDBy output x
+
+instance Output Req where
+	output (Req _ expr path ctor) =
+		output expr ++ output path ++ strSet ctor
+
+
+-- SMART CONSTRUCTORS
+
+
 
 newReq :: Hite -> ZExpr -> Path -> [CtorName] -> Req
 newReq hite zexpr path ctors
@@ -59,8 +74,21 @@ newReqs hite zexpr path ctors | null ctors = bddFalse
 							  | otherwise = bddLit $ newReq hite zexpr path ctors
 	where
 		baseSet = ctorNames $ getCtor hite (headNote "Train.Type.impliesReq" ctors)
-		
 
+
+-- UTILITIES
+
+
+reqNot :: Req -> Req
+reqNot (Req hite expr path ctors) = newReq hite expr path
+	(ctorNames (getCtor hite (headNote "Train.Type.reqNot" ctors)) \\ ctors)
+
+reqsNot :: Reqs -> Reqs
+reqsNot x = bddNot reqNot x
+
+
+
+-- SIMPLIFIERS
 
 simplifyReqs = bddSimplify impliesReq
 
@@ -92,21 +120,4 @@ impliesReq given req@(Req hite on path ctors) =
 impliesReq _ _ = Nothing
 
 
-
-reqNot :: Req -> Req
-reqNot (Req hite expr path ctors) = newReq hite expr path
-	(ctorNames (getCtor hite (headNote "Train.Type.reqNot" ctors)) \\ ctors)
-
-reqsNot :: Reqs -> Reqs
-reqsNot x = bddNot reqNot x
-
-instance Output Scope where
-	output (Scope name reqs) = "(\\forall " ++ name ++ ", " ++ output reqs ++ ")"
-
-instance Output a => Output (BDD a) where
-	output x = showBDDBy output x
-
-instance Output Req where
-	output (Req _ expr path ctor) =
-		output expr ++ output path ++ strSet ctor
 
