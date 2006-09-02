@@ -10,10 +10,10 @@ import Data.BDD
 propagate :: ZHite -> Scope -> Scopes
 propagate zhite@(ZHite _ funcs) (Scope func reqs) = res
 	where
-		res = bddAnds $ map bddLit $ concatMap f funcs
+		res = bddAnds $ concatMap f funcs
 		ZFunc _ funcArgs _ = getZFunc zhite func
 	
-		f (ZFunc name _ xs) = [Scope name newReq |
+		f (ZFunc name _ xs) = [newScopes name newReq |
 			(cond, Right code) <- xs, ZCall calls args <- allOver code, calls == func,
 			let newReq = reqsNot cond `bddOr` mapBDD (g args) reqs, not $ bddIsTrue newReq]
 			

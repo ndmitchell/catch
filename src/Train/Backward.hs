@@ -25,7 +25,7 @@ backward zhite template hndl x = do
 			scope2 <- backs scope
 			fixp bddTrue g scope2
 
-		g (Scope "main" x) gen = return $ bddLit $ Scope "main" x
+		g (Scope "main" x) gen = return $ newScopes "main" x
 
 		g scope gen = do
 			let scopes = simplifyScopes $ propagate zhite scope

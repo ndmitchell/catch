@@ -61,6 +61,9 @@ instance Output Req where
 
 -- SMART CONSTRUCTORS
 
+newScopes :: FuncName -> Reqs -> Scopes
+newScopes func req | bddIsTrue req = bddTrue
+				   | otherwise = bddLit $ Scope func req
 
 
 newReq :: Hite -> ZExpr -> Path -> [CtorName] -> Req

@@ -39,4 +39,4 @@ trainDriver file hndl hite = do
 initialReqs :: ZHite -> [Scopes]
 initialReqs (ZHite _ funcs) = concatMap f funcs
 	where
-		f (ZFunc name _ alts) = [bddLit $ Scope name (reqsNot cond) | (cond,Left _) <- alts]
+		f (ZFunc name _ alts) = [newScopes name (reqsNot cond) | (cond,Left _) <- alts]
