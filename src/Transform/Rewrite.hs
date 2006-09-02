@@ -72,6 +72,18 @@ basicExpr ihite (Case (Make name args) xs) = Just $ headNote "Tranform.Rewrite.b
 basicExpr ihite (Apply (Lambda (f:ree) expr) (a:rgs)) =
 	Just $ Apply (Lambda ree (replaceFree [(f,a)] expr)) rgs
 
+-- not so basic, Case x [(_, Lambda (x:_) _), ...]
+-- lift a lambda out of a Case
+basicExpr ihite expr@(Case x xs) | not (null xs) && all (isLamOne . snd) xs =
+	Just $ Lambda [free] $ Case x [(a, Lambda c (replaceFree [(b,Var free)] d)) | (a,Lambda (b:c) d) <- xs]
+	where
+		free = head $ freshFree expr
+		isLamOne (Lambda (_:_) _) = True
+		isLamOne _ = False
+
+-- Lambda x (Lambda y z) ==> Lambda (x++y) z
+basicExpr ihite (Lambda x (Lambda y z)) | x `disjoint` y = Just $ Lambda (x++y) z
+
 basicExpr ihite _ = Nothing
 
 
