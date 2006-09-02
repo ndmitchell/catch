@@ -167,6 +167,13 @@ defuncExpr ihite (Call name xs) | any (isJust . testHO) xs
 		testHO (Lambda [i] (Var j)) | i == j
 			= Just ([],["-ID-"],[],Lambda [i] (Var i))
 		
+		-- those which are entirely free, no external context
+		testHO expr@(Lambda args body) | null (collectFree expr)
+				= Just ([],[show $ expr2],[],expr2)
+			where
+				expr2 = Lambda args2 $ replaceFree (zip args (map Var args2)) body
+				args2 = [1..length args]
+		
 		testHO _ = Nothing
 
 defuncExpr _ _ = Nothing
