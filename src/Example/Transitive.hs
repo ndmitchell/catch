@@ -2,7 +2,7 @@
 
 module Transitive where
 
-main a b c = assert (trans a b c)
+main a b c = assert (trans a b c) True
 
 trans a b c = imp ((a `eq` b) && (b `eq` c)) (a `eq` c)
 
