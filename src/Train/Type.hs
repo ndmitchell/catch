@@ -68,6 +68,25 @@ newReq hite zexpr path ctors
 	| otherwise = Req hite zexpr path (nub $ sort ctors)
 
 
+simplifyReqs = bddSimplify impliesReq
+
+impliesReq :: [(Req, Bool)] -> Req -> Maybe Bool
+impliesReq given req@(Req hite on path ctors) | finitePath path = 
+		if poss `subset` ctors then Just True
+		else if ctors `disjoint` poss then Just False
+		else Nothing
+	where
+		msg = show poss ++ " " ++ concat ["(" ++ output a ++ " = " ++ show b ++ ")" | (a,b) <- given] ++ " with " ++ output req
+	
+		poss = foldr f (ctorNames $ getCtor hite (head ctors)) given
+		
+		f (Req _ on2 path2 ctors2, bool) poss
+			| on2 == on && makeFinitePath path2 == path
+			= if bool then poss `intersect` ctors2 else poss \\ ctors2
+		f _ poss = poss
+		
+impliesReq _ _ = Nothing
+
 {-
 instance PredLit Req where
 	a ?=> b = a == b

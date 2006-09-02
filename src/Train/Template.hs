@@ -57,7 +57,7 @@ templateConcrete (Req _ (ZCall name args) _ _) y = mapBDD (bddLit . f) y
 templateCalc :: Template -> ZHite -> Handle -> Req -> IO Reqs
 templateCalc template zhite hndl req = do
 		putStrLn $ "BEGIN: templateCalc, " ++ output req
-		res <- fixp bddTrue f req
+		res <- liftM simplifyReqs $ fixp bddTrue f req
 		putStrLn $ "END  : templateCalc, " ++ output res
 		return res
 	where
