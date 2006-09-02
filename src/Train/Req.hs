@@ -93,14 +93,23 @@ reqsNot x = bddNot reqNot x
 
 -- SIMPLIFIERS
 
-simplifyReqs = bddSimplify impliesReq
+simplifyReqs = bddSimplify impliesReq . bddApplyAnd combineReqsAnd
 
-simplifyScopes = mapBDD f . bddApplyAnd g
+simplifyScopes = mapBDD f . bddApplyAnd combineScopesAnd
 	where
 		f (Scope func xs) = newScopes func (simplifyReqs xs)
-		
-		g (Scope f1 x1) (Scope f2 x2) | f1 == f2 = Just (Scope f1 (bddAnd x1 x2))
-									  | otherwise = Nothing
+
+
+combineReqsAnd :: Req -> Req -> Maybe Req
+combineReqsAnd (Req hite on1 path1 ctors1) (Req _ on2 path2 ctors2)
+	| on1 == on2 && path1 == path2 = Just (Req hite on1 path1 (sort $ ctors2 `intersect` ctors1))
+	| otherwise = Nothing
+
+
+combineScopesAnd :: Scope -> Scope -> Maybe Scope		
+combineScopesAnd (Scope f1 x1) (Scope f2 x2)
+	| f1 == f2 = Just (Scope f1 (bddAnd x1 x2))
+	| otherwise = Nothing
 
 
 impliesReq :: [(Req, Bool)] -> Req -> Maybe Bool
