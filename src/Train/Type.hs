@@ -142,6 +142,7 @@ reqsNot x =  x = bddFalse
 
 instance Output ZExpr where
 	output x = case x of
+		ZCall x [] -> x
 		ZCall x xs -> "(" ++ x ++ concatMap ((' ':) . output) xs ++ ")"
 		ZMake x xs -> output (ZCall x xs)
 		ZSel x y -> output x ++ "." ++ y
