@@ -12,6 +12,7 @@ version Show version information
 trans
 	short-name
 	reachable
+	case-expand
 	error-call
 	reachable
 	string-expand
