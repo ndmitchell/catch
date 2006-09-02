@@ -7,8 +7,14 @@ import Hite
 import Control.Monad
 
 
-data Path = Path [PathElem]
-			deriving (Eq, Show, Ord)
+data Path = Path Hite [PathElem]
+			deriving Show
+
+instance Eq Path where
+	(Path _ a) == (Path _ b) = a == b
+
+instance Ord Path where
+	compare (Path _ a) (Path _ b) = compare a b
 
 
 data PathElem = PathAtom CtorArg
@@ -17,7 +23,7 @@ data PathElem = PathAtom CtorArg
 
 
 instance Output Path where
-	output (Path xs) = concatMap (('.':) . map toUpper . output) xs
+	output (Path _ xs) = concatMap (('.':) . map toUpper . output) xs
 
 instance Output PathElem where
 	output (PathAtom x) = x
@@ -28,24 +34,24 @@ isPathStar (PathStar{}) = True ; isPathStar _ = False
 isPathAtom = not . isPathStar
 
 
-nullPath (Path x) = null x
+nullPath (Path _ x) = null x
 
-emptyPath = Path []
+emptyPath hite = Path hite []
 
-newPath xs = foldl integrate emptyPath xs
+newPath hite xs = foldl integrate (emptyPath hite) xs
 
 
-ewpPath (Path x) = all isPathStar x
+ewpPath (Path _ x) = all isPathStar x
 
-finitePath (Path x) = all (not . isPathStar) x
-makeFinitePath (Path x) = Path $ filter (not . isPathStar) x
+finitePath (Path _ x) = all (not . isPathStar) x
+makeFinitePath (Path hite x) = Path hite $ filter (not . isPathStar) x
 
 
 isStar x = x `elem` ["tl"]
 
 
 differentiate :: Path -> CtorArg -> Maybe Path
-differentiate (Path xs) ctor = liftM Path $ f xs
+differentiate (Path hite xs) ctor = liftM (Path hite) $ f xs
 	where
 		f [] = Nothing
 		f (PathAtom x:xs) | x == ctor = Just xs
@@ -56,7 +62,7 @@ differentiate (Path xs) ctor = liftM Path $ f xs
 
 
 integrate :: Path -> CtorArg -> Path
-integrate (Path x) ctor = Path (f x)
+integrate (Path hite x) ctor = Path hite (f x)
 	where
 		f ys@(PathStar y:_) | ctor == y = ys
 		f ys = (if isStar ctor then PathStar ctor else PathAtom ctor) : ys

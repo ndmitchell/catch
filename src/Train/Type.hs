@@ -64,7 +64,7 @@ instance Ord Req where
 
 newReq :: Hite -> ZExpr -> Path -> [CtorName] -> Req
 newReq hite zexpr path ctors
-	| path == newPath ["tl"] && ctors == ["[]"] = Req hite zexpr emptyPath ctors
+	| path == newPath hite ["tl"] && ctors == ["[]"] = Req hite zexpr (emptyPath hite) ctors
 	| otherwise = Req hite zexpr path (nub $ sort ctors)
 
 newReqs :: Hite -> ZExpr -> Path -> [CtorName] -> Reqs
