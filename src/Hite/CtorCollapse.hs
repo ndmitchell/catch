@@ -69,5 +69,5 @@ ctorDiffs hite = concatMap f $ allExpr hite
 
 -- if a constructor is used as a literal, you can't collapse it
 ctorsUsed :: Hite -> [CtorName]
-ctorsUsed hite = nub [x | Make x _ <- allExpr hite]
+ctorsUsed hite = [] -- nub [x | Make x _ <- allExpr hite]
 
