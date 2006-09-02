@@ -247,6 +247,7 @@ class Preamble_Show a where
     show      :: a -> String
     showsPrec :: Int -> a -> ShowS
     showList  :: [a] -> ShowS
+    showsType :: a -> ShowS -- Yhc extra method!
 
     -- Minimal complete definition: show or showsPrec
     show x          = showsPrec zero_int x (ignore "")
@@ -256,6 +257,7 @@ class Preamble_Show a where
         where
             showl []     = showChar (ignore ']')
             showl (x:xs) = showChar (ignore ',') . shows x . showl xs
+	showsType x = showString ""
 
 instance Preamble_Show Int where
     show x = catch_any
