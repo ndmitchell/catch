@@ -90,9 +90,8 @@ impliesReq given req@(Req hite on path ctors) | finitePath path =
 		else if ctors `disjoint` poss then Just False
 		else Nothing
 	where
-		msg = show poss ++ " " ++ concat ["(" ++ output a ++ " = " ++ show b ++ ")" | (a,b) <- given] ++ " with " ++ output req
-	
-		poss = foldr f (ctorNames $ getCtor hite (head ctors)) given
+		baseSet = ctorNames $ getCtor hite (headNote "Train.Type.impliesReq" ctors)
+		poss = foldr f baseSet given
 		
 		f (Req _ on2 path2 ctors2, bool) poss
 			| on2 == on && makeFinitePath path2 == path
@@ -130,7 +129,8 @@ instance BDDLit Scope where
 -}
 
 reqNot :: Req -> Req
-reqNot (Req hite expr path ctors) = newReq hite expr path (ctorNames (getCtor hite (head ctors)) \\ ctors)
+reqNot (Req hite expr path ctors) = newReq hite expr path
+	(ctorNames (getCtor hite (headNote "Train.Type.reqNot" ctors)) \\ ctors)
 
 reqsNot :: Reqs -> Reqs
 reqsNot x = bddNot reqNot x
