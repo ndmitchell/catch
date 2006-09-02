@@ -150,6 +150,10 @@ defuncExpr ihite (Call name xs) | any (isJust . testHO) xs
 				thisargs = take (length real) newargs
 				(real,fake) = splitAt (length xs - length args) xs
 		
+		-- an icky special case for id
+		testHO (Lambda [i] (Var j)) | i == j
+			= Just ([],["-ID-"],[],Lambda [i] (Var i))
+		
 		testHO _ = Nothing
 
 defuncExpr _ _ = Nothing
