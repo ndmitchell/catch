@@ -82,7 +82,7 @@ simplifyScopes = mapBDD f
 
 
 impliesReq :: [(Req, Bool)] -> Req -> Maybe Bool
-impliesReq given req@(Req hite on path ctors) | finitePath path = 
+impliesReq given req@(Req hite on path ctors) = 
 		if poss `subset` ctors then Just True
 		else if ctors `disjoint` poss then Just False
 		else Nothing
@@ -90,9 +90,14 @@ impliesReq given req@(Req hite on path ctors) | finitePath path =
 		baseSet = ctorNames $ getCtor hite (headNote "Train.Type.impliesReq" ctors)
 		poss = foldr f baseSet given
 		
-		f (Req _ on2 path2 ctors2, bool) poss
-			| on2 == on && makeFinitePath path2 == path
-			= if bool then poss `intersect` ctors2 else poss \\ ctors2
+		f (Req _ on2 path2 ctors2, False) poss
+			| on2 == on && path2 == path && finitePath path
+			= poss \\ ctors2
+		
+		f (Req _ on2 path2 ctors2,True) poss
+			| on2 == on && path `subsetPath` path2
+			= poss `intersect` ctors2
+
 		f _ poss = poss
 		
 impliesReq _ _ = Nothing
