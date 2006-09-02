@@ -17,14 +17,10 @@ instance Eq Path where
 	(Path _ a) == (Path _ b) = a == b
 
 instance Ord Path where
-	compare (Path _ a) (Path _ b) = flipCompare $ compare (f a, a) (f b, b)
+	compare (Path _ a) (Path _ b) = compare (f a, a) (f b, b)
 		where
-			f xs = (length atm, length str, length $ concat [x | PathStar x <- xs])
+			f xs = (length atm, 0 - length str, 0 - length (concat [x | PathStar x <- xs]))
 				where (str,atm) = partition isPathStar xs
-
-			flipCompare GT = LT
-			flipCompare LT = GT
-			flipCompare EQ = EQ
 
 data PathElem = PathAtom CtorArg
 	          | PathStar [CtorArg]
