@@ -43,12 +43,20 @@ letExpand x = mapCore f x
 
 
 convData :: CoreItem -> Data
-convData (CoreData dname typ ctors) = Data dname (map f ctors) typ
+convData (CoreData dname typ ctors) = Data dname (g [] ctors) typ
     where
-        f (CoreCtor cname args) = Ctor cname (zipWith g [1..] $ map snd args) (map (convType . fst) args)
+    	g seen [] = []
+    	g seen (x:xs) = res : g (args++seen) xs
+    		where
+    			res@(Ctor _ args _) = f seen x
+    
+        f seen (CoreCtor cname args) = Ctor cname (zipWith g [1..] $ map snd args) (map (convType . fst) args)
             where
-                g n (Just x) = x
+                g n (Just x) = demandUnique seen x
                 g n (Nothing) = dname ++ "_" ++ cname ++ "_" ++ show n
+
+		demandUnique seen x | x `notElem` seen = x
+							| otherwise = head [x2 | i <- [1..], let x2 = x ++ show i, x2 `notElem` seen]
 
 
 -- hacky, will work a bit
