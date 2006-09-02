@@ -47,7 +47,8 @@ finitePath (Path _ x) = all (not . isPathStar) x
 makeFinitePath (Path hite x) = Path hite $ filter (not . isPathStar) x
 
 
-isStar x = x `elem` ["tl"]
+isStar hite x = TyCon (dataName obj) (map TyFree $ frees obj) == cargType obj
+	where obj = getCArg hite x
 
 
 differentiate :: Path -> CtorArg -> Maybe Path
@@ -65,7 +66,7 @@ integrate :: Path -> CtorArg -> Path
 integrate (Path hite x) ctor = Path hite (f x)
 	where
 		f ys@(PathStar y:_) | ctor == y = ys
-		f ys = (if isStar ctor then PathStar ctor else PathAtom ctor) : ys
+		f ys = (if isStar hite ctor then PathStar ctor else PathAtom ctor) : ys
 
 
 

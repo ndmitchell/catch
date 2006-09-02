@@ -102,6 +102,9 @@ cargName = snd . rawCArg
 cargPos :: QCArg a => a -> Int
 cargPos = fst . rawCArg
 
+cargType :: QCArg a => a -> TyType
+cargType q = types q !! cargPos q
+
 
 -- COMPOUND
 
