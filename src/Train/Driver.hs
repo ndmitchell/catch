@@ -10,6 +10,7 @@ import Train.Type
 import Train.Convert
 import Train.Backward
 import Hite
+import General.General
 
 
 trainDriver :: String -> Handle -> Hite -> IO Bool
@@ -21,6 +22,8 @@ trainDriver file hndl hite = do
 		res <- mapM (backward zhite template hndlBackward) conds
 		when (null conds) $
 			putStrLn "No pattern match errors, trivially safe"
+		
+		putStrLn $ "Final: " ++ output (bddAnds res)
 		
 		hFlush hndl
 		hClose hndlTemplate
