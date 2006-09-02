@@ -43,6 +43,7 @@ canInline name Unknown = True
 canInline name x | isTuple x = True
 canInline name (Call nam xs) | nam /= name && all isVar xs = True
 canInline name (Lambda _ x) | canInline name x = True
+canInline name x | isVar x = True
 canInline name _ = False
 
 
