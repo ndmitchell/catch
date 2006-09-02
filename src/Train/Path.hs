@@ -1,5 +1,7 @@
 
-module Train.Path(Path, nullPath, newPath, ewpPath, emptyPath, finitePath, makeFinitePath, integrate, differentiate) where
+module Train.Path(Path, nullPath, newPath, ewpPath,
+	emptyPath, finitePath, makeFinitePath, integrate, differentiate,
+	subsetPath) where
 
 import General.General
 import Data.Char
@@ -15,8 +17,14 @@ instance Eq Path where
 	(Path _ a) == (Path _ b) = a == b
 
 instance Ord Path where
-	compare (Path _ a) (Path _ b) = compare a b
+	compare (Path _ a) (Path _ b) = flipCompare $ compare (f a, a) (f b, b)
+		where
+			f xs = (length atm, length str, length $ concat [x | PathStar x <- xs])
+				where (str,atm) = partition isPathStar xs
 
+			flipCompare GT = LT
+			flipCompare LT = GT
+			flipCompare EQ = EQ
 
 data PathElem = PathAtom CtorArg
 	          | PathStar [CtorArg]
@@ -77,3 +85,13 @@ integrate (Path hite x) ctor = Path hite (f x)
 
 
 
+
+-- is the first a subset of the second
+subsetPath :: Path -> Path -> Bool
+subsetPath (Path _ a) (Path _ b) = f a b
+	where
+		f (PathAtom x:xs) (PathAtom y:ys) | x == y = f xs ys
+		f (PathStar x:xs) (PathStar y:ys) | x `subset` y = f xs ys
+		f xs              (PathStar y:ys) = f xs ys
+		f [] [] = True
+		f _ _ = False
