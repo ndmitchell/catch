@@ -12,6 +12,11 @@ import Train.Path
 data ZHite = ZHite [Data] [ZFunc]
 			 deriving Show
 
+
+getZFunc :: ZHite -> FuncName -> ZFunc
+getZFunc (ZHite _ funcs) name = head [res | res@(ZFunc nam _ _) <- funcs, nam == name]
+
+
 data ZFunc = ZFunc FuncName [FuncArg] [(Reqs, Either String ZExpr)]
 			 deriving Show
 
