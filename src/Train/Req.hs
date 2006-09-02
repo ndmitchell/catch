@@ -95,10 +95,12 @@ reqsNot x = bddNot reqNot x
 
 simplifyReqs = bddSimplify impliesReq
 
-simplifyScopes = mapBDD f
+simplifyScopes = mapBDD f . bddApplyAnd g
 	where
-		f (Scope func xs) = if bddIsTrue res then bddTrue else bddLit $ Scope func res
-			where res = simplifyReqs xs
+		f (Scope func xs) = newScopes func (simplifyReqs xs)
+		
+		g (Scope f1 x1) (Scope f2 x2) | f1 == f2 = Just (Scope f1 (bddAnd x1 x2))
+									  | otherwise = Nothing
 
 
 impliesReq :: [(Req, Bool)] -> Req -> Maybe Bool

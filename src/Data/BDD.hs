@@ -1,6 +1,7 @@
 
 module Data.BDD(BDD, {-BDDLit(..), -} showBDDBy, bddAnd, bddNot, bddOr, bddLit, bddAnds, bddOrs,
-	bddIsTrue, mapBDDM, bddIsFalse, mapBDD, bddBool, bddTrue, bddFalse, bddSimplify) where
+	bddIsTrue, mapBDDM, bddIsFalse, mapBDD, bddBool, bddTrue, bddFalse, bddSimplify,
+	bddApplyAnd) where
 
 import qualified Data.Map as Map
 import Data.IORef
@@ -32,6 +33,17 @@ bddValid (Choice a f1 t1) = f a f1 && f a t1
 		f x _ = True
 	
 bddValid _ = True
+
+
+bddApplyAnd :: Ord a => (a -> a -> Maybe a) -> BDD a -> BDD a
+bddApplyAnd merge = rebalance . f
+	where
+		f (Choice on1 false1 true1@(Choice on2 false2 true2))
+			| false1 == false2 = case merge on1 on2 of
+									 Just on -> Choice on  (f false2) (f true2)
+									 Nothing -> Choice on1 (f false1) (f true1)
+		f (Choice on false true) = Choice on (f false) (f true)
+		f x = x
 
 
 bddLit :: a -> BDD a
