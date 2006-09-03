@@ -4,18 +4,18 @@ module Train.Propagate(propagate) where
 import Train.Type
 import Data.Maybe
 import General.General
-import Data.BDD
+import Data.Proposition
 
 
 propagate :: ZHite -> Scope -> Scopes
 propagate zhite@(ZHite _ funcs) (Scope func reqs) = res
 	where
-		res = bddAnds $ concatMap f funcs
+		res = propAnds $ concatMap f funcs
 		ZFunc _ funcArgs _ = getZFunc zhite func
 	
 		f (ZFunc name _ xs) = [newScopes name newReq |
 			(cond, Right code) <- xs, ZCall calls args <- allOver code, calls == func,
-			let newReq = reqsNot cond `bddOr` mapBDD (g args) reqs, not $ bddIsTrue newReq]
+			let newReq = reqsNot cond `propOr` propMap (g args) reqs, not $ propIsTrue newReq]
 			
 		g args (Req hite expr path ctor) = newReqs hite (mapOver (h args) expr) path ctor
 		

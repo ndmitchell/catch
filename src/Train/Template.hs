@@ -75,8 +75,8 @@ templateCalc template zhite hndl req = do
 			let abstract = templateAbstract req
 			answer <- gen abstract
 			res <- liftM id $ reducesWithM (g gen) (templateConcrete req answer)
-			--putStrLn $ "ASK: " ++ output abstract
-			--putStrLn $ "GET: " ++ output answer
+			putStrLn $ "ASK: " ++ output abstract
+			putStrLn $ "GET: " ++ output answer
 			return res
 
 {-			

@@ -4,7 +4,7 @@ module Train.Req where
 import Hite
 import General.General
 import Train.Path
-import Data.BDD
+import Data.Proposition
 import Data.List
 
 
@@ -52,7 +52,7 @@ instance Output Scope where
 	output (Scope name reqs) = "(\\forall " ++ name ++ ", " ++ output reqs ++ ")"
 
 instance Output a => Output (BDD a) where
-	output x = showBDDBy output x
+	output x = propShowBy output x
 
 instance Output Req where
 	output (Req _ expr path ctor) =
@@ -62,40 +62,44 @@ instance Output Req where
 -- SMART CONSTRUCTORS
 
 newScopes :: FuncName -> Reqs -> Scopes
-newScopes func req | bddIsTrue req = bddTrue
-				   | otherwise = bddLit $ Scope func req
+newScopes func req | propIsTrue req = propTrue
+				   | otherwise = propLit $ Scope func req
 
 
 newReq :: Hite -> ZExpr -> Path -> [CtorName] -> Req
 newReq hite zexpr path ctors
-	| path == newPath hite ["tl"] && ctors == ["[]"] = Req hite zexpr (emptyPath hite) ctors
+--	| path == newPath hite ["tl"] && ctors == ["[]"] = Req hite zexpr (emptyPath hite) ctors
 	| otherwise = Req hite zexpr path (nub $ sort ctors)
 
 newReqs :: Hite -> ZExpr -> Path -> [CtorName] -> Reqs
-newReqs hite zexpr path ctors | null ctors = bddFalse
-							  | ctors `setEq` baseSet = bddTrue
-							  | otherwise = bddLit $ newReq hite zexpr path ctors
+newReqs hite zexpr path ctors | null ctors = propFalse
+							  | ctors `setEq` baseSet = propTrue
+							  | otherwise = propLit $ newReq hite zexpr path ctors
 	where
 		baseSet = ctorNames $ getCtor hite (headNote "Train.Type.impliesReq" ctors)
 
 
 -- UTILITIES
 
+instance PropLit Req where
 
-reqNot :: Req -> Req
-reqNot (Req hite expr path ctors) = newReq hite expr path
-	(ctorNames (getCtor hite (headNote "Train.Type.reqNot" ctors)) \\ ctors)
+instance PropNot Req where
+	litNot (Req hite expr path ctors) =
+		newReq hite expr path
+		(ctorNames (getCtor hite (headNote "Train.Type.reqNot" ctors)) \\ ctors)
 
 reqsNot :: Reqs -> Reqs
-reqsNot x = bddNot reqNot x
+reqsNot x = propNot x
 
+instance PropLit Scope where
+	
 
 
 -- SIMPLIFIERS
 
-simplifyReqs = bddSimplify impliesReq . bddApplyAnd combineReqsAnd
+simplifyReqs = id -- bddSimplify impliesReq -- . bddApplyAnd combineReqsAnd
 
-simplifyScopes = mapBDD f . bddApplyAnd combineScopesAnd
+simplifyScopes = id -- mapBDD f . bddApplyAnd combineScopesAnd
 	where
 		f (Scope func xs) = newScopes func (simplifyReqs xs)
 
@@ -108,7 +112,7 @@ combineReqsAnd (Req hite on1 path1 ctors1) (Req _ on2 path2 ctors2)
 
 combineScopesAnd :: Scope -> Scope -> Maybe Scope		
 combineScopesAnd (Scope f1 x1) (Scope f2 x2)
-	| f1 == f2 = Just (Scope f1 (bddAnd x1 x2))
+	| f1 == f2 = Just (Scope f1 (propAnd x1 x2))
 	| otherwise = Nothing
 
 

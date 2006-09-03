@@ -2,7 +2,7 @@
 module Train.Driver(trainDriver) where
 
 import System.IO
-import Data.BDD
+import Data.Proposition
 import Control.Monad
 
 import Train.Template
@@ -23,12 +23,12 @@ trainDriver file hndl hite = do
 		when (null conds) $
 			putStrLn "No pattern match errors, trivially safe"
 		
-		putStrLn $ "Final: " ++ output (bddAnds res)
+		putStrLn $ "Final: " ++ output (propAnds res)
 		
 		hFlush hndl
 		hClose hndlTemplate
 		hClose hndlBackward
-		return $ all bddIsTrue res
+		return $ all propIsTrue res
 	where
 		conds = initialReqs zhite
 		zhite = convertHite hite

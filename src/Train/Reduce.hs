@@ -3,18 +3,18 @@ module Train.Reduce(reduce, reduces, reduceWithM, reducesWithM) where
 
 import Train.Type
 import General.General
-import Data.BDD
+import Data.Proposition
 import Hite
 
 
 reduces :: Reqs -> Reqs
-reduces reqs = mapBDD reduce reqs
+reduces reqs = propMap reduce reqs
 
 
 reduce :: Req -> Reqs
 reduce req@(Req hite expr path ctors) = case expr of
-	ZCall{} -> bddLit req
-	ZVar{} -> bddLit req
+	ZCall{} -> propLit req
+	ZVar{} -> propLit req
 	_ -> reduces $ reduceOne req
 
 
@@ -22,17 +22,17 @@ reduce req@(Req hite expr path ctors) = case expr of
 -- this function does the real work!
 reduceOne :: Req -> Reqs
 reduceOne req@(Req hite expr path ctors) = case expr of
-	ZAny -> bddFalse
+	ZAny -> propFalse
 	ZSel x y -> newReqs hite x (path `integrate` y) ctors
-	ZMake y xs -> bddAnds (p1:ps)
+	ZMake y xs -> propAnds (p1:ps)
 		where
 			cargs = ctorArgs $ getCtor hite y
 
-			p1 = if ewpPath path then bddBool (y `elem` ctors) else bddTrue
+			p1 = if ewpPath path then propBool (y `elem` ctors) else propTrue
 			ps = zipWithEq f xs cargs
 			
 			f x carg = case path `differentiate` carg of
-						   Nothing -> bddTrue
+						   Nothing -> propTrue
 						   Just path2 -> newReqs hite x path2 ctors
 	
 	_ -> error $ "reduceOne: " ++ output req
@@ -42,12 +42,12 @@ reduceOne req@(Req hite expr path ctors) = case expr of
 -- take a function that reduces a Call
 -- and reduce the entire thing
 reducesWithM :: (Req -> IO Reqs) -> Reqs -> IO Reqs
-reducesWithM f reqs = mapBDDM (reduceWithM f) reqs
+reducesWithM f reqs = propMapM (reduceWithM f) reqs
 
 
 reduceWithM :: (Req -> IO Reqs) -> Req -> IO Reqs
 reduceWithM f req@(Req hite expr path ctors) = case expr of
 	ZCall{} -> f req >>= reducesWithM f
-	ZVar{} -> return $ bddLit req
+	ZVar{} -> return $ propLit req
 	_ -> reducesWithM f $ reduceOne req
 	

@@ -5,7 +5,7 @@ import Hite
 import Train.Type
 import General.General
 import Data.Predicate
-import Data.BDD
+import Data.Proposition
 
 
 convertHite :: Hite -> ZHite
@@ -18,13 +18,11 @@ convertFunc hite (Func name args body _) = [ZFunc name args (convertBody hite bo
 
 
 convertBody :: Hite -> Expr -> [(Reqs, Either String ZExpr)]
-convertBody hite (MCase alts) = [(foldPred for fand fone a, convertExpr b) | MCaseAlt a b <- alts]
+convertBody hite (MCase alts) = [(foldPred propOrs propAnds fone a, convertExpr b) | MCaseAlt a b <- alts]
 	where
-		for xs = bddOrs xs
-		fand xs = bddAnds xs
 		fone (MCaseOpt x c) = newReqs hite (fromRight $ convertExpr x) (emptyPath hite) [c]
 	
-convertBody hite x = [(bddTrue, convertExpr x)]
+convertBody hite x = [(propTrue, convertExpr x)]
 
 
 convertExpr :: Expr -> Either String ZExpr

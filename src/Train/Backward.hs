@@ -8,13 +8,14 @@ import Train.Reduce
 import Train.Fixp
 import System.IO
 import General.General
-import Data.BDD
+import Control.Monad
+import Data.Proposition
 
 
 backward :: ZHite -> Template -> Handle -> Scopes -> IO Scopes
 backward zhite template hndl x = do
 		outBoth $ "Solving: " ++ output x
-		res <- mapBDDM f x
+		res <- propMapM f x
 		outBoth $ "Result: " ++ output res
 		
 		return $ simplifyScopes res
@@ -23,13 +24,14 @@ backward zhite template hndl x = do
 	
 		f scope = do
 			scope2 <- backs scope
-			fixp bddTrue g scope2
+			fixp propTrue g scope2
 
 		g (Scope "main" x) gen = return $ newScopes "main" x
 
 		g scope gen = do
 			let scopes = simplifyScopes $ propagate zhite scope
-			res <- mapBDDM (\x -> backs x >>= gen) scopes
+			res <- liftM simplifyScopes $ propMapM (\x -> backs x >>= gen) scopes
+			putStrLn $ "Propagate: " ++ output scope ++ " ==> " ++ output res
 			return $ simplifyScopes res
 		
 		backs (Scope name x) = do
