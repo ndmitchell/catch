@@ -19,16 +19,16 @@ trainDriver file hndl hite = do
 		hndlTemplate <- openFile (logFile "template") WriteMode
 		hndlBackward <- openFile (logFile "backward") WriteMode
 		template <- templateInit zhite hndlTemplate
-		res <- mapM (backward zhite template hndlBackward) conds
+		res <- mapM (backward zhite template hndlBackward . (:[]) ) conds
 		when (null conds) $
 			putStrLn "No pattern match errors, trivially safe"
 		
-		putStrLn $ "Final: " ++ output (propAnds res)
+		putStrLn $ "Final: " ++ (unlines $ map output $ concat res)
 		
 		hFlush hndl
 		hClose hndlTemplate
 		hClose hndlBackward
-		return $ all propIsTrue res
+		return False -- $ all propIsTrue res
 	where
 		conds = initialReqs zhite
 		zhite = convertHite hite
@@ -36,7 +36,7 @@ trainDriver file hndl hite = do
 
 
 
-initialReqs :: ZHite -> [Scopes]
+initialReqs :: ZHite -> [Scope]
 initialReqs (ZHite _ funcs) = concatMap f funcs
 	where
-		f (ZFunc name _ alts) = [newScopes name (reqsNot cond) | (cond,Left _) <- alts]
+		f (ZFunc name _ alts) = [Scope name (reqsNot cond) | (cond,Left _) <- alts]

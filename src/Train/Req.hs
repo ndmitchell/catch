@@ -33,10 +33,9 @@ instance Output ZExpr where
 
 -- DATA DEFINITIONS
 
-type Scopes = BDD Scope
+type Scopes = [Scope]
 data Scope = Scope FuncName Reqs
 			 deriving (Eq, Ord, Show)
-
 
 type Reqs = BDD Req
 data Req = Req Hite ZExpr Path [CtorName]
@@ -61,9 +60,13 @@ instance Output Req where
 
 -- SMART CONSTRUCTORS
 
-newScopes :: FuncName -> Reqs -> Scopes
-newScopes func req | propIsTrue req = propTrue
-				   | otherwise = propLit $ Scope func req
+scopesAnds :: Scopes -> Scopes
+scopesAnds xs = filter (\(Scope a b) -> not (propIsTrue b)) $ map f $
+               groupSetExtract (\(Scope a b) -> a) xs
+    where
+        f xs@(Scope a _:_) = Scope a $ propAnds [b | Scope a b <- xs]
+
+
 
 
 newReq :: Hite -> ZExpr -> Path -> [CtorName] -> Req
@@ -91,7 +94,7 @@ instance PropNot Req where
 reqsNot :: Reqs -> Reqs
 reqsNot x = propNot x
 
-instance PropLit Scope where
+-- instance PropLit Scope where
 	
 
 
@@ -99,9 +102,9 @@ instance PropLit Scope where
 
 simplifyReqs = id -- bddSimplify impliesReq -- . bddApplyAnd combineReqsAnd
 
-simplifyScopes = id -- mapBDD f . bddApplyAnd combineScopesAnd
-	where
-		f (Scope func xs) = newScopes func (simplifyReqs xs)
+--simplifyScopes = id -- mapBDD f . bddApplyAnd combineScopesAnd
+--	where
+--		f (Scope func xs) = newScopes func (simplifyReqs xs)
 
 
 combineReqsAnd :: Req -> Req -> Maybe Req
@@ -110,10 +113,10 @@ combineReqsAnd (Req hite on1 path1 ctors1) (Req _ on2 path2 ctors2)
 	| otherwise = Nothing
 
 
-combineScopesAnd :: Scope -> Scope -> Maybe Scope		
-combineScopesAnd (Scope f1 x1) (Scope f2 x2)
-	| f1 == f2 = Just (Scope f1 (propAnd x1 x2))
-	| otherwise = Nothing
+--combineScopesAnd :: Scope -> Scope -> Maybe Scope		
+--combineScopesAnd (Scope f1 x1) (Scope f2 x2)
+--	| f1 == f2 = Just (Scope f1 (propAnd x1 x2))
+--	| otherwise = Nothing
 
 
 impliesReq :: [(Req, Bool)] -> Req -> Maybe Bool

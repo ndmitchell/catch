@@ -10,34 +10,64 @@ import System.IO
 import General.General
 import Control.Monad
 import Data.Proposition
+import Data.Maybe
+import Data.List
+import Hite
+import qualified Data.Map as Map
 
 
 backward :: ZHite -> Template -> Handle -> Scopes -> IO Scopes
 backward zhite template hndl x = do
-		outBoth $ "Solving: " ++ output x
-		res <- propMapM f x
-		outBoth $ "Result: " ++ output res
-		
-		return $ simplifyScopes res
+		newMap <- f origMap origTodo
+		return [Scope a b | (a,b) <- Map.toList newMap, not (propIsTrue b)]
 	where
-		outBoth x = hPutStrLn hndl x >> putStrLn x
+        origMap = Map.fromList [(a,b) | Scope a b <- x]
+        origTodo = Map.keys origMap
+    
+		--outBoth x = hPutStrLn hndl x >> putStrLn x
+        
+        f :: Map.Map FuncName Reqs -> [FuncName] -> IO (Map.Map FuncName Reqs)
+        f table [] = return table
+        f table (x:xs) = do
+            res <- oneStep $ Scope x $ fromJust $ Map.lookup x table
+            let (todo2,table2) = foldr g ([], table) res
+            f table2 (nub $ xs ++ todo2)
+
+        g (Scope func x) (todo,mp)
+                | ans == ans2 = (todo,mp)
+                | otherwise = (func:todo,Map.insert func ans2 mp)
+            where
+                ans = Map.findWithDefault propTrue func mp
+                ans2 = propAnd x ans
+        
+        
+        oneStep :: Scope -> IO Scopes
+        oneStep scope = mapM simple $ propagate zhite scope
+            
+        simple :: Scope -> IO Scope
+        simple (Scope name x) = do
+            x2 <- reducesWithM (templateGet template) x
+            return $ Scope name x2
+            
+{-        
+        
 	
 		f scope = do
 			scope2 <- backs scope
 			fixp propTrue g scope2
 
-		g (Scope "main" x) gen = return $ newScopes "main" x
+		g (Scope "main" x) gen = return [Scope "main" x]
 
 		g scope gen = do
-			let scopes = simplifyScopes $ propagate zhite scope
-			res <- liftM simplifyScopes $ propMapM (\x -> backs x >>= gen) scopes
+			let scopes = propagate zhite scope
+			res <- mapM (\x -> backs x >>= gen) scopes
 			putStrLn $ "Propagate: " ++ output scope ++ " ==> " ++ output res
-			return $ simplifyScopes res
+			return res
 		
 		backs (Scope name x) = do
 			x2 <- reducesWithM (templateGet template) x
 			return (Scope name x2)
-			
+	-}		
 {-
 -- solve all but propagate
 backwardReqs :: ZHite -> Template -> Handle -> Reqs -> IO Reqs
