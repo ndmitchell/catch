@@ -16,10 +16,10 @@ import Hite
 import qualified Data.Map as Map
 
 
-backward :: ZHite -> Template -> Handle -> Scopes -> IO Scopes
+backward :: ZHite -> Template -> Handle -> Scopes -> IO Reqs
 backward zhite template hndl x = do
 		newMap <- f origMap origTodo
-		return [Scope a b | (a,b) <- Map.toList newMap, not (propIsTrue b)]
+		return $ Map.findWithDefault propTrue "main" newMap
 	where
         origMap = Map.fromList [(a,b) | Scope a b <- x]
         origTodo = Map.keys origMap
