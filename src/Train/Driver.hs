@@ -19,13 +19,13 @@ trainDriver file hndl hite = do
         hndlTemplate <- openFile (logFile "template") WriteMode
         hndlBackward <- openFile (logFile "backward") WriteMode
         template <- templateInit zhite hndlTemplate
-        res <- mapM (backward zhite template hndlBackward . (:[]) ) conds
+        res <- mapM (f hndlTemplate hndlBackward template) conds
         let ress = propAnds res
 
         when (null conds) $
             putStrLn "No pattern match errors, trivially safe"
 
-        putStrLn $ "Final: \\forall main, " ++ output ress
+        outBoth $ "Final: \\forall main, " ++ output ress
 
         hFlush hndl
         hClose hndlTemplate
@@ -35,6 +35,23 @@ trainDriver file hndl hite = do
         conds = initialReqs zhite
         zhite = convertHite hite
         logFile x = "Logs/" ++ file ++ "." ++ x ++ ".log"
+        
+        outBoth msg = hPutStrLn hndl msg >> putStrLn msg
+        
+        f hndlTemplate hndlBackward template cond = do
+            let pref = "\n\n" ++ replicate 70 '-' ++ "\n"
+                msg1 = "Solving " ++ output cond
+            outBoth msg1
+            hPutStrLn hndlTemplate (pref ++ msg1)
+            hPutStrLn hndlBackward (pref ++ msg1)
+            
+            res <- backward zhite template hndlBackward [cond]
+            
+            let msg2 = "Result \\forall main, " ++ output res
+            outBoth msg2
+            hPutStrLn hndlBackward $ "\n" ++ msg2
+            return res
+            
 
 
 

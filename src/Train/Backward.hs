@@ -29,9 +29,17 @@ backward zhite template hndl x = do
         f :: Map.Map FuncName Reqs -> [FuncName] -> IO (Map.Map FuncName Reqs)
         f table [] = return table
         f table (x:xs) = do
+            hPutStrLn hndl $ "Processing: " ++ x
             res <- oneStep $ Scope x $ fromJust $ Map.lookup x table
             let (todo2,table2) = foldr g ([], table) res
+            if null todo2
+                then hPutStrLn hndl $ "  Always safe"
+                else mapM_ (outLine table2) todo2
+            
             f table2 (nub $ xs ++ todo2)
+            where
+                outLine table x
+                    = hPutStrLn hndl $ ("  " ++) $ output $ Scope x $ Map.findWithDefault propTrue x table
 
         g (Scope func x) (todo,mp)
                 | ans == ans2 = (todo,mp)

@@ -56,28 +56,26 @@ templateConcrete (Req _ (ZCall name args) _ _) y = mapBDD (bddLit . f) y
 -- expr is ZCall
 templateCalc :: Template -> ZHite -> Handle -> Req -> IO Reqs
 templateCalc template zhite hndl req = do
-		putStrLn $ "BEGIN: templateCalc, " ++ output req
-		res <- liftM simplifyReqs $ fixp bddTrue f req
-		putStrLn $ "END  : templateCalc, " ++ output res
-		return res
-	where
-		parent = getFuncName req
-	
-		f req gen = do
-			let reqs = instantiate zhite req
-			reducesWithM (g gen) reqs
+        hPutStrLn hndl $ "BEGIN: templateCalc, " ++ output req
+        res <- liftM simplifyReqs $ fixp bddTrue f req
+        hPutStrLn hndl $ "END  : templateCalc, " ++ output res
+        return res
+    where
+        parent = getFuncName req
 
-		-- can do it more efficiently, a fixp cut
-		g gen req | parent `notElem` reachSet zhite (getFuncName req) =
-			templateGet template req
+        f req gen = do
+            let reqs = instantiate zhite req
+            reducesWithM (g gen) reqs
 
-		g gen req = do
-			let abstract = templateAbstract req
-			answer <- gen abstract
-			res <- liftM id $ reducesWithM (g gen) (templateConcrete req answer)
-			putStrLn $ "ASK: " ++ output abstract
-			putStrLn $ "GET: " ++ output answer
-			return res
+        -- can do it more efficiently, a fixp cut
+        g gen req | parent `notElem` reachSet zhite (getFuncName req) =
+            templateGet template req
+
+        g gen req = do
+            let abstract = templateAbstract req
+            answer <- gen abstract
+            res <- liftM id $ reducesWithM (g gen) (templateConcrete req answer)
+            return res
 
 {-			
 			
