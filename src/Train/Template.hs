@@ -26,16 +26,16 @@ templateInit zhite hndl = do
 -- first element of Req must be a ZCall
 templateGet :: Template -> Req -> IO Reqs
 templateGet template@(Template zhite hndl cache) req = do
-	let abstract = templateAbstract req
-	res <- readIORef cache
-	ans <- case lookup abstract res of
-			   Just x -> return x
-			   Nothing -> do
-			   	   ans <- templateCalc template zhite hndl abstract
-			   	   modifyIORef cache ((abstract,ans):)
-			   	   hPutStrLn hndl $ "Add: " ++ output abstract ++ " = " ++ output ans
-			   	   return ans
-	return $ templateConcrete req ans
+    let abstract = templateAbstract req
+    res <- readIORef cache
+    ans <- case lookup abstract res of
+               Just x -> return x
+               Nothing -> do
+                   ans <- templateCalc template zhite hndl abstract
+                   modifyIORef cache ((abstract,ans):)
+                   hPutStrLn hndl $ "Add: " ++ output abstract ++ " = " ++ output ans
+                   return ans
+    return $ templateConcrete req ans
 
 
 
@@ -59,7 +59,7 @@ templateCalc template zhite hndl req = do
         hPutStrLn hndl $ "BEGIN: templateCalc, " ++ output req
         res <- liftM simplifyReqs $ fixp bddTrue f req
         hPutStrLn hndl $ "END  : templateCalc, " ++ output res
-        return res
+        return $ simplifyReqs res
     where
         parent = getFuncName req
 
@@ -74,7 +74,7 @@ templateCalc template zhite hndl req = do
         g gen req = do
             let abstract = templateAbstract req
             answer <- gen abstract
-            res <- liftM id $ reducesWithM (g gen) (templateConcrete req answer)
+            res <- liftM simplifyReqs $ reducesWithM (g gen) (templateConcrete req answer)
             return res
 
 {-			

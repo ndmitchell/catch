@@ -5,6 +5,7 @@ import Hite
 import General.General
 import Train.Path
 import Data.Proposition
+import Data.BDD
 import Data.List
 
 
@@ -79,7 +80,7 @@ newReqs hite zexpr path ctors | null ctors = propFalse
 							  | ctors `setEq` baseSet = propTrue
 							  | otherwise = propLit $ newReq hite zexpr path ctors
 	where
-		baseSet = ctorNames $ getCtor hite (headNote "Train.Type.impliesReq" ctors)
+		baseSet = ctorNames $ getCtor hite (headNote "Train.Type.impliesReq here" ctors)
 
 
 -- UTILITIES
@@ -100,7 +101,7 @@ reqsNot x = propNot x
 
 -- SIMPLIFIERS
 
-simplifyReqs = id -- bddSimplify impliesReq -- . bddApplyAnd combineReqsAnd
+simplifyReqs = bddSimplify impliesReq . bddApplyAnd combineReqsAnd
 
 --simplifyScopes = id -- mapBDD f . bddApplyAnd combineScopesAnd
 --	where
@@ -121,7 +122,8 @@ combineReqsAnd (Req hite on1 path1 ctors1) (Req _ on2 path2 ctors2)
 
 impliesReq :: [(Req, Bool)] -> Req -> Maybe Bool
 impliesReq given req@(Req hite on path ctors) = 
-		if poss `subset` ctors then Just True
+        if null ctors then Just False
+		else if poss `subset` ctors then Just True
 		else if ctors `disjoint` poss then Just False
 		else Nothing
 	where

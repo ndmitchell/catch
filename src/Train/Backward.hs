@@ -54,8 +54,8 @@ backward zhite template hndl x = do
             
         simple :: Scope -> IO Scope
         simple (Scope name x) = do
-            x2 <- reducesWithM (templateGet template) x
-            return $ Scope name x2
+            x2 <- reducesWithM (templateGet template) $ simplifyReqs x
+            return $ Scope name $ simplifyReqs x2
             
 {-        
         
