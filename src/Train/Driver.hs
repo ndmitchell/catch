@@ -18,6 +18,11 @@ trainDriver file hndl hite = do
         hFlush hndl
         hndlTemplate <- openFile (logFile "template") WriteMode
         hndlBackward <- openFile (logFile "backward") WriteMode
+        
+        hSetBuffering hndl LineBuffering
+        hSetBuffering hndlTemplate LineBuffering
+        hSetBuffering hndlBackward LineBuffering
+        
         template <- templateInit zhite hndlTemplate
         res <- mapM (f hndlTemplate hndlBackward template) conds
         let ress = propAnds res
