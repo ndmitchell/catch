@@ -37,6 +37,7 @@ data Expr = Call {callFunc :: Expr, callArgs :: [Expr]}
           | Var {varArg :: FuncArg}
           | Sel {expr :: Expr, path :: CtorArg}
           | CallFunc {callName :: FuncName}
+          | Prim {primName :: FuncName, primArgs :: [Expr]}
           | Make {makeName :: CtorName, makeArgs :: [Expr]}
           | Case Expr [(CtorName, Expr)] -- case x of Cons a b, Nil -> Case "x" (Cons, ["a", "b"]), (Nil, [])
           | MCase [MCaseAlt]
@@ -83,6 +84,7 @@ instance PlayExpr Expr where
     mapExpr f x = f $ case x of
         Call a bs -> Call (mapExpr f a) (mapExpr f bs)
         Make a bs -> Make a             (mapExpr f bs)
+        Prim a bs -> Prim a             (mapExpr f bs)
         Case a bs -> Case (mapExpr f a) (map (\(d,e) -> (d,mapExpr f e)) bs)
         Sel  a b  -> Sel  (mapExpr f a) b
         MCase  as -> MCase (mapExpr f as)
@@ -91,6 +93,7 @@ instance PlayExpr Expr where
     allExpr x = x : concatMap allExpr (case x of
             Call x xs -> x : xs
             Make _ xs -> xs
+            Prim _ xs -> xs
             Case x xs -> x : map snd xs
             Sel  x _  -> [x]
             MCase  xs -> concatMap allExpr xs

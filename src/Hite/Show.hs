@@ -44,6 +44,7 @@ instance Output Expr where
 
             f b i (Sel expr arg) = f True i expr ++ "." ++ arg
             f b i (Make name args) = f b i (Call (CallFunc name) args)
+            f b i (Prim name args) = f b i (Call (CallFunc $ "prim!_" ++ name) args)
             f b i (CallFunc name) = name
             f b i (Call (CallFunc name) []) = name
             f b i (Call name args) = brack b $ concat $ intersperse " " $
