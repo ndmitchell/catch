@@ -230,6 +230,14 @@ charCtor :: Char -> CtorName
 charCtor c = "Char_" ++ (if isAlphaNum c then [c] else pad3 (show (ord c)))
     where pad3 x = replicate (3 - length x) '0' ++ x
 
+intCtor :: Int -> CtorName
+intCtor = numCtor "Int"
+
+integerCtor :: Integer -> CtorName
+integerCtor = numCtor "Integer"
+
+numCtor typ i = typ ++ "_" ++ ['M' | i < 0] ++ show (abs i)
+
 
 blankMCase :: Expr -> Expr
 blankMCase x = MCase [MCaseAlt predTrue x]

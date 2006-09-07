@@ -23,9 +23,9 @@ data Ctor = Ctor CtorName [CtorArg] [TyType]
 
 
 myAnswer :: String -> [a] -> a
-myAnswer name [] = error $ "Could not find " ++ name
+myAnswer name [] = error $ "Hite.DataType Could not find " ++ name
 myAnswer name [x] = x
-myAnswer name xs = error $ "Repetition of " ++ name
+myAnswer name xs = error $ "Hite.DataType Repetition of " ++ name
 
 
 -- THE QUERY MECHANISMS

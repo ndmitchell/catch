@@ -157,9 +157,9 @@ length _ = catch_any
 (x:xs) ++ ys      = x : (xs ++ ys)
 
 take :: Int -> [a] -> [a]
-take n _  | n <= zero_int  = []
+take n _  | n <= Int_0  = []
 take _ []           = []
-take n (x:xs)       = x : take (n-one_int) xs
+take n (x:xs)       = x : take (n-Int_1) xs
 
 
 takeWhile           :: (a -> Bool) -> [a] -> [a]
@@ -219,13 +219,14 @@ not False = True
 --
 -- everything to do with characters
 
-data Preamble_Char = Char_000 | Char_001 | Char_002 | Char_003 | Char_004 | Char_005 | Char_006 | Char_007 | Char_008 | Char_009
-          | Char_010 | Char_011 | Char_012 | Char_013 | Char_014 | Char_015 | Char_016 | Char_017 | Char_018 | Char_019 | Char_020 | Char_021 | Char_022 | Char_023 | Char_024 | Char_025 | Char_026 | Char_027 | Char_028 | Char_029 | Char_030 | Char_031 | Char_032 | Char_033 | Char_034 | Char_035 | Char_036 | Char_037 | Char_038 | Char_039 | Char_040 | Char_041 | Char_042 | Char_043 | Char_044 | Char_045 | Char_046 | Char_047 | Char_058 | Char_059 | Char_060 | Char_061 | Char_062 | Char_063 | Char_064 | Char_091 | Char_092 | Char_093 | Char_094 | Char_095 | Char_096
-          | Char_123 | Char_124 | Char_125 | Char_126 | Char_127 | Char_128 | Char_129 | Char_130 | Char_131 | Char_132 | Char_133 | Char_134 | Char_135 | Char_136 | Char_137 | Char_138 | Char_139 | Char_140 | Char_141 | Char_142 | Char_143 | Char_144 | Char_145 | Char_146 | Char_147 | Char_148 | Char_149 | Char_150 | Char_151 | Char_152 | Char_153 | Char_154 | Char_155 | Char_156 | Char_157 | Char_158 | Char_159 | Char_160 | Char_161 | Char_162 | Char_163 | Char_164 | Char_165 | Char_166 | Char_167 | Char_168 | Char_169 | Char_170 | Char_171 | Char_172 | Char_173 | Char_174 | Char_175 | Char_176 | Char_177 | Char_178 | Char_179 | Char_180 | Char_181 | Char_182 | Char_183 | Char_184 | Char_185 | Char_186 | Char_187 | Char_188 | Char_189 | Char_190 | Char_191 | Char_192 | Char_193 | Char_194 | Char_195 | Char_196 | Char_197 | Char_198 | Char_199 | Char_200 | Char_201 | Char_202 | Char_203 | Char_204 | Char_205 | Char_206 | Char_207 | Char_208 | Char_209 | Char_210 | Char_211 | Char_212 | Char_213 | Char_214 | Char_215 | Char_216 | Char_217 | Char_218 | Char_219 | Char_220 | Char_221 | Char_222 | Char_223 | Char_224 | Char_225 | Char_226 | Char_227 | Char_228 | Char_229 | Char_230 | Char_231 | Char_232 | Char_233 | Char_234 | Char_235 | Char_236 | Char_237 | Char_238 | Char_239 | Char_240 | Char_241 | Char_242 | Char_243 | Char_244 | Char_245 | Char_246 | Char_247 | Char_248 | Char_249 | Char_250 | Char_251 | Char_252 | Char_253 | Char_254 | Char_255
-          | Char_0 | Char_1 | Char_2 | Char_3 | Char_4 | Char_5 | Char_6 | Char_7 | Char_8 | Char_9
-          | Char_a | Char_b | Char_c | Char_d | Char_e | Char_f | Char_g | Char_h | Char_i | Char_j | Char_k | Char_l | Char_m | Char_n | Char_o | Char_p | Char_q | Char_r | Char_s | Char_t | Char_u | Char_v | Char_w | Char_x | Char_y | Char_z
-          | Char_A | Char_B | Char_C | Char_D | Char_E | Char_F | Char_G | Char_H | Char_I | Char_J | Char_K | Char_L | Char_M | Char_N | Char_O | Char_P | Char_Q | Char_R | Char_S | Char_T | Char_U | Char_V | Char_W | Char_X | Char_Y | Char_Z
-          deriving (Prelude.Eq, Prelude.Ord)
+data Preamble_Char = Char
+
+
+instance Prelude.Eq Preamble_Char where
+    _ == _ = catch_any
+
+instance Prelude.Ord Preamble_Char where
+    compare _ _ = catch_any
 
 
 ---------------------------------------------------------------------
@@ -238,7 +239,7 @@ showChar      = (:)
 
 showString    = (++)
 
-shows         = showsPrec zero_int
+shows         = showsPrec Int_0
 
 type ShowS   = String -> String
 
@@ -249,14 +250,14 @@ class Preamble_Show a where
     showsType :: a -> ShowS -- Yhc extra method!
 
     -- Minimal complete definition: show or showsPrec
-    show x          = showsPrec zero_int x (ignore "")
+    show x          = showsPrec Int_0 x (ignore "")
     showsPrec _ x s = show x ++ s
     showList []     = showString (ignore "[]")
     showList (x:xs) = showChar (ignore '[') . shows x . showl xs
         where
             showl []     = showChar (ignore ']')
             showl (x:xs) = showChar (ignore ',') . shows x . showl xs
-	showsType x = showString ""
+    showsType x = showString ""
 
 instance Preamble_Show Int where
     show x = catch_any
@@ -318,19 +319,16 @@ class (Preamble_Eq a, Preamble_Show a) => Preamble_Num a where
     -- Minimal complete definition: All, except negate or (-)
     x - y           = x + negate y
     fromInt         = fromIntegral
-    negate x        = zero_int - x
+    negate x        = fromInt Int_0 - x
 
 
 toInteger x = catch_any
 
 fromIntegral = fromInteger . toInteger
 
-data Int = Int
+data Int = Int | Int_0 | Int_1
 
-zero_int = catch_any
-one_int = catch_any
-
-data Integer = Integer
+data Integer = Integer | Integer_0 | Integer_1
 
 instance Preamble_Eq Int where
     a == b = catch_any
@@ -379,8 +377,8 @@ class Preamble_Enum a where
     enumFromThenTo       :: a -> a -> a -> [a]    -- [n,n'..m]
 
     -- Minimal complete definition: toEnum, fromEnum
-    succ                  = toEnum . (+one_int)       . fromEnum
-    pred                  = toEnum . subtract one_int . fromEnum
+    succ                  = toEnum . (+Int_1)       . fromEnum
+    pred                  = toEnum . subtract Int_1 . fromEnum
     enumFrom x            = catch_any -- map toEnum [ fromEnum x ..]
     enumFromTo x y        = catch_any -- map toEnum [ fromEnum x .. fromEnum y ]
     enumFromThen x y      = catch_any -- map toEnum [ fromEnum x, fromEnum y ..]

@@ -67,8 +67,10 @@ make x = do ensureDirectory "Cache"
         rdHite src = readCacheHite src >>= return . MdHite
         wrHite src (MdHite val) = writeCacheHite val src
         
-        crHite deps get = return $ MdHite $ reachable "" $ Hite (concatMap datas res) (concatMap insertMain $ concatMap funcs res)
-            where res = map (\x -> fromMdHite $ get $ "Cache/" ++ x ++ ".part") deps
+        crHite deps get = return $ MdHite $ reachable "" $ Hite ds (concatMap insertMain fs)
+            where
+                res = map (\x -> fromMdHite $ get $ "Cache/" ++ x ++ ".part") deps
+                Hite ds fs = mergeHites res
             
         rdCore src = readFile src >>= return . MdCore . readCore
         wrCore src (MdCore val) = writeFile src (show val)
