@@ -18,6 +18,7 @@ data IFunc = Func {funcName :: FuncName, funcArgs :: [Int], funcExpr :: IExpr, f
 
 data IExpr = Var Int
 		   | Make CtorName [IExpr]
+           | Prim FuncName [IExpr]
 		   | Call FuncName [IExpr]
 		   | Case IExpr [(CtorName, IExpr)]
 		   | Lambda [Int] IExpr
@@ -64,26 +65,28 @@ joinTweaks (x:xs) a b =
 
 
 instance Manipulate IExpr where
-	getChildren x = case x of
-		Make _ xs -> xs
-		Call _ xs -> xs
-		Case x xs -> x : map snd xs
-		Lambda _ x -> [x]
-		Apply x xs -> x : xs
-		Sel x _ -> [x]
-		_ -> []
+    getChildren x = case x of
+        Make _ xs -> xs
+        Prim _ xs -> xs
+        Call _ xs -> xs
+        Case x xs -> x : map snd xs
+        Lambda _ x -> [x]
+        Apply x xs -> x : xs
+        Sel x _ -> [x]
+        _ -> []
 
-	setChildren x ys = case x of
-		Make x _ -> Make x ys
-		Call x _ -> Call x ys
-		Case _ xs -> Case yh $ zip (map fst xs) yt
-		Lambda x _ -> Lambda x y1
-		Apply _ _ -> Apply yh yt
-		Sel _ x -> Sel y1 x
-		x -> x
-		where
-			(yh:yt) = ys
-			[y1] = ys
+    setChildren x ys = case x of
+        Make x _ -> Make x ys
+        Call x _ -> Call x ys
+        Prim x _ -> Prim x ys
+        Case _ xs -> Case yh $ zip (map fst xs) yt
+        Lambda x _ -> Lambda x y1
+        Apply _ _ -> Apply yh yt
+        Sel _ x -> Sel y1 x
+        x -> x
+        where
+            (yh:yt) = ys
+            [y1] = ys
 	
 
 
