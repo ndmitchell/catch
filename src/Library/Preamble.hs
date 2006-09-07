@@ -41,17 +41,18 @@ _id x = x
 -- treated specially by the checker
 catch_any = catch_any
 ignore x = catch_any
+prim = catch_any
 
 
 prim_STRING x = x
 
 prim_int = catch_any
-prim_EQ_W a b = catch_any
-prim_GT_W a b = catch_any
-prim_ORD a b = catch_any
-prim_ADD_W a b = catch_any
-prim_LE_W a b = catch_any
-prim_LT_W a b = catch_any
+prim_EQ_W a b = prim
+prim_GT_W a b = prim
+prim_ORD a b = prim
+prim_ADD_W a b = prim
+prim_LE_W a b = prim
+prim_LT_W a b = prim
 
 
 data Tup0 = Tup0
@@ -419,9 +420,9 @@ instance Preamble_Monad IO where
     OI a >> b = b
 
 
-getContents = OI catch_any
+getContents = prim
 
-putChar x = OI ()
+putChar x = prim
 
 putStr []     = OI ()
 putStr (x:xs) = putChar x >> putStr xs
