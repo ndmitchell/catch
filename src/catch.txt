@@ -12,7 +12,7 @@ version Show version information
 trans
 	short-name
 	reachable
-	primitive
+	add-primitive
 	case-expand
 	error-call
 	reachable
@@ -20,6 +20,7 @@ trans
 	transform
 	reachable
 	ctor-collapse
+	del-primitive
 	reachable
 	mcase
 
