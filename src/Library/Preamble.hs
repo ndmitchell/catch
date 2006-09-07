@@ -45,7 +45,6 @@ ignore x = catch_any
 
 prim_STRING x = x
 
-prim_str = catch_any
 prim_int = catch_any
 prim_EQ_W a b = catch_any
 prim_GT_W a b = catch_any
