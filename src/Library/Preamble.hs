@@ -224,10 +224,10 @@ data Preamble_Char = Char
 
 
 instance Prelude.Eq Preamble_Char where
-    _ == _ = catch_any
+    _ == _ = prim
 
 instance Prelude.Ord Preamble_Char where
-    compare _ _ = catch_any
+    compare _ _ = prim
 
 
 ---------------------------------------------------------------------
