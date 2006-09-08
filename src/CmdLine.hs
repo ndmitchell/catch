@@ -64,7 +64,7 @@ terminals = [("safe-patterns",term "safe-patterns" caseCheck),
              ("typeyho-patterns",term "typeyho-patterns" typeyHoCaseCheck),
              ("abstract-patterns", term "abstract-patterns" abstractCaseCheck),
              ("train-patterns", term "train-patterns" trainDriver),
-             ("compile", term "backend" backend)
+             ("backend", term "backend" backend)
              {- ,
              ("statistics", \a b -> statistics) -} ]
 
