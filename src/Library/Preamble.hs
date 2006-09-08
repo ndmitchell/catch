@@ -53,6 +53,7 @@ prim_ORD a = prim
 prim_ADD_W a b = prim
 prim_LE_W a b = prim
 prim_LT_W a b = prim
+prim_SUB_W a b = prim
 
 
 data Tup0 = Tup0
@@ -197,6 +198,14 @@ repeat x          = x : repeat x
 last [x] = x
 last (x:xs) = last xs
 
+lines     :: String -> [String]
+lines [] = []
+lines ('\n':xs) = [] : lines xs
+lines [x] = [[x]]
+lines (x:xs) = (x:a) : b
+    where (a:b) = lines xs
+
+
 ---------------------------------------------------------------------
 -- Prelude.Bool
 --
@@ -228,6 +237,10 @@ instance Prelude.Eq Preamble_Char where
 
 instance Prelude.Ord Preamble_Char where
     compare _ _ = prim
+
+instance Prelude.Enum Preamble_Char where
+    toEnum _ = prim
+    fromEnum _ = prim
 
 
 ---------------------------------------------------------------------
@@ -323,13 +336,13 @@ class (Preamble_Eq a, Preamble_Show a) => Preamble_Num a where
     negate x        = fromInt Int_0 - x
 
 
-toInteger x = catch_any
-
 fromIntegral = fromInteger . toInteger
 
 data Int = Int | Int_0 | Int_1
 
 data Integer = Integer | Integer_0 | Integer_1
+
+data Rational = Rational
 
 instance Preamble_Eq Int where
     a == b = catch_any
@@ -364,6 +377,40 @@ subtract        = flip (-)
 
 
 
+class (Preamble_Num a, Preamble_Ord a) => Preamble_Real a where
+    toRational     :: a -> Rational
+
+class (Preamble_Real a, Preamble_Enum a) => Preamble_Integral a where
+    quot, rem, div, mod :: a -> a -> a
+    quotRem, divMod     :: a -> a -> (a,a)
+    toInteger           :: a -> Integer
+    toInt               :: a -> Int
+
+    -- Minimal complete definition: quotRem and toInteger
+    n `quot` d           = q where (q,r) = quotRem n d
+    n `rem` d            = r where (q,r) = quotRem n d
+    n `div` d            = q where (q,r) = divMod n d
+    n `mod` d            = r where (q,r) = divMod n d
+    divMod n d           = prim {- if signum r == Int_0 - signum d then (q-Int_0, r+d) else qr
+               where qr@(q,r) = quotRem n d -}
+    toInt                = toInt . toInteger
+
+instance Preamble_Integral Integer where
+    toInteger x = x
+    quotRem x = prim
+
+instance Preamble_Real Integer where
+    toRational x = prim
+
+
+instance Preamble_Integral Int where
+    toInteger x = prim
+    quotRem x = prim
+
+instance Preamble_Real Int where
+    toRational x = prim
+
+
 ---------------------------------------------------------------------
 -- Prelude.Enum
 --
@@ -389,6 +436,10 @@ class Preamble_Enum a where
 instance Preamble_Enum Int where
     toEnum x = x
     fromEnum x = x
+
+instance Preamble_Enum Integer where
+    toEnum x = prim
+    fromEnum x = prim
 
 
 _fromEnum x = catch_any
