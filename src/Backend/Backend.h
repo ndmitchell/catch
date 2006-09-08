@@ -1,0 +1,6 @@
+
+
+int* allocate(int n)
+{
+}
+
