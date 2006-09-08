@@ -38,9 +38,9 @@ reachableList names hite@(Hite datas funcs) = Hite aliveDatas aliveFuncs
         aliveDatas = concatMap h datas
         
         h (Data x xs t) = if null xs2 then []
-                          else if x == "%Ap" then [Data x xs2 t]
-                          else if length xs - length xs2 <= 1 then [Data x xs t]
-                          else [Data x (Ctor (x ++ "_?") [] [] : xs2) []]
+                          else {- if x == "%Ap" then [Data x xs2 t]
+                          else if length xs - length xs2 <= 1 then -} [Data x xs t] {-
+                          else [Data x (Ctor (x ++ "_?") [] [] : xs2) []] -}
             where xs2 = filter (\y -> ctorNameRaw y `elem` aliveCtorNames) xs
         
         f x = [y | CallFunc y <- allExpr $ body $ getFunc hite x]
