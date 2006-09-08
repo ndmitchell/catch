@@ -1,14 +1,22 @@
 
-module Hite.Transform(cmd) where
+module Hite.Transform(cmd1,cmd2) where
 
 import Hite.Type
 import Hite.Normalise
 import Transform.All
 
 
-cmd = cmdHitePure (const trans) "transform"
+cmd1 = cmdHitePure (const trans) "transform"
             "Do the new transformations"
+
+cmd2 = cmdHitePure (const trans2) "transform2"
+            "Do the new transformations (2)"
 
 
 trans :: Hite -> Hite
 trans hite = transform $ normalise hite
+
+
+trans2 :: Hite -> Hite
+trans2 hite = transform2 $ normalise hite
+

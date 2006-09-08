@@ -1,5 +1,5 @@
 
-module Transform.Driver(applyTransform) where
+module Transform.Driver(applyTransform, applyExprTweak, fixMay, (<*>)) where
 
 import Transform.Type
 import Transform.Rewrite

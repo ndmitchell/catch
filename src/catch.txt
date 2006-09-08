@@ -20,6 +20,17 @@ compilepre
 	transform
 	reachable
 
+trans2
+	short-name
+	reachable
+	add-primitive
+	case-expand
+	error-call
+	reachable
+	string-expand
+	transform2
+	reachable
+
 compile
 	compilepre
 	backend
