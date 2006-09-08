@@ -93,6 +93,17 @@ int* alloc2(int typ, int x, int* arg0, int* arg1)
 	return res;
 }
 
+int* alloc3(int typ, int x, int* arg0, int* arg1, int* arg2)
+{
+	int* res = malloc(sizeof(int) * 5);
+	res[0] = typ;
+	res[1] = x;
+	res[2] = (int) arg0;
+	res[3] = (int) arg1;
+	res[4] = (int) arg2;
+	return res;
+}
+
 
 int* allocCtor0(int ctor)
 {
@@ -124,6 +135,11 @@ int* allocCall2(func call, int* arg0, int* arg1)
 	return alloc2(Func, call, arg0, arg1);
 }
 
+int* allocCall3(func call, int* arg0, int* arg1, int* arg2)
+{
+	return alloc3(Func, call, arg0, arg1, arg2);
+}
+
 int* follow(int n)
 {
 	int* var = (int*) (stack_top()[2]);
@@ -153,4 +169,26 @@ int* func_prim_95putChar()
 	int* vars = stack_top();
 	putchar(eval( (int*) vars[2] ));
 	return allocCtor1(ctor_OI, allocCtor0(ctor_Tup0));
+}
+
+int* func_prim_95prim_95ORD()
+{
+    int* vars = stack_top();
+    return allocCtor0(eval((int*) vars[2]));
+}
+
+int* func_prim_95prim_95EQ_95W()
+{
+    int* vars = stack_top();
+    int a = eval((int*) vars[2]);
+    int b = eval((int*) vars[3]);
+    return allocCtor0(a == b ? ctor_True : ctor_False);
+}
+
+int* func_prim_95Ord_46Char_46compare()
+{
+    int* vars = stack_top();
+    int a = eval((int*) vars[2]);
+    int b = eval((int*) vars[3]);
+    return allocCtor0(a == b ? ctor_EQ : (a > b ? ctor_GT : ctor_LT));
 }
