@@ -6,15 +6,15 @@ import Transform.Type as L
 import General.General
 
 decode :: IHite -> Hite
-decode (IHite datas funcs) = Hite datas (map deFunc funcs)
+decode ihite@(IHite datas funcs) = Hite datas (map (deFunc ihite) funcs)
 
 
-deFunc :: IFunc -> Func
-deFunc (L.Func name args body _) = R.Func name (map deVar args) (deExpr body) ""
+deFunc :: IHite -> IFunc -> Func
+deFunc ihite (L.Func name args body _) = R.Func name (map deVar args) (deExpr ihite body) ""
 
 
-deExpr :: IExpr -> Expr
-deExpr x = case x of
+deExpr :: IHite -> IExpr -> Expr
+deExpr ihite x = case x of
         L.Make x xs -> R.Make x (fs xs)
         L.Prim x xs -> R.Prim x (fs xs)
         L.Var x -> R.Var $ deVar x
@@ -23,9 +23,9 @@ deExpr x = case x of
         L.Call x xs -> R.Call (R.CallFunc x) (fs xs)
         L.Error x -> R.Error x
         L.Unknown -> R.Unknown
-        _ -> error $ "Transform.Decode.deExpr: " ++ show x
+        _ -> error $ "Transform.Decode.deExpr: " ++ show x ++ "\n\n" ++ output ihite
     where
-        f = deExpr
+        f = deExpr ihite
         fs = map f
 
 
