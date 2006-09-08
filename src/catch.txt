@@ -9,6 +9,22 @@ help Show this help list
 verbose Show the Hite at each step
 version Show version information
 
+compilepre
+	short-name
+	reachable
+	add-primitive
+	case-expand
+	error-call
+	reachable
+	string-expand
+	transform
+	reachable
+
+compile
+	compilepre
+	backend
+
+
 trans
 	short-name
 	reachable

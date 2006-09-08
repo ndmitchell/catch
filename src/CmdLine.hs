@@ -28,6 +28,7 @@ import Graph.CaseCheck
 import Subst.CaseCheck
 import Typey.CaseCheck
 import Train.Driver
+import Backend.Backend
 
 
 import General.Commands
@@ -62,7 +63,8 @@ terminals = [("safe-patterns",term "safe-patterns" caseCheck),
              ("typey-patterns",term "typey-patterns" typeyCaseCheck),
              ("typeyho-patterns",term "typeyho-patterns" typeyHoCaseCheck),
              ("abstract-patterns", term "abstract-patterns" abstractCaseCheck),
-             ("train-patterns", term "train-patterns" trainDriver)
+             ("train-patterns", term "train-patterns" trainDriver),
+             ("compile", term "backend" backend)
              {- ,
              ("statistics", \a b -> statistics) -} ]
 
