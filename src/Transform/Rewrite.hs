@@ -162,6 +162,17 @@ defuncExpr ihite (Call name xs) | any (isJust . testHO) xs
 				lfree = take (length args) $ filter (`notElem` thisargs) [1..]
 				thisargs = take (length real) newargs
 				(real,fake) = splitAt (length xs - length args) xs
+
+		-- defunc function calls, where the parameters are at the front (getting hacky..)
+		testHO (Lambda args (Call nam xs))
+				| concatMap collectFree real `disjoint` args && fake == map Var args
+				= Just (thisargs,[nam,"R",show $ length real],real,
+						Lambda lfree (Call nam (map Var (lfree++thisargs))))
+			where
+				lfree = take (length args) $ filter (`notElem` thisargs) [1..]
+				thisargs = take (length real) newargs
+				(fake,real) = splitAt (length args) xs
+
 		
 		-- an icky special case for id
 		testHO (Lambda [i] (Var j)) | i == j
