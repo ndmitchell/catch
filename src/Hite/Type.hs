@@ -242,6 +242,12 @@ integerCtor = numCtor "Integer"
 numCtor typ i = typ ++ "_" ++ ['M' | i < 0] ++ show (abs i)
 
 
+fromCharCtor :: CtorName -> Char
+fromCharCtor ('C':'h':'a':'r':'_':xs) = case xs of
+    [x] -> x
+    xs -> chr (read xs)
+
+
 blankMCase :: Expr -> Expr
 blankMCase x = MCase [MCaseAlt predTrue x]
 
