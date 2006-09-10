@@ -104,6 +104,11 @@ fst (a,b) = a
 snd (a,b) = b
 id x = x
 
+seq :: a -> b -> b
+seq a b = prim
+
+($!) f x = x `seq` f x
+
 ---------------------------------------------------------------------
 -- Prelude.List
 --
@@ -149,10 +154,20 @@ _foldr f ((:) x xs) d = f x (_foldr f xs d)
 foldr1 f [x]      = x
 foldr1 f (x:xs)   = f x (foldr1 f xs)
 
+length :: [a] -> Int
+length x = prim
+
+foldl            :: (a -> b -> a) -> a -> [b] -> a
+foldl f z []      = z
+foldl f z (x:xs)  = foldl f (f z x) xs
+
+foldl'           :: (a -> b -> a) -> a -> [b] -> a
+foldl' f a []     = a
+foldl' f a (x:xs) = (foldl' f $! f a x) xs
+
+
 null [] = True
 null _ = False
-
-length _ = catch_any
 
 []     ++ ys      = ys
 (x:xs) ++ ys      = x : (xs ++ ys)
@@ -344,16 +359,16 @@ data Integer = Integer | Integer_0 | Integer_1
 data Rational = Rational
 
 instance Preamble_Eq Int where
-    a == b = catch_any
+    a == b = prim
 
 instance Preamble_Ord Int where
-    compare a b = catch_any
+    compare a b = prim
 
 instance Preamble_Num Int where
-    (+) a b = catch_any
-    (-) a b = catch_any
-    (*) a b = catch_any
-    abs a = catch_any
+    (+) a b = prim
+    (-) a b = prim
+    (*) a b = prim
+    abs a = prim
     fromInteger x = catch_any
     signum a = catch_any
 
