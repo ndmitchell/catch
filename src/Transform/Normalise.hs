@@ -20,7 +20,7 @@ normaliseIFunc (Func name args body tweaks) =
 normaliseIExpr :: Int -> [(Int,Int)] -> IExpr -> IExpr
 normaliseIExpr free rep x =
 	case x of
-		Var i -> Var $ lookupJust i rep
+		Var i -> Var $ lookupNote ("Transform.Normalise " ++ show (free,rep,x)) i rep
 		Lambda is x -> Lambda newis $ normaliseIExpr newfree (zip is newis ++ rep) x
 			where
 				newis = [free..newfree-1]
