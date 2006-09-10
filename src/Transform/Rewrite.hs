@@ -59,9 +59,10 @@ basicExpr ihite (Lambda [] x) = Just x
 basicExpr ihite (Call "_" []) = Just Unknown
 
 -- (Cons a b).head ==> a
-basicExpr ihite orig@(Sel (Make name args) arg) =
-		assertNote ("Transform.Rewrite.basicExpr " ++ output orig) (ctorName x == name) $
-		Just $ args !! cargPos x
+-- Nil.head ==> (no change) - may be in a redundant branch
+basicExpr ihite orig@(Sel (Make name args) arg)
+        | ctorName x == name
+        = Just $ args !! cargPos x
 	where x = getCArg ihite arg
 
 -- case Nil of {Nil -> a; Cons -> b} ==> a
