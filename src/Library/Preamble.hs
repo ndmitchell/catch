@@ -46,7 +46,6 @@ prim = catch_any
 
 prim_STRING x = x
 
-prim_int = catch_any
 prim_EQ_W a b = prim
 prim_GT_W a b = prim
 prim_ORD a = prim
