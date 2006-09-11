@@ -60,17 +60,10 @@ make2 x = do
         coreItems :: FilePath -> IO [CoreItem]
         coreItems corefile = do
             src <- readFile corefile
-            let (h:t) = lines src
-                modname = takeWhile (/= '\"') $ tail $ dropWhile (/= '\"') h
-            return $ map (g (modname++".")) $ concatMap f $ t
+            return $ concatMap f $ tail $ lines src
             where
                 f "]" = []
                 f x = [readNote "coreItems" $ tail $ dropWhile isSpace x]
-                
-                g modname (CoreData nam x y) =
-                    CoreData (modname++nam) x [CoreCtor (modname++a) b | CoreCtor a b <- y]
-                g modname (CoreFunc (CoreApp (CoreVar x) xs) y) =
-                    CoreFunc (CoreApp (CoreVar (modname++x)) xs) y
         
         
         ensureData (corefile,cache) = do
