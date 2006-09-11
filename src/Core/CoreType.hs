@@ -1,4 +1,3 @@
--- FROM YHC DIRECTLY, UNMODIFIED
 
 module Core.CoreType where
 
@@ -9,7 +8,7 @@ module Core.CoreType where
 
 -- module name, imports, items in the module
 data Core = Core String [String] [CoreItem]
-            deriving (Show, Read)
+            deriving (Show, Read, Eq)
 
 
 data CoreItem = CoreFunc CoreExpr CoreExpr
@@ -25,11 +24,14 @@ data CoreCtor = CoreCtor String [(String, Maybe String)]
 data CoreExpr = CoreCon String
               | CoreVar String
               | CoreApp CoreExpr [CoreExpr]
+              | CoreCase CoreExpr [(CoreExpr,CoreExpr)]
+              | CoreLet [CoreItem] CoreExpr
+              | CorePos String CoreExpr
+              
               | CoreInt Int
               | CoreInteger Integer
               | CoreChr Char
               | CoreStr String
-              | CoreCase CoreExpr [(CoreExpr,CoreExpr)]
-              | CoreLet [CoreItem] CoreExpr
-              | CorePos String CoreExpr
+              | CoreFloat Float
+              | CoreDouble Double
                 deriving (Show, Read, Eq)
