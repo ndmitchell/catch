@@ -34,6 +34,7 @@ make2 x = do
             datas <- mapM ensureData deps
             let dat = injectData $ mergeHite datas
             codes <- mapM (ensureCode dat) deps
+            putStrLn $ "Creating " ++ newcache
             let hite = reachable "" $ injectCode $ insertMain $ mergeHite (dat:codes)
             writeCacheHite hite (cache ++ ".hite")
             return hite
