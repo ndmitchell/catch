@@ -151,6 +151,7 @@ convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) =
     where
         newargs = [x | CoreVar x <- args]
         (res, rest) = case () of
+            _ | name == "Prelude.error" -> (Prim "error" (map Var newargs), [])
             _ | name == repeatName -> (repeatBody $ head newargs, [])
             _ | name == cycleName -> (cycleBody $ head newargs, [])
             _ | name `elem` ["Numeric.fromRat'","PreludeAux._floatFromRational","PreludeAux._doubleFromRational"]
