@@ -21,6 +21,7 @@ import Time
 import IO
 
 import Make
+import Make2
 
 import Checker.CaseCheck
 import Checker.Statistics
@@ -277,7 +278,7 @@ splitWidth norig xs = f norig [] (words xs)
 
 runArgs :: String -> [Arg] -> IO Bool
 runArgs file acts = do -- hs <- pickFile file
-                       hite <- make file
+                       hite <- make2 file
                        f file hite acts
     where
         f hs hite (Single param (Command act _ _) : acts) =
