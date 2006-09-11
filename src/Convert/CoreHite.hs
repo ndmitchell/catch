@@ -142,19 +142,24 @@ cycleBody x = Call (CallFunc "Prelude.++") [Var x, Call (CallFunc cycleName) [Va
 
 convFunc :: [Data] -> CoreItem -> [Func]
 convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) = 
-        Func name newargs res pos : rest
+        map g $ Func name newargs res pos : rest
     where
         newargs = [x | CoreVar x <- args]
         (res, rest) = case () of
             _ | name == repeatName -> (repeatBody $ head newargs, [])
             _ | name == cycleName -> (cycleBody $ head newargs, [])
             _ | name `elem` ["Numeric.fromRat'","PreludeAux._floatFromRational","PreludeAux._doubleFromRational"]
-                -> (Call (CallFunc "primitive") [], [])
+                -> (Prim name (map Var newargs), [])
             _ -> f [] (map asVar args) body
             
         asVar (CoreVar x) = (x, Var x)
         
         pos = name ++ ", " ++ getPosStr body
+        
+        
+        g :: Func -> Func
+        g (Func name args (Call (CallFunc "primitive") []) res) = Func name args (Prim name (map Var args)) res
+        g x = x
         
     
         f :: [Int] -> [(String, Expr)] -> CoreExpr -> (Expr, [Func])
