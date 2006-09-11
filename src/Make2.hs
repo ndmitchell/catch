@@ -176,7 +176,7 @@ getDeps x = do
     let (h:t) = lines src
     let sec = dropWhile (/= '[') h
         sec2 = if null t then take (length sec - 3) sec else sec
-    return $ readNote "getDeps" sec2
+    return $ "YHC.Internal" : readNote "getDeps" sec2
 
 
 -- from a module, find the FilePath
