@@ -1,5 +1,5 @@
 
-module Convert.CoreHite(coreHite, mergeHites) where
+module Convert.CoreHite(coreHite, mergeHites, coreDatas, coreFuncs) where
 
 import Core
 import Hite
@@ -20,6 +20,14 @@ coreHite (Core n d xs) = Hite newData (concatMap (convFunc newData) funcs)
     where
         (datas, funcs) = partition isCoreData xs
         newData = map convData datas
+
+
+coreDatas :: [CoreItem] -> Hite
+coreDatas xs = Hite (map convData xs) []
+
+
+coreFuncs :: Hite -> [CoreItem] -> Hite
+coreFuncs hite xs = Hite [] (concatMap (convFunc (datas hite)) xs)
 
 
 -- for things like Char and Int, new ctor's may be introduced not in the code
@@ -138,6 +146,8 @@ convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) =
         f path vars (CoreCon x) = (Make x [], [])
         f path vars (CoreInt x) = (Make (intCtor x) [], [])
         f path vars (CoreInteger x) = (Make (integerCtor x) [], [])
+        f path vars (CoreDouble x) = (Make (doubleCtor x) [], [])
+        f path vars (CoreFloat x) = (Make (floatCtor x) [], [])
         f path vars (CoreChr x) = (Make (charCtor x) [], [])
         f path vars (CoreStr x) = (Msg x, [])
         
@@ -191,6 +201,7 @@ convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) =
                 dealMatch :: CoreExpr -> (CtorName, [(String, Expr)])
                 dealMatch (CoreVar "_") = ("_", [])
                 dealMatch (CoreChr c  ) = (charCtor c, [])
+                dealMatch (CoreInt c  ) = (intCtor c, [])
                 dealMatch (CoreCon con) = dealMatch (CoreApp (CoreCon con) [])
                 dealMatch (CoreApp (CoreCon con) args) = 
                         if con == "Char_O" then error $ show (CoreApp (CoreCon con) args)
