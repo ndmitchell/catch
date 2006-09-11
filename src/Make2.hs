@@ -56,16 +56,6 @@ make2 x = do
                 m1 <- getModificationTime cache
                 return $ m1 < m0
         
-        
-        coreItems :: FilePath -> IO [CoreItem]
-        coreItems corefile = do
-            src <- readFile corefile
-            return $ concatMap f $ tail $ lines src
-            where
-                f "]" = []
-                f x = [readNote "coreItems" $ tail $ dropWhile isSpace x]
-        
-        
         ensureData (corefile,cache) = do
             let newcache = cache ++ ".data"
             b <- testDirty corefile newcache
@@ -150,6 +140,17 @@ make2 x = do
         
 
 -}
+
+coreItems :: FilePath -> IO [CoreItem]
+coreItems corefile = do
+    src <- readFile corefile
+    return $ concatMap f $ tail $ lines src
+    where
+        f "]" = []
+        f x = [readNote "coreItems" $ tail $ dropWhile isSpace x]
+
+
+
 
 
 -- (core-location, cache-location)
