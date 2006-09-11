@@ -104,9 +104,12 @@ make2 x = do
         
         injectCode (Hite a b) = Hite a (special++b)
             where
-                special = [Func "prim_SEQ" ["v1"] (Prim "prim_SEQ" [Var "v1"]) "<internal>"
-                          ,Func "prim_ORD" ["v1"] (Prim "prim_ORD" [Var "v1"]) "<internal>"
-                          ]
+                primOne = ["prim_SEQ","prim_ORD"]
+                primTwo = ["prim_EQ_W","prim_GT_W","prim_ADD_W","prim_LE_W","prim_LT_W",
+                           "prim_SUB_W","prim_GE_W","prim_NE_W","prim_MUL_W"]
+
+                special = [Func f1 ["v1"] (Prim f1 [Var "v1"]) "<internal>" | f1 <- primOne] ++
+                          [Func f2 ["v1","v2"] (Prim f2 [Var "v1",Var "v2"]) "<internal>" | f2 <- primTwo]
         
         {-
         
