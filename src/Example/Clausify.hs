@@ -34,7 +34,7 @@ David
 -- an excellent benchmark is: (a = a = a) = (a = a = a) = (a = a = a)
 -- batch mode version David Wakeling, February 1992
 
-module Main(main) where
+module Clausify(main) where
 
 -- import Ix -- 1.3
 -- import System

@@ -7,11 +7,9 @@
 -- * NEIL MODIFICATION
 -- import List (transpose) 
 
-transpose       :: [[a]] -> [[a]]
-transpose []         = []
-transpose ([]   : xss)   = transpose xss
-transpose ((x:xs) : xss) = (x : [h | (h:t) <- xss]) : transpose (xs : [ t | (h:t) <- xss])
+module Soda(main) where
 
+import Data.List(transpose)
 
 
 main = mapM (putStr.find) hidden
