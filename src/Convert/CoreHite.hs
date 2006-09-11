@@ -145,6 +145,15 @@ cycleBody :: String -> Expr
 cycleBody x = Call (CallFunc "Prelude.++") [Var x, Call (CallFunc cycleName) [Var x]]
 
 
+primitives =
+    -- ones which have mutually recursive let's
+    ["Numeric.fromRat'","PreludeAux._floatFromRational","PreludeAux._doubleFromRational"] ++
+    -- ones which have a too concrete implementation
+    ["System.IO.hGetContents","System.IO.stdin","System.IO.stdout","System.IO.stderr"
+    ,"YHC.Internal.unsafePerformIO","System.IO.throwIOError","System.IO.hPutChar"]
+            
+
+
 convFunc :: [Data] -> CoreItem -> [Func]
 convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) = 
         map g $ Func name newargs res pos : rest
@@ -154,7 +163,7 @@ convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) =
             _ | name == "Prelude.error" -> (Prim "error" (map Var newargs), [])
             _ | name == repeatName -> (repeatBody $ head newargs, [])
             _ | name == cycleName -> (cycleBody $ head newargs, [])
-            _ | name `elem` ["Numeric.fromRat'","PreludeAux._floatFromRational","PreludeAux._doubleFromRational"]
+            _ | name `elem` primitives
                 -> (Prim name (map Var newargs), [])
             _ -> f [] (map asVar args) body
             
