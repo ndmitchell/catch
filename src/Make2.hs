@@ -34,7 +34,7 @@ make2 x = do
             datas <- mapM ensureData deps
             let dat = injectData $ mergeHite datas
             codes <- mapM (ensureCode dat) deps
-            let hite = reachable "" $ insertMain $ mergeHite (dat:codes)
+            let hite = reachable "" $ injectCode $ insertMain $ mergeHite (dat:codes)
             writeCacheHite hite (cache ++ ".hite")
             return hite
     where
@@ -108,6 +108,9 @@ make2 x = do
             where
                 special = Data "Prelude.1()" [Ctor "Prelude.1()" ["tup1_1"] [TyFree "b"]] ["b"]
         
+        injectCode (Hite a b) = Hite a (special:b)
+            where
+                special = Func "prim_SEQ" ["v1"] (Call (CallFunc "primitive") []) "<internal>"
         
         {-
         
