@@ -106,7 +106,8 @@ make2 x = do
             where
                 primOne = ["prim_SEQ","prim_ORD"]
                 primTwo = ["prim_EQ_W","prim_GT_W","prim_ADD_W","prim_LE_W","prim_LT_W",
-                           "prim_SUB_W","prim_GE_W","prim_NE_W","prim_MUL_W"]
+                           "prim_SUB_W","prim_GE_W","prim_NE_W","prim_MUL_W","prim_NEG_W",
+                           "prim_REM","prim_QUOT"]
 
                 special = [Func f1 ["v1"] (Prim f1 [Var "v1"]) "<internal>" | f1 <- primOne] ++
                           [Func f2 ["v1","v2"] (Prim f2 [Var "v1",Var "v2"]) "<internal>" | f2 <- primTwo]
