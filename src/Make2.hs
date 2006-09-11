@@ -28,7 +28,9 @@ make2 x = do
         -- now do a transitive closure on the depandancies
         deps@((_,cache):_) <- collectDeps x
         dirty <- anyM isDirty deps
-        if not dirty then readCacheHite (cache ++ ".hite") else do
+        let newcache = cache ++ ".hite"
+        b <- doesFileExist newcache
+        if not dirty && b then readCacheHite (cache ++ ".hite") else do
             datas <- mapM ensureData deps
             let dat = injectData $ mergeHite datas
             codes <- mapM (ensureCode dat) deps
