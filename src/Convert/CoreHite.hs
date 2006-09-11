@@ -129,11 +129,29 @@ appPos (Just p) x = CorePos p x
 appPos Nothing  x = x
 
 
+repeatName = "Prelude.repeat"
+
+repeatBody :: String -> Expr
+repeatBody x = Make "Prelude.:" [Var x, Call (CallFunc repeatName) [Var x]]
+
+cycleName = "Prelude.cycle"
+
+cycleBody :: String -> Expr
+cycleBody x = Call (CallFunc "Prelude.++") [Var x, Call (CallFunc cycleName) [Var x]]
+
+
 convFunc :: [Data] -> CoreItem -> [Func]
 convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) = 
-        Func name [x | CoreVar x <- args] res pos : rest
+        Func name newargs res pos : rest
     where
-        (res, rest) = f [] (map asVar args) body
+        newargs = [x | CoreVar x <- args]
+        (res, rest) = case () of
+            _ | name == repeatName -> (repeatBody $ head newargs, [])
+            _ | name == cycleName -> (cycleBody $ head newargs, [])
+            _ | name `elem` ["Numeric.fromRat'","PreludeAux._floatFromRational","PreludeAux._doubleFromRational"]
+                -> (Call (CallFunc "primitive") [], [])
+            _ -> f [] (map asVar args) body
+            
         asVar (CoreVar x) = (x, Var x)
         
         pos = name ++ ", " ++ getPosStr body
