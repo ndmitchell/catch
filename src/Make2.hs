@@ -102,9 +102,11 @@ make2 x = do
             where
                 special = Data "Prelude.1()" [Ctor "Prelude.1()" ["tup1_1"] [TyFree "b"]] ["b"]
         
-        injectCode (Hite a b) = Hite a (special:b)
+        injectCode (Hite a b) = Hite a (special++b)
             where
-                special = Func "prim_SEQ" ["v1"] (Call (CallFunc "primitive") []) "<internal>"
+                special = [Func "prim_SEQ" ["v1"] (Prim "prim_SEQ" [Var "v1"]) "<internal>"
+                          ,Func "prim_ORD" ["v1"] (Prim "prim_ORD" [Var "v1"]) "<internal>"
+                          ]
         
         {-
         
