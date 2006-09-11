@@ -239,6 +239,12 @@ intCtor = numCtor "Int"
 integerCtor :: Integer -> CtorName
 integerCtor = numCtor "Integer"
 
+doubleCtor :: Double -> CtorName
+doubleCtor = numCtor "Double"
+
+floatCtor :: Float -> CtorName
+floatCtor = numCtor "Float"
+
 numCtor typ i = typ ++ "_" ++ ['M' | i < 0] ++ show (abs i)
 
 
