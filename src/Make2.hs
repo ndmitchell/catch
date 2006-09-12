@@ -188,8 +188,9 @@ getDeps x = do
 -- from a module, find the FilePath
 locateFile :: FilePath -> String -> IO (FilePath, String)
 locateFile base file = do
-    let yhc_base = "C:/Neil/yhc-devel/src/packages/yhc-base-1.0/"
-        -- base ++ "/lib/yhc/packages/yhc-base/1.0/"
+    yhc_base <- pickBase ["D:/sources/yhc/core/yhc-devel/src/packages/yhc-base-1.0/"
+                         ,base ++ "/lib/yhc/packages/yhc-base/1.0/"]
+                  
     let f1 = "Cache/Example/" ++ file ++ ".ycr"
         f2 = yhc_base ++ map g file ++ ".ycr"
     b1 <- doesFileExist f1
@@ -200,6 +201,9 @@ locateFile base file = do
     where
         g x = if x == '.' then '/' else x
 
+        pickBase (x:xs) = do b <- doesDirectoryExist x
+                             if b then return x else pickBase xs
+        pickBase [] = error "Make2.locateFile.pickBase, no directory found"
 
 
 -- * Figure out which file it is that you require
