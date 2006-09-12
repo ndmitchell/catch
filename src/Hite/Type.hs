@@ -247,7 +247,11 @@ doubleCtor = numCtor "Double"
 floatCtor :: Float -> CtorName
 floatCtor = numCtor "Float"
 
-numCtor typ i = typ ++ "_" ++ ['M' | i < 0] ++ show (abs i)
+numCtor typ i = typ ++ "_" ++ map f (show i)
+    where
+        f '-' = 'M'
+        f '.' = '_'
+        f x = x
 
 
 fromCharCtor :: CtorName -> Char
