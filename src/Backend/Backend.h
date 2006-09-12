@@ -6,6 +6,39 @@
 #define Ind  2
 
 
+// make sure all the constructors are available
+#ifdef ctor_IO
+# define CtorIO ctor_IO
+#else
+# define CtorIO 0
+#endif
+
+#ifdef ctor__40_41
+# define CtorTup0 ctor__40_41
+#else
+# define CtorTup0 0
+#endif
+
+#ifdef ctor_False
+# define CtorFalse ctor_False
+# define CtorTrue ctor_True
+#else
+# define CtorFalse 0
+# define CtorTrue 1
+#endif
+
+#ifdef ctor_LT
+# define CtorLT ctor_LT
+# define CtorEQ ctor_EQ
+# define CtorGT ctor_GT
+#else
+# define CtorLT 0
+# define CtorEQ 1
+# define CtorGT 2
+#endif
+
+
+
 typedef int*(*func)();
 
 int* stack[1000];
@@ -30,17 +63,17 @@ void stack_pop()
 int eval(int* x)
 {
 	int* res;
-	
+
 	switch (x[0])
 	{
 	case Ctor:
 		return x[1];
 		break;
-			
+
 	case Ind:
 		return eval((int*) x[1]);
 		break;
-		
+
 	case Func:
 		stack_push(x);
 		res = ((func) x[1])();
@@ -59,7 +92,7 @@ int* follow_ind(int* x)
 	case Ind:
 		return follow_ind((int*) x[1]);
 		break;
-	
+
 	default:
 		return x;
 	}
@@ -122,22 +155,22 @@ int* allocCtor2(int ctor, int* arg0, int* arg1)
 
 int* allocCall0(func call)
 {
-	return alloc0(Func, call);
+	return alloc0(Func, (int) call);
 }
 
 int* allocCall1(func call, int* arg0)
 {
-	return alloc1(Func, call, arg0);
+	return alloc1(Func, (int) call, arg0);
 }
 
 int* allocCall2(func call, int* arg0, int* arg1)
 {
-	return alloc2(Func, call, arg0, arg1);
+	return alloc2(Func, (int) call, arg0, arg1);
 }
 
 int* allocCall3(func call, int* arg0, int* arg1, int* arg2)
 {
-	return alloc3(Func, call, arg0, arg1, arg2);
+	return alloc3(Func, (int) call, arg0, arg1, arg2);
 }
 
 int* follow(int n)
@@ -164,11 +197,20 @@ int* follow3()
 }
 
 
-int* func_prim_95putChar()
+int* func_prim_95System_46IO_46hPutChar()
 {
 	int* vars = stack_top();
-	putchar(eval( (int*) vars[2] ));
-	return allocCtor1(ctor_OI, allocCtor0(ctor_Tup0));
+
+	FILE* f = (FILE*) eval( (int*) vars[2] );
+	int   c =         eval( (int*) vars[3] );
+
+	fputc(c, f);
+	return allocCtor1(CtorIO, allocCtor0(CtorTup0));
+}
+
+int* func_prim_95System_46IO_46stdout()
+{
+	return allocCtor0((int) stdout);
 }
 
 int* func_prim_95prim_95ORD()
@@ -182,7 +224,7 @@ int* func_prim_95prim_95EQ_95W()
     int* vars = stack_top();
     int a = eval((int*) vars[2]);
     int b = eval((int*) vars[3]);
-    return allocCtor0(a == b ? ctor_True : ctor_False);
+    return allocCtor0(a == b ? CtorTrue : CtorFalse);
 }
 
 int* func_prim_95Ord_46Char_46compare()
@@ -190,5 +232,5 @@ int* func_prim_95Ord_46Char_46compare()
     int* vars = stack_top();
     int a = eval((int*) vars[2]);
     int b = eval((int*) vars[3]);
-    return allocCtor0(a == b ? ctor_EQ : (a > b ? ctor_GT : ctor_LT));
+    return allocCtor0(a == b ? CtorEQ : (a > b ? CtorGT : CtorLT));
 }

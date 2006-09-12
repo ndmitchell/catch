@@ -73,7 +73,7 @@ convExpr hite func expr = demand expr
             ["switch (eval(" ++ alloc x ++ "))"
             ,"{"]
             ++ indent (concatMap f xs) ++
-            ["\tdefault:_asm int 3","};"]
+            ["};"]
             where
                 f (alt,expr) =
                     ("case " ++ escCtor alt ++ ":") : "{" : indent (demand expr) ++ ["}","break;"]
