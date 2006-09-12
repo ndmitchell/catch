@@ -36,6 +36,7 @@ check (Hite datas funcs) =
                 checkExpr (Msg x) = True
                 checkExpr (Error x) = True
                 checkExpr (MCase alts) = all checkCase alts
+                checkExpr (Prim x xs) = all checkExpr xs
                 
                 checkExpr x = error $ "Disallowed language element, " ++ output x
                 
