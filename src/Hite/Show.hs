@@ -54,6 +54,7 @@ instance Output Expr where
                                      if null opts then "    {- NO OPTIONS! -}" else
                                      (init $ unlines $ map (g (i+4)) opts)
 
+            g i ("",b) = g i ("<*>",b)
             g i (a,b) = replicate i ' ' ++ a ++ " -> " ++ f False i b
             
             h i alt Nothing = "( *** | " ++ f True i alt ++ ")"
