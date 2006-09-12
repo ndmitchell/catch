@@ -15,6 +15,7 @@ caseExpand hite = mapExpr f hite
         f (Case on alts) = Case on $ map (g on) alts
         f x = x
         
+        g on ("",rhs) = ("",rhs)
         g on (lhs,rhs) = (lhs,mapExpr (h on val) rhs)
             where
                 Ctor name args _ = rawCtor $ getCtor hite lhs
