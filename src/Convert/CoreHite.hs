@@ -33,7 +33,7 @@ coreFuncs hite xs = Hite [] (concatMap (convFunc (datas hite)) xs)
 -- for things like Char and Int, new ctor's may be introduced not in the code
 -- add them back in
 ensureCtors :: Hite -> Hite
-ensureCtors hite@(Hite datas funcs) = Hite (foldr f datas ["Int","Integer","Char"]) funcs
+ensureCtors hite@(Hite datas funcs) = Hite (foldr f datas ["Int","Integer","Char","Float","Double"]) funcs
     where
         ctors = nub $ concatMap g $ allExpr hite
         
