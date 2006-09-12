@@ -68,7 +68,7 @@ basicExpr ihite orig@(Sel (Make name args) arg)
 
 -- case Nil of {Nil -> a; Cons -> b} ==> a
 basicExpr ihite (Case (Make name args) xs) = Just $ headNote "Tranform.Rewrite.basicExpr" ys
-	where ys = [b | (a,b) <- xs, a == name]
+	where ys = [b | (a,b) <- xs, a == name || null a]
 
 -- Apply (Lambda free expr) args  ==> expr[free/args]
 basicExpr ihite (Apply (Lambda (f:ree) expr) (a:rgs)) =
