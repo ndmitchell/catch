@@ -12,7 +12,7 @@ import General.General
 
 
 mergeHites :: [Hite] -> Hite
-mergeHites xs = reachable "" $ expandCase $ ensureCtors $ reachableCode "" $
+mergeHites xs = reachable "" $ ensureCtors $ reachableCode "" $
                 Hite (concatMap datas xs) (concatMap funcs xs)
 
 
@@ -263,7 +263,7 @@ convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) =
                         -- if c == "_"
                         -- then (map (\x -> (x,a)) underCtors, b)
                         -- else
-                        ([(c,a)], b)
+                        ([(if c == "_" then "" else c,a)], b)
                     where
                         (c, r) = dealMatch lhs
                         (a, b) = f path (r++vars) rhs
