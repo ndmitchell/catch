@@ -20,6 +20,7 @@ funcCreate = joinTweaks [defuncExpr, dedictExpr]
 -- ATOM TESTS
 
 isTuple (Make ('T':'u':'p':_) _) = True
+isTuple (Make ('(':_) _) = True
 isTuple _ = False
 
 isVar (Var _) = True
