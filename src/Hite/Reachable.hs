@@ -1,6 +1,6 @@
 
 
-module Hite.Reachable(cmd, reachable, reachableList) where
+module Hite.Reachable(cmd, reachable, reachableList, reachableCode) where
 
 import Hite.Type
 import List
@@ -17,6 +17,10 @@ cmd = cmdHitePure reachable "reachable"
 reachable :: FuncName -> Hite -> Hite
 reachable ""   hite = reachableList ["main"] hite
 reachable name hite = reachableList [name]   hite
+
+
+reachableCode :: FuncName -> Hite -> Hite
+reachableCode name hite = hite{funcs = funcs $ reachable name hite}
 
 
 reachableList :: [FuncName] -> Hite -> Hite

@@ -8,7 +8,7 @@ module Hite
     module Hite.Blur, module Hite.Cache,
     module Hite.Fringe,
     
-    shortName, reachable
+    shortName, reachable, reachableCode
     )
     where
 
