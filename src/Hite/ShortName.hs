@@ -12,8 +12,10 @@ cmd = cmdHitePure (const shortName) "short-name"
 
 
 shortName :: Hite -> Hite
-shortName hite = mapFunc h $ mapExpr g hite
+shortName hite = Hite (map h2 ds) (map h1 fs)
     where
+        Hite ds fs = mapExpr g hite
+    
         names = map funcName (funcs hite)
         shorts = map makeShort names
         badshorts = nub (shorts \\ nub shorts)
@@ -24,10 +26,14 @@ shortName hite = mapFunc h $ mapExpr g hite
               | otherwise           = (a,a)
         
         g (CallFunc x) = CallFunc $ fromJustNote ("shortName(1), missing " ++ x) $ lookup x rename
+        g (Make x xs) = Make (makeShort x) xs
+        g (Case on alts) = Case on [(makeShort a,b) | (a,b) <- alts]
         g x = x
         
-        h func = func{funcName = fromJustNote "shortName(2)" $ lookup (funcName func) rename}
+        h1 func = func{funcName = fromJustNote "shortName(2)" $ lookup (funcName func) rename}
+        h2 (Data a b c) = Data (makeShort a) [Ctor (makeShort d) e f | Ctor d e f <- b] c
         
-        makeShort x | '.' `elem` x = reverse $ takeWhile (/= '.') $ reverse x
+        makeShort x | '.' `elem` x = if null res then tail $ takeWhile (== '.') $ reverse x else res
+            where res = reverse $ takeWhile (/= '.') $ reverse x
         makeShort x = x
 
