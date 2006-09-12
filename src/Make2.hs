@@ -11,6 +11,7 @@ import General.General
 import Hite
 import Core
 import Convert.CoreHite
+import qualified Data.Set as Set
 
 
 when_ cond action = when cond (action >> return ())
@@ -24,7 +25,7 @@ make2 x = do
         ensureDirectory "Cache/Library"
         ensureDirectory "Cache/Example"
         
-        primDirty <- testDirty "Library/Primitive.hs" "Cache/Library/Primitive.hs"
+        primDirty <- testDirty "Library/Primitive.hs" "Cache/Library/Primitive.ycr"
         when_ primDirty $ system $ "yhc Library/Primitive.hs -corep -dst Cache/Library -hidst Cache/Library"
         
         src <- getFilePath x
@@ -32,16 +33,24 @@ make2 x = do
         
         -- now do a transitive closure on the depandancies
         deps@((_,cache):_) <- collectDeps x
-        let newdeps = ("Library/Primitive.ycr","Cache/Library/Primitive") : deps
+        let depPrim = ("Cache/Library/Primitive.ycr","Cache/Library/Primitive")
+            newdeps = depPrim : deps
         dirty <- anyM isDirty newdeps
         let newcache = cache ++ ".hite"
         b <- doesFileExist newcache
-        if not dirty && b then readCacheHite (cache ++ ".hite") else do
-            datas <- mapM ensureData newdeps
-            let dat = injectData $ mergeHite datas
-            codes <- mapM (ensureCode dat) newdeps
+        
+        if not primDirty && not dirty && b then readCacheHite (cache ++ ".hite") else do
+            pdata <- ensureData Set.empty depPrim
+            let pdataNames = Set.fromList [nam | Data nam _ _ <- datas pdata]
+            datas <- mapM (ensureData pdataNames) deps
+            let dat = injectData $ mergeHite (pdata:datas)
+            
+            pcode <- ensureCode Set.empty dat depPrim
+            let pcodeNames = Set.fromList (map funcName $ funcs pcode)
+            codes <- mapM (ensureCode pcodeNames dat) deps
+            
             putStrLn $ "Creating " ++ newcache
-            let hite = mergeHites [insertMain $ mergeHite (dat:codes)]
+            let hite = mergeHites [insertMain $ mergeHite (dat:pcode:codes)]
             writeCacheHite hite (cache ++ ".hite")
             return hite
     where
@@ -62,22 +71,22 @@ make2 x = do
                 m1 <- getModificationTime cache
                 return $ m1 < m0
         
-        ensureData (corefile,cache) = do
+        ensureData ignore (corefile,cache) = do
             let newcache = cache ++ ".data"
             b <- testDirty corefile newcache
             if not b then readCacheHite newcache else do
                 putStrLn $ "Creating: " ++ newcache
-                items <- coreItems corefile
+                items <- coreItems ignore corefile
                 let hite = coreDatas $ takeWhile isCoreData items
                 writeCacheHite hite newcache
                 return hite
 
-        ensureCode datas (corefile,cache) = do
+        ensureCode ignore datas (corefile,cache) = do
             let newcache = cache ++ ".code"
             b <- testDirty corefile newcache
             if not b then readCacheHite newcache else do
                 putStrLn $ "Creating: " ++ newcache
-                items <- coreItems corefile
+                items <- coreItems ignore corefile
                 let hite = coreFuncs datas $ dropWhile isCoreData items
                 writeCacheHite hite newcache
                 return hite
@@ -137,24 +146,43 @@ make2 x = do
 
 -}
 
-coreItems :: FilePath -> IO [CoreItem]
-coreItems corefile = do
+coreItems :: Set.Set String -> FilePath -> IO [CoreItem]
+coreItems ignore corefile = do
     src <- readFile corefile
     let (h:t) = lines src
         res = concatMap f t
     return $ if isPrimitive h then map g res else res
     where
         f "]" = []
-        f x = [readNote "coreItems" $ tail $ dropWhile isSpace x]
+        f x = case (readNote "coreItems" $ tail $ dropWhile isSpace x) of
+                   x | getName x `Set.member` ignore -> []
+                   x -> [x]
+                   
+        getName (CoreFunc (CoreApp (CoreVar x) _) _) = x
+        getName (CoreData x _ _) = x
         
         isPrimitive x = "Core \"Primitive\"" `isPrefixOf` x
         
-        g (CoreFunc (CoreApp (CoreVar x) xs) y) = CoreFunc (CoreApp (CoreVar $ h x) xs) y
+        g (CoreFunc (CoreApp (CoreVar x) xs) y) = CoreFunc (CoreApp (CoreVar $ h x) xs) (mapCore g2 y)
         g (CoreData name x y) = CoreData (h name) x [CoreCtor (h a) b | CoreCtor a b <- y]
         
-        h x = drop 10 x
+        g2 (CoreVar x) = CoreVar $ h x
+        g2 (CoreCon x) = CoreCon $ h x
+        g2 x = x
+        
+        h x | "Primitive." `isPrefixOf` x = f res2
+            where
+                res1 = drop 10 x
+                res2 = if "global_" `isPrefixOf` res1 then drop 7 res1 else res1
+                
+                f ('\'':'\'':xs) = '\'' : f xs
+                f ('\'':'_':xs) = '.' : f xs
+                f ('\'':'g':'t':xs) = '>' : f xs
+                f ('\'':'e':'q':xs) = '=' : f xs
+                f (x:xs) = x : f xs
+                f [] = []
 
-
+        h x = x
 
 
 
@@ -182,7 +210,7 @@ getDeps x = do
     let (h:t) = lines src
     let sec = dropWhile (/= '[') h
         sec2 = if null t then take (length sec - 3) sec else sec
-    return $ "YHC.Internal" : readNote "getDeps" sec2
+    return $ {- "YHC.Internal" : -} readNote "getDeps" sec2
 
 
 -- from a module, find the FilePath

@@ -139,38 +139,12 @@ appPos (Just p) x = CorePos p x
 appPos Nothing  x = x
 
 
-repeatName = "Prelude.repeat"
-
-repeatBody :: String -> Expr
-repeatBody x = Make "Prelude.:" [Var x, Call (CallFunc repeatName) [Var x]]
-
-cycleName = "Prelude.cycle"
-
-cycleBody :: String -> Expr
-cycleBody x = Call (CallFunc "Prelude.++") [Var x, Call (CallFunc cycleName) [Var x]]
-
-
-primitives =
-    -- ones which have mutually recursive let's
-    ["Numeric.fromRat'","PreludeAux._floatFromRational","PreludeAux._doubleFromRational"] ++
-    -- ones which have a too concrete implementation
-    ["System.IO.hGetContents","System.IO.stdin","System.IO.stdout","System.IO.stderr"
-    ,"YHC.Internal.unsafePerformIO","System.IO.throwIOError","System.IO.hPutChar"]
-            
-
-
 convFunc :: [Data] -> CoreItem -> [Func]
 convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) = 
         map g $ Func name newargs res pos : rest
     where
         newargs = [x | CoreVar x <- args]
-        (res, rest) = case () of
-            _ | name == "Prelude.error" -> (Prim "error" (map Var newargs), [])
-            _ | name == repeatName -> (repeatBody $ head newargs, [])
-            _ | name == cycleName -> (cycleBody $ head newargs, [])
-            _ | name `elem` primitives
-                -> (Prim name (map Var newargs), [])
-            _ -> f [] (map asVar args) body
+        (res, rest) = f [] (map asVar args) body
             
         asVar (CoreVar x) = (x, Var x)
         
