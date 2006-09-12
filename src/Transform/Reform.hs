@@ -201,7 +201,8 @@ calcArgs ihite@(IHite datas funcs) = fixp next base
         tweak :: (Weight,IExpr) -> [(Weight,Int)]
         tweak (w,Var x) = [(w,x)]
         tweak (w,Call _ x) = [] -- already should have been done
-        tweak (Normal,x) = concatMap (\x -> tweak (Normal,x)) (getChildren x)
+        tweak (Weak,x) = []
+        tweak (_,x) = concatMap (\x -> tweak (Normal,x)) (getChildren x)
         tweak (w,x) = []
         
 
