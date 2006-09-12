@@ -1,4 +1,7 @@
 
+{-! for Data derive : GhcBinary !-}
+{-! for Ctor derive : GhcBinary !-}
+
 module Hite.DataType where
 
 import Hite.TypeType

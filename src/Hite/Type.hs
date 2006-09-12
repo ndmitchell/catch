@@ -3,6 +3,8 @@
     A signature for the abstract type
 -}
 
+{-! global: GhcBinary !-}
+
 module Hite.Type(module Hite.Type, module Hite.DataType, module Hite.TypeType) where
 
 import Hite.DataType

@@ -1,6 +1,7 @@
 
-module Hite.TypeType where
+{-! global: GhcBinary !-}
 
+module Hite.TypeType where
 
 data TyType = TyCon String [TyType]
             | TyFree String

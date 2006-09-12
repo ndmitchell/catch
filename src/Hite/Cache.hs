@@ -6,16 +6,24 @@ import Directory
 import Monad
 import General.General
 
+import Hite.Binary
+import General.Binary
+
+
+useBinary = True
+
 
 readCacheHite :: FilePath -> IO Hite
-readCacheHite file = do src <- readFile file
-                        return $ readNote ("Failed while reading cached hite: " ++ file) src
+readCacheHite file | useBinary = readBinary file
+                   | otherwise = do
+    src <- readFile file
+    return $ readNote ("Failed while reading cached hite: " ++ file) src
 
 
 writeCacheHite :: Hite -> FilePath -> IO ()
 writeCacheHite hite file = do b <- doesFileExist file
                               when b $ removeFile file
-                              writeFile filet (show hite)
+                              if useBinary then writeBinary filet hite else writeFile filet (show hite)
                               renameFile filet file
     where
         filet = file ++ ".tmp"
