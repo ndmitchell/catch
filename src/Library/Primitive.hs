@@ -41,13 +41,16 @@ foreign import primitive global_PreludeAux'__floatFromRational :: a -> b
 foreign import primitive global_PreludeAux'__doubleFromRational :: a -> b
 
 -- ones which have a too concrete implementation
-foreign import primitive global_System'_IO'_hGetContents :: a
+foreign import primitive global_System'_IO'_hGetContents :: a -> b
 foreign import primitive global_System'_IO'_stdin :: a
 foreign import primitive global_System'_IO'_stdout :: a
 foreign import primitive global_System'_IO'_stderr :: a
 foreign import primitive global_YHC'_Internal'_unsafePerformIO :: a -> b
 foreign import primitive global_System'_IO'_throwIOError :: a -> b
-foreign import primitive global_System'_IO'_hPutChar :: a -> b
+foreign import primitive global_System'_IO'_hPutChar :: a -> b -> c
+foreign import primitive global_Prelude'_Prelude'_Integral'_Prelude'_Int'_divMod :: a -> b -> c
+foreign import primitive global_Prelude'_Prelude'_Integral'_Prelude'_Integer'_divMod :: a -> b -> c
+
 
 -- IO stuff
 data IO a = IO a
@@ -55,3 +58,11 @@ data IO a = IO a
 global_Prelude'_Prelude'_Monad'_YHC'_Internal'_IO'_return a = IO a
 global_Prelude'_Prelude'_Monad'_YHC'_Internal'_IO'_'gt'gt (IO a) b = b
 global_Prelude'_Prelude'_Monad'_YHC'_Internal'_IO'_'gt'gt'eq (IO a) f = f a
+
+-- special things
+
+-- since reverse is so often used, make it simple
+global_Prelude'_reverse x = f x []
+    where
+        f [] acc = acc
+        f (x:xs) acc = f xs (x:acc)
