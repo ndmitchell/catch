@@ -75,8 +75,9 @@ convExpr hite func expr = demand expr
             ++ indent (concatMap f xs) ++
             ["};"]
             where
-                f (alt,expr) =
-                    ("case " ++ escCtor alt ++ ":") : "{" : indent (demand expr) ++ ["}","break;"]
+                f (alt,expr) = g alt : "{" : indent (demand expr) ++ ["}","break;"]
+                g "" = "default:"
+                g alt = "case " ++ escCtor alt ++ ":"
 
     
         demand (Call (CallFunc name) args) =
