@@ -12,7 +12,8 @@ import General.General
 
 
 mergeHites :: [Hite] -> Hite
-mergeHites xs = expandCase $ ensureCtors $ Hite (concatMap datas xs) (concatMap funcs xs)
+mergeHites xs = reachable "" $ expandCase $ ensureCtors $ reachableCode "" $
+                Hite (concatMap datas xs) (concatMap funcs xs)
 
 
 coreHite :: Core -> Hite
