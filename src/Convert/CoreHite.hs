@@ -35,15 +35,19 @@ coreFuncs hite xs = Hite [] (concatMap (convFunc (datas hite)) xs)
 ensureCtors :: Hite -> Hite
 ensureCtors hite@(Hite datas funcs) = Hite (foldr f datas ["Int","Integer","Char"]) funcs
     where
-        ctors = nub $ [name | Make name _ <- exprs] ++ [charCtor x | Msg xs <- exprs, x <- xs]
-            where exprs = allExpr hite
+        ctors = nub $ concatMap g $ allExpr hite
+        
+        g (Make name _) = [name]
+        g (Msg x) = map charCtor x
+        g (Case on alts) = delete "_" $ map fst alts
+        g _ = []
 
         f str datas = map g datas
             where
                 g (Data nam crs typ) | nam == str = Data nam [Ctor n [] [] | n <- ctrs] typ
                 g x = x
                 
-                ctrs = nub $ str : filter (str `isPrefixOf`) ctors
+                ctrs = nub $ str : filter ((str++"_") `isPrefixOf`) ctors
 
 -- where _ is a case variable, expand it
 expandCase :: Hite -> Hite
