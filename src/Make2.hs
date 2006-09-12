@@ -13,6 +13,8 @@ import Core
 import Convert.CoreHite
 
 
+when_ cond action = when cond (action >> return ())
+
 
 -- take a haskell file (probably in the example directory)
 -- to the end result Hite
@@ -22,20 +24,24 @@ make2 x = do
         ensureDirectory "Cache/Library"
         ensureDirectory "Cache/Example"
         
+        primDirty <- testDirty "Library/Primitive.hs" "Cache/Library/Primitive.hs"
+        when_ primDirty $ system $ "yhc Library/Primitive.hs -corep -dst Cache/Library -hidst Cache/Library"
+        
         src <- getFilePath x
         system $ "yhc \"" ++ src ++ "\" -corep -dst Cache/Example -hidst Cache/Example"
         
         -- now do a transitive closure on the depandancies
         deps@((_,cache):_) <- collectDeps x
-        dirty <- anyM isDirty deps
+        let newdeps = ("Library/Primitive.ycr","Cache/Library/Primitive") : deps
+        dirty <- anyM isDirty newdeps
         let newcache = cache ++ ".hite"
         b <- doesFileExist newcache
         if not dirty && b then readCacheHite (cache ++ ".hite") else do
-            datas <- mapM ensureData deps
+            datas <- mapM ensureData newdeps
             let dat = injectData $ mergeHite datas
-            codes <- mapM (ensureCode dat) deps
+            codes <- mapM (ensureCode dat) newdeps
             putStrLn $ "Creating " ++ newcache
-            let hite = mergeHites [injectCode $ insertMain $ mergeHite (dat:codes)]
+            let hite = mergeHites [insertMain $ mergeHite (dat:codes)]
             writeCacheHite hite (cache ++ ".hite")
             return hite
     where
@@ -88,22 +94,10 @@ make2 x = do
                 f func = [func]
         
         
-        injectData (Hite a b) = Hite (special++a) b
-            where
-                tup1 = Data "Prelude.1()" [Ctor "Prelude.1()" ["tup1_1"] [TyFree "b"]] ["b"]
-                primTyp = ["Int","Char","Float","Double","Integer"]
-                special = tup1 : [Data x [Ctor x [] []] [] | x <- primTyp]
-        
-        injectCode (Hite a b) = Hite a (special++b)
-            where
-                primOne = ["prim_ORD"]
-                primTwo = ["prim_EQ_W","prim_GT_W","prim_ADD_W","prim_LE_W","prim_LT_W",
-                           "prim_SUB_W","prim_GE_W","prim_NE_W","prim_MUL_W","prim_NEG_W",
-                           "prim_REM","prim_QUOT","prim_SEQ"]
+        injectData (Hite a b) = Hite (tup1:a) b
+            where tup1 = Data "Prelude.1()" [Ctor "Prelude.1()" ["tup1_1"] [TyFree "b"]] ["b"]
 
-                special = [Func f1 ["v1"] (Prim f1 [Var "v1"]) "<internal>" | f1 <- primOne] ++
-                          [Func f2 ["v1","v2"] (Prim f2 [Var "v1",Var "v2"]) "<internal>" | f2 <- primTwo]
-        
+
         {-
         
             deps <- calcDeps src
@@ -146,10 +140,19 @@ make2 x = do
 coreItems :: FilePath -> IO [CoreItem]
 coreItems corefile = do
     src <- readFile corefile
-    return $ concatMap f $ tail $ lines src
+    let (h:t) = lines src
+        res = concatMap f t
+    return $ if isPrimitive h then map g res else res
     where
         f "]" = []
         f x = [readNote "coreItems" $ tail $ dropWhile isSpace x]
+        
+        isPrimitive x = "Core \"Primitive\"" `isPrefixOf` x
+        
+        g (CoreFunc (CoreApp (CoreVar x) xs) y) = CoreFunc (CoreApp (CoreVar $ h x) xs) y
+        g (CoreData name x y) = CoreData (h name) x [CoreCtor (h a) b | CoreCtor a b <- y]
+        
+        h x = drop 10 x
 
 
 
