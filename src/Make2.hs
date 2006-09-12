@@ -88,9 +88,11 @@ make2 x = do
                 f func = [func]
         
         
-        injectData (Hite a b) = Hite (special:a) b
+        injectData (Hite a b) = Hite (special++a) b
             where
-                special = Data "Prelude.1()" [Ctor "Prelude.1()" ["tup1_1"] [TyFree "b"]] ["b"]
+                tup1 = Data "Prelude.1()" [Ctor "Prelude.1()" ["tup1_1"] [TyFree "b"]] ["b"]
+                primTyp = ["Int","Char","Float","Double","Integer"]
+                special = tup1 : [Data x [Ctor x [] []] [] | x <- primTyp]
         
         injectCode (Hite a b) = Hite a (special++b)
             where
