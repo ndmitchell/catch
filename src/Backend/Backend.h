@@ -284,7 +284,13 @@ int* func_prim_95Ord_46Char_46compare()
 						  return allocCtor0(code); \
 					      }
 
-BinOp(func_prim_95prim_95EQ_95W, a == b ? CtorTrue : CtorFalse)
+#define Bool(cond) (cond ? CtorTrue : CtorFalse)
 
-
-
+BinOp(func_prim_95prim_95MUL_95W, a * b)
+BinOp(func_prim_95prim_95SUB_95W, a - b)
+BinOp(func_prim_95prim_95ADD_95W, a + b)
+BinOp(func_prim_95prim_95EQ_95W, Bool(a == b))
+BinOp(func_prim_95prim_95NE_95W, Bool(a != b))
+BinOp(func_prim_95prim_95GE_95W, Bool(a >= b))
+BinOp(func_prim_95prim_95LT_95W, Bool(a <  b))
+BinOp(func_prim_95prim_95LE_95W, Bool(a <= b))
