@@ -260,6 +260,14 @@ int* func_prim_95prim_95ORD()
     return allocCtor0(eval((int*) vars[2]));
 }
 
+int* func_prim_95prim_95SEQ()
+{
+	int* vars = stack_top();
+	eval((int*) vars[2]);
+	eval((int*) vars[3]);
+	return follow_ind((int*) vars[3]);
+}
+
 int* func_prim_95prim_95EQ_95W()
 {
     int* vars = stack_top();
