@@ -19,6 +19,12 @@
 # define CtorTup0 0
 #endif
 
+#ifdef ctor__40_44_41
+# define CtorTup2 ctor__40_44_41
+#else
+# define CtorTup2 0
+#endif
+
 #ifdef ctor_False
 # define CtorFalse ctor_False
 # define CtorTrue ctor_True
@@ -194,6 +200,15 @@ int* follow2()
 int* follow3()
 {
 	follow(3);
+}
+
+
+int* func_prim_95Prelude_46Prelude_46Integral_46Prelude_46Int_46divMod()
+{
+	int* vars = stack_top();
+	int a = eval((int*) vars[2]);
+	int b = eval((int*) vars[3]);
+	return allocCtor2(CtorTup2, allocCtor0(a/b), allocCtor0(a%b));
 }
 
 
