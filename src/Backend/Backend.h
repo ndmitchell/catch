@@ -228,6 +228,11 @@ int* func_prim_95System_46IO_46stdout()
 	return allocCtor0((int) stdout);
 }
 
+int* func_prim_95System_46IO_46stdin()
+{
+	return allocCtor0((int) stdin);
+}
+
 int* func_prim_95prim_95ORD()
 {
     int* vars = stack_top();
