@@ -268,14 +268,6 @@ int* func_prim_95prim_95SEQ()
 	return follow_ind((int*) vars[3]);
 }
 
-int* func_prim_95prim_95EQ_95W()
-{
-    int* vars = stack_top();
-    int a = eval((int*) vars[2]);
-    int b = eval((int*) vars[3]);
-    return allocCtor0(a == b ? CtorTrue : CtorFalse);
-}
-
 int* func_prim_95Ord_46Char_46compare()
 {
     int* vars = stack_top();
@@ -283,3 +275,16 @@ int* func_prim_95Ord_46Char_46compare()
     int b = eval((int*) vars[3]);
     return allocCtor0(a == b ? CtorEQ : (a > b ? CtorGT : CtorLT));
 }
+
+
+#define BinOp(name, code) int* name(){ \
+						  int* vars = stack_top(); \
+						  int a = eval((int*) vars[2]); \
+						  int b = eval((int*) vars[3]); \
+						  return allocCtor0(code); \
+					      }
+
+BinOp(func_prim_95prim_95EQ_95W, a == b ? CtorTrue : CtorFalse)
+
+
+
