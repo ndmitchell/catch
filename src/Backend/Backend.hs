@@ -79,6 +79,7 @@ convExpr hite func expr = demand expr
                 g "" = "default:"
                 g alt = "case " ++ escCtor alt ++ ":"
 
+        demand (Error xs) = ["error(" ++ show xs ++ ");"]
     
         demand (Call (CallFunc name) args) =
             ["stack_push(allocCall" ++ nargs ++ "(" ++ ename ++ concatMap ((',':) . alloc) args ++ "));"
