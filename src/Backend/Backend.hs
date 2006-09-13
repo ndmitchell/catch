@@ -32,7 +32,7 @@ convHite oite = concatMap convData (datas hite) ++
 
 convData :: Data -> String
 convData (Data nam xs _) 
-        | nam == "Char" = ""
+        | nam `elem` ["Char","Int"] = ""
         | otherwise = unlines $ zipWith f [0..] xs
     where
         f n (Ctor nam _ _) = "#define " ++ escCtor nam ++ " " ++ show n
@@ -42,6 +42,7 @@ convData (Data nam xs _)
 escFunc = escAny "func"
 
 escCtor x | "Char_" `isPrefixOf` x = show $ fromCharCtor x
+          | "Int_"  `isPrefixOf` x = show $ fromIntCtor x
 escCtor x = escAny "ctor" x
 
 escAny prefix x = prefix ++ "_" ++ concatMap f x

@@ -254,6 +254,13 @@ numCtor typ i = typ ++ "_" ++ map f (show i)
         f x = x
 
 
+fromIntCtor :: CtorName -> Int
+fromIntCtor ('I':'n':'t':'_':xs) = read $ map f xs
+    where
+        f 'M' = '-'
+        f '_' = '.'
+        f x = x
+
 fromCharCtor :: CtorName -> Char
 fromCharCtor ('C':'h':'a':'r':'_':xs) = case xs of
     [x] -> x
