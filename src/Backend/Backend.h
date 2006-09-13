@@ -151,6 +151,31 @@ int* alloc3(int typ, int x, int* arg0, int* arg1, int* arg2)
 	return res;
 }
 
+int* alloc4(int typ, int x, int* arg0, int* arg1, int* arg2, int* arg3)
+{
+	int* res = malloc(sizeof(int) * 6);
+	res[0] = typ;
+	res[1] = x;
+	res[2] = (int) arg0;
+	res[3] = (int) arg1;
+	res[4] = (int) arg2;
+	res[5] = (int) arg3;
+	return res;
+}
+
+int* alloc5(int typ, int x, int* arg0, int* arg1, int* arg2, int* arg3, int* arg4)
+{
+	int* res = malloc(sizeof(int) * 7);
+	res[0] = typ;
+	res[1] = x;
+	res[2] = (int) arg0;
+	res[3] = (int) arg1;
+	res[4] = (int) arg2;
+	res[5] = (int) arg3;
+	res[6] = (int) arg4;
+	return res;
+}
+
 
 int* allocCtor0(int ctor)
 {
@@ -185,6 +210,16 @@ int* allocCall2(func call, int* arg0, int* arg1)
 int* allocCall3(func call, int* arg0, int* arg1, int* arg2)
 {
 	return alloc3(Func, (int) call, arg0, arg1, arg2);
+}
+
+int* allocCall4(func call, int* arg0, int* arg1, int* arg2, int* arg3)
+{
+	return alloc4(Func, (int) call, arg0, arg1, arg2, arg3);
+}
+
+int* allocCall5(func call, int* arg0, int* arg1, int* arg2, int* arg3, int* arg4)
+{
+	return alloc5(Func, (int) call, arg0, arg1, arg2, arg3, arg4);
 }
 
 int* follow(int n)
