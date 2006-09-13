@@ -19,6 +19,14 @@
 # define CtorTup0 0
 #endif
 
+#ifdef ctor__91_93
+# define CtorCons ctor__91_93
+# define CtorNil ctor__58
+#else
+# define CtorCons 0
+# define CtorNil 1
+#endif
+
 #ifdef ctor__40_44_41
 # define CtorTup2 ctor__40_44_41
 #else
@@ -221,6 +229,19 @@ int* func_prim_95System_46IO_46hPutChar()
 
 	fputc(c, f);
 	return allocCtor1(CtorIO, allocCtor0(CtorTup0));
+}
+
+int* func_prim_95System_46IO_46hGetContents()
+{
+	int* vars = stack_top();
+
+	FILE* f = (FILE*) eval( (int*) vars[2] );
+	int c = fgetc(f);
+	if (c == EOF)
+		return allocCtor0(CtorNil);
+	else
+		return allocCtor2(CtorCons, allocCtor0(c),
+			allocCall1(func_prim_95System_46IO_46hGetContents, (int*) vars[2]));
 }
 
 int* func_prim_95System_46IO_46stdout()
