@@ -271,17 +271,14 @@ int* func_prim_95System_46IO_46hPutChar()
 	return allocCtor1(CtorIO, allocCtor0(CtorTup0));
 }
 
-int* func_prim_95System_46IO_46hGetContents()
+int* func_prim_95System_46IO_46hGetChar()
 {
 	int* vars = stack_top();
 
 	FILE* f = (FILE*) eval( (int*) vars[2] );
 	int c = fgetc(f);
-	if (c == EOF)
-		return allocCtor0(CtorNil);
-	else
-		return allocCtor2(CtorCons, allocCtor0(c),
-			allocCall1(func_prim_95System_46IO_46hGetContents, (int*) vars[2]));
+	
+	return allocCtor1(CtorIO, allocCtor0(c == EOF ? 0 : c));
 }
 
 int* func_prim_95System_46IO_46stdout()
