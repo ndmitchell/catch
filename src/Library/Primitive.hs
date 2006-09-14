@@ -3,6 +3,7 @@
 
 module Primitive where
 
+import System.IO(Handle)
 
 -- real primitive operations
 foreign import primitive prim_ORD :: a -> b
@@ -41,11 +42,10 @@ foreign import primitive global_PreludeAux'__floatFromRational :: a -> b
 foreign import primitive global_PreludeAux'__doubleFromRational :: a -> b
 
 -- ones which have a too concrete implementation
-foreign import primitive global_System'_IO'_hGetContents :: a -> b
+foreign import primitive global_System'_IO'_hGetChar :: Handle -> IO Prelude.Char
 foreign import primitive global_System'_IO'_stdin :: a
 foreign import primitive global_System'_IO'_stdout :: a
 foreign import primitive global_System'_IO'_stderr :: a
-foreign import primitive global_YHC'_Internal'_unsafePerformIO :: a -> b
 foreign import primitive global_System'_IO'_throwIOError :: a -> b
 foreign import primitive global_System'_IO'_hPutChar :: a -> b -> c
 foreign import primitive global_Prelude'_Prelude'_Integral'_Prelude'_Int'_divMod :: a -> b -> c
@@ -66,3 +66,15 @@ global_Prelude'_reverse x = f x []
     where
         f [] acc = acc
         f (x:xs) acc = f xs (x:acc)
+
+
+global_YHC'_Internal'_unsafePerformIO (IO a) = a
+
+global_System'_IO'_hGetContents :: Handle -> IO String
+global_System'_IO'_hGetContents hndl =
+    case global_System'_IO'_hGetChar hndl of
+        IO c -> if c == '\0'
+                then IO []
+                else IO (c : res)
+    where
+        res = global_YHC'_Internal'_unsafePerformIO (global_System'_IO'_hGetContents hndl)
