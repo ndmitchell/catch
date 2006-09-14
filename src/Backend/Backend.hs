@@ -41,7 +41,7 @@ convData (Data nam xs _)
 
 escFunc = escAny "func"
 
-escCtor x | "Char_" `isPrefixOf` x = show $ fromCharCtor x
+escCtor x | "Char_" `isPrefixOf` x = escChar $ fromCharCtor x
           | "Int_"  `isPrefixOf` x = show $ fromIntCtor x
 escCtor x = escAny "ctor" x
 
@@ -49,6 +49,10 @@ escAny prefix x = prefix ++ "_" ++ concatMap f x
     where
         f x | isAlphaNum x = [x]
             | otherwise = '_' : show (ord x)
+
+
+escChar x | x == '\0' = "'\\0'"
+          | otherwise = show x
 
 
 convFunc :: Hite -> Func -> String
