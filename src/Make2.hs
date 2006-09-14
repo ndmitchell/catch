@@ -216,10 +216,7 @@ getDeps x = do
 -- from a module, find the FilePath
 locateFile :: FilePath -> String -> IO (FilePath, String)
 locateFile base file = do
-    yhc_base <- pickBase ["D:/sources/yhc/core/yhc-devel/src/packages/yhc-base-1.0/"
-                         ,base ++ "/../src/packages/yhc-base-1.0/"
-                         ,base ++ "/lib/yhc/packages/yhc-base/1.0/"]
-                  
+    let yhc_base = base ++ "/lib/yhc/packages/yhc-base/1.0/"
     let f1 = "Cache/Example/" ++ file ++ ".ycr"
         f2 = yhc_base ++ map g file ++ ".ycr"
     b1 <- doesFileExist f1
