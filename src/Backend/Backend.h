@@ -245,6 +245,11 @@ int* follow3()
 	follow(3);
 }
 
+void error(char* msg)
+{
+	printf(msg);
+	exit(1);
+}
 
 int* func_prim_95Prelude_46Prelude_46Integral_46Prelude_46Int_46divMod()
 {
