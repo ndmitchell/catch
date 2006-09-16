@@ -12,9 +12,13 @@ data IHite = IHite Datas [IFunc]
 instance QDatas IHite where
 	rawDatas (IHite res _) = res
 
+instance Show IHite where
+    show (IHite a b) = unlines $ concatMap (\x -> ["",show x]) b
 
 data IFunc = Func {funcName :: FuncName, funcArgs :: [Int], funcExpr :: IExpr, funcTweaks :: [(Tweak, FuncName)]}
-			 deriving Show
+
+instance Show IFunc where
+    show (Func name args body _) = name ++ concatMap ((' ':) . show) args ++ " =\n    " ++ show body
 
 data IExpr = Var Int
 		   | Make CtorName [IExpr]
@@ -26,10 +30,20 @@ data IExpr = Var Int
 		   | Sel IExpr CtorArg
 		   | Error String
 		   | Unknown
+
+            -- used for Spec
+           | Cell FuncPtr Int [IExpr] -- Partial call to a FuncPtr (num of args lacking)
+
 		   deriving (Eq,Show)
 
 data Tweak = Tweak String [String]
+           | TweakExpr [IExpr] -- used for encoding FuncPtr's
 			 deriving (Eq,Show)
+
+
+
+data FuncPtr = FuncPtr FuncName [IExpr]
+               deriving (Eq,Show)
 
 
 -- the name of the introduce function should always be "" - blank
@@ -69,6 +83,7 @@ instance Manipulate IExpr where
         Make _ xs -> xs
         Prim _ xs -> xs
         Call _ xs -> xs
+        Cell _ _ xs -> xs
         Case x xs -> x : map snd xs
         Lambda _ x -> [x]
         Apply x xs -> x : xs
@@ -78,6 +93,7 @@ instance Manipulate IExpr where
     setChildren x ys = case x of
         Make x _ -> Make x ys
         Call x _ -> Call x ys
+        Cell x n _ -> Cell x n ys
         Prim x _ -> Prim x ys
         Case _ xs -> Case yh $ zip (map fst xs) yt
         Lambda x _ -> Lambda x y1

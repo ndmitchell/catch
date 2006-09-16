@@ -31,6 +31,17 @@ trans2
 	transform2
 	reachable
 
+trans3
+	short-name
+	reachable
+	add-primitive
+	case-expand
+	error-call
+	reachable
+	string-expand
+	transform3
+	reachable
+
 compile
 	compilepre
 	backend
