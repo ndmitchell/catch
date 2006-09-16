@@ -48,6 +48,7 @@ foreign import primitive global_System'_IO'_stdout :: a
 foreign import primitive global_System'_IO'_stderr :: a
 foreign import primitive global_System'_IO'_throwIOError :: a -> b
 foreign import primitive global_System'_IO'_hPutChar :: a -> b -> c
+foreign import primitive global_System'_IO'_openFile :: a -> b -> c
 foreign import primitive global_Prelude'_Prelude'_Integral'_Prelude'_Int'_divMod :: a -> b -> c
 foreign import primitive global_Prelude'_Prelude'_Integral'_Prelude'_Integer'_divMod :: a -> b -> c
 
