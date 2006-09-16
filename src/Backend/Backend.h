@@ -20,11 +20,11 @@
 #endif
 
 #ifdef ctor__91_93
-# define CtorCons ctor__91_93
-# define CtorNil ctor__58
+# define CtorNil ctor__91_93
+# define CtorCons ctor__58
 #else
-# define CtorCons 0
-# define CtorNil 1
+# define CtorNil 0
+# define CtorCons 1
 #endif
 
 #ifdef ctor__40_44_41
@@ -112,10 +112,33 @@ int* follow_ind(int* x)
 	}
 }
 
+#define INITIAL_TOTAL 62500
+int* block;
+int total = INITIAL_TOTAL;
+int taken = INITIAL_TOTAL;
+
+int* myalloc(int n)
+{
+	if (taken + n >= total)
+	{
+		total *= 2;
+		block = malloc(total * sizeof(int));
+		taken = n;
+		return block;
+	}
+	else
+	{
+		int oldtaken = taken;
+		taken += n;
+		return &block[oldtaken];
+	}
+}
+
+
 
 int* alloc0(int typ, int x)
 {
-	int* res = malloc(sizeof(int) * 2);
+	int* res = myalloc(2);
 	res[0] = typ;
 	res[1] = x;
 	return res;
@@ -123,7 +146,7 @@ int* alloc0(int typ, int x)
 
 int* alloc1(int typ, int x, int* arg0)
 {
-	int* res = malloc(sizeof(int) * 3);
+	int* res = myalloc(3);
 	res[0] = typ;
 	res[1] = x;
 	res[2] = (int) arg0;
@@ -132,7 +155,7 @@ int* alloc1(int typ, int x, int* arg0)
 
 int* alloc2(int typ, int x, int* arg0, int* arg1)
 {
-	int* res = malloc(sizeof(int) * 4);
+	int* res = myalloc(4);
 	res[0] = typ;
 	res[1] = x;
 	res[2] = (int) arg0;
@@ -142,7 +165,7 @@ int* alloc2(int typ, int x, int* arg0, int* arg1)
 
 int* alloc3(int typ, int x, int* arg0, int* arg1, int* arg2)
 {
-	int* res = malloc(sizeof(int) * 5);
+	int* res = myalloc(5);
 	res[0] = typ;
 	res[1] = x;
 	res[2] = (int) arg0;
@@ -153,7 +176,7 @@ int* alloc3(int typ, int x, int* arg0, int* arg1, int* arg2)
 
 int* alloc4(int typ, int x, int* arg0, int* arg1, int* arg2, int* arg3)
 {
-	int* res = malloc(sizeof(int) * 6);
+	int* res = myalloc(6);
 	res[0] = typ;
 	res[1] = x;
 	res[2] = (int) arg0;
@@ -165,7 +188,7 @@ int* alloc4(int typ, int x, int* arg0, int* arg1, int* arg2, int* arg3)
 
 int* alloc5(int typ, int x, int* arg0, int* arg1, int* arg2, int* arg3, int* arg4)
 {
-	int* res = malloc(sizeof(int) * 7);
+	int* res = myalloc(7);
 	res[0] = typ;
 	res[1] = x;
 	res[2] = (int) arg0;
@@ -222,12 +245,16 @@ int* allocCall5(func call, int* arg0, int* arg1, int* arg2, int* arg3, int* arg4
 	return alloc5(Func, (int) call, arg0, arg1, arg2, arg3, arg4);
 }
 
-int* follow(int n)
+int* followVar(int* var, int n)
 {
-	int* var = (int*) (stack_top()[2]);
 	eval(var);
 	var = follow_ind(var);
 	return (int*) var[n+1];
+}
+
+int* follow(int n)
+{
+	followVar((int*) (stack_top()[2]), n);
 }
 
 int* follow1()
@@ -280,6 +307,38 @@ int* func_prim_95System_46IO_46hGetChar()
 	
 	return allocCtor1(CtorIO, allocCtor0(c == EOF ? 0 : c));
 }
+
+void prim_string(char* Buffer, int* Closure)
+{
+	int i;
+	for (i = 0; ; i++)
+	{
+		if (eval(Closure) == CtorNil)
+		{
+			Buffer[i] = 0;
+			return;
+		}
+		Buffer[i] = eval(followVar(Closure, 1));
+		Closure = followVar(Closure, 2);
+	}
+}
+
+int* func_prim_95System_46IO_46openFile()
+{
+	int* vars = stack_top();
+	FILE* f;
+	char Buffer[1000];
+	prim_string(Buffer, (int*) vars[2]);
+	f = fopen(Buffer, "rt");
+	if (f == NULL)
+	{
+		error("Failed to open file");
+		return NULL;
+	}
+	else
+		return allocCtor1(CtorIO, allocCtor0((int) f));
+}
+
 
 int* func_prim_95System_46IO_46stdout()
 {
