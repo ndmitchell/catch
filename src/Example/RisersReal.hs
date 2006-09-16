@@ -5,7 +5,7 @@ import Data.Char
 
 main :: IO ()
 main = do
-    c <- getContents 
+    c <- readFile "data.txt"
     putStrLn $ showInt $ length $ risers $ takeWhile (/= 0) $ map readInt $ lines c
 
 
