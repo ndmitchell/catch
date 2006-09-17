@@ -108,8 +108,14 @@ simpler ihite = applyAll f ihite
         f (Apply x []) = x
     
         -- more involved
+        -- (Cons a b).head ==> a
+        -- Nil.head ==> (no change) - may be in a redundant branch
         f (Sel (Make name args) arg) | ctorName x == name = args !! cargPos x
             where x = getCArg ihite arg
+
+        -- case Nil of {Nil -> a; Cons -> b} ==> a
+        f (Case (Make name args) xs) = headNote "Tranform.Rewrite.basicExpr" ys
+            where ys = [b | (a,b) <- xs, a == name || null a]
 
         f x = x
         
