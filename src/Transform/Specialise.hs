@@ -148,8 +148,10 @@ genSpecOne ihite@(IHite datas funcs) = if null newFuncs then Nothing else Just r
         haveFuncs = [FuncPtr b a | func <- funcs, let [(TweakExpr a,b)] = funcTweaks func]
         reqFuncs = [x | func <- funcs, Cell x _ _ <- allOver (funcExpr func)]
         
-        f (FuncPtr name args) = Func (name ++ "?") [0..argCount-1] body [(TweakExpr args,name)]
+        f (FuncPtr name args) = res
             where
+                res = Func (name ++ "?") [0..argCount-1] body [(TweakExpr args,name)]
+            
                 Func _ origArgs origBody _ = getFunc ihite name
                 (argCount, args2) = giveNumbers args
                 body = Apply (mapOver g origBody) (drop (length origArgs) args2)
@@ -177,20 +179,21 @@ addArg (FuncPtr name args) = FuncPtr name (args ++ [Var 0])
 --    where fresh = maximum $ 0:[a+1 | arg <- args, Var a <- allOver arg]
 
 
-specFunc (Cell (FuncPtr name specs) n args) = Cell (FuncPtr name (g specs)) n (concat newargs)
+specFunc orig@(Cell (FuncPtr name specs) n args) = res {- trace (show orig) $ -} 
     where
+        res = Cell (FuncPtr name (g specs)) n (concat newargs)
         (newspecs, newargs) = unzip $ map f args
     
         -- how would you like to specialise
         f :: IExpr -> (IExpr, [IExpr])
         f (Make n ys) = (Make n (map (const $ Var 0) ys), ys)
-        f (Cell x n xs) | n /= 0 = (Cell x n [], xs)
+        f (Cell nam n xs) | n /= 0 = (Cell nam n (map (const $ Var 0) xs), xs)
         f x = (Var 0, [x])
     
     
         -- now weave the specialisations back in
         g :: [IExpr] -> [IExpr]
-        g x = assertNote (show (x,n2,x2,ys)) (n2 == length ys) $ map (mapOver g2) x2
+        g x = assertNote (show (orig,x,n2,x2,ys)) (n2 == length ys) $ map (mapOver g2) x2
             where
                 ys = newspecs ++ replicate n (Var 0)
                 (n2,x2) = giveNumbers x
