@@ -1,5 +1,5 @@
 
-module MonadFail where
+module MonadFail2 where
 
 main = putChar 'a' `bind` putChar 'b'
 
