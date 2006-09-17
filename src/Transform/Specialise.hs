@@ -8,21 +8,90 @@ import Control.Exception
 
 
 specialise :: IHite -> IHite
-specialise ihite = error $ show $ genSpec $ useSpec $ simpler ihite
+specialise ihite = decodeCell $ reach $ useNames $ allocNames res
+    where 
+        res = simpler $ inliner $ simpler $ (f . f . f . f . f) ihite
+        f = genSpec . useSpec . simpler
 
 
 applyAll :: (IExpr -> IExpr) -> IHite -> IHite
 applyAll f (IHite a b) = IHite a [func{funcExpr = mapOver f (funcExpr func)} | func <- b]
 
 
+getFunc2 :: IHite -> FuncPtr -> IFunc
+getFunc2 (IHite _ funcs) (FuncPtr a b) = head [func | func@(Func _ _ _ [(TweakExpr c,d)]) <- funcs, c == b && d == a]
+
+
+decodeCell :: IHite -> IHite
+decodeCell ihite = applyAll f ihite
+    where
+        f (Cell (FuncPtr name _) 0 args) = Call name args
+        f x = x
+
+
+reach :: IHite -> IHite
+reach ihite@(IHite a b) = IHite a $ filter (\x -> funcName x `elem` keep) b
+    where
+        keep = fixSet f ["main"]
+        
+        f x = nub [x | Cell (FuncPtr x _) _ _ <- allOver $ funcExpr $ getFunc ihite x]
+
+
+
+allocNames :: IHite -> IHite
+allocNames (IHite a b) = IHite a (zipWith f [1..] b)
+    where
+        f n func | last nam == '?' = func{funcName = init nam ++ "~" ++ show n}
+                 | otherwise = func
+            where nam = funcName func
+
+
+useNames :: IHite -> IHite
+useNames ihite@(IHite _ funcs) = applyAll f ihite
+    where
+        f (Cell name n xs) = Cell (FuncPtr (funcName $ getFunc2 ihite name) []) n xs
+        f x = x
+        
+
+
+
+inliner :: IHite -> IHite
+inliner ihite = applyAll f ihite
+    where
+        f (Cell name 0 xs) | canInline func = mapOver f $ mapOver g (funcExpr func)
+            where
+                func = getFunc2 ihite name 
+                g (Var i) = xs !! i
+                g x = x
+        f x = x
+
+        canInline (Func name _ body [(TweakExpr a,b)]) =
+            case body of
+                (Cell nam 0 xs) | nam /= name && all isSimple xs -> True
+                _ -> isSimple body
+            where name = FuncPtr b a
+        
+        isSimple (Var x) = True
+        isSimple (Sel x y) = isSimple x
+        isSimple x = False
+                
+
+
 
 -- simple transforms, are each individual
 -- do not depend on the syntactic info in the rest of the program!
+-- guarantee to find a fixed point in one single iteration
 simpler :: IHite -> IHite
 simpler ihite = applyAll f ihite
     where
+        -- simple syntax
         f (Apply (Cell x n xs) (y:ys)) | n >= 1 = f $ Apply (Cell x (n-1) (xs++[y])) ys
         f (Apply x []) = x
+    
+        -- more involved
+        f (Sel (Make name args) arg) | ctorName x == name = args !! cargPos x
+            where x = getCArg ihite arg
+
         f x = x
         
 
@@ -30,22 +99,22 @@ simpler ihite = applyAll f ihite
 genSpec :: IHite -> IHite
 genSpec ihite@(IHite datas funcs) = IHite datas (map f newFuncs ++ funcs)
     where
-        newFuncs = reqFuncs \\ haveFuncs
+        newFuncs = nub reqFuncs \\ haveFuncs
         haveFuncs = [FuncPtr b a | func <- funcs, let [(TweakExpr a,b)] = funcTweaks func]
         reqFuncs = [x | func <- funcs, Cell x _ _ <- allOver (funcExpr func)]
         
-        f (FuncPtr name args) = Func (name ++ "~?") [0..argCount-1] body [(TweakExpr args,name)]
+        f (FuncPtr name args) = Func (name ++ "?") [0..argCount-1] body [(TweakExpr args,name)]
             where
-                orig = funcExpr $ getFunc ihite name
+                Func _ origArgs origBody _ = getFunc ihite name
                 (argCount, args2) = giveNumbers args
-                body = mapOver g orig
+                body = Apply (mapOver g origBody) (drop (length origArgs) args2)
                 
                 g (Var i) = args2 !! i
                 g x = x
 
 
 
-
+-- automatically finds a fixed point
 useSpec :: IHite -> IHite
 useSpec ihite = applyAll f ihite
     where
