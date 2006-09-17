@@ -7,8 +7,8 @@ import Graph.Rename
 
 import Hite
 import General.General
-import List
-import Maybe
+import Data.List
+import Data.Maybe
 import Data.Predicate
 
 
