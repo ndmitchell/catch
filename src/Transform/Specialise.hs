@@ -90,6 +90,7 @@ inliner ihite = if res `eqFuncs` ihite then Nothing else Just res
         canInline (Func name _ body [(TweakExpr a,b)]) =
             case body of
                 (Cell nam 0 xs) | nam /= name && all isSimple xs -> True
+                (Cell nam n []) | nam /= name -> True
                 (Make ('(':_) xs) -> True
                 _ -> isSimple body
             where name = FuncPtr b a
