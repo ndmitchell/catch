@@ -8,15 +8,21 @@ import Control.Exception
 
 
 specialise :: IHite -> IHite
-specialise ihite = decodeCell $ reach $ useNames $ allocNames $ drive ihite
+specialise ihite = decodeCell $ reach $ useNames $ allocNames $ useSpec $ drive ihite
 
+
+
+eqFuncs (IHite _ a1) (IHite _ a2) = a1 == a2
         
 -- fixed point on all operations
 -- apart from the cleanup ones
 drive :: IHite -> IHite
 drive x = f (simpler x)
     where
-        f x = if b then f x2 else x2
+        -- the x /= x2 test should not be needed
+        -- but it is for Risers at the very least
+        -- probably lurking bug...
+        f x = if b || not (x `eqFuncs` x2) then f x2 else x2
             where (b,x2) = oneStep (False,x)
     
         oneStep = liftId simpler . liftMay inliner . liftId simpler . liftMay genSpec . liftId useSpec
@@ -70,10 +76,8 @@ useNames ihite@(IHite _ funcs) = applyAll f ihite
 -- find a fixed point always
 -- return Nothing if no changes
 inliner :: IHite -> Maybe IHite
-inliner ihite = if g res == g ihite then Nothing else Just res
+inliner ihite = if res `eqFuncs` ihite then Nothing else Just res
     where
-        g (IHite a b) = b
-    
         res = applyAll f ihite
     
         f (Cell name 0 xs) | canInline func = mapOver f $ mapOver g (funcExpr func)
