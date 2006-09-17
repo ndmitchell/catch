@@ -16,6 +16,7 @@ instance Show IHite where
     show (IHite a b) = unlines $ concatMap (\x -> ["",show x]) b
 
 data IFunc = Func {funcName :: FuncName, funcArgs :: [Int], funcExpr :: IExpr, funcTweaks :: [(Tweak, FuncName)]}
+             deriving Eq
 
 instance Show IFunc where
     show (Func name args body _) = name ++ concatMap ((' ':) . show) args ++ " =\n    " ++ show body

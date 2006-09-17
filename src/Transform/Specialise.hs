@@ -8,10 +8,22 @@ import Control.Exception
 
 
 specialise :: IHite -> IHite
-specialise ihite = decodeCell $ reach $ useNames $ allocNames res
-    where 
-        res = simpler $ inliner $ simpler $ (f . f . f . f . f) ihite
-        f = genSpec . useSpec . simpler
+specialise ihite = decodeCell $ reach $ useNames $ allocNames $ drive ihite
+
+        
+-- fixed point on all operations
+-- apart from the cleanup ones
+drive :: IHite -> IHite
+drive x = f (simpler x)
+    where
+        f x = if b then f x2 else x2
+            where (b,x2) = oneStep (False,x)
+    
+        oneStep = liftId simpler . liftMay inliner . liftId simpler . liftMay genSpec . liftId useSpec
+    
+        liftId f (b, x) = (b, f x)
+        liftMay f (b, x) = case f x of {Nothing -> (b, x); Just y -> (True, y)}
+
 
 
 applyAll :: (IExpr -> IExpr) -> IHite -> IHite
@@ -19,7 +31,8 @@ applyAll f (IHite a b) = IHite a [func{funcExpr = mapOver f (funcExpr func)} | f
 
 
 getFunc2 :: IHite -> FuncPtr -> IFunc
-getFunc2 (IHite _ funcs) (FuncPtr a b) = head [func | func@(Func _ _ _ [(TweakExpr c,d)]) <- funcs, c == b && d == a]
+getFunc2 (IHite _ funcs) (FuncPtr a b) = headNote ("getFunc2: Cant find: " ++ show (FuncPtr a b)) res
+    where res = [func | func@(Func _ _ _ [(TweakExpr c,d)]) <- funcs, c == b && d == a]
 
 
 decodeCell :: IHite -> IHite
@@ -54,10 +67,15 @@ useNames ihite@(IHite _ funcs) = applyAll f ihite
         
 
 
-
-inliner :: IHite -> IHite
-inliner ihite = applyAll f ihite
+-- find a fixed point always
+-- return Nothing if no changes
+inliner :: IHite -> Maybe IHite
+inliner ihite = if g res == g ihite then Nothing else Just res
     where
+        g (IHite a b) = b
+    
+        res = applyAll f ihite
+    
         f (Cell name 0 xs) | canInline func = mapOver f $ mapOver g (funcExpr func)
             where
                 func = getFunc2 ihite name 
@@ -96,9 +114,25 @@ simpler ihite = applyAll f ihite
         
 
 
-genSpec :: IHite -> IHite
-genSpec ihite@(IHite datas funcs) = IHite datas (map f newFuncs ++ funcs)
+-- only return Just if you actually did something
+-- needs to fixpoint because there may be a specialised instance
+-- that does not have any concrete implementation - i.e. was inlined
+-- itself!
+genSpec :: IHite -> Maybe IHite
+genSpec ihite = f (genSpecOne ihite)
     where
+        f Nothing = Nothing
+        f (Just x) = Just $ g x
+        
+        g x = case genSpecOne x of
+                  Nothing -> x
+                  Just y -> g y
+        
+
+genSpecOne :: IHite -> Maybe IHite
+genSpecOne ihite@(IHite datas funcs) = if null newFuncs then Nothing else Just res
+    where
+        res = IHite datas (map f newFuncs ++ funcs)
         newFuncs = nub reqFuncs \\ haveFuncs
         haveFuncs = [FuncPtr b a | func <- funcs, let [(TweakExpr a,b)] = funcTweaks func]
         reqFuncs = [x | func <- funcs, Cell x _ _ <- allOver (funcExpr func)]
