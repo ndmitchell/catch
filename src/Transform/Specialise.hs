@@ -169,7 +169,7 @@ useSpec ihite = applyAll f ihite
         f (Apply (Cell x 0 args) (e:xtra)) = if null xtra then res else f $ Apply res xtra
             where res = Cell (addArg x) 0 (args++[e])
         
-        f cell@(Cell{}) = specFunc cell
+        f cell@(Cell{}) = specFunc ihite cell
         
         f x = x
 
@@ -180,27 +180,43 @@ addArg (FuncPtr name args) = FuncPtr name (args ++ [Var 0])
 --    where fresh = maximum $ 0:[a+1 | arg <- args, Var a <- allOver arg]
 
 
-specFunc orig@(Cell (FuncPtr name specs) n args) = res {- trace (show orig) $ -} 
+zeros = map (const $ Var 0)
+
+specFunc ihite orig@(Cell (FuncPtr name specs) n args) = res
     where
-        res = Cell (FuncPtr name (g specs)) n (concat newargs)
-        (newspecs, newargs) = unzip $ map f args
+        res = Cell (FuncPtr name (applySpec newspecs)) n (concat newargs)
+        (newspecs, newargs) = unzip
+            [if valid then (a,b) else (Var 0, [x]) |
+                (pre,x,post) <- allItems args,
+                let (a,b) = howSpec x,
+                let valid = checkSpec $ applySpec $ zeros pre ++ [a] ++ zeros post]
     
         -- how would you like to specialise
-        f :: IExpr -> (IExpr, [IExpr])
-        f (Make n ys) = (Make n (map (const $ Var 0) ys), ys)
-        f (Cell nam n xs) | n /= 0 = (Cell nam n (map (const $ Var 0) xs), xs)
-        f x = (Var 0, [x])
+        howSpec :: IExpr -> (IExpr, [IExpr])
+        howSpec (Make n ys) = (Make n (map (const $ Var 0) ys), ys)
+        howSpec (Cell nam n xs) | n /= 0 = (Cell nam n (map (const $ Var 0) xs), xs)
+        howSpec x = (Var 0, [x])
     
     
         -- now weave the specialisations back in
-        g :: [IExpr] -> [IExpr]
-        g x = assertNote (show (orig,x,n2,x2,ys)) (n2 == length ys) $ map (mapOver g2) x2
+        applySpec :: [IExpr] -> [IExpr]
+        applySpec newspecs =
+                assertNote (show (orig,specs,n2,x2,ys)) (n2 == length ys) $
+                map (mapOver g2) x2
             where
                 ys = newspecs ++ replicate n (Var 0)
-                (n2,x2) = giveNumbers x
+                (n2,x2) = giveNumbers specs
                 
                 g2 (Var i) = ys !! i
                 g2 x = x
+
+        -- check specialisation
+        checkSpec :: [IExpr] -> Bool
+        checkSpec x = all (all f . allOver) x
+            where
+                f (Make x xs) = and [not $ cargRec $ getCArgPos ihite x i
+                                    | (i,Make x2 _) <- zip [0..] xs, x2 == x]
+                f _ = True
 
 
 
