@@ -117,3 +117,8 @@ ctorNames q = map ctorName $ ctors q
 
 ctorOthers :: QCtor a => a -> [CtorName]
 ctorOthers q = delete (ctorName q) (ctorNames q)
+
+
+-- is a type field recursive
+cargRec :: QCArg a => a -> Bool
+cargRec obj = TyCon (dataName obj) (map TyFree $ frees obj) == cargType obj
