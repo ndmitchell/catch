@@ -44,7 +44,16 @@ data Tweak = Tweak String [String]
 
 
 data FuncPtr = FuncPtr FuncName [IExpr]
-               deriving (Eq,Show)
+               deriving Eq
+
+
+instance Show FuncPtr where
+    show (FuncPtr name xs) = name ++ "{" ++ concat (intersperse "," $ map show2 xs) ++ "}"
+        where
+            show2 (Var 0) = "?"
+            show2 (Make x xs) = show $ FuncPtr x xs
+            show2 (Cell x n xs) = show x ++ ":" ++ show n
+            show2 x = show x
 
 
 -- the name of the introduce function should always be "" - blank
