@@ -29,6 +29,7 @@ trans2
 	reachable
 	string-expand
 	transform2
+	del-primitive
 	reachable
 
 trans3
@@ -41,6 +42,10 @@ trans3
 	string-expand
 	transform3
 	reachable
+	case-saturate
+	del-primitive
+	reachable
+	mcase
 
 compile
 	compilepre
@@ -64,6 +69,10 @@ trans
 
 train2
 	trans
+	train-patterns
+
+train3
+	trans3
 	train-patterns
 
 prep

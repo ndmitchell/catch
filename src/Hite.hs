@@ -51,7 +51,7 @@ cmds :: [Command Hite]
 cmds = [Hite.Reachable.cmd, Hite.ShortName.cmd, Hite.ErrorFail.cmd, Hite.CaseLift.cmd,
         Hite.ArityRaise.cmd, Hite.Consts.cmd, Hite.MakeMove.cmd, Hite.Inline.cmd,
         Hite.Defunc.cmd, Hite.MCase.cmd, Hite.Check.cmd, Hite.OneCall.cmd,
-        Hite.ConstLift.cmd, Hite.ErrorCall.cmd, Hite.ArgElim.cmd, Hite.CaseExpand.cmd,
+        Hite.ConstLift.cmd, Hite.ErrorCall.cmd, Hite.ArgElim.cmd, Hite.CaseExpand.cmd1,
         Hite.StringExpand.cmd, Hite.CtorCollapse.cmd, Hite.Defunc2.cmd, Hite.Dedict.cmd,
         Hite.Transform.cmd1, Hite.Transform.cmd2, Hite.Transform.cmd3,
-        Hite.Primitive.cmd1, Hite.Primitive.cmd2]
+        Hite.Primitive.cmd1, Hite.Primitive.cmd2, Hite.CaseExpand.cmd2]
