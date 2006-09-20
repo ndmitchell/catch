@@ -160,6 +160,7 @@ coreItems ignore corefile = do
         
         g2 (CoreVar x) = CoreVar $ h x
         g2 (CoreCon x) = CoreCon $ h x
+        g2 (CoreLet xs x) = CoreLet [CoreFunc (h a) b c | CoreFunc a b c <- xs] x
         g2 x = x
         
         h x | "Primitive." `isPrefixOf` x = f res2
