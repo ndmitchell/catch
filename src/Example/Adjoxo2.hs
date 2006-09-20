@@ -1,5 +1,5 @@
 
-module Adjoxo where
+module Adjoxo2 where
 
 -- Adjudicator for noughts-and-crosses positions
 -- See *.in for example inputs.
