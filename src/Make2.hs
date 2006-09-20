@@ -69,8 +69,8 @@ make2 x = do
             b <- testDirty corefile newcache
             if not b then readCacheHite newcache else do
                 putStrLn $ "Creating: " ++ newcache
-                items <- coreItems ignore corefile
-                let hite = coreDatas $ takeWhile isCoreData items
+                res <- coreItems ignore corefile
+                let hite = convDatas $ fst res
                 writeCacheHite hite newcache
                 return hite
 
@@ -79,8 +79,8 @@ make2 x = do
             b <- testDirty corefile newcache
             if not b then readCacheHite newcache else do
                 putStrLn $ "Creating: " ++ newcache
-                items <- coreItems ignore corefile
-                let hite = coreFuncs datas $ dropWhile isCoreData items
+                res <- coreItems ignore corefile
+                let hite = convFuncs datas $ snd res
                 writeCacheHite hite newcache
                 return hite
         
@@ -147,20 +147,22 @@ testDirty src cache = do
 
 
 
-coreItems :: Set.Set String -> FilePath -> IO [CoreItem]
+coreItems :: Set.Set String -> FilePath -> IO ([CoreData],[CoreFunc])
 coreItems ignore corefile = do
-    Core modname _ items <- loadCore corefile
-    return $ (if modname == "Primitive" then map g else id) [i | i <- items, not $ getName i `Set.member` ignore]
+    Core modname _ datas funcs <- loadCore corefile
+    let isPrim = modname == "Primitive"
+        dats = [x | x@(CoreData nam _ _) <- datas, not $ nam `Set.member` ignore]
+        funs = [x | x@(CoreFunc nam _ _) <- funcs, not $ nam `Set.member` ignore]
+    return (
+        (if isPrim then map gdata else id) dats,
+        (if isPrim then map gfunc else id) funs)
     where
-        getName (CoreFunc x _ _) = x
-        getName (CoreData x _ _) = x
-        
-        g (CoreFunc x xs y) = CoreFunc (h x) xs (mapUnderCore g2 y)
-        g (CoreData name x y) = CoreData (h name) x [CoreCtor (h a) b | CoreCtor a b <- y]
+        gfunc (CoreFunc x xs y) = CoreFunc (h x) xs (mapUnderCore g2 y)
+        gdata (CoreData name x y) = CoreData (h name) x [CoreCtor (h a) b | CoreCtor a b <- y]
         
         g2 (CoreVar x) = CoreVar $ h x
         g2 (CoreCon x) = CoreCon $ h x
-        g2 (CoreLet xs x) = CoreLet [CoreFunc (h a) b c | CoreFunc a b c <- xs] x
+        g2 (CoreLet xs x) = CoreLet [(h a, b) | (a,b) <- xs] x
         g2 x = x
         
         h x | "Primitive." `isPrefixOf` x = f res2
@@ -203,7 +205,7 @@ getDeps core dep = do
     if not b then
         liftM read $ readFile dep
      else do
-        Core _ x _ <- loadCore core
+        x <- liftM coreImports $ loadCore core
         writeFile dep (show x)
         return x
 

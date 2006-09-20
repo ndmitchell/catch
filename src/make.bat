@@ -15,8 +15,12 @@ if %mode% == drift goto drift
 
 if "%flag%" == "" goto bad_flags
 
+set comp=
+if exist C:\Neil\yhc-devel\src\compiler98 set comp=C:\Neil\yhc-devel\src\compiler98
+if exist D:\sources\yhc\11_sep_2006\yhc-devel\src\compiler98 set comp=D:\sources\yhc\11_sep_2006\yhc-devel\src\compiler98
+
 echo Compiling for %mode%
-ghc --make Main -o catch%flag% -odir Temp\%mode% -hidir Temp\%mode% -iC:\Neil\yhc-devel\src\compiler98
+ghc --make Main -o catch%flag% -odir Temp\%mode% -hidir Temp\%mode% -i%comp%
 goto finish
 
 

@@ -1,5 +1,5 @@
 
-module Convert.CoreHite(coreHite, mergeHites, coreDatas, coreFuncs) where
+module Convert.CoreHite(convHite, mergeHites, convDatas, convFuncs) where
 
 import Core
 import Hite
@@ -15,19 +15,17 @@ mergeHites xs = reachable "" $ ensureCtors $ reachableCode "" $
                 Hite (concatMap datas xs) (concatMap funcs xs)
 
 
-coreHite :: Core -> Hite
-coreHite (Core n d xs) = Hite newData (concatMap (convFunc newData) funcs)
-    where
-        (datas, funcs) = partition isCoreData xs
-        newData = map convData datas
+convHite :: Core -> Hite
+convHite (Core n d datas funcs) = Hite newData (concatMap (convFunc newData) funcs)
+    where newData = map convData datas
 
 
-coreDatas :: [CoreItem] -> Hite
-coreDatas xs = Hite (map convData xs) []
+convDatas :: [CoreData] -> Hite
+convDatas xs = Hite (map convData xs) []
 
 
-coreFuncs :: Hite -> [CoreItem] -> Hite
-coreFuncs hite xs = Hite [] (concatMap (convFunc (datas hite)) xs)
+convFuncs :: Hite -> [CoreFunc] -> Hite
+convFuncs hite xs = Hite [] (concatMap (convFunc (datas hite)) xs)
 
 
 -- for things like Char and Int, new ctor's may be introduced not in the code
@@ -84,11 +82,11 @@ letExpand x = mapUnderCore f x
         f (CoreLet []     y) = y
         f x = x
         
-        g (CoreFunc x [] y) = (CoreVar x,y)
+        g (x, y) = (CoreVar x,y)
 
 
 
-convData :: CoreItem -> Data
+convData :: CoreData -> Data
 convData (CoreData dname typ ctors) = Data dname (g [] ctors) typ
     where
     	g seen [] = []
@@ -138,11 +136,7 @@ appPos (Just p) x = CorePos p x
 appPos Nothing  x = x
 
 
-instance Show CoreExpr where
-    show x = error "todo"
-
-
-convFunc :: [Data] -> CoreItem -> [Func]
+convFunc :: [Data] -> CoreFunc -> [Func]
 convFunc datas (CoreFunc name args body) = 
         map g $ Func name args res pos : rest
     where
@@ -186,23 +180,21 @@ convFunc datas (CoreFunc name args body) =
                 if null topbinds then
                     error $ "Convert.CoreHite, mutually recursive let in " ++ name
                 else
-                    makeNewCall path vars "let" (map getBody topbinds) rename
+                    makeNewCall path vars "let" (map snd topbinds) rename
             where
-                bindnames = map getName binds
+                bindnames = map fst binds
                 (topbinds, botbinds) = partition isTopLevel binds
                 
                 rename bindargs = mapUnderCore fren (if null botbinds then body else CoreLet botbinds body)
                     where
-                        ren = zip (map getName topbinds) bindargs
+                        ren = zip (map fst topbinds) bindargs
                         fren (CoreVar x) = case lookup x ren of
                                                 Just x -> x
                                                 Nothing -> CoreVar x
                         fren x = x
                         
                 
-                isTopLevel (CoreFunc _ _ body) = null [x | CoreVar x <- allCore body, x `elem` bindnames]
-                getBody (CoreFunc _ _ body) = body
-                getName (CoreFunc name _ _) = name
+                isTopLevel (_, body) = null [x | CoreVar x <- allCore body, x `elem` bindnames]
             
 
         -- case expressions, always translate, some are complex and need new functions

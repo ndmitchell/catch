@@ -11,7 +11,4 @@ isCoreFunc = not . isCoreData
 
 
 mergeCore :: Core -> Core -> Core
-mergeCore (Core _ _ a) (Core _ _ b) = Core "" [] (ad ++ bd ++ af ++ bf)
-    where
-        (ad, af) = span isCoreData a
-        (bd, bf) = span isCoreData b
+mergeCore (Core _ _ a1 b1) (Core _ _ a2 b2) = Core "" [] (a1++a2) (b1++b2)
