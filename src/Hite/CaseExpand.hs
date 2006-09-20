@@ -12,11 +12,16 @@ cmd = cmdHitePure (const caseExpand) "case-expand"
 caseExpand :: Hite -> Hite
 caseExpand hite = mapExpr f hite
     where
-        f (Case on alts) = Case on $ map (g on) alts
+        f (Case on alts) = Case on $ concatMap (g others on) alts
+            where others = ctorOthers (getCtor hite $ fst $ head alts) \\ map fst alts
         f x = x
         
-        g on ("",rhs) = ("",rhs)
-        g on (lhs,rhs) = (lhs,mapExpr (h on val) rhs)
+        g others on ("",rhs) = case others of
+                                   [] -> []
+                                   [x] -> g others on (x,rhs)
+                                   _ -> [("",rhs)]
+
+        g others on (lhs,rhs) = [(lhs,mapExpr (h on val) rhs)]
             where
                 Ctor name args _ = rawCtor $ getCtor hite lhs
                 val = Make name (map (Sel on) args)
