@@ -64,13 +64,6 @@ make2 x = do
             b2 <- testDirty corefile (cache ++ ".code")
             return $ b1 || b2
 
-        testDirty src cache = do
-            b1 <- doesFileExist cache
-            if not b1 then return True else do
-                m0 <- getModificationTime src
-                m1 <- getModificationTime cache
-                return $ m1 < m0
-        
         ensureData ignore (corefile,cache) = do
             let newcache = cache ++ ".data"
             b <- testDirty corefile newcache
@@ -145,6 +138,14 @@ make2 x = do
         
 
 -}
+testDirty src cache = do
+    b1 <- doesFileExist cache
+    if not b1 then return True else do
+        m0 <- getModificationTime src
+        m1 <- getModificationTime cache
+        return $ m1 < m0
+
+
 
 coreItems :: Set.Set String -> FilePath -> IO [CoreItem]
 coreItems ignore corefile = do
@@ -182,7 +183,7 @@ collectDeps :: String -> IO [(FilePath, String)]
 collectDeps x = do
         base <- getEnv "YHC_BASE_PATH"
         (file,cache) <- locateFile base x
-        deps <- getDeps file
+        deps <- getDeps file (cache++".dep")
         res <- f base deps []
         return $ (file,cache) : res
     where
@@ -190,15 +191,20 @@ collectDeps x = do
         f base (t:odo) done | t == "PreludeBuiltin" || t `elem` done = f base odo done
         f base (t:odo) done = do
             (file,cache) <- locateFile base t
-            deps <- getDeps file
+            deps <- getDeps file (cache++".dep")
             res <- f base (deps++odo) (t:done)
             return $ (file,cache) : res
 
 
-getDeps :: FilePath -> IO [String]
-getDeps x = do
-    Core _ y _ <- loadCore x
-    return y
+getDeps :: FilePath -> FilePath -> IO [String]
+getDeps core dep = do
+    b <- testDirty core dep
+    if not b then
+        liftM read $ readFile dep
+     else do
+        Core _ x _ <- loadCore core
+        writeFile dep (show x)
+        return x
 
 
 -- from a module, find the FilePath
