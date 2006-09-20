@@ -104,7 +104,7 @@ convData (CoreData dname typ ctors) = Data dname (g [] ctors) typ
                               | "Prelude.(" `isPrefixOf` cname =
                                         let i = length (filter (==',') cname) + 1
                                         in "tup" ++ show i ++ "_" ++ show n
-                              | otherwise = dname ++ "_" ++ cname ++ "_" ++ show n
+                              | otherwise = (map toLower $ reverse $ takeWhile (/= '.') $ reverse cname) ++ "_" ++ show n
 
 		demandUnique seen x | x `notElem` seen = x
 							| otherwise = head [x2 | i <- [1..], let x2 = x ++ show i, x2 `notElem` seen]
