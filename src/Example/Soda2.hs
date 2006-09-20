@@ -7,6 +7,8 @@
 -- * NEIL MODIFICATION
 -- import List (transpose) 
 
+module Soda2 where
+
 transpose       :: [[a]] -> [[a]]
 transpose []         = []
 transpose ([]   : xss)   = transpose xss
