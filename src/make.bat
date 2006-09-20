@@ -16,7 +16,7 @@ if %mode% == drift goto drift
 if "%flag%" == "" goto bad_flags
 
 echo Compiling for %mode%
-ghc --make Main -o catch%flag% -odir Temp\%mode% -hidir Temp\%mode%
+ghc --make Main -o catch%flag% -odir Temp\%mode% -hidir Temp\%mode% -iC:\Neil\yhc-devel\src\compiler98
 goto finish
 
 

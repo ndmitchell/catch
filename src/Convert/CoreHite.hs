@@ -10,7 +10,6 @@ import Char
 import General.General
 
 
-
 mergeHites :: [Hite] -> Hite
 mergeHites xs = reachable "" $ ensureCtors $ reachableCode "" $
                 Hite (concatMap datas xs) (concatMap funcs xs)
@@ -70,7 +69,7 @@ getName x = error $ "Convert.CoreHite.getName: pattern match failure, " ++ show 
 
 
 allReplace :: [(CoreExpr, CoreExpr)] -> CoreExpr -> CoreExpr
-allReplace ren x = mapCore f x
+allReplace ren x = mapUnderCore f x
     where
         f x = case lookup x ren of
                   Nothing -> x
@@ -79,13 +78,13 @@ allReplace ren x = mapCore f x
 
 -- Perform let expansion
 letExpand :: CoreExpr -> CoreExpr
-letExpand x = mapCore f x
+letExpand x = mapUnderCore f x
     where
         f (CoreLet (x:xs) y) = f $ allReplace [g x] (CoreLet xs y)
         f (CoreLet []     y) = y
         f x = x
         
-        g (CoreFunc (CoreApp x []) y) = (x,y)
+        g (CoreFunc x [] y) = (CoreVar x,y)
 
 
 
@@ -139,14 +138,17 @@ appPos (Just p) x = CorePos p x
 appPos Nothing  x = x
 
 
+instance Show CoreExpr where
+    show x = error "todo"
+
+
 convFunc :: [Data] -> CoreItem -> [Func]
-convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) = 
-        map g $ Func name newargs res pos : rest
+convFunc datas (CoreFunc name args body) = 
+        map g $ Func name args res pos : rest
     where
-        newargs = [x | CoreVar x <- args]
         (res, rest) = f [] (map asVar args) body
             
-        asVar (CoreVar x) = (x, Var x)
+        asVar x = (x, Var x)
         
         pos = name ++ ", " ++ getPosStr body
         
@@ -189,7 +191,7 @@ convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) =
                 bindnames = map getName binds
                 (topbinds, botbinds) = partition isTopLevel binds
                 
-                rename bindargs = mapCore fren (if null botbinds then body else CoreLet botbinds body)
+                rename bindargs = mapUnderCore fren (if null botbinds then body else CoreLet botbinds body)
                     where
                         ren = zip (map getName topbinds) bindargs
                         fren (CoreVar x) = case lookup x ren of
@@ -198,9 +200,9 @@ convFunc datas (CoreFunc (CoreApp (CoreVar name) args) body) =
                         fren x = x
                         
                 
-                isTopLevel (CoreFunc _ body) = null [x | CoreVar x <- allCore body, x `elem` bindnames]
-                getBody (CoreFunc _ body) = body
-                getName (CoreFunc (CoreApp (CoreVar name) _) _) = name
+                isTopLevel (CoreFunc _ _ body) = null [x | CoreVar x <- allCore body, x `elem` bindnames]
+                getBody (CoreFunc _ _ body) = body
+                getName (CoreFunc name _ _) = name
             
 
         -- case expressions, always translate, some are complex and need new functions

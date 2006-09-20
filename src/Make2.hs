@@ -148,22 +148,13 @@ make2 x = do
 
 coreItems :: Set.Set String -> FilePath -> IO [CoreItem]
 coreItems ignore corefile = do
-    src <- readFile corefile
-    let (h:t) = lines src
-        res = concatMap f t
-    return $ if isPrimitive h then map g res else res
+    Core modname _ items <- loadCore corefile
+    return $ (if modname == "Primitive" then map g else id) [i | i <- items, not $ getName i `Set.member` ignore]
     where
-        f "]" = []
-        f x = case (readNote "coreItems" $ tail $ dropWhile isSpace x) of
-                   x | getName x `Set.member` ignore -> []
-                   x -> [x]
-                   
-        getName (CoreFunc (CoreApp (CoreVar x) _) _) = x
+        getName (CoreFunc x _ _) = x
         getName (CoreData x _ _) = x
         
-        isPrimitive x = "Core \"Primitive\"" `isPrefixOf` x
-        
-        g (CoreFunc (CoreApp (CoreVar x) xs) y) = CoreFunc (CoreApp (CoreVar $ h x) xs) (mapCore g2 y)
+        g (CoreFunc x xs y) = CoreFunc (h x) xs (mapUnderCore g2 y)
         g (CoreData name x y) = CoreData (h name) x [CoreCtor (h a) b | CoreCtor a b <- y]
         
         g2 (CoreVar x) = CoreVar $ h x
@@ -206,11 +197,8 @@ collectDeps x = do
 
 getDeps :: FilePath -> IO [String]
 getDeps x = do
-    src <- readFile x
-    let (h:t) = lines src
-    let sec = dropWhile (/= '[') h
-        sec2 = if null t then take (length sec - 3) sec else sec
-    return $ {- "YHC.Internal" : -} readNote "getDeps" sec2
+    Core _ y _ <- loadCore x
+    return y
 
 
 -- from a module, find the FilePath

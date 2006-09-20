@@ -20,7 +20,6 @@ import CPUTime
 import Time
 import IO
 
-import Make
 import Make2
 
 import Checker.CaseCheck
@@ -327,7 +326,7 @@ pickFile x = f [x, "Example/" ++ x, "Example/" ++ x ++ ".hs"]
         f (x:xs) = do b <- doesFileExist x
                       if b then return x else f xs
 
-
+{-
 readFileHite :: String -> IO Hite
 readFileHite x = do hs <- pickFile x
                     hsd <- getModificationTime hs
@@ -365,7 +364,7 @@ readFileCore prel hs = do hsd <- getModificationTime hs
                               when prel $ do
                                     src <- readFile (cr ++ "2")
                                     writeFile cr (stripPreamble src)
-                                    
+-}
 
 
 stripPreamble src = strip src                             
