@@ -13,7 +13,7 @@ cmd2 = cmdHitePure (const $ caseExpand True) "case-saturate"
 
 
 caseExpand :: Bool -> Hite -> Hite
-caseExpand saturate hite = mapExpr f hite
+caseExpand saturate hite = mapExpr (caseSimplify hite) $ mapExpr f hite
     where
         f (Case on alts) = Case on $ concatMap (g others on) alts
             where others = ctorOthers (getCtor hite $ fst $ head alts) \\ map fst alts
@@ -33,3 +33,8 @@ caseExpand saturate hite = mapExpr f hite
         h from to x | x == from = to
                     | otherwise = x
 
+
+caseSimplify hite (Case (Make x xs) alts) | x `elem` map fst alts = fromJust $ lookup x alts
+caseSimplify hite (Sel (Make name args) path) | ctorName x == name = args !! cargPos x
+    where x = getCArg hite path
+caseSimplify hite x = x
