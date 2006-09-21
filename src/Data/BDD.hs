@@ -15,11 +15,14 @@ import Control.Exception
 data BDD a = AtomTrue
 		   | AtomFalse
 		   | Choice a (BDD a) (BDD a) -- false, true
-		   deriving (Eq, Ord, Show)
+		   deriving (Eq, Ord)
 
 
 class (Show a, Ord a) => BDDLit a where
 	litNot :: a -> BDD a
+
+instance Show a => Show (BDD a) where
+    show a = showBDDBy show a
 
 showBDDBy :: (a -> String) -> BDD a -> String
 showBDDBy f AtomTrue = "True"
