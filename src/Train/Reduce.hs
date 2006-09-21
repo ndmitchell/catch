@@ -1,10 +1,14 @@
 
-module Train.Reduce(reduce, reduces, reduceWithM, reducesWithM) where
+module Train.Reduce(reduce, reduces, reduceWithM, reducesWithM, propMapReduceM, propMapReduce) where
 
 import Train.Type
 import General.General
 import Data.Proposition
+import Data.BDD
+import Control.Monad
+import Control.Monad.Identity
 import Hite
+import Debug.Trace
 
 
 reduces :: Reqs -> Reqs
@@ -42,7 +46,7 @@ reduceOne req@(Req hite expr path ctors) = case expr of
 -- take a function that reduces a Call
 -- and reduce the entire thing
 reducesWithM :: (Req -> IO Reqs) -> Reqs -> IO Reqs
-reducesWithM f reqs = propMapM (reduceWithM f) reqs
+reducesWithM f reqs = propMapReduceM (reduceWithM f) reqs
 
 
 reduceWithM :: (Req -> IO Reqs) -> Req -> IO Reqs
@@ -50,4 +54,10 @@ reduceWithM f req@(Req hite expr path ctors) = case expr of
 	ZCall{} -> f req >>= reducesWithM f
 	ZVar{} -> return $ propLit req
 	_ -> reducesWithM f $ reduceOne req
-	
+
+
+propMapReduceM :: Monad m => (Req -> m Reqs) -> Reqs -> m Reqs
+propMapReduceM f x = mapBDDM (liftM reduces . f) x
+
+propMapReduce :: (Req -> Reqs) -> Reqs -> Reqs
+propMapReduce f x = runIdentity $ propMapReduceM (return . f) x

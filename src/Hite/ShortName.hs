@@ -31,7 +31,9 @@ shortName hite = Hite (map h2 ds) (map h1 fs)
         g x = x
         
         h1 func = func{funcName = fromJustNote "shortName(2)" $ lookup (funcName func) rename}
-        h2 (Data a b c) = Data (makeShort a) [Ctor (makeShort d) e f | Ctor d e f <- b] c
+        h2 (Data a b c) = Data (makeShort a) [Ctor (makeShort d) e (map h3 f) | Ctor d e f <- b] c
+        h3 (TyCon x xs) = TyCon (makeShort x) (map h3 xs)
+        h3 x = x
         
         makeShort x | '.' `elem` x = if null res then tail $ takeWhile (== '.') $ reverse x else res
             where res = reverse $ takeWhile (/= '.') $ reverse x

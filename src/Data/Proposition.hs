@@ -9,7 +9,3 @@ import Data.Proposition.Formula
 import Data.Proposition.Internal
 
 
-instance PropLit Int
-
-value = propLit 12 :: BDD Int
-

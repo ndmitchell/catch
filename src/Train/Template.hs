@@ -46,7 +46,7 @@ templateAbstract (Req a (ZCall name xs) b c) = newReq a (ZCall name args) b c
 
 
 templateConcrete :: Req -> Reqs -> Reqs
-templateConcrete (Req _ (ZCall name args) _ _) y = mapBDD (bddLit . f) y
+templateConcrete (Req _ (ZCall name args) _ _) y = propMapReduce (bddLit . f) y
 	where
 		f (Req a b c d) = newReq a (mapOver g b) c d
 		g (ZVar ['?',x]) = args !! (ord x - ord 'a')
@@ -56,9 +56,11 @@ templateConcrete (Req _ (ZCall name args) _ _) y = mapBDD (bddLit . f) y
 -- expr is ZCall
 templateCalc :: Template -> ZHite -> Handle -> Req -> IO Reqs
 templateCalc template zhite hndl req = do
+        () <- trace "BEGIN TEMPLATECALC" $ return ()
         hPutStrLn hndl $ "BEGIN: templateCalc, " ++ output req
         res <- liftM simplifyReqs $ fixp bddTrue f req
         hPutStrLn hndl $ "END  : templateCalc, " ++ output res
+        () <- trace "END TEMPLATECALC" $ return ()
         return $ simplifyReqs res
     where
         parent = getFuncName req
@@ -74,7 +76,8 @@ templateCalc template zhite hndl req = do
         g gen req = do
             let abstract = templateAbstract req
             answer <- gen abstract
-            res <- liftM simplifyReqs $ reducesWithM (g gen) (templateConcrete req answer)
+            let conc = templateConcrete req answer
+            res <- liftM simplifyReqs $ reducesWithM (g gen) conc
             return res
 
 {-			

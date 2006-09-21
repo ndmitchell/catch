@@ -2,6 +2,7 @@
 module Data.Proposition.Internal where
 
 import Control.Monad.Identity
+import General.General
 
 
 class Prop p where
@@ -40,7 +41,7 @@ data Reduce a = Value a
 			  | None
 
 
-class Ord a => PropLit a where
+class (Output a, Show a, Ord a) => PropLit a where
 	(?/\) :: a -> a -> Reduce a
 	(?\/) :: a -> a -> Reduce a
 	(?=>) :: [(a,Bool)] -> a -> Maybe Bool
@@ -58,13 +59,15 @@ class PropLit a => PropNot a where
 
 data PropNeg a = PropNeg a
 			   | PropId  a
-			   deriving (Ord, Eq)
+			   deriving (Ord, Eq, Show)
 
 
 instance PropLit a => PropNot (PropNeg a) where
 	litNot (PropNeg x) = PropId  x
 	litNot (PropId  x) = PropNeg x
 
+instance Output a => Output (PropNeg a) where
+    output x = undefined
 
 instance PropLit a => PropLit (PropNeg a) where
 	-- the properties can be implemented for this slightly different

@@ -30,7 +30,9 @@ backward zhite template hndl x = do
         f table [] = return table
         f table (x:xs) = do
             hPutStrLn hndl $ "Processing: " ++ x
+            -- () <- if x == "taut_let" then error $ unlines $ map output $ propagate zhite $ Scope x $ fromJust $ Map.lookup x table else return ()
             res <- oneStep $ Scope x $ fromJust $ Map.lookup x table
+            
             let (todo2,table2) = foldr g ([], table) res
             if null todo2
                 then hPutStrLn hndl $ "  Always safe"

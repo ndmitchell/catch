@@ -2,6 +2,7 @@
 module Train.Propagate(propagate) where
 
 import Train.Type
+import Train.Reduce
 import Data.Maybe
 import General.General
 import Data.Proposition
@@ -18,7 +19,7 @@ propagate zhite@(ZHite _ funcs) (Scope func reqs) = res
 	
 		f (ZFunc name _ xs) = [Scope name newReq |
 			(cond, Right code) <- xs, ZCall calls args <- allOver code, calls == func,
-			let newReq = reqsNot cond `propOr` propMap (g args) reqs, not $ propIsTrue newReq]
+			let newReq = reqsNot cond `propOr` propMapReduce (g args) reqs, not $ propIsTrue newReq]
 			
 		g args (Req hite expr path ctor) = newReqs hite (mapOver (h args) expr) path ctor
 		
