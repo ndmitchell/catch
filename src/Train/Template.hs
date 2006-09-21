@@ -56,11 +56,9 @@ templateConcrete (Req _ (ZCall name args) _ _) y = propMapReduce (bddLit . f) y
 -- expr is ZCall
 templateCalc :: Template -> ZHite -> Handle -> Req -> IO Reqs
 templateCalc template zhite hndl req = do
-        () <- trace "BEGIN TEMPLATECALC" $ return ()
         hPutStrLn hndl $ "BEGIN: templateCalc, " ++ show req
         res <- liftM simplifyReqs $ fixp bddTrue f req
         hPutStrLn hndl $ "END  : templateCalc, " ++ show res
-        () <- trace "END TEMPLATECALC" $ return ()
         return $ simplifyReqs res
     where
         parent = getFuncName req
