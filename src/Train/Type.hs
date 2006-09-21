@@ -8,7 +8,6 @@ import Train.Req
 
 
 data ZHite = ZHite [Data] [ZFunc]
-			 deriving Show
 
 
 getZFunc :: ZHite -> FuncName -> ZFunc
@@ -16,7 +15,6 @@ getZFunc (ZHite _ funcs) name = head [res | res@(ZFunc nam _ _) <- funcs, nam ==
 
 
 data ZFunc = ZFunc FuncName [FuncArg] [(Reqs, Either String ZExpr)]
-			 deriving Show
 
 
 instance Manipulate ZExpr where

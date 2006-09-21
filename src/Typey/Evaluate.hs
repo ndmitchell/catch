@@ -259,7 +259,7 @@ exprToAExp args x =
         Case a as -> ACase (f a) [(a,f b) | (a,b) <- as]
         Var a -> addValue $ lookupJust a args
         Make a as -> AMake a (map f as)
-        _ -> error $ "exprToAExp, todo: " ++ show x
+        _ -> error $ "exprToAExp, todo: " -- ++ show x
 
     where
         f x = exprToAExp args x

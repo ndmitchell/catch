@@ -36,11 +36,10 @@ instance Output ZExpr where
 
 type Scopes = [Scope]
 data Scope = Scope FuncName Reqs
-			 deriving (Eq, Ord, Show)
+			 deriving (Eq, Ord)
 
 type Reqs = BDD Req
 data Req = Req Hite ZExpr Path [CtorName]
-		   deriving (Show)
 
 instance Eq Req where
 	(Req _ a1 b1 c1) == (Req _ a2 b2 c2) = a1 == a2 && b1 == b2 && c1 == c2
@@ -84,6 +83,8 @@ newReqs hite zexpr path ctors | null ctors = propFalse
 
 
 -- UTILITIES
+
+instance Show Req where show x = "todo"
 
 instance PropLit Req where
 

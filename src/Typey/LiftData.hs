@@ -20,4 +20,4 @@ getDatas hite = map f (datas hite)
         
                 h (TyFree n) = FreeS $ fromJust $ elemIndex n free 
                 h (TyCon x xs) | x == dname && map TyFree free == xs = Self
-                h x = error $ "getDatas, " ++ dname ++ ", can't make small " ++ show x
+                h x = error $ "getDatas, " ++ dname ++ ", can't make small " -- ++ show x

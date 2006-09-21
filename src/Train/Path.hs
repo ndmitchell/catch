@@ -11,7 +11,6 @@ import Control.Monad
 
 
 data Path = Path Hite [PathElem]
-			deriving Show
 
 instance Eq Path where
 	(Path _ a) == (Path _ b) = a == b
@@ -24,7 +23,7 @@ instance Ord Path where
 
 data PathElem = PathAtom CtorArg
 	          | PathStar [CtorArg]
-	          deriving (Eq, Show, Ord)
+	          deriving (Eq, Ord)
 
 
 instance Output Path where

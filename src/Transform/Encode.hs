@@ -30,7 +30,7 @@ enExpr hite free rep x = case x of
             where
                 arity = length $ L.funcArgs $ L.getFunc hite x
                 args = [free .. arity+free-1]
-        _ -> error $ "Transform.Encode.enExpr: " ++ show x
+        _ -> error $ "Transform.Encode.enExpr: " -- ++ show x
     where
         f = enExpr hite free rep
         fs = map f

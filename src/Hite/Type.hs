@@ -27,13 +27,12 @@ type FuncName = String
 type FuncArg  = String
 
 data Hite = Hite {datas :: [Data], funcs :: [Func]}
-            deriving (Show, Read)
 
 instance QDatas Hite where
 	rawDatas = datas
 
 data Func = Func {funcName :: FuncName, funcArgs :: [FuncArg], body :: Expr, pos :: String}
-          deriving (Eq, Show, Read)
+          deriving Eq
 
 data Expr = Call {callFunc :: Expr, callArgs :: [Expr]}
           | Var {varArg :: FuncArg}
@@ -51,14 +50,14 @@ data Expr = Call {callFunc :: Expr, callArgs :: [Expr]}
           | Repeat {expr :: Expr, alt :: Expr}
           | RepeatNow
           | Bottom
-          deriving (Eq, Show, Read)
+          deriving Eq
 
 
 data MCaseOpt = MCaseOpt Expr CtorName
-                deriving (Eq, Show, Read)
+                deriving Eq
 
 data MCaseAlt = MCaseAlt (Pred MCaseOpt) Expr
-                deriving (Eq, Show, Read)
+                deriving Eq
 
 
 instance PredLit MCaseOpt where
@@ -142,7 +141,7 @@ getVarPath x = f x
         f (Var x) = (x, [])
         f (Sel x y) = (a,b ++ [y])
             where (a,b) = getVarPath x
-        f _ = error $ "Hite.Type.getVarPath, called on non-varpath: " ++ show x
+        f _ = error $ "Hite.Type.getVarPath, called on non-varpath"
 
 
 -- Generic with function

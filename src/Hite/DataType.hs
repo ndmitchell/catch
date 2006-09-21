@@ -19,10 +19,9 @@ type CtorArg  = String
 type Datas = [Data]
 
 data Data = Data DataName [Ctor] [String]
-            deriving (Show, Read)
 
 data Ctor = Ctor CtorName [CtorArg] [TyType]
-          deriving (Eq, Show, Read)
+          deriving Eq
 
 
 myAnswer :: String -> [a] -> a

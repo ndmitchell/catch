@@ -130,7 +130,7 @@ getType env@(hite,datam,datat,funct) args expr =
         Sel x path -> getTSelR (getT x) path
         Error _ -> ReasonLookup TBot "error"
         
-        _ -> error $ show ("getType",args,expr)
+        _ -> error $ show ("getType") -- ,args,expr)
     where
         getT = getType env args
         

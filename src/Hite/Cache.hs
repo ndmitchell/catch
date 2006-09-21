@@ -14,16 +14,18 @@ useBinary = True
 
 
 readCacheHite :: FilePath -> IO Hite
-readCacheHite file | useBinary = readBinary file
+readCacheHite file = readBinary file
+{-
                    | otherwise = do
     src <- readFile file
     return $ readNote ("Failed while reading cached hite: " ++ file) src
-
+-}
 
 writeCacheHite :: Hite -> FilePath -> IO ()
 writeCacheHite hite file = do b <- doesFileExist file
                               when b $ removeFile file
-                              if useBinary then writeBinary filet hite else writeFile filet (show hite)
+                              --if useBinary then writeBinary filet hite else writeFile filet (show hite)
+                              writeBinary filet hite
                               renameFile filet file
     where
         filet = file ++ ".tmp"

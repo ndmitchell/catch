@@ -176,7 +176,7 @@ evaluate hite graph = map f graph
 eval :: Hite -> GExp -> GExp
 eval hite x | not (isGFunc x) = x
 eval hite orig@(GFunc name (GCtor "." cargs)) =
-        if null res then error $ show ("Graph.Solve.eval: no matches",name,cargs)
+        if null res then error $ show ("Graph.Solve.eval: no matches",{-name,-}cargs)
         else assert (length res == 1) (head res)
     where
         (Func _ args (MCase opts) _) = getFunc hite name
@@ -211,7 +211,7 @@ eval hite orig@(GFunc name (GCtor "." cargs)) =
         convert (Msg x) = GVar "string"
         convert x = case getVar x of
                         Just y -> y
-                        Nothing -> error $ "Graph.Solve.evaluate.convert, Nothing from " ++ show (name,x,cargs)
+                        Nothing -> error $ "Graph.Solve.evaluate.convert, Nothing from " ++ show (name,{-x,-}cargs)
 
 
 ---------------------------------------------------------------------

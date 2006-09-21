@@ -76,5 +76,5 @@ addFunc hite (SFunc name args) (Env subst bind) =
                         Call (CallFunc name) args -> SFunc name (map replace args)
                         Make name args -> SCtor name (map replace args)
                         Msg _ -> SFree
-                        _ -> error $ "Subst.Solve.replace, " ++ show x
+                        _ -> error $ "Subst.Solve.replace, " -- ++ show x
         

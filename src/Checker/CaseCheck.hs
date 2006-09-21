@@ -76,7 +76,7 @@ initErrors hite = [(
         
         getMsg [Msg x] = x
         getMsg [x] = output x
-        getMsg xs = show xs
+        getMsg xs = "Unknown crash" -- show xs
     
 
     
