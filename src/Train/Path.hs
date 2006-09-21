@@ -26,13 +26,13 @@ data PathElem = PathAtom CtorArg
 	          deriving (Eq, Ord)
 
 
-instance Output Path where
-	output (Path _ xs) = concatMap (('.':) . map toUpper . output) xs
+instance Show Path where
+	show (Path _ xs) = concatMap (('.':) . map toUpper . show) xs
 
-instance Output PathElem where
-	output (PathAtom x) = x
-	output (PathStar [x]) = x ++ "*"
-	output (PathStar xs) = "(" ++ intercat "+" xs ++ ")*"
+instance Show PathElem where
+	show (PathAtom x) = x
+	show (PathStar [x]) = x ++ "*"
+	show (PathStar xs) = "(" ++ intercat "+" xs ++ ")*"
 
 
 isPathStar (PathStar{}) = True ; isPathStar _ = False

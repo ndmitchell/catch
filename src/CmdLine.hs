@@ -73,7 +73,7 @@ term s f out hite = do ensureDirectory "Logs"
                        handle <- openFile ("Logs/" ++ out ++ ".log") WriteMode
                        putStrLn "Generating reduced Haskell"
                        hPutStrLn handle $ "== " ++ s
-                       hPutStrLn handle $ output hite
+                       hPutStrLn handle $ show hite
                        hPutStrLn handle $ "================================================"
                        putStrLn $ "Begining analysis: " ++ s
                        res <- f out handle hite
@@ -90,7 +90,7 @@ verboseOut msg = Command (const f) undefined undefined
 
 outputHite :: String -> Hite -> IO ()
 outputHite msg h = do putStrLn $ "== " ++ msg
-                      putStrLn $ output h
+                      putStrLn $ show h
                       putStrLn "================================================"
 
 
@@ -188,7 +188,7 @@ exec args = do comp <- composite
                 f sing@(Single _ (Command _ name _)) = [Single "" (Command (prof name) "" ""), sing]
                 
                 prof s arg hite = do c <- getCPUTime
-                                     print $ if length (output hite) > 0 then c else 0
+                                     print $ if length (show hite) > 0 then c else 0
                                      putStrLn s
                                      return hite
                                      
@@ -401,7 +401,7 @@ isModified ct file = do b <- doesFileExist file
 fullCmdLine = specials ++ test_cmdLine ++ Actions.cmdLine
 
 
-specials = [f 0 "verbose" "output lots of information",
+specials = [f 0 "verbose" "show lots of information",
             f 1 "help" "show this help screen"
            ]
     where
@@ -490,9 +490,9 @@ helpMsg = unlines $
         ] ++ map f fullCmdLine
     where
         longestName = maximum $ map (length . cmdLineName) fullCmdLine
-        f c@(CmdLine name input output _ desc) =
+        f c@(CmdLine name input show _ desc) =
             "   -" ++ pad name ++ "  " ++ desc ++
-            if isSpecial c then "" else " (" ++ show input ++ "->" ++ show output ++ ")"
+            if isSpecial c then "" else " (" ++ show input ++ "->" ++ show show ++ ")"
         
         pad x = x ++ replicate (longestName - length x) ' '
 
@@ -503,11 +503,11 @@ typeCheck cmds = f (begin:cmds)
     where
         begin = CmdLine "<input>" OptAction OptInputs (const return) ""
     
-        f (CmdLine n1 _ input _ _ : c@(CmdLine n2 output _ _ _) : rest) =
-            if isJust (compatType input output) then f (c:rest)
+        f (CmdLine n1 _ input _ _ : c@(CmdLine n2 show _ _ _) : rest) =
+            if isJust (compatType input show) then f (c:rest)
             else error $ "Incompatible types: " ++
                          n1 ++ "(" ++ show input  ++ ")" ++ " -> " ++
-                         n2 ++ "(" ++ show output ++ ")"
+                         n2 ++ "(" ++ show show ++ ")"
         f _ = True
 
 
@@ -534,7 +534,7 @@ runCommands verbose actions inp =
         f ((a,v):as) s = do s2 <- g (verbose == Verbose) a s v
                             f as s2
         
-        g disp (CmdLine name input output act _) s v = 
+        g disp (CmdLine name input show act _) s v = 
                 do  out $ replicate 40 '-' ++ "\n-- Result after " ++ name ++ "\n"
                     s2 <- conv s
                     s3 <- act v s2
@@ -592,8 +592,8 @@ testFile file = do x <- readFile file
                    let xs = lines x
                        params = splitList " " (head xs)
                        brk = xs !! 1
-                       (input, _:output) = break (== brk) (drop 2 xs)
-                       out = unlines output
+                       (input, _:show) = break (== brk) (drop 2 xs)
+                       out = unlines show
                    res <- execPipe params (unlines input)
                    return Nothing
                    

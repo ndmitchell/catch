@@ -23,7 +23,7 @@ deExpr ihite x = case x of
         L.Call x xs -> R.Call (R.CallFunc x) (fs xs)
         L.Error x -> R.Error x
         L.Unknown -> R.Unknown
-        _ -> error $ "Transform.Decode.deExpr: " ++ show x ++ "\n\n" ++ output ihite
+        _ -> error $ "Transform.Decode.deExpr: " ++ show x ++ "\n\n" ++ show ihite
     where
         f = deExpr ihite
         fs = map f

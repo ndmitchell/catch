@@ -14,13 +14,12 @@ data TSubtype = TFree [String]
               | TBot
               | TVoid
               | TAny
-              deriving (Show)
 
 data TArr = TArr [TSubtype] TSubtype
-            deriving (Eq, Show)
+            deriving (Eq)
 
 data TPair = TPair [CtorName] [TSubtype]
-             deriving (Eq, Show)
+             deriving (Eq)
 
 instance Eq TSubtype where
     (TFree a) == (TFree b) = a `setEq` b
@@ -89,20 +88,20 @@ instance PlayTSubtype TPair where
     allTSubtype (TPair a as) = concatMap allTSubtype as
 
 
-instance Output TSubtype where
-    output (TFree x) = showSet x
-    output (TBind xs) = "{" ++ intercat " | " (map output xs) ++ "}"
-    output (TFunc x) = "<" ++ intercat " | " (map output x) ++ ">"
-    output TBot = "!"
-    output TVoid = "*"
-    output TAny = "?"
+instance Show TSubtype where
+    show (TFree x) = showSet x
+    show (TBind xs) = "{" ++ intercat " | " (map show xs) ++ "}"
+    show (TFunc x) = "<" ++ intercat " | " (map show x) ++ ">"
+    show TBot = "!"
+    show TVoid = "*"
+    show TAny = "?"
 
-instance Output TArr where
-    output (TArr a b) = "(" ++ intercat " -> " (map output $ a++[b]) ++ ")"
+instance Show TArr where
+    show (TArr a b) = "(" ++ intercat " -> " (map show $ a++[b]) ++ ")"
 
-instance Output TPair where
-    output (TPair a []) = showSet (map repBox a)
-    output (TPair a b) = output (TPair a []) ++ " [" ++ intercat "," (map output b) ++ "]"
+instance Show TPair where
+    show (TPair a []) = showSet (map repBox a)
+    show (TPair a b) = show (TPair a []) ++ " [" ++ intercat "," (map show b) ++ "]"
 
 -- beacuse [] is overloaded in meaning enough already!
 repBox "[]" = "#"
@@ -121,8 +120,8 @@ showTypeList :: TypeList -> String
 showTypeList x = unlines $ concatMap f x
     where
         f (name,typs) = (name ++ " ::") : g typs
-        g (TFunc xs) = map ((++) "    " . output) xs
-        g x = ["    " ++ output x]
+        g (TFunc xs) = map ((++) "    " . show) xs
+        g x = ["    " ++ show x]
 
 
 splitVar s = let (a,b) = span isAlpha s in (a, (read b) :: Int)

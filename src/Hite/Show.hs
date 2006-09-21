@@ -7,27 +7,27 @@ import General.General
 import Data.Predicate
 
 
-instance Output Hite where
-    output (Hite datas funcs) = unlines (map output datas ++ map output funcs)
+instance Show Hite where
+    show (Hite datas funcs) = unlines (map show datas ++ map show funcs)
     
-instance Output Data where
-    output (Data name ctors frees) =
+instance Show Data where
+    show (Data name ctors frees) =
         "data " ++ name ++ concatMap (' ':) frees ++ " = " ++ 
-        (intercat " | " $ map output ctors)
+        (intercat " | " $ map show ctors)
     
-instance Output Ctor where
-    output (Ctor name [] []) = name
-    output (Ctor name args types) = name ++ " {" ++ intercat ", " (zipWith f args types) ++ "}"
-        where f arg typ = arg ++ " :: " ++ output typ
+instance Show Ctor where
+    show (Ctor name [] []) = name
+    show (Ctor name args types) = name ++ " {" ++ intercat ", " (zipWith f args types) ++ "}"
+        where f arg typ = arg ++ " :: " ++ show typ
     
-instance Output Func where
-    output (Func name args expr pos) =
+instance Show Func where
+    show (Func name args expr pos) =
         "\n" ++ name ++ concatMap (' ':) args ++
         " @(" ++ pos ++ ")" ++
-        " = " ++ output expr
+        " = " ++ show expr
 
-instance Output Expr where
-    output x = f False 0 x
+instance Show Expr where
+    show x = f False 0 x
         where
             brack True x = "(" ++ x ++ ")"
             brack False x = x
@@ -40,7 +40,7 @@ instance Output Expr where
             f b i (Msg s) = show s
             f b i (Error s) = brack b $ "Error " ++ show s
             
-            f b i (MCase opts) = concatMap output opts
+            f b i (MCase opts) = concatMap show opts
 
             f b i (Sel expr arg) = f True i expr ++ "." ++ arg
             f b i (Make name args) = f b i (Call (CallFunc name) args)
@@ -50,7 +50,7 @@ instance Output Expr where
             f b i (Call name args) = brack b $ concat $ intersperse " " $
                                      map (f True i) (name:args)
 
-            f b i (Case cond opts) = "case " ++ output cond ++ " of\n" ++
+            f b i (Case cond opts) = "case " ++ show cond ++ " of\n" ++
                                      if null opts then "    {- NO OPTIONS! -}" else
                                      (init $ unlines $ map (g (i+4)) opts)
 
@@ -61,15 +61,15 @@ instance Output Expr where
             h i alt (Just x) = f True i x
 
 
-instance Output MCaseAlt where
-    output (MCaseAlt cond expr) = "\n  | " ++ output cond ++ " = " ++ output expr
+instance Show MCaseAlt where
+    show (MCaseAlt cond expr) = "\n  | " ++ show cond ++ " = " ++ show expr
     
     
-instance Output MCaseOpt where
-    output (MCaseOpt expr ctor) = output expr ++ "{" ++ ctor ++ "}"
+instance Show MCaseOpt where
+    show (MCaseOpt expr ctor) = show expr ++ "{" ++ ctor ++ "}"
 
-instance Output TyType where
-    output x = f False x
+instance Show TyType where
+    show x = f False x
         where
             f b (TyFree x) = x
             f b (TyCon n xs) = ['('|b] ++ n ++ concatMap ((' ':) . f True) xs ++ [')'|b]

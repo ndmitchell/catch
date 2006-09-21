@@ -209,14 +209,6 @@ allPairs (x:xs) = map ((,) x) xs ++ allPairs xs
 -- OUTPUT STUFF
 
 
-class Output x where
-    output :: x -> String
-
-instance Output a => Output (Pred a) where
-    output x = showPredBy output x
-
-
-
 strSet :: [String] -> String
 strSet xs = "{" ++ intercat "," xs ++ "}"
 

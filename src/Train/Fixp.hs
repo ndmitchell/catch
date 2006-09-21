@@ -1,16 +1,14 @@
 
 module Train.Fixp(fixp) where
 
-import General.General
 
-
-fixp :: (Output v, Output k, Eq v, Eq k) => v -> (k -> (k -> IO v) -> IO v) -> k -> IO v
+fixp :: (Show v, Show k, Eq v, Eq k) => v -> (k -> (k -> IO v) -> IO v) -> k -> IO v
 fixp def solve key = gen [] key
 	where
 		-- look up in the stack if possible
 		ask stack key = do
-			-- putStrLn $ "Searching for: " ++ output key
-			-- putStrLn $ "In: " ++ show [(output a, output b) | (a,b) <- stack]
+			-- putStrLn $ "Searching for: " ++ show key
+			-- putStrLn $ "In: " ++ show [(show a, show b) | (a,b) <- stack]
 			case lookup key stack of
 				Nothing -> {- putStrLn "Not found" >> -} gen stack key
 				Just x -> {- putStrLn "Found" >> -} return x

@@ -57,7 +57,7 @@ data R = R1 ReqAll | R2 Req
          deriving Eq
 
 
-class (Output a, PredLit a, Show a, Eq a) => Reducer a where
+class (PredLit a, Show a, Eq a) => Reducer a where
     reducer :: Hite -> [R] -> Bool -> a -> OutputMonad (Pred a)
     simpler :: Hite -> Pred a -> Pred a
     backwards :: Hite -> Pred a -> Pred a
@@ -66,14 +66,14 @@ class (Output a, PredLit a, Show a, Eq a) => Reducer a where
 instance Reducer ReqAll where
     reducer hite pending supress orig_req =
         do
-            when (not supress) $ putLog (output orig_req)
+            when (not supress) $ putLog (show orig_req)
             case orig_req of
                 r | R1 r `elem` pending -> do putLog "True -- Pending tied back"
                                               return predTrue 
             
                 (ReqAll on within) -> do incIndent
                                          x <- reduceMany hite pending within
-                                         putLog $ output x
+                                         putLog $ show x
                                          decIndent
                                          if headNote "Checker.Solver.reduceOne" on == '!' then
                                              return $ predLit (ReqAll (tail on) within)
@@ -88,7 +88,7 @@ instance Reducer ReqAll where
 instance Reducer Req where
     reducer hite pending supress orig_req =
         do
-            when (not supress) $ putLog (output orig_req)
+            when (not supress) $ putLog (show orig_req)
             case orig_req of
                 r | R2 r `elem` pending -> do putLog "True -- Pending tied back"
                                               return predTrue
@@ -117,7 +117,7 @@ instance Reducer Req where
 
 reduceMany :: Reducer a => Hite -> [R] -> Pred a -> OutputMonad (Pred a)
 reduceMany hite pending orig2_xs = do
-        putLog $ output orig_xs
+        putLog $ show orig_xs
         ind <- getIndent
         if ind > maxCheckDepth -- `div` 2
             then do putLog "Lazy, giving up (False)"
@@ -133,21 +133,21 @@ reduceMany hite pending orig2_xs = do
         f xs =
             do
                 let reqs = nub $ allPredLit xs
-                putLog $ "+ " ++ output orig_xs
-                putLog $ "  " ++ output xs
+                putLog $ "+ " ++ show orig_xs
+                putLog $ "  " ++ show xs
                 res <- g xs reqs
-                putLog $ "- " ++ output res
+                putLog $ "- " ++ show res
                 return res
 
         g reqs [] = return reqs
         g reqs (x:xs) = do incIndent
-                           putLog $ "+ " ++ output x
+                           putLog $ "+ " ++ show x
                            res <-
                                if x `elem` allPredLit reqs then
                                    do incIndent
                                       r <- reducer hite pending True x
                                       decIndent
-                                      putLog $ "  - " ++ output r
+                                      putLog $ "  - " ++ show r
                                       return $ simpler hite $ mapPredLit (replace x r) reqs
                                else
                                    do putLog "  - ignored for now"

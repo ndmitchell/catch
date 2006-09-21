@@ -75,7 +75,7 @@ backward hite (Req (Msg _) path opts h) = predFalse
 
 
 backward hite all@(Req a b c h) = error $ "backward, unhandled: " ++ show all ++ ": " ++ case a of
-    Call x xs -> "call" ++ show (output x, map output xs)
+    Call x xs -> "call" ++ show (show x, map show xs)
     CallFunc x -> "callfunc"
     Make x xs -> "make"
     Repeat _ _ -> "repeat"

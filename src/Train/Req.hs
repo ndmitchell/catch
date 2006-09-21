@@ -17,15 +17,15 @@ data ZExpr = ZCall FuncName [ZExpr]
 		   | ZSel ZExpr CtorArg
 		   | ZVar FuncArg
 		   | ZAny
-		   deriving (Eq, Show, Ord)
+		   deriving (Eq, Ord)
 
 
-instance Output ZExpr where
-	output x = case x of
+instance Show ZExpr where
+	show x = case x of
 		ZCall x [] -> x
-		ZCall x xs -> "(" ++ x ++ concatMap ((' ':) . output) xs ++ ")"
-		ZMake x xs -> output (ZCall x xs)
-		ZSel x y -> output x ++ "." ++ y
+		ZCall x xs -> "(" ++ x ++ concatMap ((' ':) . show) xs ++ ")"
+		ZMake x xs -> show (ZCall x xs)
+		ZSel x y -> show x ++ "." ++ y
 		ZVar x -> x
 		ZAny -> "_"
 
@@ -47,15 +47,12 @@ instance Eq Req where
 instance Ord Req where
 	compare (Req _ a1 b1 c1) (Req _ a2 b2 c2) = compare (a1,b1,c1) (a2,b2,c2)
 
-instance Output Scope where
-	output (Scope name reqs) = "(\\forall " ++ name ++ ", " ++ output reqs ++ ")"
+instance Show Scope where
+	show (Scope name reqs) = "(\\forall " ++ name ++ ", " ++ show reqs ++ ")"
 
-instance Output a => Output (BDD a) where
-	output x = propShowBy output x
-
-instance Output Req where
-	output (Req _ expr path ctor) =
-		output expr ++ output path ++ strSet ctor
+instance Show Req where
+	show (Req _ expr path ctor) =
+		show expr ++ show path ++ strSet ctor
 
 
 -- SMART CONSTRUCTORS
@@ -83,8 +80,6 @@ newReqs hite zexpr path ctors | null ctors = propFalse
 
 
 -- UTILITIES
-
-instance Show Req where show x = "todo"
 
 instance PropLit Req where
 

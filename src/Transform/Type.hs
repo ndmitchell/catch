@@ -12,14 +12,8 @@ data IHite = IHite Datas [IFunc]
 instance QDatas IHite where
 	rawDatas (IHite res _) = res
 
-instance Show IHite where
-    show (IHite a b) = unlines $ concatMap (\x -> ["",show x]) b
-
 data IFunc = Func {funcName :: FuncName, funcArgs :: [Int], funcExpr :: IExpr, funcTweaks :: [(Tweak, FuncName)]}
              deriving Eq
-
-instance Show IFunc where
-    show (Func name args body _) = name ++ concatMap ((' ':) . show) args ++ " =\n    " ++ show body
 
 data IExpr = Var Int
 		   | Make CtorName [IExpr]
@@ -72,9 +66,9 @@ type FuncCreate = IHite -> IExpr -> Maybe (IExpr, FuncName, Tweak, IFunc)
 
 getFunc :: IHite -> FuncName -> IFunc
 getFunc ihite@(IHite _ funcs) name = case filter (\x -> funcName x == name) funcs of
-	[] -> error $ "Could not find " ++ name ++ " in " ++ show (map funcName funcs) ++ ":\n" ++ output ihite
+	[] -> error $ "Could not find " ++ name ++ " in " ++ show (map funcName funcs) ++ ":\n" ++ show ihite
 	[x] -> x
-	xs -> error $ "Multiple defn of " ++ name ++ " in " ++ strSet (map funcName funcs) ++ ":\n" ++ output ihite
+	xs -> error $ "Multiple defn of " ++ name ++ " in " ++ strSet (map funcName funcs) ++ ":\n" ++ show ihite
 
 
 
@@ -146,20 +140,15 @@ replaceFree rep x = case x of
 	x -> setChildren x (map (replaceFree rep) (getChildren x))
 
 
-instance Output IHite where
-	output (IHite _ xs) = concat $ intersperse "\n" $ map output xs
+instance Show IHite where
+    show (IHite a b) = unlines $ concatMap (\x -> ["",show x]) b
 
-
-instance Output IFunc where
-	output (Func name args body tweaks) =
+instance Show IFunc where
+	show (Func name args body tweaks) =
 		name ++ concatMap ((' ':) . show) args ++ " = " ++ t ++
-		"\n" ++ indentStr (output body)
+		"\n" ++ indentStr (show body)
 		where
 			t = show tweaks
-
-
-instance Output IExpr where
-	output x = show x
 
 
 

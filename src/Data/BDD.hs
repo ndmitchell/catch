@@ -21,10 +21,6 @@ data BDD a = AtomTrue
 class (Show a, Ord a) => BDDLit a where
 	litNot :: a -> BDD a
 
-instance Output Char where
-    output c = show c
-
-
 showBDDBy :: (a -> String) -> BDD a -> String
 showBDDBy f AtomTrue = "True"
 showBDDBy f AtomFalse = "False"
@@ -41,7 +37,7 @@ bddValid (Choice a f1 t1) = f a f1 && f a t1
 bddValid _ = True
 
 
-bddApplyAnd :: (Output a, Ord a) => (a -> a -> Maybe a) -> BDD a -> BDD a
+bddApplyAnd :: (Show a, Ord a) => (a -> a -> Maybe a) -> BDD a -> BDD a
 bddApplyAnd merge = rebalance . f
 	where
 		f (Choice on1 false1 true1@(Choice on2 false2 true2))
@@ -59,7 +55,7 @@ bddAnds x = foldr bddAnd AtomTrue  x
 bddOrs  x = foldr bddOr  AtomFalse x
 
 
-bddNot :: (Output a, Ord a) => (a -> a) -> BDD a -> BDD a
+bddNot :: (Show a, Ord a) => (a -> a) -> BDD a -> BDD a
 bddNot invert = rebalance . swap
 	where
 		swap AtomFalse = AtomTrue
@@ -139,7 +135,7 @@ hasBalance _ = True
 data Focus = FLeft | FRight | FBoth | FNone
 
 
-rebalance :: (Output a, Ord a) => BDD a -> BDD a
+rebalance :: (Show a, Ord a) => BDD a -> BDD a
 rebalance AtomTrue = AtomTrue
 rebalance AtomFalse = AtomFalse
 rebalance (Choice a f t) = {- assert (hasBalance res) $ -} res
@@ -195,9 +191,9 @@ rebalance (Choice a f t) = {- assert (hasBalance res) $ -} res
         
         -}
         
-        --g 0 x | trace ("rebal.g " ++ showBDDBy output x) False = undefined
+        --g 0 x | trace ("rebal.g " ++ showBDDBy show x) False = undefined
 
-        -- g n x | trace ("Rebalance.g " ++ show n {- showBDDBy output x-} ) False = undefined
+        -- g n x | trace ("Rebalance.g " ++ show n {- showBDDBy show x-} ) False = undefined
         {-
         g n (Choice a t f)
             | t == f = t
@@ -212,7 +208,7 @@ rebalance (Choice a f t) = {- assert (hasBalance res) $ -} res
 
         g n x = x
         
-        k rel a b = trace (rel ++ " " ++ output a ++ " ### " ++ output b)
+        k rel a b = trace (rel ++ " " ++ show a ++ " ### " ++ show b)
         -}
 
 
@@ -248,7 +244,7 @@ mapBDD f x = rebalance $ snd $ g x Map.empty
 -}
 
 
-mapBDD :: (Output a, Ord a) => (a -> BDD a) -> BDD a -> BDD a
+mapBDD :: (Show a, Ord a) => (a -> BDD a) -> BDD a -> BDD a
 mapBDD f = runIdentity . mapBDDM (return . f)
 
 
@@ -256,7 +252,7 @@ getSize (Choice _ f t) = getSize f + getSize t + 1
 getSize _ = 1
 
 
-mapBDDM :: (Output a, Monad m, Ord a) => (a -> m (BDD a)) -> BDD a -> m (BDD a)
+mapBDDM :: (Show a, Monad m, Ord a) => (a -> m (BDD a)) -> BDD a -> m (BDD a)
 mapBDDM app x = do
         (d, res) <- g (appWrap app) x Map.empty
         return $ rebalance res

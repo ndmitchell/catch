@@ -38,7 +38,7 @@ check (Hite datas funcs) =
                 checkExpr (MCase alts) = all checkCase alts
                 checkExpr (Prim x xs) = all checkExpr xs
                 
-                checkExpr x = error $ "Disallowed language element, " ++ output x
+                checkExpr x = error $ "Disallowed language element, " ++ show x
                 
                 checkAlt (on, arg) = on `elm` allCtorName && checkExpr arg
                 

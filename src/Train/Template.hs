@@ -33,7 +33,7 @@ templateGet template@(Template zhite hndl cache) req = do
                Nothing -> do
                    ans <- templateCalc template zhite hndl abstract
                    modifyIORef cache ((abstract,ans):)
-                   hPutStrLn hndl $ "Add: " ++ output abstract ++ " = " ++ output ans
+                   hPutStrLn hndl $ "Add: " ++ show abstract ++ " = " ++ show ans
                    return ans
     return $ templateConcrete req ans
 
@@ -57,9 +57,9 @@ templateConcrete (Req _ (ZCall name args) _ _) y = propMapReduce (bddLit . f) y
 templateCalc :: Template -> ZHite -> Handle -> Req -> IO Reqs
 templateCalc template zhite hndl req = do
         () <- trace "BEGIN TEMPLATECALC" $ return ()
-        hPutStrLn hndl $ "BEGIN: templateCalc, " ++ output req
+        hPutStrLn hndl $ "BEGIN: templateCalc, " ++ show req
         res <- liftM simplifyReqs $ fixp bddTrue f req
-        hPutStrLn hndl $ "END  : templateCalc, " ++ output res
+        hPutStrLn hndl $ "END  : templateCalc, " ++ show res
         () <- trace "END TEMPLATECALC" $ return ()
         return $ simplifyReqs res
     where
@@ -87,16 +87,16 @@ templateCalc template zhite hndl req = do
 		g gen req = do
 			res <- mapPredLitM (h gen) (reduce req)
 			res2 <- return $ predDnf res
-			putStrLn $ "FROM: " ++ output req
-			putStrLn $ "TO: " ++ output res2
+			putStrLn $ "FROM: " ++ show req
+			putStrLn $ "TO: " ++ show res2
 			return res2
 		
 		h gen req@(Req hite expr path ctors) = case expr of
 			ZCall name args -> do
 				let abstract = templateAbstract req
-				putStrLn $ "Calling gen: " ++ output abstract
+				putStrLn $ "Calling gen: " ++ show abstract
 				answer <- gen abstract
-				putStrLn $ "Answer: " ++ output answer
+				putStrLn $ "Answer: " ++ show answer
 				return $ templateConcrete req answer
 			_ -> return $ predLit req
 -}

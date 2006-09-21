@@ -91,13 +91,13 @@ solveOnce r logger env@(hite,datam,datat,funct) todo =
         
         g :: String -> TArr -> IO (Bool, TArr)
         g name t@(TArr args res) = do
-            logger $ name ++ " :: " ++ output t
+            logger $ name ++ " :: " ++ show t
             let res2 = getFuncType env2 name args
                 res3 = reasonSubtype res2
                 same = res == res3
-                msg = if same then " KEEP" else " ===> " ++ output res3
+                msg = if same then " KEEP" else " ===> " ++ show res3
             logger $ msg ++ "\n"
-            reasonSubsubsection r $ name ++ " :: " ++ output t ++ msg
+            reasonSubsubsection r $ name ++ " :: " ++ show t ++ msg
             reasonShow r $ res2
             return (not same, TArr args res3)
 
@@ -108,7 +108,7 @@ getFuncType env@(hite,datam,datat,funct) funcname argt =
             ReasonArgs rep (ReasonUnion res ress)
         else
             error $ "getFuncType-free, " ++
-                    funcname ++ " :: " ++ intercat " -> " (map output argt) ++ "==" ++
+                    funcname ++ " :: " ++ intercat " -> " (map show argt) ++ "==" ++
                     show failed
     where
         failed = filter (not.isTBound) $ map reasonSubtype ress

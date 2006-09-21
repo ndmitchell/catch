@@ -30,7 +30,7 @@ trainDriver file hndl hite = do
         when (null conds) $
             putStrLn "No pattern match errors, trivially safe"
 
-        outBoth $ "Final: \\forall main, " ++ output ress
+        outBoth $ "Final: \\forall main, " ++ show ress
 
         hFlush hndl
         hClose hndlTemplate
@@ -45,14 +45,14 @@ trainDriver file hndl hite = do
         
         f hndlTemplate hndlBackward template cond = do
             let pref = "\n\n" ++ replicate 70 '-' ++ "\n"
-                msg1 = "Solving " ++ output cond
+                msg1 = "Solving " ++ show cond
             outBoth msg1
             hPutStrLn hndlTemplate (pref ++ msg1)
             hPutStrLn hndlBackward (pref ++ msg1)
             
             res <- backward zhite template hndlBackward [cond]
             
-            let msg2 = "Result \\forall main, " ++ output res
+            let msg2 = "Result \\forall main, " ++ show res
             outBoth msg2
             hPutStrLn hndlBackward $ "\n" ++ msg2
             return res

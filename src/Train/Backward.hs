@@ -30,7 +30,7 @@ backward zhite template hndl x = do
         f table [] = return table
         f table (x:xs) = do
             hPutStrLn hndl $ "Processing: " ++ x
-            -- () <- if x == "taut_let" then error $ unlines $ map output $ propagate zhite $ Scope x $ fromJust $ Map.lookup x table else return ()
+            -- () <- if x == "taut_let" then error $ unlines $ map show $ propagate zhite $ Scope x $ fromJust $ Map.lookup x table else return ()
             res <- oneStep $ Scope x $ fromJust $ Map.lookup x table
             
             let (todo2,table2) = foldr g ([], table) res
@@ -41,7 +41,7 @@ backward zhite template hndl x = do
             f table2 (nub $ xs ++ todo2)
             where
                 outLine table x
-                    = hPutStrLn hndl $ ("  " ++) $ output $ Scope x $ Map.findWithDefault propTrue x table
+                    = hPutStrLn hndl $ ("  " ++) $ show $ Scope x $ Map.findWithDefault propTrue x table
 
         g (Scope func x) (todo,mp)
                 | ans == ans2 = (todo,mp)
@@ -71,7 +71,7 @@ backward zhite template hndl x = do
 		g scope gen = do
 			let scopes = propagate zhite scope
 			res <- mapM (\x -> backs x >>= gen) scopes
-			putStrLn $ "Propagate: " ++ output scope ++ " ==> " ++ output res
+			putStrLn $ "Propagate: " ++ show scope ++ " ==> " ++ show res
 			return res
 		
 		backs (Scope name x) = do

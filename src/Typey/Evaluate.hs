@@ -292,4 +292,4 @@ eval env@(hite,datam,funcm,cache) args expr =
         
         Error _ -> AbsBottom
         
-        x -> error $ "eval: " ++ output x
+        x -> error $ "eval: " ++ show x

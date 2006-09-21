@@ -39,7 +39,7 @@ reduceOne req@(Req hite expr path ctors) = case expr of
 						   Nothing -> propTrue
 						   Just path2 -> newReqs hite x path2 ctors
 	
-	_ -> error $ "reduceOne: " ++ output req
+	_ -> error $ "reduceOne: " ++ show req
 	
 
 

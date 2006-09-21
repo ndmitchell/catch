@@ -42,7 +42,7 @@ createGraph hite@(Hite _ funcs) = nodes
                 generate :: MCaseOpt -> (String, GExp)
                 generate (MCaseOpt s ctor) = (var,
                         GCtor ctor [GVar $ var ++ "." ++ x | x <- ctorArgs $ getCtor hite ctor])
-                    where var = output s
+                    where var = show s
                 
                 solve :: GExp -> [(String, GExp)] -> GExp
                 solve b [] = b

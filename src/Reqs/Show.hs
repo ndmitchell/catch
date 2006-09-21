@@ -15,15 +15,8 @@ import Char
 import Data.Predicate
 
 
-instance Output Req where
-    output x = show x
-    
-instance Output ReqAll where
-    output x = show x
-
-
 instance Show Req where
-    show (Req expr regs opts _) = "<" ++ inline (output expr) ++ "," ++ pathPretty regs ++ "," ++ strSet opts ++ ">"
+    show (Req expr regs opts _) = "<" ++ inline (show expr) ++ "," ++ pathPretty regs ++ "," ++ strSet opts ++ ">"
         where
             inline x = case lines x of
                 [x] -> x
@@ -31,7 +24,7 @@ instance Show Req where
 
 
 instance Show ReqAll where
-    show (ReqAll on within) = "(\\forall " ++ on ++ ", " ++ output within ++ ")"
+    show (ReqAll on within) = "(\\forall " ++ on ++ ", " ++ show within ++ ")"
 
 
 

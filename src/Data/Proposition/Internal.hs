@@ -41,7 +41,7 @@ data Reduce a = Value a
 			  | None
 
 
-class (Output a, Show a, Ord a) => PropLit a where
+class (Show a, Ord a) => PropLit a where
 	(?/\) :: a -> a -> Reduce a
 	(?\/) :: a -> a -> Reduce a
 	(?=>) :: [(a,Bool)] -> a -> Maybe Bool
@@ -65,9 +65,6 @@ data PropNeg a = PropNeg a
 instance PropLit a => PropNot (PropNeg a) where
 	litNot (PropNeg x) = PropId  x
 	litNot (PropId  x) = PropNeg x
-
-instance Output a => Output (PropNeg a) where
-    output x = undefined
 
 instance PropLit a => PropLit (PropNeg a) where
 	-- the properties can be implemented for this slightly different
