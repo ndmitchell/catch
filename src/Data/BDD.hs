@@ -210,4 +210,3 @@ h rep f t = case rep of
     AtomTrue -> t
     AtomFalse -> f
     Choice a f1 t1 -> Choice a (h f1 f t) (h t1 f t)
-s
