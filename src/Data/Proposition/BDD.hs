@@ -16,5 +16,3 @@ instance Prop BDD where
 	propNot = bddNot litNot
 
 	propMapM = mapBDDM
-
-	propShowBy = showBDDBy

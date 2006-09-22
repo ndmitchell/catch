@@ -19,8 +19,6 @@ class Prop p where
 	propMapM :: (Monad m, PropLit a) => (a -> m (p a)) -> p a -> m (p a)
 	propAll  :: p a -> [a]
 
-	propShowBy :: (a -> String) -> p a -> String
-
 	-- non essential methods
 	propAnds :: PropLit a => [p a] -> p a
 	propAnds = foldr propAnd propTrue
