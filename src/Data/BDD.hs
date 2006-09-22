@@ -65,17 +65,6 @@ bddNot invert = rebalance . swap
 		swap AtomTrue  = AtomFalse
 		swap (Choice a f t) = Choice (invert a) (swap t) (swap f)
 
---bddNot AtomFalse = AtomTrue
---bddNot AtomTrue  = AtomFalse
---bddNot c = error $ showBDDBy show c ++ " ==> " ++ showBDDBy show (mapBDD litNot c)
-{-	where
-		g (Choice a f t) = case litNot a of
-							   
-		
-		Choice a (g t) (g f)
-		g x = x
--}
-
 
 bddAnd :: Ord a => BDD a -> BDD a -> BDD a
 bddAnd AtomTrue b = b
@@ -171,48 +160,6 @@ rebalance (Choice a f t) = {- assert (hasBalance res) $ -} res
                             (Choice a _ _, _) -> FLeft
                             (_, Choice b _ _) -> FRight
                             _ -> FNone
-        
-        {-
-        
-        
-        
-        balBoth (Choice a f t) | t == f = t
-        balBoth o@(Choice a (Choice fa ff ft) (Choice ta tf tt)) | fa == ta =
-            case compare a fa of
-                EQ -> Choice a ff tt
-                LT -> o
-                GT -> Choice fa (g $ Choice a ff tf) (g $ Choice a ft tt)
-                
-                
-        balBoth x = balLeft x
-        
-        balLeft o@(Choice a (Choice fa ff ft) t) =
-            case compare a fa of
-                EQ -> g $ Choice a ff t
-                LT -> balRight o
-                GT -> Choice fa (
-        
-        -}
-        
-        --g 0 x | trace ("rebal.g " ++ showBDDBy show x) False = undefined
-
-        -- g n x | trace ("Rebalance.g " ++ show n {- showBDDBy show x-} ) False = undefined
-        {-
-        g n (Choice a t f)
-            | t == f = t
-
-        g n (Choice a f (Choice ta tf tt))
-            | a == ta = k "==" a ta $ g 1 $ Choice a f tt
-            | a >  ta = k ">" a ta $ g 2 $ Choice ta (g 3 $ Choice a f tf) (g 4 $ Choice a f tt)
-
-        g n (Choice a (Choice fa ff ft) t)
-            | a == fa = k "==" a fa $ g 5 $ Choice a ff t
-            | a >  fa = k ">" a fa $ g 6 $ Choice fa (g 7 $ Choice a ff t) (g 8 $ Choice a ft t)
-
-        g n x = x
-        
-        k rel a b = trace (rel ++ " " ++ show a ++ " ### " ++ show b)
-        -}
 
 
 bddSimplify :: Ord a => ([(a,Bool)] -> a -> Maybe Bool) -> BDD a -> BDD a
@@ -223,28 +170,6 @@ bddSimplify test x = f [] x
 				Nothing -> choice on (f ((on,False):context) false) (f ((on,True):context) true)
 				Just b -> f context (if b then true else false)
 		f _ x = x
-
-
-{-
-
-mapBDD :: BDDLit a => (a -> BDD a) -> BDD a -> BDD a
-mapBDD f x = rebalance $ snd $ g x Map.empty
-	where
-		g (Choice a f1 t1) cache = case a2 of
-				AtomTrue -> g t1 cache2
-				AtomFalse -> g f1 cache2
-				Choice a2 f2 t2 ->
-					let (cache3,f3) = g f1 cache2
-					    (cache4,t3) = g t1 cache3
-					in (cache4, g Choice a2 (h f2 (g f1)
-			where
-				h
-				
-				
-		
-			Choice a f1 t1 -> 
-			
--}
 
 
 mapBDD :: (Show a, Ord a) => (a -> BDD a) -> BDD a -> BDD a
@@ -285,39 +210,4 @@ h rep f t = case rep of
     AtomTrue -> t
     AtomFalse -> f
     Choice a f1 t1 -> Choice a (h f1 f t) (h t1 f t)
-
-{-
-case x of
-	AtomTrue -> AtomTrue
-	AtomFalse -> AtomFalse
-	Choice a f1 t1 ->
-		let a2 = f a
-		in bddAnd a2 (mapBDD f t1) `bddOr` bddAnd (bddNot a2) (mapBDD f f1)
-
-
-mapBDDM :: (Show a, BDDLit a) => (a -> IO (BDD a)) -> BDD a -> IO (BDD a)
-mapBDDM app x = do
-		cache <- newIORef Map.empty
-		g cache x
-	where
-		g cache x = case x of
-			Choice a f1 t1 -> do
-				c <- readIORef cache
-				a2 <- case Map.lookup a c of
-					Just a2 -> return a2
-					Nothing -> do
-						a2 <- app a
-						writeIORef cache (Map.insert a a2 c)
-						return a2
-
-				case () of
-					_ | bddIsTrue  a2 -> g cache t1
-					_ | bddIsFalse a2 -> g cache f1
-					_ -> do
-						t2 <- liftM (bddAnd a2) $ g cache t1
-						if bddIsTrue t2 then return t2 else do
-							f2 <- liftM (bddAnd (bddNot a2)) $ g cache f1
-							return $ t2 `bddOr` f2
-
-			_ -> return x
--}
+s
