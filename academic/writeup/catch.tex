@@ -157,8 +157,113 @@ manipulated.
 \section{First Order Haskell}
 \label{chap:defunc}
 
-Specialisation, defunctionalisation, removal of higher order code. Contrast
-with inlining. The dictionary transformation, and its inverse.
+Having a simple Haskell-like language, there are essentially 2 features that
+Haskell has that can be lived without, laziness and higher-order functions. It
+is possible to convert Haskell to be a first order language by using
+defunctionalisation, and it is possible to convert Haskell to be a lazy
+language by continuation passing. For the purposes of this checker, laziness is
+a nice property, as it allows the code to be treated much like a set of maths
+equations, without worrying about evaluation order etc. Higher order functions
+are less helpful, and in fact obscure the flow of control within a program --
+their removal is beneficial.
+
+\subsection{Reynold's style defunctionalization}
+
+Reynold's style defunctionalisation is a simple method of generating a first
+order program from a higher order one. Taking the following example:
+
+map f x = case x of
+    [] -> []
+    (a:as) -> f a : map f as
+
+Here f is a higher order input, of type (a -> b). Defunctionalisation works by
+creating a data type to represent all possible f's, and using that. For
+example:
+
+ data Functions = Head | Tail
+
+ apply Head x = head x
+ apply Tail x = tail x
+
+ map f x = case x of
+     [] -> []
+     (a:as) -> apply f a : map f as
+
+Now all calls to map head would be replaced with map Head, and Head is a first
+order value. This scheme can easily be extended to currying, let us take the
+add function, which adds to Int's:
+
+ data Functions = Head | Tail | Add0 | Add1 Int
+
+ apply Add0 n = Add1 n
+ apply (Add1 a) b = add a b
+
+There are a couple of things to note about this approach. One is that while
+this is still type safe, to do type checking would require a dependantly typed
+language. This is unfortunate, but for our checker (which does not use type
+information), this is acceptable. The unacceptable aspect is the creation of an
+apply function, whose semantics are very general. This essentially introduces a
+bottleneck through which various properties must be proven. Asking questions,
+such as is the result of apply a Cons or a Nil, are confusing.
+
+As such, while Reynold's style defunctionalisation is acceptable, it is not the
+ideal method for removing higher order functions.
+
+\subsection{Specialisation}
+
+Often when a function is called, there is some information known about the
+arguments -- for example one may be a constant. The way that the GHC program
+makes use of this information is by inlining heavily, unfortunately sometimes
+there is a good amount of information available, but the function is unsuitable
+for inlining. Specialisation solves this problem neatly.
+
+Let us consider for a minute the function map, defined as above. Now let us
+consider the application map f []. Here it is not a great idea to inline map,
+and GHC is unable to simplify this definition \footnote{GHC is able to simplify
+the map provided in teh standard Prelude using rewrite rules, however by
+defining map' with the above definition, no simplification is made}.
+
+However, using specialisation, it is easy to generate map specialised with []
+as:
+
+map f = []
+
+Of course, now even a very conservative inline pass will succeed with this,
+resulting in [] as the end result.
+
+The notation used for specialisation is given as follows. The original version
+of map takes two arguments, and is given as map<?,?> -- i.e. map with two
+arguments, and no additional information. The version specialised on [] is
+given as map<?,[]>. Note that here there is no second argument, the specialised
+version wraps this up.
+
+Now let us consider map f (x:xs), this specialised in the same manner to use
+the function map<?,?:?> f x xs = f x : map<?,?> xs. Note that the recursive
+case calls the standard map, as it cannot deduce any information about xs.
+Obviously this has the potential for non-termination, say the function
+map<?,?:(?:(?: ...> was required. The way to make this system terminating is to
+demand that the type must be new, for example it is impossible to specialise
+the tail of a (:), since the type of the tail is the same as the initial list.
+This simple mechanism ensures termination, and at the same time promotes good
+simplification of complex argument structures.
+
+However, coming back to the original point, removing higher order functions.
+These can be specialised in exactly the same way, for example map head x can
+use the specialised version map<head,?>. Curried functions can be used in the
+specialisation as well, map<add ?,?> is perfectly valid.
+
+One particular useage of this specialisation treatment is the removal of the
+dictionary transformation. For example, a function requiring Int's might be
+specialised to f<(int_eq,int_neq),?,?>. GHC and hbc both support a
+specaialisation annotation which acheives this effect, however generic
+specialisation acheives this easily.
+
+There are of course disadvantages to specialisation, this is essentially a
+whole program analysis transformation, and the performance is not stunning.
+However, in practice it seems that the generated code corresponds much more
+closely to what the original author had meant, and is significantly shorter --
+which is not a massive surprise, Jones has shown this result in the specific
+context of type classes before.
 
 \section{A constraint language}
 \label{chap:constraints}
