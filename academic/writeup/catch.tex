@@ -1,0 +1,233 @@
+\documentclass[preprint]{sigplanconf}
+
+\usepackage{amsmath}
+
+\begin{document}
+
+\conferenceinfo{ICFP '07}{date, City.} %
+\copyrightyear{2007} %
+\copyrightdata{[to be supplied]}
+
+\titlebanner{banner above paper title}        % These are ignored unless
+\preprintfooter{short description of paper}   % 'preprint' option specified.
+
+\title{Catch}
+\subtitle{A Technical Overview}
+
+\authorinfo{Neil Mitchell}
+           {York}
+           {ndm}
+\authorinfo{Colin Runciman}
+           {York}
+           {colin}
+
+\maketitle
+
+\begin{abstract}
+A Haskell program may fail at runtime with a pattern-match error if the program
+has any incomplete (non-exhaustive) patterns in definitions or case
+alternatives. This paper describes a static checker that allows non-exhaustive
+patterns to exist, yet ensures that a pattern-match error does not occur. It
+describes a constraint language that can be used to reason about pattern
+matches, along with mechanisms to propagate these constraints between program
+components.
+\end{abstract}
+
+\category{CR-number}{subcategory}{third-level}
+
+\terms
+term1, term2
+
+\keywords
+keyword1, keyword2
+
+\section{Introduction}
+
+Introduction, todo.
+
+\subsection{Road map}
+
+The Catch tool can be seen as 3 entirely separate sections. Initially a program
+is translated into the reduced Haskell language \S\ref{chap:yhc}. Second, the
+program is transformed into a simpler first-order program with the same
+semantics \S\ref{chap:defunc}. Third, a constraint language
+\S\ref{chap:constraints} is used to analyse the program \S\ref{chap:backward}.
+Some results are presented \S\ref{chap:results} along with some concluding
+remarks \S\ref{chap:conc}.
+
+\section{Haskell: Sugarless and Typeless}
+\label{chap:yhc}
+
+\subsection{Yhc Core}
+
+The full Haskell language is a bit unwieldy for analysis. In particular the
+syntactic sugar complicates analysis by introducing more types of expression to
+consider. The checker works instead on a simplified language, a core to which
+other Haskell programs can be reduced. This core language is a functional
+language, making use of case expressions, function applications and algebraic
+data types.
+
+In order to generate a simplified language, it is natural to start with a full
+Haskell compiler, and we chose Yhc, a fork of nhc. The internal language of Yhc
+is called PosLambda -- a simple variant of lambda calculus without types, but
+with positional information. Since Yhc is a relatively simple Haskell compiler,
+relying on simple desugaring transformations, this means that the generated
+PosLambda is reasonably close to the original Haskell in its structure.
+
+PosLambda does have some features that have no natural parallel in Haskell, for
+example there is a FatBar construct, that is used for compiling pattern
+matches. The PosLambda language is also very much internal to the compiler. We
+have introduced a new Core language to Yhc, very similar to both PosLambda, and
+a simple subset of Haskell. This Core language is not explicitly typed, and has
+very few constructs in it. We have also written a library, Yhc.Core which is
+used by Yhc to generate these Core files, and can also be used by external
+programs to read and manipulate the generated Core.
+
+Another important simplification is that all case's are now complete, and where
+an error can possibly occur an explicit call to error is inserted, with the
+string representing the source position of the error.
+
+\subsection{The Dictionary Transformation}
+
+Most of the desugaring transformations performed by Yhc are at a very local
+level -- for example \T{f = (+1)} becomes \T{f v1 = flip ((+) v1) (fromInteger
+1)}. The biggest exception to this is the typeclass transformation, which is
+based on a method called dictionary passing.
+
+For example, take the following code:
+
+\T{f :: Eq a => a -> a -> Bool; f x y = x == y || x /= y}
+
+This is translated to:
+
+f dict x y = (||) (((==) dict) x y) (((/=) dict) x y)
+
+where
+
+(==) (a,b) = a
+
+and
+
+(/=) (a,b) = b
+
+Essentially, a tuple is passed around containing the methods in dictionary.
+
+
+\subsection{Case and Paths}
+
+The Catch internal language is differs in its representation of Case, and
+introduces Paths. First we introduce a motivation for the path construct, its
+full use will only be shown later in the constraint section. Let us take the
+example of head, in the Core language of Yhc this comes out approximately as:
+
+head x = case x of
+            (a:as) -> a
+            [] -> error "here"
+
+Now, let us consider the case where we know that x is a (:) constructor before
+executing head. Now, we can rewrite this code as:
+
+head x = case x of
+            (a:as) -> a
+
+Unfortunately we are now using the case expression for two different purposes,
+to select the elements in a known data structure, and to test the type of a
+data structure at runtime. For the purposes of analysis this is even worse, and
+complicates things considerably.
+
+What if we were to introduce an extra construct, such as x.hd meaning x, taking
+the hd component of a (:). Now we can rewrite head of a known (:) constructor
+as:
+
+head x = x.hd
+
+It is impossible to have a x.hd where x is [], this is not a runtime error, but
+a static guarantee imposed on the program. With this new notation, we can now
+rewrite the standard head as:
+
+head x = case x of
+            (:) -> x.hd
+            [] -> error "here!"
+
+Note that now we have introduced paths, there is no need to specify names for
+each of the constructors given in a case statement. There is also no need to
+introduce fresh variables within a function, only the variables can be
+manipulated.
+
+\section{First Order Haskell}
+\label{chap:defunc}
+
+Specialisation, defunctionalisation, removal of higher order code. Contrast
+with inlining. The dictionary transformation, and its inverse.
+
+\section{A constraint language}
+\label{chap:constraints}
+
+Semantics
+
+\subsection{An atomic constraint}
+
+Introduce regular expressions, quantification
+
+
+\subsection{Predicates on constraints}
+
+Include the $\forall$ thing here.
+
+\subsection{Representation of Predicates}
+
+BDD's - why they aren't right, negation in the BDD context.
+
+\section{Backward Analysis}
+\label{chap:backward}
+
+Backward analysis
+
+The basic rule schema
+
+Propagation
+
+Templating
+
+\section{Results}
+\label{chap:results}
+
+\subsection{Small Examples}
+
+Map head, head reverse etc.
+
+
+\subsection{Case Studies}
+
+adjoxo, soda, clausify
+
+\subsection{Nofib}
+
+The whole nofib benchmark, in detail
+
+\section{Conclusion}
+\label{chap:conc}
+
+
+
+
+
+
+\appendix
+\section{Appendix Title}
+
+This is the text of the appendix, if you need one.
+
+\acks
+
+Acknowledgments, if needed.
+
+\begin{thebibliography}{}
+
+\bibitem{smith02}
+Smith, P. Q. reference text
+
+\end{thebibliography}
+
+\end{document}
+1-59593-090-6/05/0007
