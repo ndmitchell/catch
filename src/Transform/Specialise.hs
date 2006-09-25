@@ -125,6 +125,9 @@ simpler ihite = applyAll f ihite
         f (Case (Make name args) xs) = headNote "Tranform.Rewrite.basicExpr" ys
             where ys = [b | (a,b) <- xs, a == name || null a]
 
+        -- Apply (case {a -> b; c -> d}) x ==> case {a -> Apply b x; c -> Apply d x}
+        f (Apply (Case on alts) x) = Case on [(a,f $ Apply b x) | (a,b) <- alts]
+
         f x = x
         
 
