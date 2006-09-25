@@ -1,10 +1,36 @@
 \documentclass[preprint]{sigplanconf}
 
 \usepackage{amsmath}
+\usepackage{amssymb}
 \usepackage{alltt}
 
+% general stuff
 \newcommand{\T}[1]{\texttt{#1}}
-\newcommand{\tup}[1]{\langle #1 \rangle}
+\newcommand{\tup}[1]{\ensuremath{\langle #1 \rangle}}
+
+% examples
+\newcounter{exmp}
+\setcounter{exmp}{1}
+\newcommand{\yesexample}{\subsubsection*{Example \arabic{exmp}}\addtocounter{exmp}{1}}
+\newcommand{\noexample}{\hfill$\Box$}
+
+% code blocks
+\newenvironment{code}{\begin{alltt}\small}{\end{alltt}}
+\newenvironment{codepage}
+    {\begin{minipage}[h]{\textwidth}\begin{code}}
+    {\end{code}\end{minipage}}
+
+\newcommand{\K}{\ensuremath{^\ast}} % kleene star
+\newcommand{\D}{\ensuremath{\cdot}} % central dot
+
+\renewcommand{\c}[3]{\tup{\T{#1},\T{#2},\T{\{#3\}}}}
+\newcommand{\cc}[2]{\c{#1}{$\lambda$}{#2}}
+
+\newcommand{\s}[1]{\ensuremath{_{\tt #1}}} % subscript, in tt font
+\newcommand{\g}[1]{\{#1\}} % group, put { } round it
+\newcommand{\vecto}[1]{\overrightarrow{#1\;}}
+\newcommand{\gap}{\;\;}
+
 
 \begin{document}
 
@@ -100,20 +126,20 @@ based on a method called dictionary passing.
 
 For example, take the following code:
 
-\begin{alltt}
+\begin{code}
  f :: Eq a => a -> a -> Bool
  f x y = x == y || x /= y
-\end{alltt}
+\end{code}
 
 This is translated by Yhc into:
 
-\begin{alltt}
+\begin{code}
  f :: (a -> a -> Bool, a -> a -> Bool) -> a -> a -> Bool
  f dict x y = (||) (((==) dict) x y) (((/=) dict) x y)
 
  (==) (a,b) = a
  (/=) (a,b) = b
-\end{alltt}
+\end{code}
 
 Essentially, a tuple is passed around containing the methods in dictionary.
 
@@ -125,19 +151,19 @@ introduces Paths. First we introduce a motivation for the path construct, its
 full use will only be shown later in the constraint section. Let us take the
 example of head, in the Core language of Yhc this comes out approximately as:
 
-\begin{alltt}
+\begin{code}
 head x = case x of
             (a:as) -> a
             [] -> error "here"
-\end{alltt}
+\end{code}
 
 Now, let us consider the case where we know that \T{x} is a \T{(:)} constructor
 before executing \T{head}. Now, we can rewrite this code as:
 
-\begin{alltt}
+\begin{code}
  headNonEmpty x = case x of
                      (a:as) -> a
-\end{alltt}
+\end{code}
 
 Unfortunately we are now using the case expression for two different purposes,
 to select the elements in a known data structure, and to test the type of a
@@ -148,19 +174,19 @@ What if we were to introduce an extra construct, such as \T{x.hd} meaning
 \T{x}, taking the \T{hd} component of a \T{(:)}. Now we can rewrite \T{head} of
 a known \T{(:)} constructor as:
 
-\begin{alltt}
+\begin{code}
  headNonEmpty x = x.hd
-\end{alltt}
+\end{code}
 
 It is impossible to have a \T{x.hd} where \T{x} is \T{[]}, this is not a
 runtime error, but a static guarantee imposed on the program. With this new
 notation, we can now rewrite the standard head as:
 
-\begin{alltt}
+\begin{code}
  head x = case x of
             (:) -> x.hd
             [] -> error "here!"
-\end{alltt}
+\end{code}
 
 Note that now we have introduced paths, there is no need to specify names for
 each of the constructors given in a case statement. There is also no need to
@@ -185,17 +211,17 @@ their removal is beneficial.
 Reynold's style defunctionalization is a simple method of generating a first
 order program from a higher order one. Taking the following example:
 
-\begin{alltt}
+\begin{code}
  map f x = case x of
                 [] -> []
                 (a:as) -> f a : map f as
-\end{alltt}
+\end{code}
 
 Here f is a higher order input, of type \T{(a -> b)}. Defunctionalisation works
 by creating a data type to represent all possible f's, and using that. For
 example:
 
-\begin{alltt}
+\begin{code}
  data Functions = Head | Tail
 
  apply Head x = head x
@@ -204,18 +230,18 @@ example:
  map f x = case x of
      [] -> []
      (a:as) -> apply f a : map f as
-\end{alltt}
+\end{code}
 
 Now all calls to map head would be replaced with map Head, and Head is a first
 order value. This scheme can easily be extended to currying, let us take the
 \T{add} function, which adds two \T{Int}'s:
 
-\begin{alltt}
+\begin{code}
  data Functions = Head | Tail | Add0 | Add1 Int
 
  apply Add0 n = Add1 n
  apply (Add1 a) b = add a b
-\end{alltt}
+\end{code}
 
 There are a couple of things to note about this approach. One is that while
 this is still type safe, to do type checking would require a dependently typed
@@ -246,9 +272,9 @@ made}.
 However, using specialisation, it is easy to generate \T{map} specialised with
 \T{[]} as:
 
-\begin{alltt}
+\begin{code}
  map f = []
-\end{alltt}
+\end{code}
 
 Of course, now even a very conservative inline pass will succeed with this,
 resulting in \T{[]} as the end result.
@@ -262,9 +288,9 @@ specialised version wraps this up.
 Now let us consider \T{map f (x:xs)}, this specialised in the same manner to
 use the function:
 
-\begin{alltt}
+\begin{code}
  map<?,?:?> f x xs = f x : map<?,?> xs
-\end{alltt}
+\end{code}
 
 Note that the recursive case calls the standard map, as it cannot deduce any
 information about xs. Obviously this has the potential for non-termination, say
@@ -333,11 +359,128 @@ Semantics
 
 \subsection{An atomic constraint}
 
-A constraint consists of an expression, a regular expression representing a
-path, and a set of constraints.
+In order to implement a checker that can ensure unfailing patterns,
+it is useful to have some way of expressing properties of data
+values. A constraint is written as $\tup{e,r,c}$ , where $e$ is an
+expression, $r$ is a regular expression over selectors and $c$ is a
+set of constructors. Such a constraint asserts that any well-defined
+application to $e$ of a path of selectors described by $r$ must
+reach a constructor in the set $c$.
 
-Introduce regular expressions, quantification
+These constraints are used as atoms in a predicate language with
+conjunction and disjunction, so constraints can be about several
+expressions and relations between them. The checker does not require
+a negation operator. We also use the term constraint to refer to
+logical formulae with constraints as atoms.
 
+\yesexample
+
+Consider the function \T{minimum}, defined as:
+
+\begin{code}
+minimum xs = case xs of
+                  [x]      -> x
+                  (a:b:xs) -> minimum (min a b : xs)
+
+min a b = case a < b of
+               True  -> a
+               False -> b
+\end{code}
+
+Now consider the expression \T{minimum $e$}. The constraint that
+must hold for this expression to be safe is \cc{$e$}{:}. This says
+that the expression $e$ must reduce to an application of \T{:}, i.e.
+a non-empty list. In this example the path was $\lambda$ -- the
+empty path.\noexample
+
+\yesexample
+
+Consider the expression \T{map minimum $e$}. In this case the
+constraint generated is \c{$e$}{tl\K\D hd}{:}. If we apply any
+number (possibly zero) of \T{tl}s to $e$, then apply \T{hd}, we
+reach a \T{:} construction. Values satisfying this constraint
+include \T{[]} and \T{[[1],[2],[3]]}, but not \T{[[1],[]]}. The
+value \T{[]} satisfies this constraint because it is impossible to
+apply either \T{tl} or \T{hd}, and therefore the constraint does not
+assert anything about the possible constructors.
+
+\noexample
+
+Constraints divide up into three parts -- the \textit{subject}, the
+\textit{path} and the \textit{condition}.
+
+\begin{description}
+\item[The subject] in the above two examples was just $e$,
+representing any expression -- including a call, a construction or
+even a \T{case}.
+
+\item[The path] is a regular expression over selectors.
+
+A regular expression is defined as:\\ \\
+\begin{tabular}{ll}
+$s+t$ & union of regular expressions $s$ and $t$ \\
+$s\D t$ & concatenation of regular expressions $s$ then $t$ \\
+$s\K$  & any number (possibly zero) occurrences of $s$ \\
+\T{x} & a selector, such as \T{hd} or \T{tl} \\
+$\lambda$ & the language is the set containing the empty string \\
+$\phi$ & the language is the empty set
+\end{tabular}
+
+\item[The condition] is a set of constructors which, due to static type
+checking, must all be of the same result type.
+\end{description}
+
+The meaning of a constraint is defined by:
+
+\[ \tup{e,r,c} \Leftrightarrow (\forall l \in L(r) \bullet
+\text{\textit{defined}}(e,l) \Rightarrow
+\text{\textit{constructor}}(e\D{}l) \in c )
+\]
+
+\noindent Here $L(r)$ is the language represented by the regular
+expression $r$; \textit{defined} returns true if a path selection is
+well-defined; and \textit{constructor} gives the constructor used to
+create the data. Of course, since $L(r)$ is potentially infinite,
+this cannot be checked by enumeration.
+
+If no path selection is well-defined then the constraint is
+vacuously true.
+
+\subsection{Simplifying the Constraints}
+\label{sec:constraint_simplify}
+
+From the definition of the constraints it is possible to construct a
+number of identities which can be used for simplification.
+
+\begin{description}
+
+\item[Path does not exist:] in the constraint \c{[]}{hd}{:} the expression
+\T{[]} does not have a \T{hd} path, so this constraint simplifies to
+true.
+
+\item[Detecting failure:] the constraint \cc{[]}{:} simplifies to false
+because the \T{[]} value is not the constructor \T{:}.
+
+\item[Empty path:] in the constraint $\tup{e,\phi,c}$, the
+regular expression is $\phi$, the empty language, so the constraint
+is always true.
+
+\item[Exhaustive conditions:] in the constraint \cc{$e$}{:,[]}
+the condition lists all the possible constructors, if $e$ reaches
+weak head normal form then because of static typing $e$ must be one
+of these constructors, therefore this constraint simplifies to true.
+
+\item[Algebraic conditions:] finally a couple of algebraic equivalences:
+
+\[
+\begin{array}{rcl}
+\tup{e,r_1,c} \wedge \tup{e,r_2,c} & = & \tup{e,(r_1+r_2),c} \\
+%incorrect, too conservative
+%\tup{e,r,c_1} \vee   \tup{e,r,c_2} & = & \tup{e,r,c_1 \cup c_2} \\
+\tup{e,r,c_1} \wedge \tup{e,r,c_2} & = & \tup{e,r,c_1 \cap c_2}
+\end{array}
+\]
+\end{description}
 
 \subsection{Predicates on constraints}
 
@@ -361,9 +504,153 @@ system it is relatively easy to derive the backward analysis function on all
 the syntactic elements, excluding function application. The results for these
 are now presented, along with commentary:
 
-Diagram as before
+\subsection{The Initial Constraints}
 
-Descriptions as before
+In general, a \T{case} expression, where $\vecto{v}$ are the
+arguments to a constructor:
+
+\begin{code}
+case \(e\) of {C\s{1} \(\vecto{v}\) -> val\s{1}; \ldots; C\s{n}
+\(\vecto{v}\) -> val\s{n}}
+\end{code}
+
+\noindent produces the initial constraint
+\cc{$e$}{C\s{1},\ldots,C\s{n}}. If the case alternatives are
+exhaustive, then this can be simplified to true. All \T{case}
+expressions in the program are found, their initial constraints are
+found, and these are joined together with conjunction.
+
+\subsection{Transforming the constraints}
+
+For each constraint in turn, if the subject is \T{x\s{f}} (i.e. the
+\T{x} argument to \T{f}), the checker searches for every application
+of \T{f}, and gets the expression for the argument \T{x}. On this
+expression, it sets the existing constraint. This constraint is then
+transformed using a backward analysis (see \S\ref{sec:backward}),
+until a constraint on arguments is found.
+
+\yesexample
+
+Consider the constraint \cc{xs\s{minimum}}{:} -- that is
+\T{minimum}'s argument \T{xs} must be a non-empty list. If the
+program contains the expression:
+
+\begin{code}
+f x = minimum (g x)
+\end{code}
+
+\noindent then the derived constraint is \cc{(g x\s{f})}{:}.
+\noexample
+
+\subsection{Backward Analysis}
+\label{sec:backward}
+
+Backward analysis takes a constraint in which the subject is a
+compound expression, and derives a combination of constraints over
+arguments only. This process is denoted by a function $\varphi$,
+which takes a constraint and returns a predicate over constraints.
+This function is detailed in Figure~\ref{fig:backward}.
+
+In this figure, $C$ denotes a constructor, $c$ is a set of
+constructors, $f$ is a function, $e$ is an expression, $r$ is a
+regular expression over selectors and $s$ is a selector.
+
+\begin{figure}
+
+\renewcommand\theequation{sel}
+\begin{equation}
+    \varphi\tup{e\D{}s,r,c} \rightarrow
+    \varphi\tup{e,s\D{}r,c}
+\end{equation}
+
+\renewcommand\theequation{con}
+\begin{equation}
+\frac
+    {
+        \bigwedge_{i=1}^{\#\vecto{e}}
+        \varphi\tup{e_i,\frac{\partial r}{\partial \mathcal{S}(C,i)},c}
+        \rightarrow P
+    }
+    {
+        \varphi\tup{C \gap \vecto{e},r,c}
+        \rightarrow (\lambda \in L(r) \Rightarrow C \in c) \wedge P
+    }
+\end{equation}
+
+\renewcommand\theequation{app}
+\begin{equation}
+    \varphi\tup{f \gap \vecto{e},r,c} \rightarrow
+    \varphi\tup{\mathcal{D}(f, \vecto{e}),r,c}
+\end{equation}
+
+\renewcommand\theequation{cas}
+\begin{equation}
+\frac
+    {
+        \bigwedge_{i=1}^{\#\vecto{e}}
+        (
+            \varphi\tup{e_0,\lambda,\mathcal{C}(C_i)} \vee
+            \varphi\tup{e_i,r,c}
+        ) \rightarrow P
+    }
+    {
+        \varphi\tup{\T{case } e_0 \T{ of \{}C_1 \gap \vecto{v} \T{->} e_1\T{;} \cdots
+        \T{;} C_n \gap \vecto{v} \T{->} e_n \},r,c} \rightarrow P
+    }
+\end{equation}
+
+\caption{Specification of backward analysis, $\varphi$} %
+\label{fig:backward}
+\end{figure}
+
+\begin{description}
+
+\item[The (sel) rule] moves the composition from the expression
+to the path.
+
+\item[The (con) rule] deals with an application of a constructor $C$.
+If $\lambda$ is in the path language the $C$ must be permitted by
+the condition. This depends on the \textit{empty word property}
+(ewp) \cite{conway}, which can be calculated structurally on the
+regular expression.
+
+For each of the arguments to $C$, a new constraint is obtained from
+the derivative of the regular expression with respect to that
+argument's selector. This is denoted by $\partial r / \partial
+\mathcal{S}(C,i)$, where $\mathcal{S}(C,i)$ gives the selector for
+the $i$th argument of the constructor $C$. The differentiation
+method is based on that described by Conway \cite{conway}. It can be
+used to test for membership in the following way:
+
+\[
+\begin{array}{rcl}
+\lambda \in L(r) & = & \text{ewp}(r) \\
+s\D{}r' \in L(r) & = & r' \in L(\partial r / \partial s)
+\end{array}
+\]
+
+Two particular cases of note are $\partial \lambda / \partial a =
+\phi$ and $\partial \phi / \partial a = \phi$.
+
+\item[The (app) rule] uses the notation $\mathcal{D}(f,\vecto{e})$ to
+express the result of substituting each of the arguments in
+$\vecto{e}$ into the body of the function $f$. The naive application
+of this rule to any function with a recursive call will loop
+forever. To combat this, if a function is already in the process of
+being evaluated with the same constraint, its result is given as
+true, and the recursive arguments are put into a special pile to be
+examined later on, see \S\ref{sec:fixed_point} for details.
+
+\item[The (cas) rule] generates a conjunct for each alternative.
+The function $\mathcal{C}(C)$ returns the set of all other
+constructors with the same result type as $C$, i.e.
+$\mathcal{C}(\T{[]}) = \g{:}$. The generated condition says either
+the subject of the case analysis has a different constructor (so
+this particular alternative is not executed in this circumstance),
+or the right hand side of the alternative is safe given the
+conditions for this expression.
+\end{description}
+
 
 After these rules have been applied, the only remaining constraints will be
 either on free variables, or function application. Function application is
@@ -373,11 +660,13 @@ the given function, and the process is repeated.
 
 \subsection{Templating}
 
-When a constraint of the form $\tup{f \overrightarrow{e},r,c}$ is found, there
-are two choices which at first glance can be used. One method is to use the
-$\beta$ substitution rule from $\lambda$-calculus, and replace $f$ with its
-body. Another alternative is to create fresh variables for each element in
-$\overrightarrow{e}$, solve this new problem, and then instantiate the results.
+When a constraint of the form \tup{f \overrightarrow{e},r,c} is
+found, there are two choices which at first glance can be used. One
+method is to use the $\beta$ substitution rule from
+$\lambda$-calculus, and replace $f$ with its body. Another
+alternative is to create fresh variables for each element in
+$\overrightarrow{e}$, solve this new problem, and then instantiate
+the results.
 
 The original Catch program as described in TFP chose the former method, the
 program described in this paper chooses the later. The advantage of the first
@@ -393,17 +682,18 @@ algorithm.
 
 The templating method is as follows:
 
-Given a constraint $\tup{f \overrightarrow{e},r,c}$, the constraint %
-$\tup{f v_0\ldots v_{\sharp \overrightarrow{e},r,c}}$ is generated and solved
-with simple $\beta$ expansion. This method continues as constraints are
-generated, but with the knowledge that this identical constraint gives $True$
-as its generated condition within this subcomputation. After having solved the
-constraint, the result is compared with $True$. If the result matches, it is
-used, if it does not then a new computation is attempted with the assumption
-that the result matches the first result. This process continues until a fixed
-point is found, which is returned as the result. By applying $\wedge$ at each
-stage to the previous answer, it is easy to guarantee that the fixed point
-found is the greatest fixed point.
+Given a constraint \tup{f \overrightarrow{e},r,c}, the constraint %
+\tup{f v_0\ldots v_{\sharp \overrightarrow{e},r,c}} is generated and
+solved with simple $\beta$ expansion. This method continues as
+constraints are generated, but with the knowledge that this
+identical constraint gives $True$ as its generated condition within
+this subcomputation. After having solved the constraint, the result
+is compared with $True$. If the result matches, it is used, if it
+does not then a new computation is attempted with the assumption
+that the result matches the first result. This process continues
+until a fixed point is found, which is returned as the result. By
+applying $\wedge$ at each stage to the previous answer, it is easy
+to guarantee that the fixed point found is the greatest fixed point.
 
 The implementation method for this is to use a stack of variables, initially
 when a call is encountered the value $True$ and the name of the function and
