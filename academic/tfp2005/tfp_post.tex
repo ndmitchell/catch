@@ -1,0 +1,1235 @@
+\documentclass[book]{tfp05symp}
+
+% ! LaTeX Error: Math version `bold' is not defined.
+% \usepackage{amsmath}
+% \usepackage{amssymb}
+%\usepackage{stmaryrd}
+%\usepackage{latexsym}
+
+\usepackage{amstext}
+% \usepackage{listings}
+\usepackage{url}
+\usepackage{alltt}
+\usepackage{comment}
+
+% \lstset{breaklines, showstringspaces=false,
+% basicstyle=\ttfamily\small, keywordstyle=\tt\bf, commentstyle=\it,
+% columns=fullflexible, mathescape=true}
+
+
+\newcommand{\T}[1]{\texttt{#1}}
+\newcommand{\Tu}[1]{\lstinline{#1}}
+\newcommand{\gap}{\;\;}
+\newcommand{\tup}[1]{\ensuremath{\langle #1 \rangle}}
+
+\renewcommand{\c}[3]{\tup{\T{#1},\T{#2},\T{\{#3\}}}}
+\newcommand{\cc}[2]{\c{#1}{$\lambda$}{#2}}
+
+% subscript, in tt font
+\newcommand{\s}[1]{\ensuremath{_{\tt #1}}}
+% group, put { } round it
+\newcommand{\g}[1]{\{#1\}}
+
+% kleene star
+\newcommand{\K}{\ensuremath{^\ast}}
+% central dot
+\newcommand{\D}{\ensuremath{\cdot}}
+
+\newcounter{todo}
+\setcounter{todo}{1}
+\newcommand{\todo}[1]{\textbf{\textsc{Todo \arabic{todo}:}} #1 \addtocounter{todo}{1}}
+
+\newcommand{\vecto}[1]{\overrightarrow{#1\;}}
+
+% grrrr to big levels
+\newcommand{\arrleft}{
+    \begin{picture}(15,6)
+    \put(0,0){<}
+    \put(0.8,0){-}
+    \put(2,0){-}
+    \put(4,0){-}
+    \put(6,0){-}
+    \put(8,0){-}
+    \put(10,0){-}
+    \put(12,0){-}
+    \put(14.1,0){|}
+    % \put(0.5,3){\line(1,0){10}}
+    % \put(10,0){\line(0,1){6}}
+    \end{picture}
+    }
+
+\newcommand{\mapsfrom}{\hookleftarrow}
+
+\newcommand{\boxxsize}{7}
+
+\newcommand{\boxx}{
+    \begin{picture}(\boxxsize,\boxxsize)
+    \put(0,0){\line(0,1){\boxxsize}}
+    \put(\boxxsize,0){\line(0,1){\boxxsize}}
+    \put(0,\boxxsize){\line(1,0){\boxxsize}}
+    \put(0,0){\line(1,0){\boxxsize}}
+    \end{picture}
+    }
+% \begin{picture}(340,070)
+%
+% \put(000,050){\framebox(120,20){\small{Find non-exhaustive patterns}}}
+% \put(140,050){\framebox(80,20){\small{Find callers}}}
+% \put(140,010){\makebox(80,20){\small{Backward analysis}}}
+% \put(140,000){\makebox(80,20){\small{Fixed pointing}}}
+% \put(240,000){\framebox(80,30){\small{Report result}}}
+% \put(140,000){\framebox(80,30){ }}
+%
+% \put(120,060){\vector(1,0){20}}
+% \put(160,050){\vector(0,-1){20}}
+% \put(200,030){\vector(0,01){20}}
+% \put(220,015){\vector(1,0){20}}
+
+
+\newcounter{exmp}
+\setcounter{exmp}{1}
+\newcommand{\yesexample}{\subsubsection*{Example \arabic{exmp}}\addtocounter{exmp}{1}}
+\newcommand{\noexample}{\hfill\boxx}
+
+\newenvironment{code}{\begin{alltt}\small}{\end{alltt}}
+\newenvironment{codepage}
+    {\begin{minipage}[h]{\textwidth}\begin{code}}
+    {\end{code}\end{minipage}}
+
+
+
+
+\begin{document}
+
+\chaptitle{A static checker for safe pattern matching in Haskell}
+
+\chapter{A Static Checker for Safe Pattern Matching in Haskell}
+
+\chapauthors{Neil Mitchell and Colin Runciman \footnotemark[1]{}}
+
+\footnotetext[1]{University of York, UK.
+http://www.cs.york.ac.uk/$\sim$ndm and
+http://www.cs.york.ac.uk/$\sim$colin}
+
+\addtocounter{footnote}{1}
+
+\chapauthorstoc{Neil Mitchell and Colin Runciman}
+
+
+% \title{Unfailing Haskell: \\A Static Checker for Pattern Matching}
+
+% \author{Neil Mitchell \and Colin Runciman}
+%            {University of York, UK}
+%            {http://www.cs.york.ac.uk/$\sim$ndm}
+% \authorinfo{Colin Runciman}
+%           {University of York, UK}
+%           {http://www.cs.york.ac.uk/$\sim$colin}
+
+% \author{Neil Mitchell \and Colin Runciman \\ \footnotesize{http://www.cs.york.ac.uk/$\sim$ndm , http://www.cs.york.ac.uk/$\sim$colin}}
+% $ for textpad's syntax hilighting
+% \institute{University of York, UK}
+
+% \maketitle
+
+\paragraph{Abstract}
+% \begin{abstract}
+A Haskell program may fail at runtime with a pattern-match error if
+the program has any incomplete (non-exhaustive) patterns in
+definitions or case alternatives. This paper describes a static
+checker that allows non-exhaustive patterns to exist, yet ensures
+that a pattern-match error does not occur. It describes a constraint
+language that can be used to reason about pattern matches, along
+with mechanisms to propagate these constraints between program
+components.
+%\end{abstract}
+
+
+
+\section{Introduction}
+\label{sec:introduction}
+
+Often it is useful to define pattern matches which are incomplete,
+for example \T{head} fails on the empty list. Unfortunately programs
+with incomplete pattern matches may fail at runtime.
+
+Consider the following example:
+
+\begin{code}
+risers :: Ord a => [a] -> [[a]]
+risers [] = []
+risers [x] = [[x]]
+risers (x:y:etc) = if x <= y then (x:s):ss else [x]:(s:ss)
+    where (s:ss) = risers (y:etc)
+\end{code}
+
+A sample execution of this function would be:
+
+\begin{code}
+> risers [1,2,3,1,2]
+[[1,2,3],[1,2]]
+\end{code}
+
+In the last line of the definition, \T{(s:ss)} is matched against
+the output of \T{risers}. If \T{risers (y:etc)} returns an empty
+list this would cause a pattern match error. It takes a few
+moments to check this program manually -- and a few more to be
+sure one has not made a mistake!
+
+GHC \cite{ghc_manual} 6.4 has a warning flag to detect incomplete
+patterns, which is named \T{-fwarn-incomplete-patterns}. Adding
+this flag at compile time reports:\footnote{The additional flag
+\T{-fwarn-simple-patterns} is needed, but this is due to GHC bug
+number 1075259}
+
+\begin{code}
+Warning: Pattern match(es) are non-exhaustive
+\end{code}
+
+\begin{comment}
+The Bugs (12.2.1) section of the manual notes that the checks are
+sometimes wrong, particularly with string patterns or guards, and
+that this part of the compiler ``needs an overhaul really''
+\cite{ghc_manual}.
+\end{comment}
+
+But the GHC checks are only local. If the function \T{head} is
+defined, then it raises a warning. No effort is made to check the
+\textit{callers} of \T{head} -- this is an obligation left to the
+programmer.
+
+Turning the \T{risers} function over to the checker developed in
+this paper, the output is:
+
+\begin{code}
+> (risers (y:etc))\g{:}
+> True
+\end{code}
+
+The checker first decides that for the code to be safe the recursive
+call to \T{risers} must always yield a non-empty list. It then
+notices that if the argument in a \T{risers} application is
+non-empty, then so will the result be. This satisfies it, and it
+returns True, guaranteeing that no pattern-match errors will occur.
+
+\subsection{Roadmap}
+
+This paper starts by introducing a reduced language similar to
+Haskell in \S\ref{sec:reduced_haskell}. Next a constraint language
+is introduced in \S\ref{sec:constraints} and algorithms are given to
+manipulate these constraints in \S\ref{sec:determining}. A worked
+example is given in \S\ref{sec:worked_example}, followed by a range
+of small examples and a case study in \S\ref{sec:examples}. This
+paper is compared to related work in \S\ref{sec:related_work}.
+Finally conclusions are given in \S\ref{sec:conclusions}, along with
+some remaining tasks -- this paper reports on work in progress.
+
+\section{Reduced Haskell}
+\label{sec:reduced_haskell}
+
+The full Haskell language is a bit unwieldy for analysis. In
+particular the syntactic sugar complicates analysis by introducing
+more types of expression to consider. The checker works instead on a
+simplified language, a core to which other Haskell programs can be
+reduced. This core language is a functional language, making use of
+case expressions, function applications and algebraic data types.
+
+As shown in example 1, only one defining equation per function is
+permitted, pattern-matching occurs only in case expressions and
+every element within a constructor must be uniquely named by a
+selector (e.g. \T{hd} and \T{tl}). A convertor from a reasonable
+subset of Haskell to this reduced language has been written.
+
+\yesexample
+
+\begin{code}
+data [] a = (:) \{hd :: a, tl :: [] a\} | []
+
+head x = case x of (a:_) -> a
+
+map f xs = case xs of
+                []     -> []
+                (a:as) -> f x : map f as
+
+reverse xs = rev xs []
+
+reverse2 x a = case x of
+                    []     -> a
+                    (y:ys) -> reverse2 ys (y:a)\noexample
+\end{code}
+
+\begin{comment}
+\subsection{Values}
+
+The values in this reduced language consist only of algebraic data
+types, and functions. A value is either a function, or a constructor
+and a list of component values. The type of a value can be deduced
+statically -- whether it is a function or an algebraic value, and in
+the second case, what are its possible constructors.
+
+\subsection{Expressions}
+
+Expressions in reduced Haskell are defined in Figure \ref{fig:ast}.
+A convertor from a subset of Haskell to this reduced language has
+been written, and all examples from here onwards use this convertor.
+
+\begin{figure}
+\begin{tabular}{lcll}
+$E$ & ::= & \T{arg} $m$ (written \T{@}$m$)& $|$ \T{sel} $E \gap C \gap m$ (written $E$.$C_m$) \\
+    & $|$ & \T{make} $C \gap E_1\cdots E_n$ & $|$ \T{func} $f$ \\
+    & $|$ & \T{apply} $E_0 \gap E_1\cdots E_n$ & $|$ \T{case} $E_0$ \T{of} \{$C_1$ \T{->} $E_1$\T{;}
+    $\cdots$ \T{;} $C_n$ \T{->} $E_n$\}
+\end{tabular} \\
+$f$ is the name of a function, $C$ is the name of a constructor, $m$ is a positive integer
+\caption{Abstract Syntax of expressions in reduced Haskell} %
+\label{fig:ast}
+\end{figure}
+\end{comment}
+
+\subsection{Higher Order Functions}
+
+The current checker is not higher order, and does not allow partial
+application.
+
+The checker tries to eliminate higher-order functions by
+specialization. A mutually recursive group of functions can be
+specialized in their $n$th argument if in all recursive calls this
+argument is invariant.
+
+Examples of common functions whose applications can be specialized
+in this way include \T{map}, \T{filter}, \T{foldr} and \T{foldl}.
+
+When a function can be specialized, the expression passed as the
+$n$th argument has all its free variables passed as extra
+arguments, and is expanded in the specialized version. All
+recursive calls within the new function are then renamed.
+
+\yesexample
+
+\begin{code}
+map f xs = case xs of
+                []     -> []
+                (a:as) -> f a : map f as
+
+adds x n = map (add n) x
+\end{code}
+
+\noindent is transformed into:
+
+\begin{code}
+map_adds n xs = case xs of
+                     []     -> []
+                     (a:as) -> add n a : map_adds n as
+
+adds x n = map_adds n x\noexample
+\end{code}
+
+Although this firstification approach is not complete by any
+means, it appears to be sufficient for a large range of examples.
+Alternative methods are available for full firstification, such as
+that detailed by Hughes \cite{hughes:type-spec}, or the
+defunctionalisation approach by Reynolds
+\cite{defunctionalisation}.
+
+
+\subsection{Internal Representation}
+
+While the concrete syntax allows the introduction of new variable
+names, the internal representation does not. All variables are
+referred to using a \textit{selector path} from an argument to the
+function.
+
+For example, the internal representation of \T{map} is:
+
+\begin{code}
+map f xs = case xs of
+                []    -> []
+                (_:_) -> f (xs\(\D\)hd) : map f (xs\(\D\)tl)
+\end{code}
+
+(Note that the infix \D{} operator here is used to compose paths; it
+is \textit{not} the Haskell function composition operator.)
+
+
+% \section{Overview}
+% \label{sec:overview}
+%
+% \todo Delete me!
+%
+% The checking process has two main ingredients, a constraint language
+% for expressing properties on data structures and some mechanisms for
+% generating and manipulating constraints to reflect the definition of
+% functions. Both are introduced in detail later on, but first a
+% sketch overview of the checking process is given. A diagram of the
+% process is given in Figure \ref{fig:overview}
+%
+% \begin{figure}
+%
+% \begin{center}
+% \begin{picture}(340,070)
+%
+% \put(000,050){\framebox(120,20){\small{Find non-exhaustive patterns}}}
+% \put(140,050){\framebox(80,20){\small{Find callers}}}
+% \put(140,010){\makebox(80,20){\small{Backward analysis}}}
+% \put(140,000){\makebox(80,20){\small{Fixed pointing}}}
+% \put(240,000){\framebox(80,30){\small{Report result}}}
+% \put(140,000){\framebox(80,30){ }}
+%
+% \put(120,060){\vector(1,0){20}}
+% \put(160,050){\vector(0,-1){20}}
+% \put(200,030){\vector(0,01){20}}
+% \put(220,015){\vector(1,0){20}}
+%
+% % \qbezier(75,40)(75,30)(85,30)
+% % \put(85,30){\line(1,0){70}}
+% % \qbezier(155,30)(165,30)(165,40)
+% % \put(165,40){\line(0,1){120}}
+% % \qbezier(155,170)(165,170)(165,160)
+% % \put(155,170){\line(-1,0){70}}
+% % \qbezier(75,160)(75,170)(85,170)
+%
+% \end{picture}
+% \end{center}
+%
+% \caption{Checker Overview} %
+% \label{fig:overview}
+% \end{figure}
+%
+% At each stage, the information passed ``along the arrows'' is a
+% predicate, where the atoms are constraints as introduced in
+% \S\ref{sec:constraints}. These constraints can either refer to any
+% reduced Haskell expression, or in a special case can refer only to
+% parameters to functions.
+%
+% The initial stage of finding all non-exhaustive case expressions is
+% done with a basic syntactic check, at a very local level. Initial
+% constraints are generated from these expressions.
+%
+% Finding all callers is relatively straightforward if all constraints
+% are only on arguments to functions. The result of this stage are
+% constraints on expressions.
+%
+% Backward analysis and fixed pointing convert back from constraints
+% on expressions into constraints on arguments. Backward analysis
+% performs the translation, but without regard to recursive function
+% calls. Fixed pointing modifies constraints to reflect the recursive
+% calls.
+%
+% This process continues, until the predicate is reduced to either
+% True or False. If the end result is True, then the system is free
+% from pattern-match errors. If it is False, then the system
+% \textit{may} give rise to pattern errors. The checker is
+% conservative.
+%
+% In practice False is always accompanied by a history of derivations,
+% ending in False. These derivations allow the user to gain insight
+% into a possible cause of failure.
+
+\section{A Constraint Language}
+\label{sec:constraints}
+
+In order to implement a checker that can ensure unfailing patterns,
+it is useful to have some way of expressing properties of data
+values. A constraint is written as $\tup{e,r,c}$ , where $e$ is an
+expression, $r$ is a regular expression over selectors and $c$ is a
+set of constructors. Such a constraint asserts that any well-defined
+application to $e$ of a path of selectors described by $r$ must
+reach a constructor in the set $c$.
+
+These constraints are used as atoms in a predicate language with
+conjunction and disjunction, so constraints can be about several
+expressions and relations between them. The checker does not require
+a negation operator. We also use the term constraint to refer to
+logical formulae with constraints as atoms.
+
+\yesexample
+
+Consider the function \T{minimum}, defined as:
+
+\begin{code}
+minimum xs = case xs of
+                  [x]      -> x
+                  (a:b:xs) -> minimum (min a b : xs)
+
+min a b = case a < b of
+               True  -> a
+               False -> b
+\end{code}
+
+Now consider the expression \T{minimum $e$}. The constraint that
+must hold for this expression to be safe is \cc{$e$}{:}. This says
+that the expression $e$ must reduce to an application of \T{:}, i.e.
+a non-empty list. In this example the path was $\lambda$ -- the
+empty path.\noexample
+
+\yesexample
+
+Consider the expression \T{map minimum $e$}. In this case the
+constraint generated is \c{$e$}{tl\K\D hd}{:}. If we apply any
+number (possibly zero) of \T{tl}s to $e$, then apply \T{hd}, we
+reach a \T{:} construction. Values satisfying this constraint
+include \T{[]} and \T{[[1],[2],[3]]}, but not \T{[[1],[]]}. The
+value \T{[]} satisfies this constraint because it is impossible to
+apply either \T{tl} or \T{hd}, and therefore the constraint does not
+assert anything about the possible constructors.
+
+\noexample
+
+Constraints divide up into three parts -- the \textit{subject},
+the \textit{path} and the \textit{condition}.
+
+\begin{description}
+\item[The subject] in the above two examples was just $e$,
+representing any expression -- including a call, a construction or
+even a \T{case}.
+
+\item[The path] is a regular expression over selectors.
+
+A regular expression is defined as:\\ \\
+\begin{tabular}{ll}
+$s+t$ & union of regular expressions $s$ and $t$ \\
+$s\D t$ & concatenation of regular expressions $s$ then $t$ \\
+$s\K$  & any number (possibly zero) occurrences of $s$ \\
+\T{x} & a selector, such as \T{hd} or \T{tl} \\
+$\lambda$ & the language is the set containing the empty string \\
+$\phi$ & the language is the empty set
+\end{tabular}
+
+\item[The condition] is a set of constructors which, due to static type
+checking, must all be of the same result type.
+\end{description}
+
+The meaning of a constraint is defined by:
+
+\[ \tup{e,r,c} \Leftrightarrow (\forall l \in L(r) \bullet
+\text{\textit{defined}}(e,l) \Rightarrow
+\text{\textit{constructor}}(e\D{}l) \in c )
+\]
+
+\noindent Here $L(r)$ is the language represented by the regular
+expression $r$; \textit{defined} returns true if a path selection is
+well-defined; and \textit{constructor} gives the constructor used to
+create the data. Of course, since $L(r)$ is potentially infinite,
+this cannot be checked by enumeration.
+
+If no path selection is well-defined then the constraint is
+vacuously true.
+
+\subsection{Simplifying the Constraints}
+\label{sec:constraint_simplify}
+
+From the definition of the constraints it is possible to construct a
+number of identities which can be used for simplification.
+
+\begin{description}
+
+\item[Path does not exist:] in the constraint \c{[]}{hd}{:} the expression
+\T{[]} does not have a \T{hd} path, so this constraint simplifies
+to true.
+
+\item[Detecting failure:] the constraint \cc{[]}{:} simplifies to false
+because the \T{[]} value is not the constructor \T{:}.
+
+\item[Empty path:] in the constraint $\tup{e,\phi,c}$, the
+regular expression is $\phi$, the empty language, so the constraint
+is always true.
+
+\item[Exhaustive conditions:] in the constraint \cc{$e$}{:,[]}
+the condition lists all the possible constructors, if $e$ reaches
+weak head normal form then because of static typing $e$ must be one
+of these constructors, therefore this constraint simplifies to true.
+
+\item[Algebraic conditions:] finally a couple of algebraic equivalences:
+
+\[
+\begin{array}{rcl}
+\tup{e,r_1,c} \wedge \tup{e,r_2,c} & = & \tup{e,(r_1+r_2),c} \\
+%incorrect, too conservative
+%\tup{e,r,c_1} \vee   \tup{e,r,c_2} & = & \tup{e,r,c_1 \cup c_2} \\
+\tup{e,r,c_1} \wedge \tup{e,r,c_2} & = & \tup{e,r,c_1 \cap c_2}
+\end{array}
+\]
+\end{description}
+
+
+\section{Determining the Constraints}
+\label{sec:determining}
+
+This section concerns the derivation of the constraints, and the
+operations involved in this task.
+
+\subsection{The Initial Constraints}
+
+In general, a \T{case} expression, where $\vecto{v}$ are the
+arguments to a constructor:
+
+\begin{code}
+case \(e\) of {C\s{1} \(\vecto{v}\) -> val\s{1}; \ldots; C\s{n} \(\vecto{v}\) -> val\s{n}}
+\end{code}
+
+\noindent produces the initial constraint
+\cc{$e$}{C\s{1},\ldots,C\s{n}}. If the case alternatives are
+exhaustive, then this can be simplified to true. All \T{case}
+expressions in the program are found, their initial constraints
+are found, and these are joined together with conjunction.
+
+\subsection{Transforming the constraints}
+
+For each constraint in turn, if the subject is \T{x\s{f}} (i.e. the
+\T{x} argument to \T{f}), the checker searches for every application
+of \T{f}, and gets the expression for the argument \T{x}. On this
+expression, it sets the existing constraint. This constraint is then
+transformed using a backward analysis (see \S\ref{sec:backward}),
+until a constraint on arguments is found.
+
+\yesexample
+
+Consider the constraint \cc{xs\s{minimum}}{:} -- that is
+\T{minimum}'s argument \T{xs} must be a non-empty list. If the
+program contains the expression:
+
+\begin{code}
+f x = minimum (g x)
+\end{code}
+
+\noindent then the derived constraint is \cc{(g x\s{f})}{:}.
+\noexample
+
+\subsection{Backward Analysis}
+\label{sec:backward}
+
+Backward analysis takes a constraint in which the subject is a
+compound expression, and derives a combination of constraints over
+arguments only. This process is denoted by a function $\varphi$,
+which takes a constraint and returns a predicate over constraints.
+This function is detailed in Figure~\ref{fig:backward}.
+
+In this figure, $C$ denotes a constructor, $c$ is a set of
+constructors, $f$ is a function, $e$ is an expression, $r$ is a
+regular expression over selectors and $s$ is a selector.
+
+\begin{figure}
+
+\renewcommand\theequation{sel}
+\begin{equation}
+    \varphi\tup{e\D{}s,r,c} \rightarrow
+    \varphi\tup{e,s\D{}r,c}
+\end{equation}
+
+\renewcommand\theequation{con}
+\begin{equation}
+\frac
+    {
+        \bigwedge_{i=1}^{\#\vecto{e}}
+        \varphi\tup{e_i,\frac{\partial r}{\partial \mathcal{S}(C,i)},c}
+        \rightarrow P
+    }
+    {
+        \varphi\tup{C \gap \vecto{e},r,c}
+        \rightarrow (\lambda \in L(r) \Rightarrow C \in c) \wedge P
+    }
+\end{equation}
+
+\renewcommand\theequation{app}
+\begin{equation}
+    \varphi\tup{f \gap \vecto{e},r,c} \rightarrow
+    \varphi\tup{\mathcal{D}(f, \vecto{e}),r,c}
+\end{equation}
+
+\renewcommand\theequation{cas}
+\begin{equation}
+\frac
+    {
+        \bigwedge_{i=1}^{\#\vecto{e}}
+        (
+            \varphi\tup{e_0,\lambda,\mathcal{C}(C_i)} \vee
+            \varphi\tup{e_i,r,c}
+        ) \rightarrow P
+    }
+    {
+        \varphi\tup{\T{case } e_0 \T{ of \{}C_1 \gap \vecto{v} \T{->} e_1\T{;} \cdots
+        \T{;} C_n \gap \vecto{v} \T{->} e_n \},r,c} \rightarrow P
+    }
+\end{equation}
+
+\caption{Specification of backward analysis, $\varphi$} %
+\label{fig:backward}
+\end{figure}
+
+\begin{description}
+
+\item[The (sel) rule] moves the composition from the expression
+to the path.
+
+\item[The (con) rule] deals with an application of a constructor $C$.
+If $\lambda$ is in the path language the $C$ must be permitted by
+the condition. This depends on the \textit{empty word property}
+(ewp) \cite{conway}, which can be calculated structurally on the
+regular expression.
+
+For each of the arguments to $C$, a new constraint is obtained from
+the derivative of the regular expression with respect to that
+argument's selector. This is denoted by $\partial r / \partial
+\mathcal{S}(C,i)$, where $\mathcal{S}(C,i)$ gives the selector for
+the $i$th argument of the constructor $C$. The differentiation
+method is based on that described by Conway \cite{conway}. It can be
+used to test for membership in the following way:
+
+\[
+\begin{array}{rcl}
+\lambda \in L(r) & = & \text{ewp}(r) \\
+s\D{}r' \in L(r) & = & r' \in L(\partial r / \partial s)
+\end{array}
+\]
+
+Two particular cases of note are $\partial \lambda / \partial a =
+\phi$ and $\partial \phi / \partial a = \phi$.
+
+\item[The (app) rule] uses the notation $\mathcal{D}(f,\vecto{e})$ to
+express the result of substituting each of the arguments in
+$\vecto{e}$ into the body of the function $f$. The naive application
+of this rule to any function with a recursive call will loop
+forever. To combat this, if a function is already in the process of
+being evaluated with the same constraint, its result is given as
+true, and the recursive arguments are put into a special pile to be
+examined later on, see \S\ref{sec:fixed_point} for details.
+
+\item[The (cas) rule] generates a conjunct for each alternative.
+The function $\mathcal{C}(C)$ returns the set of all other
+constructors with the same result type as $C$, i.e.
+$\mathcal{C}(\T{[]}) = \g{:}$. The generated condition says either
+the subject of the case analysis has a different constructor (so
+this particular alternative is not executed in this circumstance),
+or the right hand side of the alternative is safe given the
+conditions for this expression.
+\end{description}
+
+\subsection{Obtaining a Fixed Point}
+\label{sec:fixed_point}
+
+We have noted that if a function is in the process of being
+evaluated, and its value is asked for again with the same
+constraints, then the call is deferred. After backwards analysis has
+been performed on the result of a function, there will be a
+constraint in terms of the arguments, along with a set of recursive
+calls. If these recursive calls had been analyzed further, then the
+checking computation would not have terminated.
+
+\yesexample
+
+\begin{code}
+mapHead xs = case xs of
+                  []     -> []
+                  (x:xs) -> head x : mapHead xs
+\end{code}
+
+The function \T{mapHead} is exactly equivalent to \T{map head}.
+Running backward analysis over this function, the constraint
+generated is \c{xs\s{mapHead}}{hd}{:}, and the only recursive call
+noted is \T{mapHead (xs\D{}tl}). The recursive call is written as
+\T{xs $\mapsfrom$ xs\D{}tl}, showing how the value of \T{xs}
+changes. Observe that the path in the constraint only reaches the
+first element in the list, while the desired constraint would reach
+them all. In effect \T{mapHead} has been analyzed without
+considering any recursive applications.
+
+The fixed point for this function can be derived by repeatedly
+replacing \T{xs} with \T{xs\D{}tl} in the subject of the constraint,
+and joining these constraints with conjunction.
+
+\setcounter{equation}{0}
+\renewcommand\theequation{\arabic{equation}}
+\begin{eqnarray}
+&& \small{\c{xs}{hd}{:} \wedge \c{xs\D{}tl}{hd}{:} \wedge
+   \c{xs\D{}tl\D{}tl}{hd}{:} \wedge \ldots} \\
+& \equiv & \small{\c{xs}{hd}{:} \wedge \c{xs}{tl\D{}hd}{:} \wedge
+   \c{xs}{tl\D{}tl\D{}hd}{:} \wedge \ldots} \\
+& \equiv & \small{\c{xs}{hd+tl\D{}hd+tl\D{}tl\D{}hd+$\ldots$}{:}} \\
+& \equiv & \small{\c{xs}{($\lambda$+tl+tl\D{}tl+$\ldots$)\D{}hd}{:}} \\
+& \equiv & \small{\c{xs}{tl\K\D{}hd}{:}}
+\end{eqnarray}
+
+The justification is as follows. First use the backwards analysis
+rule given in Figure \ref{fig:backward} to transform between (1) and
+(2) -- selectors move from the subject to the path. To obtain (3)
+the first algebraic condition given in
+\S\ref{sec:constraint_simplify} is used. The factorisation of the
+\T{hd} element of the regular expression is applied. Finally this
+can be rewritten using the regular expression \K operator as the
+result. \noexample
+
+More generally, given any constraint of the form \tup{\T{x},r,c} and
+a recursive call of the form \T{x $\mapsfrom$ x.$p$}, the fixed
+point is \tup{$x$,p\K\D{}r,c}. A special case is where $p$ is
+$\lambda$, in which case $p$\K\D{}$r = r$.
+
+\yesexample
+
+Consider the function \T{reverse} written using an accumulator:
+
+\begin{code}
+reverse x = reverse2 x []
+
+reverse2 x a = case x of
+                    []     -> a
+                    (y:ys) -> reverse2 ys (y:a)
+\end{code}
+
+Argument \T{xs} follows the pattern \T{x $\mapsfrom$ x.tl}, but we
+also have the recursive call \T{a $\mapsfrom$ (x\D{}hd:a)}. If the
+program being analyzed contained an instance of \T{map head (reverse
+x)}, the part of the condition that applies to \T{a} before the
+fixed pointing of \T{a} is \c{a}{tl\K\D{}hd}{:}.
+
+In this case a second rule for obtaining a fixed point can be used.
+For recursive calls of the form \T{a $\mapsfrom$ C x$_1$ $\cdots$
+x$_n$ a}, where $s$ is the selector corresponding to the position of
+$a$, the rule is:
+
+\[\bigwedge_{r'\in r^{\#}}\left(
+    \left(\lambda\in L(r') \Rightarrow C \in c \right) \wedge
+    \tup{a,r',c} \wedge
+    \bigwedge_{i=1}^{n}\tup{x_i,\frac{\partial r'}{\partial
+    \mathcal{S}(C,i)},c}
+    \right)
+\]
+
+Where:
+
+\[
+r^{\#} = \{r^0,r^1,\ldots,r^{\infty}\}
+\hspace{1cm} r^0 = r \hspace{1cm}
+r^{(n+1)} = \frac{\partial r^n}{\partial s}
+\]
+
+It can be shown that $r^{\#}$ is always a finite set
+\cite{lawson:finite_automata}. This expression is derived from the
+(con) rule \S\ref{sec:backward}, applied until it reaches a fixed
+point.
+
+In the \T{reverse} example, $r^{\#}$ is $\{\T{tl\K\D{}hd}\}$, since
+$\partial \T{tl\K\D{}hd} / \partial \T{tl} = \T{tl\K\D{}hd}$. Also
+$\lambda \notin L(\T{tl\K\D{}hd})$, so the result is:
+
+\begin{eqnarray*}
+&& \c{a}{tl\K\D{}hd}{:} \wedge
+   \c{x\D{}hd}{$\frac{\partial \T{tl\K\D{}hd}}{\partial
+   \T{hd}}$}{:} \\
+& \equiv & \c{a}{tl\K\D{}hd}{:} \wedge \cc{x\D{}hd}{:} \\
+& \equiv & \c{a}{tl\K\D{}hd}{:} \wedge \c{x}{hd}{:}
+\end{eqnarray*}
+
+Next applying the fixed pointing due to \T{x}, gives a final
+condition, as expected:
+
+\noindent \c{a}{tl\K\D{}hd}{:} $\wedge$ \c{x}{tl\K\D{}hd}{:}
+\noexample
+
+While the two rules given do cover a wide range of examples, they
+are not complete. Additional rules exist for other forms of
+recursion but not all recursive functions can be handled using the
+current scheme.
+
+\yesexample
+
+\begin{code}
+interleave x y = case x of
+                      []    -> y
+                      (a:b) -> a : interleave y b
+\end{code}
+
+Here the recursive call is \T{y $\mapsfrom$ x\D{}tl}, which does not
+have a rule defined for it. In such cases the checker conservatively
+outputs \T{False}, and also gives a warning message to the user. The
+checker always terminates.
+
+The fixed point rules classify exactly which forms of recursion can
+be accepted by the checker. Defining more fixed point rules which
+can capture an increasingly large number of patterns is a matter for
+future work.
+
+\section{A Worked Example}
+\label{sec:worked_example}
+
+Recall the \T{risers} example in \S\ref{sec:introduction}. The first
+step of the checker is to transform this into reduced Haskell.
+
+\begin{code}
+risers xs =
+    case xs of
+         []        -> []
+         [x]       -> [[x]]
+         (x:y:etc) -> risers2 (x <= y) x (risers (y:etc))
+
+risers2 b x y = case y of
+                     (s:ss) -> case b of
+                                    True  -> (x:s) : ss
+                                    False -> [x] : (s:ss)
+\end{code}
+
+The auxiliary \T{risers2} is necessary because reduced Haskell has
+no \T{where} clause. The checker proceeds as follows:
+
+\paragraph{Step 1, Find all incomplete case statements.} The checker
+finds one, in the body of \T{risers2}, the argument \T{y} must be a
+non-empty list. The constraint is \cc{y\s{risers2}}{:}.
+
+\paragraph{Step 2, Propagate.} The auxiliary \T{risers2} is
+applied by \T{risers} with \T{risers (y:etc)} as the argument \T{s}.
+This gives \cc{(risers (y:etc))}{:}. When rewritten in terms of
+arguments and paths of selectors, this gives the constraint
+\cc{(risers (xs\s{risers}\D tl\D hd :$\gap{}$xs\s{risers}\D tl\D
+tl))}{:}.
+
+\paragraph{Step 3, Backward analysis.} The constraint is transformed
+using the backward analysis rules. The first rule invoked is (app),
+which says that the body of \T{risers} must evaluate to a non-empty
+list, in effect an inline version of the constraint. Backward
+analysis is then performed over the case statement, the
+constructors, and finally \T{risers2}. The conclusion is that
+provided \T{xs\s{risers}} is a \T{:}, the result will be. The
+constraint is \cc{(xs\s{risers}\D tl\D hd :$\gap{}$xs\s{risers}\D
+tl\D tl)}{:}, which is true.
+
+In this example, there is no need to perform any fixed pointing.
+
+\section{Some Small Examples and a Case Study}
+\label{sec:examples}
+
+In the following examples, each line represents one propagation step
+in the checker. The final constraint is given on the last line.
+
+\begin{code}
+head x = case x of
+              (y:ys) -> y
+main x = head x
+> \cc{x\s{head}}{:}
+> \cc{x\s{main}}{:}
+\end{code}
+
+\noindent This example requires only initial constraint generation,
+and a simple propagation. \noexample
+
+
+%
+% \yesexample
+%
+% \begin{code}
+% list x = case x of
+%              (a:as) -> head x : tail x
+%              _ -> []
+% main x = list x
+% > head@1\g{:} \(\wedge\) tail@1\g{:}
+% > True
+% \end{code}
+%
+% \noindent In this example \T{list} is about as useful as \T{id}, but
+% it does show some nice features of the system. Even though
+% internally \T{list} uses the non-exhaustive functions \T{head} and
+% \T{tail}, the checker is able to tell that their arguments are not
+% the empty list. This example shows the use of non-exhaustive
+% components in a program which is proved to be free from
+% pattern-match errors. \noexample
+
+\yesexample
+
+\begin{code}
+main x = map head x
+> \cc{x\s{head}}{:}
+> \c{x\s{map_head}}{tl\K\D{}hd}{:}
+> \c{x\s{main}}{tl\K\D{}hd}{:}
+\end{code}
+
+\noindent This example shows specialization generating a new
+function \verb"map_head", fixed pointing being applied to \T{map},
+and the constraints being propagated through the system. \noexample
+
+
+\yesexample
+
+\begin{code}
+main x = map head (reverse x)
+> \cc{x\s{head}}{:}
+> \c{x\s{map_head}}{tl\K\D{}hd}{:}
+> \c{x\s{main}}{tl\K}{:} \(\vee\) \c{x\s{main}}{tl\K\D{}hd}{:}
+\end{code}
+
+\noindent This result may at first seem surprising. The first
+disjunct of the constraint says that applying \T{tl} any number of
+times to \T{x\s{main}} the result must always be a \T{:}, in other
+words \T{x} must be infinite. This guarantees case safety because
+\T{reverse} is tail strict, so if its argument is an infinite list,
+no result will ever be produced, and a case error will not occur.
+The second disjunct says, less surprisingly, that every item in
+\T{x} must be a non-empty list. \noexample
+
+\yesexample
+
+\begin{code}
+main xs ys = case null xs || null ys of
+                  True -> 0
+                  False -> head xs + head ys
+> \cc{x\s{head}}{:}
+> \cc{(null xs\s{main} || null ys\s{main})}{True} \(\vee\)
+  (\cc{xs\s{main}}{:} \(\wedge\) \cc{ys\s{main}}{:})
+> \cc{xs\s{main}}{[]} \(\vee\) \cc{ys\s{main}}{[]} \(\vee\) (\cc{xs\s{main}}{:} \(\wedge\) \cc{ys\s{main}}{:})
+> True
+\end{code}
+
+This example shows the use of a more complex condition to guard a
+potentially unsafe application of \T{head}. The backward analysis
+applied to \T{null} and \T{||} gives precise requirements, which
+when expanded results in a tautology, showing that no pattern match
+error can occur.\noexample
+
+\yesexample
+
+\begin{code}
+main x = tails x
+tails x = foldr tails2 [[]] x
+tails2 x y = (x:head y) : y
+> \cc{x\s{head}}{:}
+> \cc{y\s{tails2}}{:}
+> \cc{n1\s{foldr_tails2}}{:} \(\vee\) \c{n2\s{foldr_tails2}}{tl\K\D{}tl}{:}
+> True
+\end{code}
+
+\noindent This final example uses a fold to calculate the \T{tails}
+function. As the auxiliary \T{tails2} makes use of \T{head} the
+program is not obviously free from pattern-match errors. The first
+two lines of the output are simply moving the constraint around. The
+third line is the interesting one. In this line the checker gives
+two alternative conditions for the case safety of \T{foldr tails2}
+-- either its first argument is a \T{:}, or its second argument is
+empty or infinite. The way the requirement for empty or infinite
+length is encoded is by the path \T{tl\K\D{}tl}. If the list is
+\T{[]}, then there are no tails to match the path. If however, there
+is one tail, then that tail, and all successive tails must be \T{:}.
+So either \T{foldr} does not call its function argument because it
+immediately takes the \T{[]} case, or \T{foldr} recurses infinitely,
+and therefore the function is never called. Either way, because
+\T{foldr}'s second argument is a \T{:}, and because \T{tails2}
+always returns a \T{:}, the first part of the condition can be
+satisfied. \noexample
+
+\subsection{The Clausify Program}
+
+Our goal is to check standard Haskell programs, and to provide
+useful feedback to the user. To test the checker against these
+objectives we have used several Haskell programs, all written some
+time ago for other purposes. The analysis of one program is
+discussed below.
+
+The Clausify program has been around for a very long time, since at
+least 1990. It has made its way into the \T{nofib} benchmark suite
+\cite{nofib}, and was the focus of several papers on heap profiling
+\cite{clausify}. It parses logical propositions and puts them in
+clausal form. We ignore the parser and jump straight to the
+transformation of propositions. The data structure for a formula is:
+
+\begin{code}
+data F = Sym \{char :: Char\} | Not \{n :: F\}
+       | Dis \{d1, d2 :: F\} | Con \{c1, c2 :: F\}
+       | Imp \{i1, i2 :: F\} | Eqv \{e1, e2 :: F\}
+\end{code}
+
+\noindent and the main pipeline is:
+
+\begin{code}
+unicl . split . disin . negin . elim
+\end{code}
+
+Each of these stages takes a proposition and returns an equivalent
+version -- for example the \T{elim} stage replaces implications with
+disjunctions and negation. Each stage eliminates certain forms of
+proposition, so that future stages do not have to consider them.
+Despite most of the stages being designed to deal with a restricted
+class of propositions, the only function which contains a
+non-exhaustive pattern match is in the definition of \T{clause} (a
+helper function for \T{unicl}).
+
+\begin{code}
+clause p = clause' p ([] , [])
+    where
+    clause' (Dis p q)       x   = clause' p (clause' q x)
+    clause' (Sym s)       (c,a) = (insert s c , a)
+    clause' (Not (Sym s)) (c,a) = (c , insert s a)
+\end{code}
+
+After encountering the non-exhaustive pattern match, the checker
+generates the following constraints:
+
+\begin{code}
+> \c{p\s{clause'}}{(d1+d2)\K}{Dis,Sym,Not} \(\wedge\) \c{p\s{clause'}}{(d1+d2)\K\D{}n}{Sym}
+> \c{p\s{clause'}}{(d1+d2)\K}{Dis,Sym,Not} \(\wedge\) \c{p\s{clause}}{(d1+d2)\K\D{}n}{Sym}
+> \c{p\s{unicl'}}{(d1+d2)\K}{Dis,Sym,Not} \(\wedge\) \c{p\s{unicl'}}{(d1+d2)\K\D{}n}{Sym}
+> \c{x\s{foldr_unicl}}{tl\K\D{}hd\D(d1+d2)\K}{Dis,Sym,Not} \(\wedge\)
+  \c{x\s{foldr_unicl}}{tl\K\D{}hd\D(d1+d2)\K\D{}n}{Sym}
+> \c{x\s{unicl}}{tl\K\D{}hd\D(d1+d2)\K}{Dis,Sym,Not} \(\wedge\)
+  \c{x\s{unicl}}{tl\K\D{}hd\D(d1+d2)\K\D{}n}{Sym}
+\end{code}
+
+These constraints give accurate and precise requirements for a case
+error not to occur at each stage. However, when the condition is
+propagated back over the \T{split} function, the result becomes less
+pleasing. None of our fixed pointing schemes handle the original
+recursive definition of \T{split}:
+
+\begin{code}
+split p = split' p []
+    where
+    split' (Con p q) a = split' p (split' q a)
+    split' p a = p : a
+\end{code}
+
+\noindent can be transformed manually by the removal of the
+accumulator:
+
+\begin{code}
+split (Con p q) = split p ++ split q
+split p = [p]
+\end{code}
+
+This second version is accepted by the checker, which generates the
+constraint:
+
+\begin{code}
+> \c{p\s{split}}{(c1+c2)\K}{Con,Dis,Sym,Not} \(\wedge\)
+  \c{p\s{split}}{(c1+c2)\K\D(d1+d2)\D(d1+d2)\K}{Dis,Sym,Not} \(\wedge\)
+  \c{p\s{split}}{(c1+c2)\K\D(d1+d2)\K\D{}n}{Sym}
+\end{code}
+
+This constraint can be read as follows: the outer structure of a
+propositional argument to \T{split} is any number of nested \T{Con}
+constructors; the next level is any number of nested \T{Dis}
+constructors; at the innermost level there must be either a \T{Sym},
+or a \T{Not} containing a \T{Sym}. That is, propositions are in
+\textit{conjunctive normal form}.
+
+The one surprising part of this constraint is the
+\T{(d1+d2)\D(d1+d2)\K} part of the path in the 2nd conjunct. We
+might rather expect something similar to
+\T{(c1+c2)\K\D(d1+d2)\K\{Dis,Sym,Not\}}, but consider what this
+means. Take as an example the value \T{(Con (Sym 'x') (Sym 'y'))}.
+This value meets all 3 conjunctions generated by the tool, but does
+not meet this new constraint: the path has the empty word property,
+so the root of the value can no longer be a \T{Con} constructor.
+
+The next function encountered is \T{disin} which shifts
+disjunction inside conjunction. The version in the nofib benchmark
+has the following equation in its definition:
+
+\begin{code}
+disin (Dis p q) = if conjunct dp || conjunct dq
+                  then disin (Dis dp dq)
+                  else (Dis dp dq)
+    where
+    dp = disin p
+    dq = disin q
+\end{code}
+
+Unfortunately, when expanded out this gives the call
+
+\begin{code}
+disin (Dis (disin p) (disin q))
+\end{code}
+
+\noindent which does not have a fixed point under the present
+scheme. Refactoring is required to enable this stage to succeed.
+Fortunately, in \cite{clausify} a new version of \T{disin} is given,
+which is vastly more efficient than this one, and (as a happy side
+effect) is also accepted by the checker.
+
+At this point the story comes to an end. Although a constraint is
+calculated for the new \T{disin}, this constraint is approximately
+15 printed pages long! Initial exploration suggests at least one
+reason for such a large constraint: there are missed opportunities
+to simplify paths. We are confident that with further work the
+Clausify example can be completed.
+
+\section{Related Work}
+\label{sec:related_work}
+
+Viewed as a \textbf{proof tool} this work can be seen as following
+Turner's goal to define a Haskell-like language which is total
+\cite{tfp:total}. Turner disallows incomplete pattern matches,
+saying this will ``force you to pay attention to exactly those
+corner cases which are likely to cause trouble''. Our checker may
+allow this restriction to be lifted, yet still retain a total
+programming language.
+
+Viewed as a basic \textbf{pattern match checker}, the work on
+compiling warnings about incomplete and overlapping patterns is
+quite relevant \cite{ghc,pattern_match}. As noted in the
+introduction, these checks are only local.
+
+Viewed as a \textbf{mistake detector} this tool has a similar
+purpose to the classic C Lint tool \cite{lint}, or Dialyzer
+\cite{dialyzer} -- a static checker for Erlang. The aim is to have a
+static checker that works on unmodified code, with no additional
+annotations. However, a key difference is that in Dialyzer all
+warnings indicate a genuine problem that needs to be fixed. Because
+Erlang is a dynamically typed language, a large proportion of
+Dialyzer's warnings relate to mistakes a type checker would have
+detected.
+
+Viewed as a \textbf{soft type system} the checker can be compared to
+the tree automata work done on XML and XSL \cite{static_xslt}, which
+can be seen as an algebraic data type and a functional language.
+Another soft typing system with similarities is by Aiken
+\cite{type:dynamic}, on the functional language FL. This system
+tries to assign a type to each function using a set of constructors,
+for example \T{head} is given just \T{Cons} and not \T{Nil}.
+
+\section{Conclusions and Further Work}
+\label{sec:conclusions}
+
+A static checker for potential pattern-match errors in Haskell has
+been specified and implemented. This checker is capable of
+determining preconditions under which a program with non-exhaustive
+patterns executes without failing due to a pattern-match error. A
+range of small examples has been investigated successfully. Where
+programs cannot be checked initially, refactoring can increase the
+checker's success rate. Work in progress includes:
+
+\begin{itemize}
+
+\item The checker currently relies on specialization to remove higher order
+functions.
+
+\item The checker is fully polymorphic but it does not currently
+handle Haskell's type classes; we hope these can be transformed away
+without vast complication \cite{class_remove}.
+
+\item Another challenge is to translate from full Haskell into the
+reduced language. This work has been started: we have a converter
+for a useful subset.
+
+\item The checker should offer fuller traces that can
+be manually verified. Currently the predicate at each stage is
+given, without any record of how it was obtained, or what effect
+fixed pointing had. Although a more detailed trace would not help an
+end user, it would help strengthen the understanding of the
+algorithms.
+
+\item The central algorithms of the checker can be refined. In particular
+a better fixed pointing scheme is being developed. A complete
+analysis of which programs can be verified would be useful.
+
+\item A correctness proof is needed to prove that the checker is
+sound. This will require a semantics for the reduced Haskell-like
+language.
+
+\end{itemize}
+
+With these improvements we hope to check larger Haskell programs,
+and to give useful feedback to the programmer.
+
+\section*{Acknowledgement}
+
+The first author is a PhD student supported by a studentship from
+the Engineering and Physical Sciences Research Council of the UK.
+
+% \nocite{*}
+\bibliographystyle{abbrv}
+\bibliography{case_check}
+
+\end{document}
