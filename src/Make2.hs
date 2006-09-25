@@ -24,12 +24,12 @@ make2:: FilePath -> IO Hite
 make2 x = do
         ensureDirectory "Cache"
         ensureDirectory "Cache/Library"
-        ensureDirectory "Cache/Example"
         
         primDirty <- testDirty "Library/Primitive.hs" "Cache/Library/Primitive.ycr"
         when_ primDirty $ system $ "yhc Library/Primitive.hs -corep -dst Cache/Library -hidst Cache/Library"
         
-        src <- getFilePath x
+        (folder,src) <- getFilePath x
+        ensureDirectory $ "Cache/" ++ folder
         system $ "yhc \"" ++ src ++ "\" -corep -dst Cache/Example -hidst Cache/Example"
         
         -- now do a transitive closure on the depandancies
@@ -256,17 +256,21 @@ isPreamble :: FilePath -> Bool
 isPreamble file = "Preamble.hs" `isSuffixOf` file
 
 
-getFilePath :: FilePath -> IO FilePath
-getFilePath file = do let fil = if file == "Prelude" then "Library/Preamble.hs"
-                                else file ++ (if '.' `elem` file then "" else ".hs")
-                          f1 = "Example/" ++ fil
-                          f2 = "Library/" ++ fil
-                      b1 <- doesFileExist f1
-                      b2 <- doesFileExist f2
-                   
-                      if b1 then return f1
-                       else if b2 then return f2
-                       else error $ "Could not find file, " ++ file
+-- return the folder, and the fully qualified file
+getFilePath :: FilePath -> IO (String,FilePath)
+getFilePath file = liftM (getHead . concat) $ mapM f paths
+    where
+        file2 = file ++ (if '.' `elem` file then "" else ".hs")
+    
+        getHead [] = error $ "Could not find file, " ++ file
+        getHead (x:xs) = x
+        
+        f path = do
+            let loc = path ++ "/" ++ file2
+            b <- doesFileExist loc
+            return [(path,loc) | b]
+    
+        paths = ["Example","Nofib"]
 
 
 {-
