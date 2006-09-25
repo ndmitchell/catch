@@ -25,7 +25,9 @@ drive x = f (simpler x)
         f x = if b || not (x `eqFuncs` x2) then f x2 else x2
             where (b,x2) = oneStep (False,x)
     
-        oneStep = liftId simpler . liftMay inliner . liftId simpler . liftMay genSpec . liftId useSpec
+        oneStep = liftId simpler . liftMay inliner .
+                  liftId simpler . liftMay genSpec . liftId useSpec .
+                  liftId simpler . liftMay arityRaise
     
         liftId f (b, x) = (b, f x)
         liftMay f (b, x) = case f x of {Nothing -> (b, x); Just y -> (True, y)}
@@ -90,7 +92,7 @@ inliner ihite = if res `eqFuncs` ihite then Nothing else Just res
         canInline (Func name _ body [(TweakExpr a,b)]) =
             case body of
                 (Cell nam n xs) | nam /= name && all isSimple xs -> True
-                (Cell nam n xs) | n /= 0 && nam /= name && all isReasonable xs -> True
+                -- (Cell nam n xs) | n /= 0 && nam /= name && all isReasonable xs -> True
                 (Make ('(':_) xs) -> True
                 _ -> isSimple body
             where name = FuncPtr b a
@@ -101,7 +103,41 @@ inliner ihite = if res `eqFuncs` ihite then Nothing else Just res
         
         isReasonable (Cell nam 0 xs) = all isSimple xs
         isReasonable x = isSimple x
-                
+
+
+-- perform basic arity raising, makes it no longer required to inline Cell's harder
+arityRaise :: IHite -> Maybe IHite
+arityRaise ihite@(IHite datas funcs) =
+        if null raisers then Nothing else
+        case arityRaise res of
+            Nothing -> Just res
+            x -> x
+    where
+        res = IHite datas (map raise funcs)
+    
+        raisers = concatMap chooseRaise funcs
+        chooseRaise (Func name _ body [(TweakExpr a,b)]) = [(FuncPtr b a,i) | let i = getArity body, i /= 0]
+        
+        getArity (Cell _ n _) = n
+        getArity (Case on alts) = maximum $ map (getArity . snd) alts
+        getArity _ = 0
+        
+        
+        raise (Func name args body twk@[(TweakExpr a,b)]) = 
+            case lookup (FuncPtr b a) raisers of
+                Nothing -> Func name args newbody twk
+                Just i -> Func name (args ++ newargs)
+                                (Apply newbody (map Var newargs))
+                                [(TweakExpr $ a ++ zeros newargs,b)]
+                    where
+                        newargs = take i $ [0..] \\ args
+            where
+                newbody = mapOver f body
+
+        f orig@(Cell on@(FuncPtr a b) n xs) = case lookup on raisers of
+            Nothing -> orig
+            Just i -> Cell (FuncPtr a (b ++ replicate i (Var 0))) (n+i) xs
+        f x = x
 
 
 
