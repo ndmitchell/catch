@@ -17,7 +17,7 @@ foreign import primitive prim_SUB_W :: a -> b -> c
 foreign import primitive prim_GE_W :: a -> b -> c
 foreign import primitive prim_NE_W :: a -> b -> c
 foreign import primitive prim_MUL_W :: a -> b -> c
-foreign import primitive prim_NEG_W :: a -> b -> c
+foreign import primitive prim_NEG_W :: a -> b
 foreign import primitive prim_REM :: a -> b -> c
 foreign import primitive prim_QUOT :: a -> b -> c
 foreign import primitive prim_SEQ :: a -> b -> c
