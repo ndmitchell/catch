@@ -113,26 +113,26 @@ arityRaise ihite@(IHite datas funcs) =
             Nothing -> Just res
             x -> x
     where
-        res = IHite datas (map raise funcs)
+        res = IHite datas2 (newfuncs++funcs2)
+        ihite2@(IHite datas2 funcs2) = applyAll f ihite
+        newfuncs = map g raisers
+        
+        done = [FuncPtr b a | Func _ _ _ [(TweakExpr a,b)] <- funcs]
     
         raisers = concatMap chooseRaise funcs
-        chooseRaise (Func name _ body [(TweakExpr a,b)]) = [(FuncPtr b a,i) | let i = getArity body, i /= 0]
+        chooseRaise (Func name _ body [(TweakExpr a,b)]) =
+            [(FuncPtr b a,i) | let i = getArity body, i /= 0, let newptr = FuncPtr b (a ++ replicate i (Var 0)),
+                               not (newptr `elem` done)]
         
         getArity (Cell _ n _) = n
         getArity (Case on alts) = maximum $ map (getArity . snd) alts
         getArity _ = 0
         
-        
-        raise (Func name args body twk@[(TweakExpr a,b)]) = 
-            case lookup (FuncPtr b a) raisers of
-                Nothing -> Func name args newbody twk
-                Just i -> Func name (args ++ newargs)
-                                (Apply newbody (map Var newargs))
-                                [(TweakExpr $ a ++ zeros newargs,b)]
-                    where
-                        newargs = take i $ [0..] \\ args
+        g (ptr, i) = Func (name ++ "?") (args ++ newargs) (Apply body (map Var newargs)) [(TweakExpr (a ++ zeros newargs),b)]
             where
-                newbody = mapOver f body
+                newargs = take i $ [0..] \\ args
+                Func name args body [(TweakExpr a, b)] = getFunc2 ihite2 ptr
+
 
         f orig@(Cell on@(FuncPtr a b) n xs) = case lookup on raisers of
             Nothing -> orig
