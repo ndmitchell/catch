@@ -1,9 +1,10 @@
 
 module Make2(make2) where
 
-import System
+import System.Directory
+import System.Environment
+import System.Cmd
 import List
-import Directory
 import Monad
 import Data.Char
 import General.General
@@ -184,7 +185,7 @@ coreItems ignore corefile = do
 -- (core-location, cache-location)
 collectDeps :: String -> IO [(FilePath, String)]
 collectDeps x = do
-        base <- getEnv "YHC_BASE_PATH"
+        base <- getBasePath
         (file,cache) <- locateFile base x
         deps <- getDeps file (cache++".dep")
         res <- f base deps []
@@ -197,6 +198,26 @@ collectDeps x = do
             deps <- getDeps file (cache++".dep")
             res <- f base (deps++odo) (t:done)
             return $ (file,cache) : res
+
+
+-- copied from Yhc, how it finds its base path
+-- modified to not require FilePath library
+getBasePath :: IO String
+getBasePath = catch (getEnv "YHC_BASE_PATH") errHandle
+    where
+    errHandle e = do
+        res <- findExecutable "yhc"
+        case res of
+            Nothing -> do
+                putStrLn $ "Warning: the environment variable YHC_BASE_PATH is not set\n" ++
+                           "         and yhc cannot be found on the path"
+                return ""
+            Just x -> return $ getDirectory $ getDirectory x
+    
+    getDirectory = reverse . tail . dropWhile (not . isSlash) . reverse
+    isSlash x = x `elem` "\\/"
+
+
 
 
 getDeps :: FilePath -> FilePath -> IO [String]
