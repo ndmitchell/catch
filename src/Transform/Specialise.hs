@@ -125,7 +125,7 @@ arityRaise ihite@(IHite datas funcs) =
                                not (newptr `elem` done)]
         
         getArity (Cell _ n _) = n
-        getArity (Case on alts) = maximum $ map (getArity . snd) alts
+        getArity (Case on alts) = minimum $ map (getArity . snd) alts
         getArity _ = 0
         
         g (ptr, i) = Func (name ++ "?") (args ++ newargs) (Apply body (map Var newargs)) [(TweakExpr (a ++ zeros newargs),b)]
