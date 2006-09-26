@@ -5,6 +5,9 @@ module Primitive where
 
 import System.IO(Handle)
 
+foreign import primitive prim_2 :: a -> b -> c
+
+
 -- real primitive operations
 foreign import primitive prim_ORD :: a -> b
 
@@ -21,6 +24,26 @@ foreign import primitive prim_NEG_W :: a -> b
 foreign import primitive prim_REM :: a -> b -> c
 foreign import primitive prim_QUOT :: a -> b -> c
 foreign import primitive prim_SEQ :: a -> b -> c
+foreign import primitive prim_SLASH_D :: a -> b -> c
+foreign import primitive prim_MUL_D :: a -> b -> c
+foreign import primitive prim_ADD_D :: a -> b -> c
+foreign import primitive prim_SUB_D :: a -> b -> c
+foreign import primitive prim_NEG_D :: a -> b
+foreign import primitive prim_LT_D :: a -> b -> c
+foreign import primitive prim_LE_D :: a -> b -> c
+foreign import primitive prim_GE_D :: a -> b -> c
+foreign import primitive prim_GT_D :: a -> b -> c
+foreign import primitive prim_NE_D :: a -> b -> c
+foreign import primitive prim_EQ_D :: a -> b -> c
+
+
+-- erroneous mkIO stuff, to catch bugs elsewhere
+global_YHC'_Internal'__mkIOok2 :: (c->b->a) -> (c->b->IO a)
+global_YHC'_Internal'__mkIOok2 = undefined
+
+global_YHC'_Internal'__mkIOok3 :: (d->c->b->a) -> (d->c->b->IO a)
+global_YHC'_Internal'__mkIOok3 = undefined
+
 
 -- make error primitive
 foreign import primitive global_Prelude'_error :: a -> b
@@ -79,3 +102,8 @@ global_System'_IO'_hGetContents hndl =
                 else IO (c : res)
     where
         res = global_YHC'_Internal'_unsafePerformIO (global_System'_IO'_hGetContents hndl)
+
+
+-- throws up a bug in the let stuff
+global_Numeric'_floatToDigits :: (RealFloat a) => Integer -> a -> ([Int], Int)
+global_Numeric'_floatToDigits a b = prim_2 a b
