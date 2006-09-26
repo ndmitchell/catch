@@ -5,7 +5,8 @@ module Primitive where
 
 import System.IO(Handle)
 
-foreign import primitive prim_2 :: a -> b -> c
+foreign import primitive prim_local_1 :: a -> b
+foreign import primitive prim_local_2 :: a -> b -> c
 
 
 -- real primitive operations
@@ -106,4 +107,9 @@ global_System'_IO'_hGetContents hndl =
 
 -- throws up a bug in the let stuff
 global_Numeric'_floatToDigits :: (RealFloat a) => Integer -> a -> ([Int], Int)
-global_Numeric'_floatToDigits a b = prim_2 a b
+global_Numeric'_floatToDigits a b = prim_local_2 a b
+
+
+-- generates too much data
+global_Data'_Char'_showLitChar :: Char -> ShowS
+global_Data'_Char'_showLitChar x y = prim_local_1 x : prim_local_1 x ++ y
