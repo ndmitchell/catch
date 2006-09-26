@@ -47,6 +47,7 @@ decodeCell :: IHite -> IHite
 decodeCell ihite = applyAll f ihite
     where
         f (Cell (FuncPtr name _) 0 args) = Call name args
+        f (Apply err@(Prim "Prelude.error" [x]) y) = err
         f x = x
 
 
@@ -121,12 +122,21 @@ arityRaise ihite@(IHite datas funcs) =
     
         raisers = concatMap chooseRaise funcs
         chooseRaise (Func name _ body [(TweakExpr a,b)]) =
-            [(FuncPtr b a,i) | let i = getArity body, i /= 0, let newptr = FuncPtr b (a ++ replicate i (Var 0)),
+            [(FuncPtr b a,i) | let i = realArity $ getArity body, i /= 0,
+                               let newptr = FuncPtr b (a ++ replicate i (Var 0)),
                                not (newptr `elem` done)]
         
-        getArity (Cell _ n _) = n
-        getArity (Case on alts) = minimum $ map (getArity . snd) alts
-        getArity _ = 0
+        
+        -- special behaviour, error has no arity
+        -- since you can super saturate a bottom
+        realArity [] = 0
+        realArity [x] = x
+        
+        getArity (Cell (FuncPtr "error" _) n _) = [n | n /= 0]
+        getArity (Cell _ n _) = [n]
+        getArity (Case on alts) = if null res then [] else [minimum res]
+            where res = concatMap (getArity . snd) alts
+        getArity _ = [0]
         
         g (ptr, i) = Func (name ++ "?") (args ++ newargs) (Apply body (map Var newargs)) [(TweakExpr (a ++ zeros newargs),b)]
             where
