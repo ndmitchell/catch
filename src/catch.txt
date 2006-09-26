@@ -43,6 +43,7 @@ trans3
 	transform3
 	reachable
 	ctor-collapse2
+	case-expand
 	del-primitive
 	reachable
 	mcase
