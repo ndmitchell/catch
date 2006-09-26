@@ -44,7 +44,6 @@ disableSimplify = False
 data Pred a = PredOr  [Pred a]
             | PredAnd [Pred a]
             | PredLit a
-            deriving (Read, Show)
 
 
 -- | How do two items combine to be reduced, for simplification rules.
@@ -268,6 +267,8 @@ showPredBy f x =
         disp sym xs = "(" ++ mid ++ ")"
             where mid = concat $ intersperse [' ',sym,' '] $ map (showPredBy f) xs
 
+instance Show a => Show (Pred a) where
+    show = showPredBy show
 
 -- * Eq
 
