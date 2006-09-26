@@ -42,7 +42,7 @@ trans3
 	string-expand
 	transform3
 	reachable
-	case-saturate
+	ctor-collapse2
 	del-primitive
 	reachable
 	mcase

@@ -41,6 +41,7 @@ import Hite.ArgElim
 import Hite.CaseExpand
 import Hite.StringExpand
 import Hite.CtorCollapse
+import Hite.CtorCollapse2
 import Hite.Defunc2
 import Hite.Dedict
 import Hite.Transform
@@ -54,4 +55,5 @@ cmds = [Hite.Reachable.cmd, Hite.ShortName.cmd, Hite.ErrorFail.cmd, Hite.CaseLif
         Hite.ConstLift.cmd, Hite.ErrorCall.cmd, Hite.ArgElim.cmd, Hite.CaseExpand.cmd1,
         Hite.StringExpand.cmd, Hite.CtorCollapse.cmd, Hite.Defunc2.cmd, Hite.Dedict.cmd,
         Hite.Transform.cmd1, Hite.Transform.cmd2, Hite.Transform.cmd3,
-        Hite.Primitive.cmd1, Hite.Primitive.cmd2, Hite.CaseExpand.cmd2]
+        Hite.Primitive.cmd1, Hite.Primitive.cmd2, Hite.CaseExpand.cmd2,
+        Hite.CtorCollapse2.cmd]
