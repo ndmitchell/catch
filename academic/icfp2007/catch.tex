@@ -181,8 +181,7 @@ language, the use of \i{paths}. First we introduce a motivation for the path
 construct, then we formalize its meaning. The full use of paths will only
 become apparent later on, in the constraint section.
 
-Let us take the example of \T{head}, in the Core language of Yhc this is
-similar to:
+Let us take the example of \T{head}, translated to the Core language of Yhc:
 
 \begin{code}
  head x = case x of
@@ -246,9 +245,10 @@ complete. Only paths extract fields from values.
 
 In much the same way as an object orientated language such as Java, the \D{}
 operator associates to the left, so \T{x\D{}tl\D{}hd} is equivalent to
-\T{(x\D{}tl)\D{}hd}. An alternative way of writing this in Haskell would be
-\T{(head . tail) x} -- and indeed we define this to be the semantics of a
-well-formed path.
+\T{(x\D{}tl)\D{}hd}. In Haskell one could write \T{(head . tail) x}.
+
+We define the semantics of \T{x\D{}tl} to be \T{(case x of ((:) hd tl) -> tl)},
+with the static guarantee that this does not lead to a pattern match error.
 
 There are no runtime semantics for an ill-formed path, they are statically
 disallowed. Consider \T{[]\D{}hd}, this does not evaluate to $\bot{}$ at
