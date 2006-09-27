@@ -101,11 +101,11 @@ In order to generate a simplified language, it is natural to start with a full
 Haskell compiler, and we chose Yhc, a fork of nhc. The internal language of Yhc
 is called PosLambda -- a simple variant of lambda calculus without types, but
 with positional information. Since Yhc is a relatively simple Haskell compiler,
-relying on simple desugaring transformations, this means that the generated
+relying on basic desugaring transformations, this ensures the generated
 PosLambda is reasonably close to the original Haskell in its structure.
 
 PosLambda does have some features that have no natural parallel in Haskell, for
-example there is a FatBar construct, that is used for compiling pattern
+example there is a FatBar construct, which is used for compiling pattern
 matches. The PosLambda language is also very much internal to the compiler. We
 have introduced a new Core language to Yhc, very similar to both PosLambda, and
 a simple subset of Haskell. This Core language is not explicitly typed, and has
