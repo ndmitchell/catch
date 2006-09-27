@@ -133,10 +133,11 @@ necessary
 
 \subsection{The Dictionary Transformation}
 
-Most of the desugaring transformations performed by Yhc are at a very local
-level -- for example \T{f = (+1)} becomes \T{f v1 = flip ((+) v1) (fromInteger
-1)}. The biggest exception to this is the typeclass transformation, which is
-based on a method called dictionary passing.
+Most of the transformations in Yhc operate at a very local level, either on a
+single function at a time or on a small expression within a function. The only
+analysis/transformation phases which require information about more than one
+function are type checking and the dictionary transformation, used to implement
+type classes.
 
 For example, take the following code:
 
@@ -145,7 +146,7 @@ For example, take the following code:
  f x y = x == y || x /= y
 \end{code}
 
-This is translated by Yhc into:
+is translated by Yhc into
 
 \begin{code}
  f :: (a -> a -> Bool, a -> a -> Bool) -> a -> a -> Bool
@@ -155,57 +156,107 @@ This is translated by Yhc into:
  (/=) (a,b) = b
 \end{code}
 
-Essentially, a tuple is passed around containing the methods in dictionary.
+The \T{Eq} class consists of two functions, \T{(==)} and \T{(/=)}. Depending on
+the type of the \T{a} variable in the function \T{f}, different code will be
+executed for the two functions. The dictionary transformation generates a
+tuple, containing the functions to use for the type class, and passes this
+structure into the \T{f} function as an additional argument. The additional
+argument can be seen as the dictionary, with functions being looked up in the
+dictionary to obtain the correct behaviour at runtime.
 
+The dictionary transformation is a global transformation. The \T{Eq} context in
+\T{f} requires a dictionary to be accepted by \T{f}, and requires all the
+callers of \T{f} to pass a dictionary as well.
+
+The type class mechanism in Haskell allows certain classes to require other
+classes, for example a definition of \T{Ord} requires a definition of \T{Eq}
+for the same type. In response the dictionary transformation generates a nested
+tuple, where the \T{Eq} dictionary is given as a member of the \T{Ord}
+dictionary.
 
 \subsection{Case and Paths}
 
-The Catch internal language is differs in its representation of Case, and
-introduces Paths. First we introduce a motivation for the path construct, its
-full use will only be shown later in the constraint section. Let us take the
-example of head, in the Core language of Yhc this comes out approximately as:
+The Catch internal language has one significant difference from Yhc's Core
+language, the use of \i{paths}. First we introduce a motivation for the path
+construct, then we formalize its meaning. The full use of paths will only
+become apparent later on, in the constraint section.
 
-\begin{code}
-head x = case x of
-            (a:as) -> a
-            [] -> error "here"
-\end{code}
-
-Now, let us consider the case where we know that \T{x} is a \T{(:)} constructor
-before executing \T{head}. Now, we can rewrite this code as:
-
-\begin{code}
- headNonEmpty x = case x of
-                     (a:as) -> a
-\end{code}
-
-Unfortunately we are now using the case expression for two different purposes,
-to select the elements in a known data structure, and to test the type of a
-data structure at runtime. For the purposes of analysis this is even worse, and
-complicates things considerably.
-
-What if we were to introduce an extra construct, such as \T{x.hd} meaning
-\T{x}, taking the \T{hd} component of a \T{(:)}. Now we can rewrite \T{head} of
-a known \T{(:)} constructor as:
-
-\begin{code}
- headNonEmpty x = x.hd
-\end{code}
-
-It is impossible to have a \T{x.hd} where \T{x} is \T{[]}, this is not a
-runtime error, but a static guarantee imposed on the program. With this new
-notation, we can now rewrite the standard head as:
+Let us take the example of \T{head}, in the Core language of Yhc this is
+similar to:
 
 \begin{code}
  head x = case x of
-            (:) -> x.hd
-            [] -> error "here!"
+              (a:as) -> a
+              [] -> error "[] passed to head"
 \end{code}
 
-Note that now we have introduced paths, there is no need to specify names for
-each of the constructors given in a case statement. There is also no need to
-introduce fresh variables within a function, only the variables can be
-manipulated.
+In this example, before the \T{case} statement is executed there is no
+additional information about the value contained in \T{x}. Let us consider the
+situation where it is known statically that \T{x} is a \T{(:)} constructor
+before executing \T{head}. We can rewrite this code as:
+
+\begin{code}
+ headNonEmpty x = case x of
+                      (a:as) -> a
+\end{code}
+
+We are now using the case expression for two different purposes: to select the
+elements in a known data structure, and to test the type of a data structure at
+runtime. Perhaps it would be convenient to have an alternative mechanism for
+extracting fields from a value, as opposed to runtime flow of control choices.
+
+The extra construct we introduce is the \i{path}. Informally we write
+\T{x\D{}hd} to mean the first component of the \T{(:)}-constructed \T{x} value.
+Now we can rewrite \T{headNonEmpty} as:
+
+\begin{code}
+ headNonEmpty x = x\(\D\)hd
+\end{code}
+
+With the addition of paths, we can now rewrite the standard \T{head} as:
+
+\begin{code}
+ head x = case x of
+            (:) -> x\(\D\)hd
+            [] -> error "[] passed to head"
+\end{code}
+
+Now we have introduced paths, there is no need to specify names for each of the
+fields given in a case alternative. If the \T{let} construct is removed as
+well, then there is no possibility to introduce fresh variables within a
+function -- only the initial arguments and top-level functions are in scope.
+
+\subsubsection{Syntax and Semantics of Paths}
+
+It is instructive to compared the differences and guarantees between Yhc's Core
+language and that of Catch, especially in the area of \T{case} and paths. For
+the \T{case} expressions, GHC's Core language can be considered the same as
+Yhc's Core language.
+
+In Yhc's Core there is only one construct that can demand evaluation, namely
+the \T{case} statement. All \T{case} expressions must be complete, possibly
+including a default alternative, but never not specifying the behaviour one of
+the the constructors given as the type of the case scrutinee. There is no way
+to extract a field out of a created value other than by a \T{case} statement.
+
+Within Catch there are now two different mechanisms for demanding the
+evaluation of an expression, both path's and \T{case} expressions. A \T{case}
+expression may still include a default alternative, but no longer has to be
+complete. Only paths extract fields from values.
+
+In much the same way as an object orientated language such as Java, the \D{}
+operator associates to the left, so \T{x\D{}tl\D{}hd} is equivalent to
+\T{(x\D{}tl)\D{}hd}. An alternative way of writing this in Haskell would be
+\T{(head . tail) x} -- and indeed we define this to be the semantics of a
+well-formed path.
+
+There are no runtime semantics for an ill-formed path, they are statically
+disallowed. Consider \T{[]\D{}hd}, this does not evaluate to $\bot{}$ at
+runtime, and are forbidden from being introduced. When transforming a \T{case}
+statement to use paths instead, it is easy to see that the generated paths are
+well-formed -- the subject of the \T{case} is checked first. Any other
+transformation which introduces a path must meet the proof obligation that this
+path is safe.
 
 \section{First Order Haskell}
 \label{chap:defunc}
