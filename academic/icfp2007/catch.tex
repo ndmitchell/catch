@@ -100,22 +100,36 @@ data types.
 In order to generate a simplified language, it is natural to start with a full
 Haskell compiler, and we chose Yhc, a fork of nhc. The internal language of Yhc
 is called PosLambda -- a simple variant of lambda calculus without types, but
-with positional information. Since Yhc is a relatively simple Haskell compiler,
-relying on basic desugaring transformations, this ensures the generated
-PosLambda is reasonably close to the original Haskell in its structure.
+with source position information. Yhc works by applying basic desugaring
+transformations, without optimization transformations. This simplicity ensures
+the generated PosLambda is close to the original Haskell in its structure. Each
+top level function in a source file maps to a top level function in the
+generated PosLambda, retaining the same name.
 
-PosLambda does have some features that have no natural parallel in Haskell, for
-example there is a FatBar construct, which is used for compiling pattern
-matches. The PosLambda language is also very much internal to the compiler. We
-have introduced a new Core language to Yhc, very similar to both PosLambda, and
-a simple subset of Haskell. This Core language is not explicitly typed, and has
-very few constructs in it. We have also written a library, Yhc.Core which is
-used by Yhc to generate these Core files, and can also be used by external
-programs to read and manipulate the generated Core.
+PosLambda does have some constructs that have no direct representation in
+Haskell, for example there is a FatBar construct, which is used for compiling
+pattern matches which require fall through behaviour. The PosLambda language
+was always intended as an internal representation, and exposes certain details
+that are specific to the compiler. We have introduced a new Core language to
+Yhc, intended as a simple subset of Haskell where possible, on to which
+PosLambda can easily be mapped. This Core language is not explicitly typed, and
+has very few constructs. We have also written a library, Yhc.Core, which is
+used by Yhc to generate these Core files, and by external programs to load and
+manipulate the generated Core.
 
-Another important simplification is that all case's are now complete, and where
-an error can possibly occur an explicit call to error is inserted, with the
-string representing the source position of the error.
+The importance of this Core language is not what remains, but what has been
+removed.
+
+\begin{itemize}
+\item No syntactic sugar such as list comprehensions, \T{do} notation etc.
+\item Only simple \T{case} statements, matching only the top level constructor
+\item All \T{case} statements are complete, including an \T{error} call if
+necessary
+\item All names are fully qualified
+\item Haskell's type classes have been removed (see \ref{sec:dict})
+\item Only top level functions remain, all local functions have been lambda lifted
+\item All constructor applications are fully saturated
+\end{itemize}
 
 \subsection{The Dictionary Transformation}
 
