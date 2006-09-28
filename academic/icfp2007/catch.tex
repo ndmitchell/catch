@@ -606,8 +606,10 @@ In general, a \T{case} expression, where $\vecto{v}$ are the
 arguments to a constructor:
 
 \begin{code}
-case \(e\) of {C\s{1} \(\vecto{v}\) -> val\s{1}; \ldots; C\s{n}
-\(\vecto{v}\) -> val\s{n}}
+ case \(e\) of
+     C\s{1} -> val\s{1}
+     \(\cdots\)
+     C\s{n} -> val\s{n}
 \end{code}
 
 \noindent produces the initial constraint
@@ -824,7 +826,7 @@ reduce the amount of work required.
 While the code operates on case statements, you can flatten them and achieve
 better results.
 
-MCase's for easier code
+MCase's for easier code, sort of like pre-evaluation of some stuff.
 
 \subsection{Binary Decision Diagrams}
 
