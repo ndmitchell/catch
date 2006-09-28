@@ -191,7 +191,7 @@ become apparent later on, in the constraint section.
 
 \yesexample
 
-Let us take the example of \T{head}, translated to the Core language of Yhc:
+Let us take the function \T{head}, translated to the Core language of Yhc:
 
 \begin{code}
  head x = case x of
@@ -239,38 +239,54 @@ function -- only the initial arguments and top-level functions are in scope.
 
 \subsubsection{Syntax and Semantics of Paths}
 
-It is instructive to compared the differences and guarantees between Yhc's Core
+It is instructive to compare the differences and guarantees between Yhc's Core
 language and that of Catch, especially in the area of \T{case} and paths. For
 the \T{case} expressions, GHC's Core language can be considered the same as
 Yhc's Core language.
 
 In Yhc's Core there is only one construct that can demand evaluation, namely
 the \T{case} statement. All \T{case} expressions must be complete, possibly
-including a default alternative, but never not specifying the behaviour one of
-the the constructors given as the type of the case scrutinee. There is no way
-to extract a field out of a created value other than by a \T{case} statement.
+including a default alternative, but never leaving a possible value
+unspecified. There is no way to extract a field out of a created value other
+than by a \T{case} statement.
 
 Within Catch there are now two different mechanisms for demanding the
 evaluation of an expression, both path's and \T{case} expressions. A \T{case}
 expression may still include a default alternative, but no longer has to be
 complete. Only paths extract fields from values.
 
-\todo{Talk about a bit more formal stuff}
+Formally, a path is defined as $\textsf{path}(x,c,i)$, where $c$ is a
+constructor and $n$ is an integer. If $n$ is the arity of constructor $c$ then
+$0 \leq i < n$. The expression selects the $i$th field from the $c$ constructed
+value $x$. The semantics in Haskell would be:
+
+\begin{code}
+ case \(x\) of
+     \(c\) \(a_{0\ldots n-1}\) -> $a_i$
+     _ -> error "Ill formed path"
+\end{code}
+
+A sugared notation is commonly used instead of the $\textsf{path}$, where
+\T{x\D{}hd} is equivalent to $\textsf{path}(\T{x},\T{:},0)$, \T{tl} is
+equivalent to selecting the 1 index field. In a similar way, when a record with
+uniquely named field selectors is given, these are used as the names. For the
+purposes of this tool, a list is defined as:
+
+\begin{code}
+ data [] a = [] | (:) {hd :: a, tl :: [] a}
+\end{code}
 
 In much the same way as an object orientated language such as Java, the \D{}
 operator associates to the left, so \T{x\D{}tl\D{}hd} is equivalent to
-\T{(x\D{}tl)\D{}hd}. In Haskell one could write \T{(head . tail) x}.
-
-We define the semantics of \T{x\D{}tl} to be \T{(case x of ((:) hd tl) -> tl)},
-with the static guarantee that this does not lead to a pattern match error.
+\T{(x\D{}tl)\D{}hd}.
 
 There are no runtime semantics for an ill-formed path, they are statically
 disallowed. Consider \T{[]\D{}hd}, this does not evaluate to $\bot{}$ at
-runtime, and are forbidden from being introduced. When transforming a \T{case}
-statement to use paths instead, it is easy to see that the generated paths are
-well-formed -- the subject of the \T{case} is checked first. Any other
-transformation which introduces a path must meet the proof obligation that this
-path is safe.
+runtime (as such a construct would in Haskell), but instead is forbidden from
+being introduced. When transforming a \T{case} statement to use paths instead,
+it is easy to see that the generated paths are well-formed -- the subject of
+the \T{case} is checked first. Any other transformation which introduces a path
+must meet the proof obligation that this path is safe.
 
 \section{First Order Haskell}
 \label{chap:defunc}
