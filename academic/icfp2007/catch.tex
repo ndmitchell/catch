@@ -655,43 +655,39 @@ regular expression over selectors and $s$ is a selector.
 
 \renewcommand\theequation{sel}
 \begin{equation}
-    \varphi\tup{e\D{}s,r,c} \rightarrow
-    \varphi\tup{e,s\D{}r,c}
+    \tup{e\D{}s,r,c} \rightarrow
+    \tup{e,s\D{}r,c}
 \end{equation}
 
 \renewcommand\theequation{con}
 \begin{equation}
 \frac
     {
+        P =
         \bigwedge_{i=1}^{\#\vecto{e}}
-        \varphi\tup{e_i,\frac{\partial r}{\partial \mathcal{S}(C,i)},c}
-        \rightarrow P
+        \tup{e_i,\frac{\partial r}{\partial \mathcal{S}(C,i)},c}
     }
     {
-        \varphi\tup{C \gap \vecto{e},r,c}
+        \tup{C \gap \vecto{e},r,c}
         \rightarrow (\lambda \in L(r) \Rightarrow C \in c) \wedge P
     }
-\end{equation}
-
-\renewcommand\theequation{app}
-\begin{equation}
-    \varphi\tup{f \gap \vecto{e},r,c} \rightarrow
-    \varphi\tup{\mathcal{D}(f, \vecto{e}),r,c}
 \end{equation}
 
 \renewcommand\theequation{cas}
 \begin{equation}
 \frac
     {
+        P =
         \bigwedge_{i=1}^{\#\vecto{e}}
         (
-            \varphi\tup{e_0,\lambda,\mathcal{C}(C_i)} \vee
-            \varphi\tup{e_i,r,c}
-        ) \rightarrow P
+            \tup{e_0,\lambda,C_i}
+            \Rightarrow
+            \tup{e_i,r,c}
+        )
     }
     {
-        \varphi\tup{\T{case } e_0 \T{ of \{}C_1 \gap \vecto{v} \T{->} e_1\T{;} \cdots
-        \T{;} C_n \gap \vecto{v} \T{->} e_n \},r,c} \rightarrow P
+        \tup{\T{case } e_0 \T{ of \{}C_1 \T{->} e_1\T{;} \cdots
+        \T{;} C_n \T{->} e_n \},r,c} \rightarrow P
     }
 \end{equation}
 
