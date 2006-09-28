@@ -7,6 +7,7 @@
 % general stuff
 \newcommand{\T}[1]{\texttt{#1}}
 \newcommand{\tup}[1]{\ensuremath{\langle #1 \rangle}}
+\newcommand{\mtxt}[1]{\textsf{#1}}
 
 % examples
 \newcounter{exmp}
@@ -255,14 +256,14 @@ evaluation of an expression, both path's and \T{case} expressions. A \T{case}
 expression may still include a default alternative, but no longer has to be
 complete. Only paths extract fields from values.
 
-Formally, a path is defined as $\textsf{path}(x,c,i)$, where $c$ is a
-constructor and $n$ is an integer. If $n$ is the arity of constructor $c$ then
-$0 \leq i < n$. The expression selects the $i$th field from the $c$ constructed
-value $x$. The semantics in Haskell would be:
+Formally, a path is defined as $\mtxt{path}(x,c,i)$, where $c$ is a constructor
+and $n$ is an integer. If $n$ is the arity of constructor $c$ then $0 \leq i <
+n$. The expression selects the $i$th field from the $c$ constructed value $x$.
+The semantics in Haskell would be:
 
 \begin{code}
  case \(x\) of
-     \(c\) \(a_{0\ldots n-1}\) -> $a_i$
+     \(c\) \(a1 \ldots an\) -> \(ai\)
      _ -> error "Ill formed path"
 \end{code}
 
@@ -273,7 +274,7 @@ uniquely named field selectors is given, these are used as the names. For the
 purposes of this tool, a list is defined as:
 
 \begin{code}
- data [] a = [] | (:) {hd :: a, tl :: [] a}
+ data [] a = [] | (:) \{hd :: a, tl :: [] a\}
 \end{code}
 
 In much the same way as an object orientated language such as Java, the \D{}
