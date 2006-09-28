@@ -141,7 +141,9 @@ analysis/transformation phases which require information about more than one
 function are type checking and the dictionary transformation, used to implement
 type classes.
 
-For example, take the following code:
+\yesexample
+
+Take the following code:
 
 \begin{code}
  f :: Eq a => a -> a -> Bool
@@ -160,11 +162,15 @@ is translated by Yhc into
 
 The \T{Eq} class consists of two functions, \T{(==)} and \T{(/=)}. Depending on
 the type of the \T{a} variable in the function \T{f}, different code will be
-executed for the two functions. The dictionary transformation generates a
-tuple, containing the functions to use for the type class, and passes this
-structure into the \T{f} function as an additional argument. The additional
-argument can be seen as the dictionary, with functions being looked up in the
-dictionary to obtain the correct behaviour at runtime.
+executed for the two functions.
+
+\noexample
+
+The dictionary transformation generates a tuple, containing the functions to
+use for the type class, and passes this structure into the \T{f} function as an
+additional argument. The additional argument can be seen as the dictionary,
+with functions being looked up in the dictionary to obtain the correct
+behaviour at runtime.
 
 The dictionary transformation is a global transformation. The \T{Eq} context in
 \T{f} requires a dictionary to be accepted by \T{f}, and requires all the
@@ -182,6 +188,8 @@ The Catch internal language has one significant difference from Yhc's Core
 language, the use of \i{paths}. First we introduce a motivation for the path
 construct, then we formalize its meaning. The full use of paths will only
 become apparent later on, in the constraint section.
+
+\yesexample
 
 Let us take the example of \T{head}, translated to the Core language of Yhc:
 
@@ -221,6 +229,8 @@ With the addition of paths, we can now rewrite the standard \T{head} as:
             (:) -> x\(\D\)hd
             [] -> error "[] passed to head"
 \end{code}
+
+\noexample
 
 Now we have introduced paths, there is no need to specify names for each of the
 fields given in a case alternative. If the \T{let} construct is removed as
