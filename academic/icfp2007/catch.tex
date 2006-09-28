@@ -14,6 +14,8 @@
 \newcommand{\yesexample}{\subsubsection*{Example \arabic{exmp}}\addtocounter{exmp}{1}}
 \newcommand{\noexample}{\hfill$\Box$}
 
+\newcommand{\todo}[1]{\textbf{\textsc{Todo:} #1}}
+
 % code blocks
 \newenvironment{code}{\begin{alltt}\small}{\end{alltt}}
 \newenvironment{codepage}
@@ -73,7 +75,7 @@ keyword1, keyword2
 
 \section{Introduction}
 
-Introduction, todo.
+\todo{}
 
 \subsection{Road map}
 
@@ -242,6 +244,8 @@ Within Catch there are now two different mechanisms for demanding the
 evaluation of an expression, both path's and \T{case} expressions. A \T{case}
 expression may still include a default alternative, but no longer has to be
 complete. Only paths extract fields from values.
+
+\todo{Talk about a bit more formal stuff}
 
 In much the same way as an object orientated language such as Java, the \D{}
 operator associates to the left, so \T{x\D{}tl\D{}hd} is equivalent to
