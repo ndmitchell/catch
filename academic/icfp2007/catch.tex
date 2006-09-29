@@ -282,12 +282,12 @@ operator associates to the left, so \T{x\D{}tl\D{}hd} is equivalent to
 \T{(x\D{}tl)\D{}hd}.
 
 There are no runtime semantics for an ill-formed path, they are statically
-disallowed. Consider \T{[]\D{}hd}, this does not evaluate to $\bot{}$ at
-runtime (as such a construct would in Haskell), but instead is forbidden from
-being introduced. When transforming a \T{case} statement to use paths instead,
-it is easy to see that the generated paths are well-formed -- the subject of
-the \T{case} is checked first. Any other transformation which introduces a path
-must meet the proof obligation that this path is safe.
+disallowed. Consider \T{[]\D{}hd}, this expression does not evaluate to
+$\bot{}$ at runtime (as such a construct would in Haskell), but instead is
+forbidden from being introduced. When transforming a \T{case} statement to use
+paths instead, it is easy to see that the generated paths are well-formed --
+the subject of the \T{case} is checked first. Any other transformation which
+introduces a path must meet the proof obligation that this path is safe.
 
 \section{First Order Haskell}
 \label{chap:defunc}
