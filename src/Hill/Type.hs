@@ -1,7 +1,7 @@
 
 {-! global: GhcBinary !-}
 
-module Hill.Type where
+module Hill.Type(module Hill.Type, module Hite.DataType, module Hite.TypeType) where
 
 import Hite.DataType
 import Hite.TypeType
@@ -9,9 +9,11 @@ import Hite.TypeType
 
 data Hill = Hill {datas :: [Data], funcs :: [Func]}
 
+instance QDatas Hill where
+    rawDatas = datas
+
+
 data Func = Func FuncName [Int] Expr
-
-
 
 data Expr = 
             -- atoms
@@ -47,5 +49,5 @@ data Const = AInt Int
            | ACtor CtorName
 
 
-data Alt = Default
+data Alt = Default Expr
          | Alt Const Expr
