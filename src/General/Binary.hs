@@ -48,6 +48,16 @@ instance Binary Char where
     get = hGetChar
 
 
+put_S h x = put_ h (show x)
+getS h = liftM read $ get h
+
+instance Binary Int where {put_ = put_S; get = getS}
+instance Binary Integer where {put_ = put_S; get = getS}
+instance Binary Double where {put_ = put_S; get = getS}
+instance Binary Float where {put_ = put_S; get = getS}
+
+
+
 instance (Binary a, Binary b) => Binary (a,b) where
     put_ h (a,b) = put_ h a >> put_ h b
     get h = do a <- get h

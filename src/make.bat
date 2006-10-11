@@ -37,6 +37,12 @@ echo import Hite.Type; import Hite.TypeType; import Hite.DataType >> Hite\Binary
 drift -r Hite\Type.hs >> Hite\Binary.hs
 drift -r Hite\TypeType.hs >> Hite\Binary.hs
 drift -r Hite\DataType.hs >> Hite\Binary.hs
+
+echo module Hill.Binary where > Hill\Binary.hs
+echo import General.Binary >> Hill\Binary.hs
+echo import Hill.Type; import Hite.Binary >> Hill\Binary.hs
+drift -r Hill\Type.hs >> Hill\Binary.hs
+
 goto finish
 
 
