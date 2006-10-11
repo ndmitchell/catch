@@ -17,12 +17,7 @@ data Expr =
             -- atoms
             Var Int
           | Fun FuncName
-          
-            -- constants
-          | Str String
-          | Num Integer
-          | Chr Char
-          | Flt Double
+          | Const Const
             
             -- calls
           | Call FuncName [Expr]
@@ -43,6 +38,14 @@ data Expr =
           | Error Expr
 
 
+data Const = AInt Int
+           | AInteger Integer
+           | AFloat Float
+           | ADouble Double
+           | AChar Char
+           | AString String
+           | ACtor CtorName
+
 
 data Alt = Default
-         | Alt CtorName Expr
+         | Alt Const Expr
