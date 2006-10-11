@@ -9,6 +9,13 @@ import General.General
 import Data.List
 
 
+-- SHOULDN'T REALLY GO HERE!
+
+type FuncName = String
+type FuncArg  = String
+
+
+
 -- THE DATA TYPES
 
 type DataName = String

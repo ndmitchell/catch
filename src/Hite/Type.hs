@@ -23,9 +23,6 @@ cmdHite f name desc = Command f name desc
 
 cmdHitePure f = cmdHite (\a b -> return (f a b))
 
-type FuncName = String
-type FuncArg  = String
-
 data Hite = Hite {datas :: [Data], funcs :: [Func]}
 
 instance QDatas Hite where
