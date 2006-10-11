@@ -13,7 +13,7 @@ instance QDatas Hill where
     rawDatas = datas
 
 
-data Func = Func FuncName [Int] Expr
+data Func = Func {funcName :: FuncName, funcArgs :: [Int], body :: Expr}
 
 data Expr = 
             -- atoms
