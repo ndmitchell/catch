@@ -1,5 +1,5 @@
 
-module Make2(make2) where
+module Make3(make3) where
 
 import System.Directory
 import System.Environment
@@ -20,8 +20,8 @@ when_ cond action = when cond (action >> return ())
 
 -- take a haskell file (probably in the example directory)
 -- to the end result Hite
-make2:: FilePath -> IO Hill
-make2 x = do
+make3:: FilePath -> IO Hill
+make3 x = do
         ensureDirectory "Cache"
         ensureDirectory "Cache/Library"
         
