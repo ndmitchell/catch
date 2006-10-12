@@ -21,6 +21,9 @@ box = (:[])
 fsts = map fst
 snds = map snd
 
+snub :: Ord a => [a] -> [a]
+snub = map head . group . sort
+
 filterFst f = filter (f . fst)
 filterSnd f = filter (f . snd)
 

@@ -19,6 +19,15 @@ instance QDatas Hill where
 
 data Func = Func {funcName :: FuncName, funcArgs :: [Int], body :: Expr}
 
+
+getFunc :: Hill -> FuncName -> Func
+getFunc hill name = case [x | x <- funcs hill, funcName x == name] of
+    [] -> error $ "Hill.getFunc, can't find " ++ name
+    [x] -> x
+    _ -> error $ "Hill.getFunc, found multiple " ++ name
+
+
+
 data Expr = 
             -- atoms
             Var Int
