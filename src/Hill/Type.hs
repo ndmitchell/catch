@@ -7,6 +7,8 @@ import Hite.DataType
 import Hite.TypeType
 import Front.CmdLine
 import Control.Monad
+import General.General
+import Control.Exception
 
 
 data Hill = Hill {datas :: [Data], funcs :: [Func]}
@@ -53,6 +55,71 @@ data Const = AInt Int
 
 data Alt = Default Expr
          | Alt Const Expr
+
+
+-- Manipulate stuff
+
+instance Manipulate Expr where
+    getChildren x = case x of
+        Call _ xs -> xs
+        Make _ xs -> xs
+        Prim _ xs -> xs
+          
+        Sel x _ -> [x]
+        Let xs x -> x : map snd xs
+        Case x y -> x : map f y
+            where
+                f (Default x) = x
+                f (Alt _ x) = x
+
+        Lambda _ x -> [x]
+        Apply x xs -> x:xs
+        
+        Error x -> [x]
+        _ -> []
+    
+    setChildren x xs = case x of
+        Call y _ -> Call y xs
+        Make y _ -> Make y xs
+        Prim y _ -> Prim y xs
+        
+        Sel _ y -> Sel xs1 y
+        Let ys _ -> Let (zip (map fst ys) xst) xsh
+        Case _ ys -> Case xsh (zipWith f ys xst)
+            where
+                f (Default _) x = Default x
+                f (Alt y _) x = Alt y x
+        
+        Lambda y _ -> Lambda y xs1
+        Apply _ _ -> Apply xsh xst
+        
+        Error _ -> Error xs1
+        x -> assert (null xs) x
+        where
+            [xs1] = xs
+            (xsh:xst) = xs
+
+
+class ManipulateHill a where
+    mapOverHill :: (Expr -> Expr) -> a -> a
+    allOverHill :: a -> [Expr]
+
+
+instance ManipulateHill Hill where
+    mapOverHill f (Hill a b) = Hill a (mapOverHill f b)
+    allOverHill (Hill a b) = allOverHill b
+
+instance ManipulateHill Func where
+    mapOverHill f func = func{body = mapOverHill f (body func)}
+    allOverHill func = allOverHill (body func)
+
+instance ManipulateHill a => ManipulateHill [a] where
+    mapOverHill f xs = map (mapOverHill f) xs
+    allOverHill xs = concatMap allOverHill xs
+
+instance ManipulateHill Expr where
+    mapOverHill f xs = mapOver f xs
+    allOverHill xs = allOver xs
 
 
 
