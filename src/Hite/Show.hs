@@ -9,17 +9,8 @@ import Data.Predicate
 
 instance Show Hite where
     show (Hite datas funcs) = unlines (map show datas ++ map show funcs)
-    
-instance Show Data where
-    show (Data name ctors frees) =
-        "data " ++ name ++ concatMap (' ':) frees ++ " = " ++ 
-        (intercat " | " $ map show ctors)
-    
-instance Show Ctor where
-    show (Ctor name [] []) = name
-    show (Ctor name args types) = name ++ " {" ++ intercat ", " (zipWith f args types) ++ "}"
-        where f arg typ = arg ++ " :: " ++ show typ
-    
+
+
 instance Show Func where
     show (Func name args expr pos) =
         "\n" ++ name ++ concatMap (' ':) args ++
@@ -67,9 +58,3 @@ instance Show MCaseAlt where
     
 instance Show MCaseOpt where
     show (MCaseOpt expr ctor) = show expr ++ "{" ++ ctor ++ "}"
-
-instance Show TyType where
-    show x = f False x
-        where
-            f b (TyFree x) = x
-            f b (TyCon n xs) = ['('|b] ++ n ++ concatMap ((' ':) . f True) xs ++ [')'|b]

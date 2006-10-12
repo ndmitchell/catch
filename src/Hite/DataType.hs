@@ -31,6 +31,20 @@ data Ctor = Ctor CtorName [CtorArg] [TyType]
           deriving Eq
 
 
+instance Show Data where
+    show (Data name ctors frees) =
+        "data " ++ name ++ concatMap (' ':) frees ++ " = " ++ 
+        (intercat " | " $ map show ctors)
+    
+instance Show Ctor where
+    show (Ctor name [] []) = name
+    show (Ctor name args types) = name ++ " {" ++ intercat ", " (zipWith f args types) ++ "}"
+        where f arg typ = arg ++ " :: " ++ show typ
+    
+
+
+
+
 myAnswer :: String -> [a] -> a
 myAnswer name [] = error $ "Hite.DataType Could not find " ++ name
 myAnswer name [x] = x
