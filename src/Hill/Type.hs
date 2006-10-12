@@ -27,6 +27,12 @@ getFunc hill name = case [x | x <- funcs hill, funcName x == name] of
     _ -> error $ "Hill.getFunc, found multiple " ++ name
 
 
+mkLet [] x = x
+mkLet xs x = Let xs x
+
+
+isVar (Var _) = True; isVar _ = False
+
 
 data Expr = 
             -- atoms
