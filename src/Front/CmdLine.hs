@@ -80,7 +80,7 @@ loadAliases =
     
         f acc@(name,cmds) ((x1:xs):ss)
             | isSpace x1 =
-                f (name, cmds ++ ['-':dropWhile isSpace xs]) ss
+                f (name, cmds ++ [dropWhile isSpace xs]) ss
         
             | otherwise =
                 acc : f (newComp (x1:xs)) ss
