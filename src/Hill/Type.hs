@@ -5,6 +5,8 @@ module Hill.Type(module Hill.Type, module Hite.DataType, module Hite.TypeType) w
 
 import Hite.DataType
 import Hite.TypeType
+import Front.CmdLine
+import Control.Monad
 
 
 data Hill = Hill {datas :: [Data], funcs :: [Func]}
@@ -56,10 +58,14 @@ data Alt = Default Expr
 
 -- command stuff
 
-type HillCmd = (String, String -> Hill -> IO Hill)
+data ValueHill = ValueHill Hill
+               | ValueNone
 
-hillCmd :: String -> (String -> Hill -> IO Hill) -> HillCmd
-hillCmd a b = ("hill-" ++ a,b)
+type HillAction = Action ValueHill
 
-hillCmdPure :: String -> (String -> Hill -> Hill) -> HillCmd
+
+hillCmd :: String -> (String -> Hill -> IO Hill) -> HillAction
+hillCmd a b = Action ("hill-" ++ a) (\state extra (ValueHill x) -> liftM ValueHill $ b extra x)
+
+hillCmdPure :: String -> (String -> Hill -> Hill) -> HillAction
 hillCmdPure a b = hillCmd a (\x y -> return $ b x y)

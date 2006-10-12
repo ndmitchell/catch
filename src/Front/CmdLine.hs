@@ -1,10 +1,11 @@
 
-module CmdLine(cmdLine, CmdLineState(..)) where
+module Front.CmdLine(cmdLine, CmdLineState(..), Action(..)) where
 
 import Control.Exception
 import System.IO
 import Data.List
 import Data.Char
+import Control.Monad
 
 
 
@@ -26,6 +27,7 @@ cmdLine initial actions cmds =
     do
         () <- assert (length actions == length (nub $ map actionName actions)) $ return ()
         aliases <- loadAliases
+        when (null files) $ putStrLn "No files, nothing to do"
         mapM (f aliases) files
     where
         (acts,other) = partition ("-" `isPrefixOf`) cmds

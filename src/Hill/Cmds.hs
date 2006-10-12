@@ -1,12 +1,9 @@
 
 module Hill.Cmds(cmdsHill) where
 
-
--- a command is:
--- (name :: String, function :: String -> Hill -> IO Hill)
-
-
+import Hill.Type
 import Hill.Reachable
 
 
+cmdsHill :: [HillAction]
 cmdsHill = cmdsReachable

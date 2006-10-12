@@ -1,5 +1,5 @@
 
-module MakeHill(makeHill) where
+module Front.MakeHill(makeHill) where
 
 import System.Directory
 import System.Environment
