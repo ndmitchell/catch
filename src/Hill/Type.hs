@@ -51,3 +51,15 @@ data Const = AInt Int
 
 data Alt = Default Expr
          | Alt Const Expr
+
+
+
+-- command stuff
+
+type HillCmd = (String, String -> Hill -> IO Hill)
+
+hillCmd :: String -> (String -> Hill -> IO Hill) -> HillCmd
+hillCmd a b = ("hill-" ++ a,b)
+
+hillCmdPure :: String -> (String -> Hill -> Hill) -> HillCmd
+hillCmdPure a b = hillCmd a (\x y -> return $ b x y)

@@ -1,7 +1,11 @@
 
-module Hill.Reachable(reachable) where
+module Hill.Reachable(reachable, cmdsReachable) where
 
 import Hill.Type
+
+
+cmdsReachable = [hillCmdPure "reachable" reachable]
+
 
 
 reachable :: FuncName -> Hill -> Hill
