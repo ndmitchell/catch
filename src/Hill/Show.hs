@@ -53,7 +53,7 @@ instance Show Expr where
                 Lambda n x -> brack b $ "\\" ++ show n ++ " -> " ++ show x
                 Apply x xs -> brack b $ concat $ intersperse " " $ map (f True i) (x:xs)
           
-                Error x -> f b i $ Call "error" [x]
+                Error x -> f b i $ Call "@error" [x]
 
 
 instance Show Const where
