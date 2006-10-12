@@ -3,7 +3,7 @@
 module Main where
 
 import System
-import CmdLine
+import Front.CmdHill
 import General.TextUtil
 
 
@@ -17,7 +17,7 @@ mainCmd x = mainArgs (splitList " " x)
 
 
 mainArgs :: [String] -> IO ()
-mainArgs args = exec args
+mainArgs args = cmdHill args
 
 {-
 

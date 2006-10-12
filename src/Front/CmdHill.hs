@@ -1,7 +1,6 @@
 
 module Front.CmdHill(cmdHill) where
 
-import System.Environment
 import Control.Monad
 
 import Front.MakeHill
@@ -10,9 +9,8 @@ import Hill.All
 
 
 
-cmdHill :: IO ()
-cmdHill = do
-    args <- getArgs
+cmdHill :: [String] -> IO ()
+cmdHill args = do
     cmdLine initialHill cmdsHill args
     return ()
 
