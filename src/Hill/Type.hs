@@ -151,3 +151,16 @@ hillCmd a b = Action ("hill-" ++ a) (\state extra (ValueHill x) -> liftM ValueHi
 
 hillCmdPure :: String -> (String -> Hill -> Hill) -> HillAction
 hillCmdPure a b = hillCmd a (\x y -> return $ b x y)
+
+
+-- more complex manipulations
+
+replaceFree :: [(Int, Expr)] -> Expr -> Expr
+replaceFree ren (Var x) = case lookup x ren of
+                              Nothing -> Var x
+                              Just y -> y
+
+replaceFree ren (Let binds x) = Let binds $ replaceFree (filter isValid ren) x
+    where isValid (i,_) = not $ i `elem` map fst binds
+
+replaceFree ren x = setChildren x $ map (replaceFree ren) $ getChildren x
