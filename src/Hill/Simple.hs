@@ -51,7 +51,7 @@ simpleInline hill = mapOverHill f hill
         checkInline orig name args =
             case lookup name inliners of
                 Just (Func _ params body) | length args == length params ->
-                    replaceFree (zip params args) body
+                    f $ replaceFree (zip params args) body
                 _ -> orig
 
     
