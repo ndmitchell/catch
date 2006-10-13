@@ -8,6 +8,7 @@ import Hite.TypeType
 import Front.CmdLine
 import Control.Monad
 import General.General
+import Data.List
 import Control.Exception
 
 
@@ -170,3 +171,15 @@ replaceFree ren (Let binds x) = Let binds $ replaceFree (filter isValid ren) x
     where isValid (i,_) = not $ i `elem` map fst binds
 
 replaceFree ren x = setChildren x $ map (replaceFree ren) $ getChildren x
+
+
+usedFree :: Expr -> [Int]
+usedFree x = snub $ concatMap f $ allOverHill x
+    where
+        f (Let binds x) = map fst binds
+        f (Var x) = [x]
+        f _ = []
+
+
+freshFree :: Expr -> [Int]
+freshFree x = [0..] \\ usedFree x
