@@ -68,6 +68,7 @@ simpleInline hill = mapOverHill f hill
 normalise hill = mapOverHill f hill
     where
         f (Apply x xs) = mkApply x xs
+        f (Apply (Apply x xs) ys) = mkApply x (xs++ys)
         f (Let xs x) = mkLet xs x
         f x = x
 
