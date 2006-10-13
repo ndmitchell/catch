@@ -6,7 +6,8 @@ import Hill.Reachable
 import Hill.ShortName
 import Hill.Simple
 import Hill.ArityRaise
+import Hill.Specialise
 
 
 cmdsHill :: [HillAction]
-cmdsHill = cmdsReachable ++ cmdsShortName ++ cmdsSimple ++ cmdsArityRaise
+cmdsHill = cmdsReachable ++ cmdsShortName ++ cmdsSimple ++ cmdsArityRaise ++ cmdsSpecialise
