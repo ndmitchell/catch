@@ -72,6 +72,9 @@ normalise hill = mapOverHill f hill
         f x = x
 
 
+---------------------------------------------------------------------
+
+
 useVector hill = mapOverHill f hill
     where
         f (Apply (Fun x) xs)
