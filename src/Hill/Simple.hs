@@ -10,6 +10,7 @@ cmdsSimple =
     ,hillCmdPure "normalise" (const normalise)
     ,hillCmdPure "simple-inline" (const simpleInline)
     ,hillCmdPure "vector" (const useVector)
+    ,hillCmdPure "novector" (const noVector)
     ]
 
 
@@ -70,6 +71,7 @@ normalise hill = mapOverHill f hill
         f (Apply x xs) = mkApply x xs
         f (Apply (Apply x xs) ys) = mkApply x (xs++ys)
         f (Let xs x) = mkLet xs x
+        f (Lambda n x) = mkLambda n x
         f x = x
 
 
@@ -96,4 +98,11 @@ useVector hill = mapOverHill f hill
                 | null $ ctorArgs $ getCtor hill x
                 = Make x []
 
+        f x = x
+
+
+noVector hill = mapOverHill f hill
+    where
+        f (Call x xs) = Apply (Fun x) xs
+        f (Make x xs) = Apply (Const (ACtor x)) xs
         f x = x
