@@ -15,7 +15,6 @@ hill
 	hill-simple-inline
 	hill-reachable
 	hill-normalise
-	hill-vector
 
 
 compilepre
