@@ -1,5 +1,5 @@
 
-module Hill.Simple(cmdsSimple) where
+module Hill.Simple(cmdsSimple, simplify, normalise) where
 
 import Hill.Type
 import Data.List
@@ -17,7 +17,7 @@ cmdsSimple =
 ---------------------------------------------------------------------
 
 -- basic simplifications
-simplify :: Hill -> Hill
+simplify :: ManipulateHill hill => hill -> hill
 simplify hill = mapOverHill f hill
     where
         -- use error if you can
@@ -70,6 +70,7 @@ simpleInline hill = mapOverHill f hill
 ---------------------------------------------------------------------
 
 
+normalise :: ManipulateHill hill => hill -> hill
 normalise hill = mapOverHill f hill
     where
         f (Apply x xs) = mkApply x xs
