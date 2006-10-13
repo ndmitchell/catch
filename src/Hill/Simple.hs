@@ -83,6 +83,10 @@ useVector hill = mapOverHill f hill
                 = Call x xs
             where func = getFunc hill x
         
+        f (Fun x)
+                | null $ funcArgs $ getFunc hill x
+                = Call x []
+        
         f (Apply (Const (ACtor x)) xs)
                 | length (ctorArgs ctor) == length xs
                 = Make x xs
