@@ -78,8 +78,8 @@ data Const = AInt Int
            | ACtor CtorName
 
 
-data Alt = Default Expr
-         | Alt Const Expr
+data Alt = Default {altExpr :: Expr}
+         | Alt {altVal :: Const, altExpr :: Expr}
 
 
 -- Manipulate stuff
