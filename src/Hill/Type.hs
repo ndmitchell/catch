@@ -30,6 +30,9 @@ getFunc hill name = case [x | x <- funcs hill, funcName x == name] of
 mkLet [] x = x
 mkLet xs x = Let xs x
 
+mkApply x [] = x
+mkApply x xs = Apply x xs
+
 
 isVar (Var _) = True; isVar _ = False
 

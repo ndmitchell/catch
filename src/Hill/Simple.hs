@@ -7,6 +7,7 @@ import Data.List
 
 cmdsSimple =
     [hillCmdPure "simplify" (const simplify)
+    ,hillCmdPure "normalise" (const normalise)
     ,hillCmdPure "simple-inline" (const simpleInline)
     ]
 
@@ -58,8 +59,14 @@ simpleInline hill = mapOverHill f hill
         canInline (Func nam _ (Apply (Fun name) args)) | name /= nam = all isVar args
         canInline (Func nam _ (Call name args)) | name /= nam = all isVar args
         canInline _ = False
-        
-        
-        
-        
+
+
+---------------------------------------------------------------------
+
+
+normalise hill = mapOverHill f hill
+    where
+        f (Apply x xs) = mkApply x xs
+        f (Let xs x) = mkLet xs x
+        f x = x
         

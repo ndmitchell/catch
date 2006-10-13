@@ -14,6 +14,7 @@ hill
 	hill-simplify
 	hill-simple-inline
 	hill-reachable
+	hill-normalise
 
 
 compilepre
