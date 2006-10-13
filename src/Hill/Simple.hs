@@ -51,7 +51,7 @@ simpleInline hill = mapOverHill f hill
             case lookup name inliners of
                 Just (Func _ params body) | length args == length params ->
                     replaceFree (zip params args) body
-                Nothing -> orig
+                _ -> orig
 
     
         inliners = map (\a -> (funcName a, a)) $ filter canInline $ funcs hill
