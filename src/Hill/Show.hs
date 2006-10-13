@@ -38,7 +38,7 @@ instance Show Expr where
 
                 Sel x xs -> f True i x ++ "." ++ xs
                 
-                Case cond opts -> "case " ++ show cond ++ " of\n" ++
+                Case cond opts -> brack b $ "case " ++ show cond ++ " of\n" ++
                                      if null opts then "    {- NO OPTIONS! -}" else
                                      (init $ unlines $ map (g (i+4)) opts)
                     where
