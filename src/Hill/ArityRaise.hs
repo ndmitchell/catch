@@ -33,7 +33,7 @@ liftLambdas hill | null lift = Nothing
                         Just n -> Lambda n (Fun x)
         f x = x
         
-        g (Func name args (Lambda n body)) = Func name (args++newArgs) (Apply body (map Var newArgs))
+        g (Func name args (Lambda n body)) = Func name (args++newArgs) (mkApply body (map Var newArgs))
             where newArgs = take n $ freshFree body \\ args
         g x = x
 
