@@ -69,6 +69,7 @@ data Expr =
           
             -- other stuff
           | Error Expr
+          deriving (Eq, Ord)
 
 
 data Const = AInt Int
@@ -78,10 +79,12 @@ data Const = AInt Int
            | AChar Char
            | AString String
            | ACtor CtorName
+          deriving (Eq, Ord)
 
 
 data Alt = Default {altExpr :: Expr}
          | Alt {altVal :: Const, altExpr :: Expr}
+         deriving (Eq, Ord)
 
 
 -- Manipulate stuff
