@@ -9,13 +9,21 @@ help Show this help list
 verbose Show the Hite at each step
 version Show version information
 
-hill
+hill1
 	hill-short-name
 	hill-simplify
 	hill-simple-inline
 	hill-reachable
 	hill-normalise
 
+hill2
+	hill-arity-raise
+	hill-simple-inline
+	hill-reachable
+
+hill
+	hill1
+	hill2
 
 compilepre
 	short-name
