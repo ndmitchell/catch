@@ -52,7 +52,7 @@ instance Show Expr where
                 
                 Lambda n x -> brack b $ "\\" ++ show n ++ " -> " ++ show x
                 Apply x [] -> f b i x
-                Apply x xs -> brack b $ concat $ intersperse " " $ map (f True i) (x:xs)
+                Apply x xs -> brack b $ f True i x ++ "{" ++ (concat $ intersperse "," $ map (f False i) xs) ++ "}"
           
                 Error x -> f b i $ Call "@error" [x]
 
