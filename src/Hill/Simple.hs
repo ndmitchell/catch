@@ -57,10 +57,14 @@ simpleInline hill = mapOverHill f hill
     
         inliners = map (\a -> (funcName a, a)) $ filter canInline $ funcs hill
     
-        canInline (Func _ _ (Const a)) = True
         canInline (Func nam _ (Apply (Fun name) args)) | name /= nam = all isVar args
         canInline (Func nam _ (Call name args)) | name /= nam = all isVar args
-        canInline _ = False
+        canInline x = canInlineExpr $ body x
+        
+        canInlineExpr (Const _) = True
+        canInlineExpr (Var _) = True
+        canInlineExpr (Prim name args) = all isVar args
+        canInlineExpr _ = False
 
 
 ---------------------------------------------------------------------
