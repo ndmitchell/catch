@@ -16,7 +16,7 @@ addLambdas hill = mapOverHill f hill
 ---------------------------------------------------------------------
 
 -- move lambdas
-moveLambdas :: Hill -> Hill
+moveLambdas :: ManipulateHill hill => hill -> hill
 moveLambdas hill = mapOverHill f hill
     where
         f lhs@(Apply (Lambda n x) xs) = mkApply (mkLambda (n - length a) (Apply x a)) b
