@@ -6,6 +6,7 @@ import Hill.Lambdas
 import qualified Data.Map as Map
 import Control.Monad.State
 import Data.Maybe
+import General.General
 
 
 cmdsSpecialise = [hillCmdPure "specialise" (const specialise)]
@@ -14,7 +15,47 @@ cmdsSpecialise = [hillCmdPure "specialise" (const specialise)]
 ---------------------------------------------------------------------
 
 specialise :: Hill -> Hill
-specialise hill = error $ "\n" ++ showTemplate (filterTemplate $ makeTemplate hill)
+specialise hill = makeCode hill template
+    where template = filterTemplate $ makeTemplate hill
+
+
+makeCode :: Hill -> Template Expr -> Hill
+makeCode hill template = hill{funcs = map makeFunc needed}
+    where
+        needed = [(name, replicate (length args) (Var 0)) | Func name args _ <- funcs hill] ++ Map.keys template2
+    
+        template2 = snd $ Map.mapAccumWithKey genName 1 $ Map.filterWithKey checkUse template
+            where
+                genName n key val = (n+1, (fst key ++ "_" ++ show n, val))
+                checkUse (key,args) val = any (not . isVar) args
+
+        makeFunc (name, args) = Func newname [0..nargs-1] body2
+            where
+                body2 = makeExpr $ moveLambdas $ replaceFree (zip fargs newargs) body
+                Func _ fargs body = getFunc hill name
+                
+                newname = fst $ Map.findWithDefault (name, Var 0) (name,args) template2
+                (nargs, newargs) = ascendingFrees args
+
+        makeExpr x = x
+
+
+-- replace the free variables Var 0, with Var 0..Var n
+ascendingFrees :: [Expr] -> (Int, [Expr])
+ascendingFrees xs = fs xs 0
+    where
+        f :: Expr -> Int -> (Int, Expr)
+        f (Var _) n = (n+1, Var n)
+        f x n = (n2, setChildren x childs)
+            where (n2, childs) = fs (getChildren x) n
+        
+        
+        fs :: [Expr] -> Int -> (Int, [Expr])
+        fs [] n = (n, [])
+        fs (x:xs) n = (n3, x2:xs3)
+            where
+                (n2,x2) = f x n
+                (n3,xs3) = fs xs n2
 
 
 
@@ -91,4 +132,3 @@ makeTemplate hill = Map.map fromJust $ execState (evalFunc "main" mainArgs) Map.
         evalExpr (Make x xs) = liftM (Make x) $ mapM evalExpr xs
         
         evalExpr x = error $ "Specialise.generate.evalExpr, unhandled " ++ show x
-        
