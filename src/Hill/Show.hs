@@ -51,6 +51,7 @@ instance Show Expr where
                         g i (lhs, rhs) = replicate i ' ' ++ "@" ++ show lhs ++ " = " ++ f False (i+4) rhs
                 
                 Lambda n x -> brack b $ "\\" ++ show n ++ " -> " ++ show x
+                Apply x [] -> f b i x
                 Apply x xs -> brack b $ concat $ intersperse " " $ map (f True i) (x:xs)
           
                 Error x -> f b i $ Call "@error" [x]
