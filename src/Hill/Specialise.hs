@@ -5,6 +5,7 @@ import Hill.Type
 import Hill.Lambdas
 import qualified Data.Map as Map
 import Control.Monad.State
+import Data.Maybe
 
 
 cmdsSpecialise = [hillCmdPure "specialise" (const specialise)]
@@ -13,34 +14,35 @@ cmdsSpecialise = [hillCmdPure "specialise" (const specialise)]
 ---------------------------------------------------------------------
 
 specialise :: Hill -> Hill
-specialise hill = error $ "\n" ++ showTemplate (generate hill)
-
+specialise hill = error $ "\n" ++ showTemplate (filterTemplate $ makeTemplate hill)
 
 
 
 -- function name, arguments, result (if known)
 -- use Var 0 to represent unknown information
 -- equivalent to ? in this context
-type Template = Map.Map (FuncName, [Expr]) (Maybe Expr)
+type Template a = Map.Map (FuncName, [Expr]) a
 
 
-showTemplate :: Template -> String
+filterTemplate :: Template Expr -> Template Expr
+filterTemplate template = Map.filterWithKey f template
+    where f (name,args) res = any (not . isVar) (res:args)
+
+
+showTemplate :: Show a => Template a -> String
 showTemplate xs = unlines $ map f $ Map.toList xs
     where
-        f ((name,args),res) = show (Call name args) ++ " = " ++ g res
-        
-        g Nothing = "<NOTHING>"
-        g (Just x) = show x
+        f ((name,args),res) = show (Call name args) ++ " = " ++ show res
 
 
 
-generate :: Hill -> Template
-generate hill = execState (evalFunc "main" mainArgs) Map.empty
+makeTemplate :: Hill -> Template Expr
+makeTemplate hill = Map.map fromJust $ execState (evalFunc "main" mainArgs) Map.empty
     where
         mainArgs = replicate (length $ funcArgs $ getFunc hill "main") (Var 0)
     
         -- find an item in the template
-        evalFunc :: FuncName -> [Expr] -> State Template Expr
+        evalFunc :: FuncName -> [Expr] -> State (Template (Maybe Expr)) Expr
         evalFunc func args = do
             s <- get
             case Map.lookup (func,args) s of
@@ -56,7 +58,7 @@ generate hill = execState (evalFunc "main" mainArgs) Map.empty
                     return res
 
         
-        evalExpr :: Expr -> State Template Expr
+        evalExpr :: Expr -> State (Template (Maybe Expr)) Expr
         evalExpr (Apply x xs) = do
             (y:ys) <- mapM evalExpr (x:xs)
             case y of
