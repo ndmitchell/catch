@@ -37,6 +37,9 @@ mkApply x xs = Apply x xs
 mkLambda 0 x = x
 mkLambda n x = Lambda n x
 
+dropLambda (Lambda n x) = x
+dropLambda x = x
+
 
 isVar (Var _) = True; isVar _ = False
 
