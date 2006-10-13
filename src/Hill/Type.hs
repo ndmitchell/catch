@@ -33,6 +33,9 @@ mkLet xs x = Let xs x
 mkApply x [] = x
 mkApply x xs = Apply x xs
 
+mkLambda 0 x = x
+mkLambda n x = Lambda n x
+
 
 isVar (Var _) = True; isVar _ = False
 
