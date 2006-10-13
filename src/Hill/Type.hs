@@ -32,6 +32,8 @@ mkLet [] x = x
 mkLet xs x = Let xs x
 
 mkApply x [] = x
+mkApply (Apply x xs) ys = mkApply x (xs ++ ys)
+mkApply (Case on alts) ys = Case on [alt{altExpr = mkApply (altExpr alt) ys} | alt <- alts]
 mkApply x xs = Apply x xs
 
 mkLambda 0 x = x
