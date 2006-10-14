@@ -5,6 +5,7 @@ import Hill.Type
 import Hill.Lambdas
 import qualified Data.Map as Map
 import Control.Monad.State
+import Control.Monad.Identity
 import Data.Maybe
 import General.General
 
@@ -31,13 +32,28 @@ makeCode hill template = hill{funcs = map makeFunc needed}
 
         makeFunc (name, args) = Func newname [0..nargs-1] body2
             where
-                body2 = makeExpr $ moveLambdas $ replaceFree (zip fargs newargs) body
+                body2 = mapOverHill makeExpr $ moveLambdas $ replaceFree (zip fargs newargs) body
                 Func _ fargs body = getFunc hill name
                 
                 newname = fst $ Map.findWithDefault (name, Var 0) (name,args) template2
                 (nargs, newargs) = ascendingFrees args
-
+                
+        makeExpr orig@(Apply (Fun x) xs) =
+            let args = map valueExpr xs in
+            case Map.lookup (x, args) template2 of
+                Nothing -> orig
+                Just (newname,_) -> Apply (Fun newname) (selArgs args xs)
         makeExpr x = x
+    
+        selArgs args xs = concat $ zipWith selArg args xs
+        
+        selArg (Var 0) x = [x]
+        selArg arg x = selArgs (getChildren arg) (getChildren x)
+        
+
+        valueFunc func args = return $ snd $ Map.findWithDefault ("", Var 0) (func,args) template2
+
+        valueExpr x = runIdentity $ evalExpr hill valueFunc x
 
 
 -- replace the free variables Var 0, with Var 0..Var n
@@ -119,7 +135,7 @@ evalExpr hill evalFunc x = f x
                     
                 _ -> return $ Var 0
 
-        f (Var 0) = return $ Var 0
+        f (Var _) = return $ Var 0
         f (Fun x) = return $ Fun x
         f (Const x) = return $ Const x
         
