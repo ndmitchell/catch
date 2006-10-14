@@ -25,7 +25,7 @@ simplify hill = mapOverHill f hill
         f (Call "error" [x]) = Error x
         
         -- inline simple lets, @1 = @2
-        f (Let binds x) | not (null simp) = mkLet complex $ mapOverHill g x
+        f (Let binds x) | not (null simp) = f $ mkLet complex $ mapOverHill g x
             where
                 g (Var x) = case lookup x simp of
                                 Nothing -> Var x
