@@ -1,7 +1,12 @@
 
-module Hill.Lambdas(addLambdas, remLambdas, moveLambdas) where
+module Hill.Lambdas(addLambdas, remLambdas, moveLambdas, cmdsLambda) where
 
 import Hill.Type
+
+
+cmdsLambda = [hillCmdPure "add-lambda"  (const addLambdas)
+             ,hillCmdPure "rem-lambda"  (const remLambdas)
+             ,hillCmdPure "move-lambda" (const moveLambdas)]
 
 
 ---------------------------------------------------------------------
