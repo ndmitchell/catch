@@ -3,22 +3,28 @@ module Hill.Specialise(cmdsSpecialise) where
 
 import Hill.Type
 import Hill.Lambdas
+import Hill.Show
+
 import qualified Data.Map as Map
 import Control.Monad.State
 import Control.Monad.Identity
 import Data.Maybe
 import General.General
-import Hill.Show
+import Front.CmdLine
+import System.IO
 
 
-cmdsSpecialise = [hillCmdPure "specialise" (const specialise)]
+cmdsSpecialise = [Action "hill-specialise" specialise]
 
 
 ---------------------------------------------------------------------
 
-specialise :: Hill -> Hill
-specialise hill = makeCode hill template
-    where template = filterTemplate $ makeTemplate hill
+specialise :: CmdLineState -> String -> ValueHill -> IO ValueHill
+specialise state _ (ValueHill hill) = do
+        hPutStrLn (cmdLineHandle state) $ showTemplate template
+        return $ ValueHill $ makeCode hill template
+    where
+        template = filterTemplate $ makeTemplate hill
 
 
 makeCode :: Hill -> Template Expr -> Hill
@@ -39,11 +45,15 @@ makeCode hill template = hill{funcs = map makeFunc needed}
                 newname = fst $ Map.findWithDefault (name, Var 0) (name,args) template2
                 (nargs, newargs) = ascendingFrees args
                 
-        makeExpr orig@(Apply (Fun x) xs) =
-            let args = map valueExpr xs in
-            case Map.lookup (x, args) template2 of
-                Nothing -> orig
-                Just (newname,_) -> Apply (Fun newname) (selArgs args xs)
+        makeExpr orig@(Apply (Fun x) xs) | arity <= length xs =
+                case Map.lookup (x, args) template2 of
+                    Nothing -> orig
+                    Just (newname,_) -> Apply (Fun newname) (selArgs args as ++ bs)
+            where
+                args = map valueExpr as
+                (as, bs) = splitAt arity xs
+                arity = length $ funcArgs $ getFunc hill x
+        
         makeExpr x = x
     
         selArgs args xs = concat $ zipWith selArg args xs
@@ -52,7 +62,7 @@ makeCode hill template = hill{funcs = map makeFunc needed}
         selArg arg x = selArgs (getChildren arg) (getChildren x)
         
 
-        valueFunc func args = return $ snd $ Map.findWithDefault ("", Var 0) (func,args) template2
+        valueFunc func args = return $ Map.findWithDefault (Var 0) (func,args) template
 
         valueExpr x = runIdentity $ evalExpr hill valueFunc x
 
@@ -111,6 +121,7 @@ makeTemplate hill = Map.map fromJust $ execState (evalFunc "main" mainArgs) Map.
                     modify (Map.insert (func,args) Nothing)
                     let Func _ funcArgs body = getFunc hill func
                         body2 = moveLambdas $ replaceFree (zip funcArgs args) body
+                    -- () <- if func == "risers" then error $ show $ replaceFree (zip funcArgs args) body else return ()
                     res <- evalExpr hill evalFunc body2
                     modify (Map.insert (func,args) (Just res))
                     return res
@@ -136,8 +147,11 @@ evalExpr hill evalFunc x = f x
                     
                 _ -> return $ Var 0
 
+        f (Fun x) | null (funcArgs func) = evalFunc x []
+                  | otherwise = return $ Fun x
+            where func = getFunc hill x
+
         f (Var _) = return $ Var 0
-        f (Fun x) = return $ Fun x
         f (Const x) = return $ Const x
         
         f (Lambda n (Fun x)) = return $ Lambda n (Fun x)
