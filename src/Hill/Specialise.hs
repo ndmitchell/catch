@@ -150,5 +150,8 @@ evalExpr hill evalFunc x = f x
         
         f (Make x xs) = liftM (Make x) $ mapM f xs
         
+        f (Let binds x) = mapM_ (f . snd) binds >> f x
+        f (Error x) = f x >> return (Var 0)
+        
         f x = error $ "Specialise.generate.evalExpr, unhandled " ++ show x
 
