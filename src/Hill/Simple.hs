@@ -3,6 +3,7 @@ module Hill.Simple(cmdsSimple, simplify, normalise) where
 
 import Hill.Type
 import Data.List
+import Data.Maybe
 import General.General
 
 
@@ -46,6 +47,18 @@ simplify hill = mapOverHill f hill
             where
                 binded = map fst binds1
                 (float, nofloat) = partition (disjoint binded . usedFree . snd) binds2
+        
+        -- case Ctor of Ctor -> x ==> x
+        f (Case on alts) | isJust onConst && isJust alt = fromJust alt
+            where
+                onConst = getConst on
+                alt = listToMaybe [y | Alt x y <- alts, x == fromJust onConst]
+            
+                getConst (Make x xs) = Just $ ACtor x
+                getConst (Apply x _) = getConst x
+                getConst (Const x) = Just x
+                getConst _ = Nothing
+            
         
         f x = x
 
