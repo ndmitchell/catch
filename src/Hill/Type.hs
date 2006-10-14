@@ -175,8 +175,10 @@ replaceFree ren (Var x) = case lookup x ren of
                               Nothing -> Var x
                               Just y -> y
 
-replaceFree ren (Let binds x) = Let binds $ replaceFree (filter isValid ren) x
-    where isValid (i,_) = not $ i `elem` map fst binds
+replaceFree ren (Let binds x) = Let binds2 $ replaceFree (filter isValid ren) x
+    where
+        isValid (i,_) = not $ i `elem` map fst binds
+        binds2 = [(a, replaceFree ren b) | (a,b) <- binds]
 
 replaceFree ren x = setChildren x $ map (replaceFree ren) $ getChildren x
 
