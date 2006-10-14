@@ -94,18 +94,20 @@ makeTemplate hill = Map.map fromJust $ execState (evalFunc "main" mainArgs) Map.
                     modify (Map.insert (func,args) Nothing)
                     let Func _ funcArgs body = getFunc hill func
                         body2 = moveLambdas $ replaceFree (zip funcArgs args) body
-                    res <- evalExpr body2
+                    res <- evalExpr hill evalFunc body2
                     modify (Map.insert (func,args) (Just res))
                     return res
 
-        
-        evalExpr :: Expr -> State (Template (Maybe Expr)) Expr
-        evalExpr (Apply x xs) = do
-            (y:ys) <- mapM evalExpr (x:xs)
+
+evalExpr :: Monad m => Hill -> (FuncName -> [Expr] -> m Expr) -> Expr -> m Expr
+evalExpr hill evalFunc x = f x
+    where
+        f (Apply x xs) = do
+            (y:ys) <- mapM f (x:xs)
             case y of
                 Fun x | nxs >= nargs -> do
                         res <- evalFunc x as
-                        evalExpr (mkApply res bs)
+                        f (mkApply res bs)
                     where
                         (as,bs) = splitAt nargs ys
                         nxs = length xs
@@ -117,18 +119,19 @@ makeTemplate hill = Map.map fromJust $ execState (evalFunc "main" mainArgs) Map.
                     
                 _ -> return $ Var 0
 
-        evalExpr (Var 0) = return $ Var 0
-        evalExpr (Fun x) = return $ Fun x
-        evalExpr (Const x) = return $ Const x
+        f (Var 0) = return $ Var 0
+        f (Fun x) = return $ Fun x
+        f (Const x) = return $ Const x
         
-        evalExpr (Lambda n (Fun x)) = return $ Lambda n (Fun x)
-        evalExpr (Lambda n (Apply (Fun x) xs)) = liftM (Lambda n . Apply (Fun x)) $ mapM evalExpr xs
+        f (Lambda n (Fun x)) = return $ Lambda n (Fun x)
+        f (Lambda n (Apply (Fun x) xs)) = liftM (Lambda n . Apply (Fun x)) $ mapM f xs
         
-        evalExpr (Case on alts) = evalExpr on >> mapM_ (evalExpr . altExpr) alts >> return (Var 0)
-        evalExpr (Prim x xs) = mapM_ evalExpr xs >> return (Var 0)
+        f (Case on alts) = f on >> mapM_ (f . altExpr) alts >> return (Var 0)
+        f (Prim x xs) = mapM_ f xs >> return (Var 0)
         
-        evalExpr (Sel x y) = evalExpr x >> return (Var 0)
+        f (Sel x y) = f x >> return (Var 0)
         
-        evalExpr (Make x xs) = liftM (Make x) $ mapM evalExpr xs
+        f (Make x xs) = liftM (Make x) $ mapM f xs
         
-        evalExpr x = error $ "Specialise.generate.evalExpr, unhandled " ++ show x
+        f x = error $ "Specialise.generate.evalExpr, unhandled " ++ show x
+
