@@ -11,7 +11,7 @@ cmdsArityRaise = [hillCmdPure "arity-raise" (const arityRaise)]
 
 ---------------------------------------------------------------------
 
-arityRaise = f . addLambdas
+arityRaise = remLambdas . f . addLambdas
     where
         f x = case liftLambdas y of
                    Nothing -> y

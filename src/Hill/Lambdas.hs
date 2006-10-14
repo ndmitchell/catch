@@ -1,5 +1,5 @@
 
-module Hill.Lambdas(addLambdas, moveLambdas) where
+module Hill.Lambdas(addLambdas, remLambdas, moveLambdas) where
 
 import Hill.Type
 
@@ -11,6 +11,14 @@ addLambdas :: Hill -> Hill
 addLambdas hill = mapOverHill f hill
     where
         f (Fun x) = mkLambda (length $ funcArgs $ getFunc hill x) (Fun x)
+        f (Lambda _ x) = x
+        f x = x
+
+
+remLambdas :: Hill -> Hill
+remLambdas hill = mapOverHill f hill
+    where
+        f (Lambda _ x) = x
         f x = x
 
 ---------------------------------------------------------------------
