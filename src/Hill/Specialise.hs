@@ -8,6 +8,7 @@ import Control.Monad.State
 import Control.Monad.Identity
 import Data.Maybe
 import General.General
+import Hill.Show
 
 
 cmdsSpecialise = [hillCmdPure "specialise" (const specialise)]
