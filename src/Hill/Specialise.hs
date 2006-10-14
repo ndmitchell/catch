@@ -59,6 +59,7 @@ makeCode hill template = hill{funcs = map makeFunc needed}
         selArgs args xs = concat $ zipWith selArg args xs
         
         selArg (Var 0) x = [x]
+        selArg (Make x xs) (Apply (Const (ACtor y)) ys) = selArgs xs ys
         selArg arg x = selArgs (getChildren arg) (getChildren x)
         
 
