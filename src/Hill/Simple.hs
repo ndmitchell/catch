@@ -3,6 +3,7 @@ module Hill.Simple(cmdsSimple, simplify, normalise) where
 
 import Hill.Type
 import Data.List
+import General.General
 
 
 cmdsSimple =
@@ -39,6 +40,12 @@ simplify hill = mapOverHill f hill
             where
                 required = requiredFree x
                 (used, unused) = partition ((`elem` required) . fst) binds
+        
+        -- float chains of lets into one (if possible)
+        f (Let binds1 (Let binds2 x)) | not (null float) = Let (binds1++float) (mkLet nofloat x)
+            where
+                binded = map fst binds1
+                (float, nofloat) = partition (disjoint binded . usedFree . snd) binds2
         
         f x = x
 
