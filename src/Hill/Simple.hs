@@ -8,7 +8,7 @@ import General.General
 
 
 cmdsSimple =
-    [hillCmdPure "simplify" (const simplify)
+    [hillCmdPure "simplify" (\name hill -> simplify hill hill)
     ,hillCmdPure "normalise" (const normalise)
     ,hillCmdPure "simple-inline" (const simpleInline)
     ,hillCmdPure "vector" (const useVector)
@@ -19,8 +19,8 @@ cmdsSimple =
 ---------------------------------------------------------------------
 
 -- basic simplifications
-simplify :: ManipulateHill hill => hill -> hill
-simplify hill = mapOverHill f hill
+simplify :: ManipulateHill hill => Hill -> hill -> hill
+simplify hill = mapOverHill f
     where
         -- use error if you can
         f (Apply (Fun "error") [x]) = Error x
@@ -58,7 +58,17 @@ simplify hill = mapOverHill f hill
                 getConst (Apply x _) = getConst x
                 getConst (Const x) = Just x
                 getConst _ = Nothing
-            
+        
+        -- (Ctor x y).sel1 ==> x
+        f (Sel on path) | isJust res = fromJust res
+            where
+                carg = getCArg hill path
+                (ctor,pos) = (ctorName carg, cargPos carg)
+                
+                res = g on
+                g (Apply (Const (ACtor name)) args) = g (Make name args)
+                g (Make name args) | name == ctor && length args > pos = Just (args !! pos)
+                g _ = Nothing
         
         f x = x
 
