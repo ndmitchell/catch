@@ -24,7 +24,7 @@ specialise state _ (ValueHill hillBad) = do
         hPutStrLn (cmdLineHandle state) $ showTemplate template
         return $ ValueHill $ makeCode hill template
     where
-        hill = addLambdas hillBad
+        hill = moveLambdas $ addLambdas hillBad
         template = filterTemplate $ makeTemplate hill
 
 
