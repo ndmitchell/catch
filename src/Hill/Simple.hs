@@ -34,6 +34,12 @@ simplify hill = mapOverHill f hill
             
                 (simp, complex) = partition (isVar . snd) binds
         
+        -- discard unused lets
+        f (Let binds x) | not (null unused) = f $ mkLet used x
+            where
+                required = requiredFree x
+                (used, unused) = partition ((`elem` required) . fst) binds
+        
         f x = x
 
 

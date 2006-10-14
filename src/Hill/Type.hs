@@ -181,6 +181,14 @@ replaceFree ren (Let binds x) = Let binds $ replaceFree (filter isValid ren) x
 replaceFree ren x = setChildren x $ map (replaceFree ren) $ getChildren x
 
 
+requiredFree :: Expr -> [Int]
+requiredFree x = snub $ f x
+    where
+        f (Let binds x) = (f x \\ map fst binds) ++ (concatMap (f . snd) binds)
+        f (Var x) = [x]
+        f x = concatMap f (getChildren x)
+
+
 usedFree :: Expr -> [Int]
 usedFree x = snub $ concatMap f $ allOverHill x
     where
