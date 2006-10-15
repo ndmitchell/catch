@@ -127,6 +127,7 @@ makeAbstractArgs xs = fs xs
             where (as,bs) = fs xs
         f (Lambda n (Apply (Fun x) xs)) = (Lambda n (Apply (Fun x) as), bs)
             where (as,bs) = fs xs
+        f (Const x) = (Const x, [])
         f x = (Var 0, [x])
 
 
