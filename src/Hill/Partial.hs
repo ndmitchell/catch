@@ -74,7 +74,10 @@ runStore hill = execState base (Store 1 Map.empty [])
             where
                 body3 = moveLambdas $ addLambdasExpr hill $ topLets $
                         addLetsExpr (funcArgs func) $ useVectorMake $ applyFuns body2
-                body2 = replaceFree (zip (funcArgs func) reps) $ body func
+                body2 = mkApply (replaceFree (zip (funcArgs func) norm) $ body func) super
+                
+                (norm,super) = splitAt (length fargs) reps
+                fargs = funcArgs func
                 (nargs,reps) = ascendingFrees args
 
 
@@ -96,6 +99,11 @@ runStore hill = execState base (Store 1 Map.empty [])
         
         -- from an Expr, figure out what should stay here, and what should be inlined
         alterBind :: (Int, Expr) -> State Store (Expr, Expr)
+        
+        alterBind (n,Let binds x) = do
+            (keep,inline) <- alterBind (n,x)
+            return (Let binds keep, inline)
+        
         alterBind (n,Apply (Fun x) xs) = do
             let (abstract,concrete) = makeAbstractArgs xs
             (name,result) <- ask x abstract
@@ -116,6 +124,8 @@ makeAbstractArgs xs = fs xs
             where (as,bs) = unzip $ map f xs
         
         f (Make x xs) = (Make x as, bs)
+            where (as,bs) = fs xs
+        f (Lambda n (Apply (Fun x) xs)) = (Lambda n (Apply (Fun x) as), bs)
             where (as,bs) = fs xs
         f x = (Var 0, [x])
 
@@ -138,7 +148,7 @@ makeAbstractRes hill x = f (Var 0) x
         f var (Const x) = Const x
         f var (Make x xs) = Make x (zipWith (\c x -> f (Sel var c) x) cs xs)
             where cs = ctorArgs $ getCtor hill x
-        f var (Lambda n x) = Lambda n x
+        f var (Lambda n (Apply (Fun x) [])) = Lambda n (Apply (Fun x) [])
         f var _ = var
 
 
