@@ -72,7 +72,8 @@ runStore hill = execState base (Store 1 Map.empty [])
                 modify $ \store -> store{storeCode = newfunc : storeCode store}
                 return $ makeAbstractRes hill body4
             where
-                body3 = moveLambdas $ addLambdasExpr hill $ topLets $ addLetsExpr (funcArgs func) $ applyFuns body2
+                body3 = moveLambdas $ addLambdasExpr hill $ topLets $
+                        addLetsExpr (funcArgs func) $ useVectorMake $ applyFuns body2
                 body2 = replaceFree (zip (funcArgs func) reps) $ body func
                 (nargs,reps) = ascendingFrees args
 
@@ -132,8 +133,7 @@ makeAbstractRes :: Hill -> Expr -> Expr
 makeAbstractRes hill x = f (Var 0) x
     where
         f var (Let _ x) = f var x
-        f var (Apply (Const x) []) = Const x
-        f var (Apply (Const (ACtor x)) xs) = f var (Make x xs)
+        f var (Const x) = Const x
         f var (Make x xs) = Make x (zipWith (\c x -> f (Sel var c) x) cs xs)
             where cs = ctorArgs $ getCtor hill x
         f var (Lambda n x) = Lambda n x
