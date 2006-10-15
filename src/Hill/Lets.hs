@@ -1,5 +1,5 @@
 
-module Hill.Lets(addLetsFunc, addLets, cmdsLets) where
+module Hill.Lets(addLetsFunc, addLets, topLets, cmdsLets) where
 
 import Hill.Type
 import General.General
