@@ -276,6 +276,10 @@ mapOver :: Manipulate a => (a -> a) -> a -> a
 mapOver f x = f $ setChildren x $ map (mapOver f) $ getChildren x
 
 
+mapOverM :: (Monad m, Manipulate a) => (a -> m a) -> a -> m a
+mapOverM f x = f . setChildren x =<< mapM (mapOverM f) (getChildren x)
+
+
 ---------------------------------------------------------------------
 -- IO STUFF
 
