@@ -1,5 +1,5 @@
 
-module Hill.Lets(addLetsExpr, addLets, cmdsLets) where
+module Hill.Lets(addLetsFunc, addLets, cmdsLets) where
 
 import Hill.Type
 import General.General
@@ -14,10 +14,10 @@ cmdsLets = [hillCmdPure "add-let" (const addLets)]
 -- add lets
 -- can only do a call from a let
 addLets :: Hill -> Hill
-addLets hill = hill{funcs = [x{body = addLetsExpr (body x)} | x <- funcs hill]}
+addLets hill = hill{funcs = map addLetsFunc (funcs hill)}
 
-addLetsExpr :: Expr -> Expr
-addLetsExpr x = evalState (mapOverM f x) (freshFree x)
+addLetsFunc :: Func -> Func
+addLetsFunc x = x{body = evalState (mapOverM f (body x)) (freshFreeFunc x)}
     where
         f (Apply y ys) = do
             (x:xs) <- get
