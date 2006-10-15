@@ -3,6 +3,7 @@ module Hill.Lets(addLetsExpr, addLets, cmdsLets) where
 
 import Hill.Type
 import General.General
+import Control.Monad.State
 
 
 cmdsLets = [hillCmdPure "add-let" (const addLets)]
@@ -16,8 +17,10 @@ addLets :: Hill -> Hill
 addLets hill = hill{funcs = [x{body = addLetsExpr (body x)} | x <- funcs hill]}
 
 addLetsExpr :: Expr -> Expr
-addLetsExpr x = f (freshFree x) x
+addLetsExpr x = evalState (mapOverM f x) (freshFree x)
     where
-        f (x:xs) orig@(Apply y ys) = Let [(x, Apply (f xs y) (map (f xs) ys))] (Var x)
-        f frees orig = setChildren orig $ map (f frees) $ getChildren orig
-
+        f (Apply y ys) = do
+            (x:xs) <- get
+            put xs
+            return $ Let [(x, Apply y ys)] (Var x)
+        f x = return x
