@@ -1,9 +1,10 @@
 
-module Hill.Lets(addLetsFunc, addLets, topLets, cmdsLets) where
+module Hill.Lets(addLetsFunc, addLetsExpr, addLets, topLets, cmdsLets) where
 
 import Hill.Type
 import General.General
 import Control.Monad.State
+import Data.List
 
 
 cmdsLets = [hillCmdPure "add-let" (const addLets)
@@ -18,7 +19,10 @@ addLets :: Hill -> Hill
 addLets hill = hill{funcs = map addLetsFunc (funcs hill)}
 
 addLetsFunc :: Func -> Func
-addLetsFunc x = x{body = evalState (mapOverM f (body x)) (freshFreeFunc x)}
+addLetsFunc x = x{body = addLetsExpr (funcArgs x) (body x)}
+
+addLetsExpr :: [Int] -> Expr -> Expr
+addLetsExpr args x = evalState (mapOverM f x) (freshFree x \\ args)
     where
         f (Apply y ys) = do
             (x:xs) <- get
@@ -29,7 +33,7 @@ addLetsFunc x = x{body = evalState (mapOverM f (body x)) (freshFreeFunc x)}
 ---------------------------------------------------------------------
 
 -- move all let expressions to the very top of a function
-topLets :: Hill -> Hill
+topLets :: ManipulateHill hill => hill -> hill
 topLets hill = mapOverHill f hill
     where
         f orig@(Let _ _) = orig

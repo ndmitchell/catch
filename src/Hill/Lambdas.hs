@@ -1,5 +1,5 @@
 
-module Hill.Lambdas(addLambdas, remLambdas, moveLambdas, cmdsLambda) where
+module Hill.Lambdas(addLambdas, addLambdasExpr, remLambdas, moveLambdas, cmdsLambda) where
 
 import Hill.Type
 
@@ -14,6 +14,14 @@ cmdsLambda = [hillCmdPure "add-lambda"  (const addLambdas)
 -- add lambdas
 addLambdas :: Hill -> Hill
 addLambdas hill = mapOverHill f hill
+    where
+        f (Fun x) = mkLambda (length $ funcArgs $ getFunc hill x) (Fun x)
+        f (Lambda _ x) = x
+        f x = x
+
+
+addLambdasExpr :: Hill -> Expr -> Expr
+addLambdasExpr hill x = mapOverHill f x
     where
         f (Fun x) = mkLambda (length $ funcArgs $ getFunc hill x) (Fun x)
         f (Lambda _ x) = x
