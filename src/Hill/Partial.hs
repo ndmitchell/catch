@@ -112,10 +112,12 @@ runStore hill = execState base (Store 1 Map.empty [])
 makeAbstractArgs :: [Expr] -> ([Expr], [Expr])
 makeAbstractArgs xs = fs xs
     where
-        fs xs = (concat as, concat bs)
+        fs xs = (as, concat bs)
             where (as,bs) = unzip $ map f xs
         
-        f x = ([Var 0], [x])
+        f (Make x xs) = (Make x as, bs)
+            where (as,bs) = fs xs
+        f x = (Var 0, [x])
 
 
 
