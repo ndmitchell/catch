@@ -1,5 +1,5 @@
 
-module Hill.Simple(cmdsSimple, simplify, normalise, applyFuns) where
+module Hill.Simple(cmdsSimple, simplify, normalise, applyFuns, useVectorMake) where
 
 import Hill.Type
 import Data.List
@@ -151,6 +151,13 @@ useVector hill = mapOverHill f hill
                 | null $ ctorArgs $ getCtor hill x
                 = Make x []
 
+        f x = x
+
+
+useVectorMake :: ManipulateHill hill => hill -> hill
+useVectorMake x = mapOverHill f x
+    where
+        f (Apply (Const (ACtor x)) xs) = Make x xs
         f x = x
 
 
