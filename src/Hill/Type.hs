@@ -201,3 +201,7 @@ usedFree x = snub $ concatMap f $ allOverHill x
 
 freshFree :: Expr -> [Int]
 freshFree x = [0..] \\ usedFree x
+
+
+freshFreeFunc :: Func -> [Int]
+freshFreeFunc x = freshFree (body x) \\ funcArgs x
