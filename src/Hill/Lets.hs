@@ -6,7 +6,8 @@ import General.General
 import Control.Monad.State
 
 
-cmdsLets = [hillCmdPure "add-let" (const addLets)]
+cmdsLets = [hillCmdPure "add-let" (const addLets)
+           ,hillCmdPure "top-let" (const topLets)]
 
 
 ---------------------------------------------------------------------
@@ -24,3 +25,17 @@ addLetsFunc x = x{body = evalState (mapOverM f (body x)) (freshFreeFunc x)}
             put xs
             return $ Let [(x, Apply y ys)] (Var x)
         f x = return x
+
+---------------------------------------------------------------------
+
+-- move all let expressions to the very top of a function
+topLets :: Hill -> Hill
+topLets hill = mapOverHill f hill
+    where
+        f orig@(Let _ _) = orig
+        f x = mkLet (concat lhs) $ setChildren x rhs
+            where
+                (lhs,rhs) = unzip $ map g $ getChildren x
+                
+                g (Let binds x) = (binds,x)
+                g x = ([], x)
