@@ -49,6 +49,10 @@ simplify hill = mapOverHill f
                 binded = map fst binds1
                 (float, nofloat) = partition (disjoint binded . usedFree . snd) binds2
         
+        -- let x = blah in x
+        f (Let binds (Var x)) | isJust y = fromJust y
+            where y = lookup x binds
+        
         -- case Ctor of Ctor -> x ==> x
         f (Case on alts) | isJust onConst && isJust alt = fromJust alt
             where
