@@ -1,5 +1,5 @@
 
-module Hill.Simple(cmdsSimple, simplify, normalise) where
+module Hill.Simple(cmdsSimple, simplify, normalise, applyFuns) where
 
 import Hill.Type
 import Data.List
@@ -10,6 +10,7 @@ import General.General
 cmdsSimple =
     [hillCmdPure "simplify" (\name hill -> simplify hill hill)
     ,hillCmdPure "normalise" (const normalise)
+    ,hillCmdPure "apply-funs" (const applyFuns)
     ,hillCmdPure "simple-inline" (const simpleInline)
     ,hillCmdPure "vector" (const useVector)
     ,hillCmdPure "novector" (const noVector)
@@ -112,6 +113,14 @@ normalise hill = mapOverHill f hill
         f (Apply x xs) = mkApply x xs
         f (Let xs x) = mkLet xs x
         f (Lambda n x) = mkLambda n x
+        f x = x
+
+
+applyFuns :: ManipulateHill hill => hill -> hill
+applyFuns hill = mapOverHill f hill
+    where
+        f (Fun x) = Apply (Fun x) []
+        f (Apply (Apply (Fun x) []) xs) = Apply (Fun x) xs
         f x = x
 
 
