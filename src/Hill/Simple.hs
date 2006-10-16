@@ -1,5 +1,5 @@
 
-module Hill.Simple(cmdsSimple, simplify, normalise, applyFuns, useVectorMake) where
+module Hill.Simple(cmdsSimple, simplify, simplifyEx, SimplifyOpt(..), normalise, applyFuns, useVectorMake) where
 
 import Hill.Type
 import Data.List
@@ -19,16 +19,23 @@ cmdsSimple =
 
 ---------------------------------------------------------------------
 
+data SimplifyOpt = NoLet deriving Eq
+
 -- basic simplifications
 simplify :: ManipulateHill hill => Hill -> hill -> hill
-simplify hill = mapOverHill f
+simplify = simplifyEx []
+
+simplifyEx :: ManipulateHill hill => [SimplifyOpt] -> Hill -> hill -> hill
+simplifyEx opts hill x = mapOverHill f x
     where
+        yesLet = not $ NoLet `elem` opts
+    
         -- use error if you can
         f (Apply (Fun "error") [x]) = Error x
         f (Call "error" [x]) = Error x
         
         -- inline simple lets, @1 = @2
-        f (Let binds x) | not (null simp) = f $ mkLet complex $ mapOverHill g x
+        f (Let binds x) | yesLet && not (null simp) = f $ mkLet complex $ mapOverHill g x
             where
                 g (Var x) = case lookup x simp of
                                 Nothing -> Var x
@@ -38,19 +45,19 @@ simplify hill = mapOverHill f
                 (simp, complex) = partition (isVar . snd) binds
         
         -- discard unused lets
-        f (Let binds x) | not (null unused) = f $ mkLet used x
+        f (Let binds x) | yesLet && not (null unused) = f $ mkLet used x
             where
                 required = requiredFree x
                 (used, unused) = partition ((`elem` required) . fst) binds
         
         -- float chains of lets into one (if possible)
-        f (Let binds1 (Let binds2 x)) | not (null float) = Let (binds1++float) (mkLet nofloat x)
+        f (Let binds1 (Let binds2 x)) | yesLet && not (null float) = Let (binds1++float) (mkLet nofloat x)
             where
                 binded = map fst binds1
                 (float, nofloat) = partition (disjoint binded . usedFree . snd) binds2
         
         -- let x = blah in x
-        f (Let binds (Var x)) | isJust y = fromJust y
+        f (Let binds (Var x)) | yesLet && isJust y = fromJust y
             where y = lookup x binds
         
         -- case Ctor of Ctor -> x ==> x
