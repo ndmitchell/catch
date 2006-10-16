@@ -67,13 +67,13 @@ runStore hill = execState base (Store 1 Map.empty [])
         
         add :: FuncName -> Func -> [Expr] -> State Store Expr
         add newname func args = do
-                body4 <- liftM (simplify hill) $ alter body3
+                body4 <- {- liftM (simplify hill) $ -} alter body3
                 let newfunc = Func newname [0..nargs-1] body4
                 modify $ \store -> store{storeCode = newfunc : storeCode store}
                 return $ makeAbstractRes hill body4
             where
-                body3 = moveLambdas $ addLambdasExpr hill $ topLets $
-                        addLetsExpr (funcArgs func) $ useVectorMake $ applyFuns body2
+                body3 = moveLambdas $ addLambdasExpr hill $ topLets $ addLetsExpr (funcArgs func) $
+                        useVectorMake $ applyFuns $ simplify hill body2
                 body2 = mkApply (replaceFree (zip (funcArgs func) norm) $ body func) super
                 
                 (norm,super) = splitAt (length fargs) reps
@@ -89,7 +89,7 @@ runStore hill = execState base (Store 1 Map.empty [])
                 let lhs = map fst binds2
                 (keep,inline) <- mapAndUnzipM alterBind binds2
                 
-                x2 <- alter $ replaceFree (zip lhs inline) x
+                x2 <- alter $ moveLambdas $ replaceFree (zip lhs inline) x
                 return $ Let (zip lhs keep) x2
         
         alter x = do
@@ -128,6 +128,7 @@ makeAbstractArgs xs = fs xs
         f (Lambda n (Apply (Fun x) xs)) = (Lambda n (Apply (Fun x) as), bs)
             where (as,bs) = fs xs
         f (Const x) = (Const x, [])
+        f (Lambda n x) = (Lambda n (Var 0), [x])
         f x = (Var 0, [x])
 
 
@@ -150,6 +151,7 @@ makeAbstractRes hill x = f (Var 0) x
         f var (Make x xs) = Make x (zipWith (\c x -> f (Sel var c) x) cs xs)
             where cs = ctorArgs $ getCtor hill x
         f var (Lambda n (Apply (Fun x) [])) = Lambda n (Apply (Fun x) [])
+        f var (Lambda n _) = Lambda n var
         f var _ = var
 
 
