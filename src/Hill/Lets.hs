@@ -36,7 +36,14 @@ addLetsExpr args x = evalState (mapOverM f x) (freshFree x \\ args)
 topLets :: ManipulateHill hill => hill -> hill
 topLets hill = mapOverHill f hill
     where
-        f orig@(Let _ _) = orig
+        f (Let binds x) = mkLet (concat bins) (mkLet (zip lhs rhs) x)
+            where
+                (lhs, bins, rhs) = unzip3 $ map g binds
+                
+                g (a, Let x y) = (a, x, y)
+                g (a, y) = (a, [], y)
+        
+        
         f x = mkLet (concat lhs) $ setChildren x rhs
             where
                 (lhs,rhs) = unzip $ map g $ getChildren x
