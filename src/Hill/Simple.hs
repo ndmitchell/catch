@@ -124,6 +124,7 @@ simpleInline hill = mapOverHill f hill
         canInline x = canInlineExpr $ body x
         
         canInlineExpr (Const _) = True
+        canInlineExpr (Sel x _) = canInlineExpr x
         canInlineExpr (Var _) = True
         canInlineExpr (Prim name args) = all isVar args
         canInlineExpr _ = False
