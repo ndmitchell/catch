@@ -23,11 +23,11 @@ cmdsSpecial = [Action "hill-special" special]
 ---------------------------------------------------------------------
 
 special :: CmdLineState -> String -> ValueHill -> IO ValueHill
-special state _ (ValueHill hillBad) = error $ show $ runStore hill
-        --hPutStrLn (cmdLineHandle state) $ showTemplate template
-        --return $ ValueHill $ makeCode hill template
+special state _ (ValueHill hill) = do
+        let store = runStore hill
+        hPutStrLn (cmdLineHandle state) $ showStoreTable store
+        return $ ValueHill $ hill{funcs = storeCode store}
     where
-        hill = moveLambdas $ addLambdas $ topLets $ addLets $ applyFuns hillBad
         --template = filterTemplate $ makeTemplate hill
 
 
@@ -39,6 +39,12 @@ data Store = Store {
      deriving Show
 
 
+showStoreTable :: Store -> String
+showStoreTable x = unlines [show (Call oldname args) ++ " = " ++ newname ++ ", " ++ show res |
+                            ((oldname,args),(newname,res)) <- Map.toList $ storeTable x]
+
+
+
 runStore :: Hill -> Store
 runStore hill = execState base (Store (calcUnique hill) Map.empty [])
     where
@@ -47,7 +53,6 @@ runStore hill = execState base (Store (calcUnique hill) Map.empty [])
         
         ask :: FuncName -> [Expr] -> State Store (FuncName, Expr)
         ask name args = do
-            () <- trace ("ask " ++ name ++ " " ++ show args) (return ())
             store <- get
             case Map.lookup (name,args) (storeTable store) of
                 Nothing -> do
@@ -103,7 +108,7 @@ runStore hill = execState base (Store (calcUnique hill) Map.empty [])
         alterBind (n,Call x xs) = do
             let (abstract,concrete) = makeAbstractArgs hill xs
             (name,result) <- ask x abstract
-            return (Apply (Fun name) concrete, makeConcreteRes result n)
+            return (Call name concrete, makeConcreteRes result n)
 
         -- always inline constructor applications
         alterBind (n,orig) = return (orig, makeConcreteRes abstract n)
