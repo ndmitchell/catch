@@ -20,6 +20,8 @@ hill2
 	hill-arity-raise
 	hill-simple-inline
 	hill-reachable
+	hill-arity-callers
+	hill-reachable
 
 hill3
 	hill-specialise
