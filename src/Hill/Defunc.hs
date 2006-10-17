@@ -3,6 +3,8 @@ module Hill.Defunc(defunc, cmdsDefunc) where
 
 import Hill.Type
 import Hill.Simple
+import Hill.Lets
+import Hill.Show
 import Data.List
 import General.General
 
@@ -84,10 +86,11 @@ reachDefunc hill | null keep = Hill restDatas restFuncs
 
         newData = Data dnam [c | c <- ctrs, splitName (ctrName c) `elem` keep] typs
         
-        newFunc = case apFunc of
+        newFunc = case map letInline apFunc of
                       [] -> []
                       [Func fnam args (Case on alts)] ->
                             [Func fnam args $ Case on [alt | alt <- alts, let ACtor x = altVal alt,
                                                              splitName x `elem` keep]]
+                      _ -> error $ show ("Hill.Defunc.reachDefunc",apFunc)
 
         ctrName (Ctor a _ _) = a
