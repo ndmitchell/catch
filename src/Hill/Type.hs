@@ -50,6 +50,7 @@ isVar (Var _) = True; isVar _ = False
 data Expr = 
             -- atoms
             Var Int
+          | Star
           | Fun FuncName
           | Const Const
             
