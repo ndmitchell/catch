@@ -10,9 +10,12 @@ import Hill.Specialise
 import Hill.Lambdas
 import Hill.Lets
 import Hill.Partial
+import Hill.Special
 import Hill.Defunc
 
 
 cmdsHill :: [HillAction]
 cmdsHill = cmdsReachable ++ cmdsShortName ++ cmdsSimple ++ cmdsArityRaise ++
-           cmdsSpecialise ++ cmdsLambda ++ cmdsLets ++ cmdsPartial ++ cmdsDefunc
+           cmdsSpecialise ++ cmdsLambda ++ cmdsLets ++ cmdsPartial ++ cmdsDefunc ++
+           cmdsSpecial
+
