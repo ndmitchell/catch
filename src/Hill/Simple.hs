@@ -74,6 +74,13 @@ simplifyEx opts hill x = mapOverHill f x
                 getConst (Const x) = Just x
                 getConst _ = Nothing
         
+        -- case x of Alt x -> x.path ==> x.path (where only one ctor)
+        f (Case (Var x) [Alt _ y]) | f y = y
+            where
+                f (Sel y _) = f y
+                f (Var y) = x == y
+                f _ = False
+        
         -- (Ctor x y).sel1 ==> x
         f (Sel on path) | isJust res = fromJust res
             where
