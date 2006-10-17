@@ -28,6 +28,12 @@ addLetsExpr args x = evalState (mapOverM f x) (freshFree x \\ args)
             (x:xs) <- get
             put xs
             return $ Let [(x, Apply y ys)] (Var x)
+        
+        f (Call y ys) = do
+            (x:xs) <- get
+            put xs
+            return $ Let [(x, Call y ys)] (Var x)
+            
         f x = return x
 
 ---------------------------------------------------------------------
