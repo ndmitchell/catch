@@ -96,6 +96,9 @@ simplifyEx opts hill x = mapOverHill f x
         f (Case (Const (AString x)) alts) = f (Case (expandStr1 x) alts)
         f (Sel (Const (AString x)) path) = f (Sel (expandStr1 x) path)
         
+        f (Make ":" [Const (AChar x), Const (AString xs)]) = Const $ AString (x:xs)
+        f (Make ":" [Const (AChar x), Make "[]" []]) = Const $ AString [x]
+        
         f x = x
 
 
