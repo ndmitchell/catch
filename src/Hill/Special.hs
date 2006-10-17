@@ -15,7 +15,6 @@ import General.General
 import Front.CmdLine
 import System.IO
 
-import Debug.Trace
 
 cmdsSpecial = [Action "hill-special" special]
 
@@ -27,8 +26,6 @@ special state _ (ValueHill hill) = do
         let store = runStore hill
         hPutStrLn (cmdLineHandle state) $ showStoreTable store
         return $ ValueHill $ hill{funcs = storeCode store}
-    where
-        --template = filterTemplate $ makeTemplate hill
 
 
 data Store = Store {
@@ -77,7 +74,7 @@ runStore hill = execState base (Store (calcUnique hill) Map.empty [])
                 modify $ \store -> store{storeCode = newfunc : storeCode store}
                 return $ makeAbstractRes hill body4
             where
-                body3 = topLets $ addLetsExpr (funcArgs func) $ simplify hill body2
+                body3 = topLetsExpr $ addLetsExpr (funcArgs func) $ simplify hill body2
                 body2 = replaceFree (zip (funcArgs func) args) $ body func
                 (nargs,reps) = ascendingFrees args
 
