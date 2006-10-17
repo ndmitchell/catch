@@ -157,8 +157,17 @@ makeAbstractRes hill x = f Star x
     where
         f var (Let _ x) = f var x
         f var (Const x) = Const x
-        f var (Make x xs) = Make x (zipWith (\c x -> f (Sel var c) x) cs xs)
-            where cs = ctorArgs $ getCtor hill x
+
+        f var (Make x xs) = Make x (zipWith g [0..] xs)
+            where
+                hasTypes = not $ null $ types $ getCtor hill x
+            
+                g n xs | hasTypes && cargRec c = var2
+                       | otherwise = f var2 xs
+                    where
+                        var2 = Sel var (cargName c)
+                        c = getCArgPos hill x n
+
         f var _ = var
 
 
