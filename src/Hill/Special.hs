@@ -72,7 +72,7 @@ runStore hill = execState base (Store (calcUnique hill) Map.empty [])
                 body4 <- {- liftM (simplify hill) $ -} alter body3
                 let newfunc = Func newname [0..nargs-1] body4
                 modify $ \store -> store{storeCode = newfunc : storeCode store}
-                return $ makeAbstractRes hill body4
+                return $ makeAbstractRes False hill body4
             where
                 body3 = topLetsExpr $ addLetsExpr (funcArgs func) $ simplify hill body2
                 body2 = replaceFree (zip (funcArgs func) reps) $ body func
@@ -115,10 +115,10 @@ runStore hill = execState base (Store (calcUnique hill) Map.empty [])
             let (abstract,concrete) = makeAbstractArgs hill xs
             (name,result) <- ask x abstract
             return (Call name concrete, makeConcreteRes result n)
-
+        
         -- always inline constructor applications
         alterBind (n,orig) = return (orig, makeConcreteRes abstract n)
-            where abstract = makeAbstractRes hill orig
+            where abstract = makeAbstractRes True hill orig
 
 
 -- take a list of argument, return a template and the concrete values
@@ -152,8 +152,8 @@ makeConcreteRes x n = mapOverHill f x
 -- make a result "more abstract"
 -- starts with the code
 -- : a b ==> : @0.hd @0.tl
-makeAbstractRes :: Hill -> Expr -> Expr
-makeAbstractRes hill x = f Star x
+makeAbstractRes :: Bool -> Hill -> Expr -> Expr
+makeAbstractRes variables hill x = f Star x
     where
         f var (Let _ x) = f var x
         f var (Const x) = Const x
@@ -168,8 +168,8 @@ makeAbstractRes hill x = f Star x
                         var2 = Sel var (cargName c)
                         c = getCArgPos hill x n
 
-        f var _ = var
-
+        f var x | isVarSel x && variables = x
+                | otherwise = var
 
 
 -- replace the free variables Var 0, with Var 0..Var n
