@@ -65,12 +65,12 @@ defunc hill = Hill (applyData : datas2) (applyFunc : funcs2)
 
 
 reachDefunc :: Hill -> Hill
-reachDefunc hill | null keep = Hill restDatas restFuncs
+reachDefunc hill | null apData || null keep = Hill restDatas restFuncs
                  | otherwise = Hill (newData:restDatas) (newFunc++restFuncs)
     where
-        Data dnam ctrs typs = getData hill "Ap%"
+        [Data dnam ctrs typs] = apData
         
-        restDatas = [d | d <- datas hill, dataName d /= "Ap%"]
+        (apData,restDatas) = partition (\x -> dataName x == "Ap%") (datas hill)
         (apFunc,restFuncs) = partition (\x -> funcName x == "ap%") (funcs hill)
         
         users = snub [splitName x | func <- funcs hill, funcName func /= "ap%",
