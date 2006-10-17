@@ -29,7 +29,7 @@ instance Show Expr where
             f b i x = case x of
                 Var name -> '@' : show name
                 Fun x -> x
-                Star -> "*"
+                Star -> "?"
                 Const x -> show x
 
                 Call x [] -> x
