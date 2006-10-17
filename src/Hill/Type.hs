@@ -211,7 +211,7 @@ freshFreeFunc x = freshFree (body x) \\ funcArgs x
 -- unique numbers and names
 
 calcUnique :: Hill -> Int
-calcUnique hill = maximum $ 0 : concatMap (f . funcName) (funcs hill)
+calcUnique hill = 1 + maximum (0 : concatMap (f . funcName) (funcs hill))
     where
         f x = if not (null b) && all isDigit a then [read $ reverse a] else []
             where (a,b) = break (== '_') $ reverse x
