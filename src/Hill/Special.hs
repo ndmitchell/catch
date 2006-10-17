@@ -45,7 +45,7 @@ showStoreTable x = unlines [show (Call oldname args) ++ " = " ++ newname ++ ", "
 runStore :: Hill -> Store
 runStore hill = execState base (Store (calcUnique hill) Map.empty [])
     where
-        base = ask "main" (replicate (length $ funcArgs $ getFunc hill "main") (Var 0))
+        base = ask "main" (replicate (length $ funcArgs $ getFunc hill "main") Star)
         
         
         ask :: FuncName -> [Expr] -> State Store (FuncName, Expr)
@@ -54,12 +54,12 @@ runStore hill = execState base (Store (calcUnique hill) Map.empty [])
             case Map.lookup (name,args) (storeTable store) of
                 Nothing -> do
                     let func = getFunc hill name
-                    newn <- if all (== Var 0) args
+                    newn <- if all (== Star) args
                             then return name
                             else do
                                 put $ store{storeId = storeId store + 1}
                                 return $ name ++ "_" ++ show (storeId store)
-                    modify $ \store -> store{storeTable = Map.insert (name,args) (newn,Var 0) (storeTable store)}
+                    modify $ \store -> store{storeTable = Map.insert (name,args) (newn, Star) (storeTable store)}
                     res <- add newn func args
                     modify $ \store -> store{storeTable = Map.insert (name,args) (newn, res ) (storeTable store)}
                     return (newn,res)
@@ -75,7 +75,7 @@ runStore hill = execState base (Store (calcUnique hill) Map.empty [])
                 return $ makeAbstractRes hill body4
             where
                 body3 = topLetsExpr $ addLetsExpr (funcArgs func) $ simplify hill body2
-                body2 = replaceFree (zip (funcArgs func) args) $ body func
+                body2 = replaceFree (zip (funcArgs func) reps) $ body func
                 (nargs,reps) = ascendingFrees args
 
 
@@ -123,7 +123,7 @@ runStore hill = execState base (Store (calcUnique hill) Map.empty [])
 
 -- take a list of argument, return a template and the concrete values
 -- length xs == length (fst res)
--- length [Var 0 <- allExpr (snd res)] == length (snd res)
+-- length [Star <- allExpr (snd res)] == length (snd res)
 makeAbstractArgs :: Hill -> [Expr] -> ([Expr], [Expr])
 makeAbstractArgs hill xs = fs (repeat True) xs
     where
@@ -138,14 +138,14 @@ makeAbstractArgs hill xs = fs (repeat True) xs
                           else [not $ cargRec $ getCArgPos hill x i | i <- [0..length xs-1]]
 
         f _ (Const x) = (Const x, [])
-        f _ x = (Var 0, [x])
+        f _ x = (Star, [x])
 
 
 
 makeConcreteRes :: Expr -> Int -> Expr
 makeConcreteRes x n = mapOverHill f x
     where
-        f (Var 0) = Var n
+        f Star = Var n
         f x = x
 
 
@@ -153,7 +153,7 @@ makeConcreteRes x n = mapOverHill f x
 -- starts with the code
 -- : a b ==> : @0.hd @0.tl
 makeAbstractRes :: Hill -> Expr -> Expr
-makeAbstractRes hill x = f (Var 0) x
+makeAbstractRes hill x = f Star x
     where
         f var (Let _ x) = f var x
         f var (Const x) = Const x
@@ -168,7 +168,7 @@ ascendingFrees :: [Expr] -> (Int, [Expr])
 ascendingFrees xs = fs xs 0
     where
         f :: Expr -> Int -> (Int, Expr)
-        f (Var _) n = (n+1, Var n)
+        f Star n = (n+1, Var n)
         f x n = (n2, setChildren x childs)
             where (n2, childs) = fs (getChildren x) n
         
