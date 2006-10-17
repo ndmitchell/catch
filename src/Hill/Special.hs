@@ -156,6 +156,9 @@ makeAbstractRes :: Bool -> Hill -> Expr -> Expr
 makeAbstractRes variables hill x = f Star x
     where
         f var (Let _ x) = f var x
+        
+        f var (Const (AString "")) = Make "[]" []
+        f var (Const (AString (x:xs))) = Make ":" [Const (AChar x), Sel var "tl"]
         f var (Const x) = Const x
 
         f var (Make x xs) = Make x (zipWith g [0..] xs)
