@@ -38,8 +38,11 @@ instance Show Data where
     
 instance Show Ctor where
     show (Ctor name [] []) = name
-    show (Ctor name args types) = name ++ " {" ++ intercat ", " (zipWith f args types) ++ "}"
-        where f arg typ = arg ++ " :: " ++ show typ
+    show (Ctor name args types) = name ++ " {" ++ intercat ", " (f args types) ++ "}"
+        where
+            f (arg:args) (typ:typs) = (arg ++ " :: " ++ show typ) : f args typs
+            f (arg:args) [] = (arg ++ " :: ?") : f args []
+            f _ _ = []
     
 
 
