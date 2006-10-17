@@ -43,19 +43,18 @@ topLets :: Hill -> Hill
 topLets hill = hill{funcs = [func{body = topLetsExpr (body func)} | func <- funcs hill]}
 
 topLetsExpr :: Expr -> Expr
-topLetsExpr x = mapOverHill f x
+topLetsExpr x = pickBinds (map fst binds) binds $ noLet x
     where
-        f (Let binds x) = mkLet (concat bins) (mkLet (zip lhs rhs) x)
-            where
-                (lhs, bins, rhs) = unzip3 $ map g binds
-                
-                g (a, Let x y) = (a, x, y)
-                g (a, y) = (a, [], y)
+        binds = [(l, noLet r) | Let b _ <- allOverHill x, (l,r) <- b]
         
-        
-        f x = mkLet (concat lhs) $ setChildren x rhs
+        noLet = mapOverHill f
             where
-                (lhs,rhs) = unzip $ map g $ getChildren x
-                
-                g (Let binds x) = (binds,x)
-                g x = ([], x)
+                f (Let _ x) = x
+                f x = x
+
+        pickBinds bvars [] x = x
+        pickBinds bvars binds x = if null top then error "Recursive let screwed up, Hill.Lets.topLetsExpr"
+                                  else mkLet top (pickBinds (bvars \\ map fst top) lower x)
+            where
+                (top,lower) = partition (isTop . snd) binds
+                isTop x = [v | Var v <- allOverHill x] `disjoint` bvars
