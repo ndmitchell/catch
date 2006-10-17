@@ -9,6 +9,7 @@ import Front.CmdLine
 import Control.Monad
 import General.General
 import Data.List
+import Data.Char
 import Control.Exception
 
 
@@ -205,3 +206,16 @@ freshFree x = [0..] \\ usedFree x
 
 freshFreeFunc :: Func -> [Int]
 freshFreeFunc x = freshFree (body x) \\ funcArgs x
+
+
+-- unique numbers and names
+
+calcUnique :: Hill -> Int
+calcUnique hill = maximum $ 0 : concatMap (f . funcName) (funcs hill)
+    where
+        f x = if not (null b) && all isDigit a then [read $ reverse a] else []
+            where (a,b) = break (== '_') $ reverse x
+
+
+genUnique :: FuncName -> Int -> FuncName
+genUnique name i = name ++ "_" ++ show i
