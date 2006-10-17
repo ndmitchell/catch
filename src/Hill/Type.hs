@@ -47,6 +47,11 @@ dropLambda x = x
 isVar (Var _) = True; isVar _ = False
 
 
+expandStr1 :: String -> Expr
+expandStr1 "" = Make "[]" []
+expandStr1 (x:xs) = Make ":" [Const (AChar x), Const (AString xs)]
+
+
 data Expr = 
             -- atoms
             Var Int

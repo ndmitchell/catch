@@ -85,6 +85,10 @@ simplifyEx opts hill x = mapOverHill f x
                 g (Make name args) | name == ctor && length args > pos = Just (args !! pos)
                 g _ = Nothing
         
+        -- Strings are evil inside case's and selectors
+        f (Case (Const (AString x)) alts) = f (Case (expandStr1 x) alts)
+        f (Sel (Const (AString x)) path) = f (Sel (expandStr1 x) path)
+        
         f x = x
 
 
