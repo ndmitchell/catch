@@ -101,6 +101,15 @@ runStore hill = execState base (Store (calcUnique hill) Map.empty [])
         alterBind (n,Let binds x) = do
             (keep,inline) <- alterBind (n,x)
             return (Let binds keep, inline)
+       
+        alterBind (n,Call "ap%" [(Make x y),z]) = alterBind (n, res)
+            where
+                res = case alt of
+                          Make q _ -> Make q (y ++ [z])
+                          Call q _ -> Call q (y ++ [z])
+            
+                alt = altExpr $ head $ filter ((== ACtor x) . altVal) alts
+                Case on alts = body $ getFunc hill "ap%"
         
         alterBind (n,Call x xs) = do
             let (abstract,concrete) = makeAbstractArgs hill xs
