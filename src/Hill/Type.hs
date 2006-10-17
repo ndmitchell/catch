@@ -46,6 +46,9 @@ dropLambda x = x
 
 isVar (Var _) = True; isVar _ = False
 
+isVarSel (Sel x _) = isVarSel x
+isVarSel x = isVar x
+
 
 expandStr1 :: String -> Expr
 expandStr1 "" = Make "[]" []
