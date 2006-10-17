@@ -28,6 +28,7 @@ hill3
 	hill-defunc
 	hill-special
 	hill-simplify
+	hill-simple-inline
 	hill-reachable
 	hill-reach-defunc
 
