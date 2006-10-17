@@ -44,6 +44,9 @@ simplifyEx opts hill x = mapOverHill f x
             
                 (simp, complex) = partition (isVar . snd) binds
         
+        -- move applications inwards
+        f (Apply (Case on alts) xs) = Case on [alt{altExpr = f (mkApply (altExpr alt) xs)} | alt <- alts]
+        
         -- discard unused lets
         f (Let binds x) | yesLet && not (null unused) = f $ mkLet used x
             where
