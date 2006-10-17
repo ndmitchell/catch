@@ -24,17 +24,17 @@ hill2
 	hill-reachable
 
 hill3
-	hill-specialise
-	hill-normalise
+	hill-vector
+	hill-defunc
+	hill-special
 	hill-simplify
-	hill-simple-inline
 	hill-reachable
+	hill-reach-defunc
 
 hill
 	hill1
 	hill2
 	hill3
-	hill2
 
 compilepre
 	short-name
