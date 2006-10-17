@@ -72,7 +72,7 @@ runStore hill = execState base (Store 1 Map.empty [])
                 modify $ \store -> store{storeCode = newfunc : storeCode store}
                 return $ makeAbstractRes hill body4
             where
-                body3 = moveLambdas $ addLambdasExpr hill $ topLets $ addLetsExpr (funcArgs func) $
+                body3 = moveLambdas $ addLambdasExpr hill $ topLetsExpr $ addLetsExpr (funcArgs func) $
                         useVectorMake $ applyFuns $ simplify hill body2
                 body2 = mkApply (replaceFree (zip (funcArgs func) norm) $ body func) super
                 

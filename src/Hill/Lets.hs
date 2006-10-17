@@ -1,5 +1,5 @@
 
-module Hill.Lets(addLetsFunc, addLetsExpr, addLets, topLets, cmdsLets) where
+module Hill.Lets(addLetsFunc, addLetsExpr, addLets, topLets, topLetsExpr, cmdsLets) where
 
 import Hill.Type
 import General.General
@@ -39,8 +39,11 @@ addLetsExpr args x = evalState (mapOverM f x) (freshFree x \\ args)
 ---------------------------------------------------------------------
 
 -- move all let expressions to the very top of a function
-topLets :: ManipulateHill hill => hill -> hill
-topLets hill = mapOverHill f hill
+topLets :: Hill -> Hill
+topLets hill = hill{funcs = [func{body = topLetsExpr (body func)} | func <- funcs hill]}
+
+topLetsExpr :: Expr -> Expr
+topLetsExpr x = mapOverHill f x
     where
         f (Let binds x) = mkLet (concat bins) (mkLet (zip lhs rhs) x)
             where
