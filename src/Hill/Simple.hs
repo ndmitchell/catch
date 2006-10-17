@@ -141,9 +141,11 @@ applyFuns hill = mapOverHill f hill
 useVector hill = mapOverHill f hill
     where
         f (Apply (Fun x) xs)
-                | length (funcArgs func) == length xs 
-                = Call x xs
-            where func = getFunc hill x
+                | length xs >= nargs
+                = mkApply (Call x use) extra
+            where
+                (use,extra) = splitAt nargs xs
+                nargs = length $ funcArgs $ getFunc hill x
         
         f (Fun x)
                 | null $ funcArgs $ getFunc hill x
