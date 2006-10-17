@@ -1,5 +1,5 @@
 
-module Hill.Lets(addLetsFunc, addLetsExpr, addLets, topLets, topLetsExpr, cmdsLets) where
+module Hill.Lets(addLetsFunc, addLetsExpr, letInline, addLets, topLets, topLetsExpr, cmdsLets) where
 
 import Hill.Type
 import General.General
@@ -58,3 +58,11 @@ topLetsExpr x = pickBinds (map fst binds) binds $ noLet x
             where
                 (top,lower) = partition (isTop . snd) binds
                 isTop x = [v | Var v <- allOverHill x] `disjoint` bvars
+
+
+
+letInline :: ManipulateHill hill => hill -> hill
+letInline x = mapOverHill f x
+    where
+        f (Let binds y) = replaceFree binds y
+        f x = x
