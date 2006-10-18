@@ -48,6 +48,7 @@ simplifyEx opts hill x = mapOverHill f x
         -- move applications inwards
         f (Apply (Case on alts) xs) = Case on [alt{altExpr = f (mkApply (altExpr alt) xs)} | alt <- alts]
         f (Apply (Let binds x) xs) = Let binds (f $ Apply x xs)
+        f (Sel (Let binds x) path) = Let binds (f $ Sel x path)
         
         -- discard unused lets
         f (Let binds x) | yesLet && not (null unused) = f $ mkLet used x
