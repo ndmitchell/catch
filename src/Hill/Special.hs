@@ -6,6 +6,7 @@ import Hill.Lambdas
 import Hill.Show
 import Hill.Simple
 import Hill.Lets
+import Hill.PrimOp
 
 import qualified Data.Map as Map
 import Control.Monad.State
@@ -115,6 +116,13 @@ runStore hill = execState base (Store (calcUnique hill) Map.empty [])
             let (abstract,concrete) = makeAbstractArgs hill xs
             (name,result) <- ask x abstract
             return (Call name concrete, makeConcreteRes result n)
+        
+        alterBind (n,Prim x xs) =
+            case evalPrim x xs of
+                Just y -> if isConst y && not (y `elem` xs)
+                          then return (y, Var n)
+                          else alterBind (n,y)
+                Nothing -> return (Prim x xs, Var n)
         
         -- always inline constructor applications
         alterBind (n,orig) = return (orig, makeConcreteRes abstract n)
