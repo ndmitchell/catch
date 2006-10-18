@@ -8,32 +8,45 @@ import Hill.Type
 primImports = ["System.IO", "Data.Char", "Foreign"]
 
 
-data BiOp = IntOp String (Int -> Int -> Int)
-          | BoolOp String (Int -> Int -> Bool)
+data Op = OpIntIntInt  String (Int -> Int -> Int)
+        | OpIntIntBool String (Int -> Int -> Bool)
+        | OpIntInt     String (Int -> Int)
+        | OpIntegerInt String (Integer -> Int)
 
 
-biops :: [(String,BiOp)]
-biops = [("prim_LT_W", BoolOp "(<)" (<))
-        ,("prim_GT_W", BoolOp "(>)" (>))
-        ,("prim_EQ_W", BoolOp "(==)" (==))
-        ,("prim_SUB_W", IntOp "(-)" (-))
-        ,("prim_ADD_W", IntOp "(+)" (+))
-        ,("prim_QUOT", IntOp "quot" quot)
-        ,("prim_REM", IntOp "rem" rem)
-        ]
+ops :: [(String,Op)]
+ops = [("prim_LT_W",  OpIntIntBool "(<)" (<))
+      ,("prim_GT_W",  OpIntIntBool "(>)" (>))
+      ,("prim_EQ_W",  OpIntIntBool "(==)" (==))
+
+      ,("prim_NEG_W", OpIntInt     "negate" negate)
+
+      ,("prim_SUB_W", OpIntIntInt  "(-)" (-))
+      ,("prim_ADD_W", OpIntIntInt  "(+)" (+))
+
+      ,("prim_QUOT",  OpIntIntInt  "quot" quot)
+      ,("prim_REM",   OpIntIntInt  "rem" rem)
+      
+      ,("YHC.Primitive.primIntFromInteger", OpIntegerInt "fromInteger" fromInteger)
+      ]
 
 
 evalPrim :: String -> [Expr] -> Maybe Expr
-evalPrim name [Const (AInt a), Const (AInt b)] = do
-        res <- lookup name biops
-        return $ case res of
-            BoolOp _ op -> Make (show $ op a b) []
-            IntOp _ op -> Const $ AInt $ op a b
+evalPrim name args = do
+    res <- lookup name ops
+    case (res, args) of
+        (OpIntIntBool _ op, [Const (AInt a), Const (AInt b)]) -> Just $ mkBool $ op a b
+        (OpIntIntInt  _ op, [Const (AInt a), Const (AInt b)]) -> Just $ mkInt  $ op a b
+        (OpIntegerInt _ op, [Const (AInteger a)]) -> Just $ mkInt $ op a
+        _ -> Nothing
 
-evalPrim "YHC.Primitive.primIntFromInteger" [Const (AInteger x)] = Just $ Const $ AInt $ fromInteger x
 
-evalPrim _ _ = Nothing
 
+mkBool :: Bool -> Expr
+mkBool x = Make (show x) []
+
+mkInt :: Int -> Expr
+mkInt = Const . AInt
 
 
 intInteger = [("YHC.Primitive.primIntegerSub","prim_SUB_W")
@@ -46,11 +59,12 @@ primIntToInteger x = case lookup x intInteger of
 
 
 primHaskell "System.IO.hPutChar" = "\\h x -> io (System.IO.hPutChar h (chr x))"
-primHaskell "prim_NEG_W" = "\\x -> ((0 :: Int) - x)"
+
 primHaskell x = 
-    case lookup x biops of
+    case lookup x ops of
         Nothing -> x
-        Just y -> 
-            case y of
-                BoolOp s _ -> "\\a b -> bool ((" ++ s ++ " :: Int -> Int -> Bool) a b)"
-                IntOp  s _ -> "(" ++ s ++ " :: Int -> Int -> Int)"
+        Just y -> case y of
+            OpIntIntBool s _ -> "\\a b -> bool ((" ++ s ++ " :: Int -> Int -> Bool) a b)"
+            OpIntIntInt  s _ -> "(" ++ s ++ " :: Int -> Int -> Int)"
+            OpIntInt     s _ -> "(" ++ s ++ " :: Int -> Int)"
+            OpIntegerInt s _ -> "(" ++ s ++ " :: Integer -> Int)"
