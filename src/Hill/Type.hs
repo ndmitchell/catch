@@ -49,6 +49,8 @@ isVar (Var _) = True; isVar _ = False
 isVarSel (Sel x _) = isVarSel x
 isVarSel x = isVar x
 
+isConst (Const _) = True; isConst _ = False
+
 
 expandStr1 :: String -> Expr
 expandStr1 "" = Make "[]" []
