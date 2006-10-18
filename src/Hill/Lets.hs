@@ -8,7 +8,9 @@ import Data.List
 
 
 cmdsLets = [hillCmdPure "add-let" (const addLets)
-           ,hillCmdPure "top-let" (const topLets)]
+           ,hillCmdPure "top-let" (const topLets)
+           ,hillCmdPure "let-inline1" (const letInlineOnce)
+           ]
 
 
 ---------------------------------------------------------------------
@@ -66,4 +68,17 @@ letInline :: ManipulateHill hill => hill -> hill
 letInline x = mapOverHill f x
     where
         f (Let binds y) = replaceFree binds y
+        f x = x
+
+
+
+letInlineOnce :: ManipulateHill hill => hill -> hill
+letInlineOnce x = mapOverHill f x
+    where
+        f (Let binds x) = mkLet leave $ replaceFree inline x
+            where
+                (inline,leave) = partition (\x -> fst x `elem` once) binds
+            
+                once = used \\ (used \\ snub used)
+                used = [i | Var i <- allOverHill x]
         f x = x
