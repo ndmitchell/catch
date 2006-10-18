@@ -40,6 +40,7 @@ hill4
 	hill-simplify
 	hill-let-inline1
 	hill-simplify
+	hill-let-inline1
 
 hill
 	hill1
