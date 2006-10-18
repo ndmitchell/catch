@@ -15,6 +15,7 @@ cmdsSimple =
     ,hillCmdPure "vector" (const useVector)
     ,hillCmdPure "novector" (const noVector)
     ,hillCmdPure "int" (const useInt)
+    ,hillCmdPure "var-rejoin" (const varRejoin)
     ]
 
 
@@ -118,15 +119,6 @@ simplifyEx opts hill x = mapOverHill f x
                 complete = ctrs `setEq` (map ctorName $ ctors $ getCtor hill $ head ctrs)
                 ctrs = [c | AltCtr c _ <- alts]
         
-        -- collapse : @1.hd @1.tl ==> @1
-        f (Make x ys@(Sel var _:_)) | f cs ys = var
-            where
-                f [] [] = True
-                f (c:cs) (Sel a b:xs) = b == c && a == var && f cs xs
-                f _ _ = False
-            
-                cs = ctorArgs $ getCtor hill x
-        
         f x = x
 
 
@@ -210,3 +202,18 @@ useInt x = mapOverHill f x
         fc (AInteger x) = AInt $ fromInteger x
         fc x = x
 
+
+
+varRejoin :: Hill -> Hill
+varRejoin hill = mapOverHill f hill
+    where
+        -- collapse : @1.hd @1.tl ==> @1
+        f (Make x ys@(Sel var _:_)) | f cs ys = var
+            where
+                f [] [] = True
+                f (c:cs) (Sel a b:xs) = b == c && a == var && f cs xs
+                f _ _ = False
+            
+                cs = ctorArgs $ getCtor hill x
+        
+        f x = x
