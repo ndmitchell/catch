@@ -4,25 +4,27 @@ module Hill.PrimOp(evalPrim, primIntToInteger) where
 import Hill.Type
 
 
-biops :: [(String, Int -> Int -> Expr)]
-biops = [("prim_LT_W", mkBool2 (<))
-        ,("prim_GT_W", mkBool2 (>))
-        ,("prim_SUB_W", mkInt2 (-))
+
+data BiOp = IntOp String (Int -> Int -> Int)
+          | BoolOp String (Int -> Int -> Bool)
+
+
+biops :: [(String,BiOp)]
+biops = [("prim_LT_W", BoolOp "(<)" (<))
+        ,("prim_GT_W", BoolOp "(>)" (>))
+        ,("prim_SUB_W", IntOp "(-)" (-))
         ]
 
 
 evalPrim :: String -> [Expr] -> Maybe Expr
 evalPrim name [Const (AInt a), Const (AInt b)] = do
         res <- lookup name biops
-        return $ res a b
+        return $ case res of
+            BoolOp _ op -> Make (show $ op a b) []
+            IntOp _ op -> Const $ AInt $ op a b
 
 evalPrim _ _ = Nothing
 
-
-
-mkBool2 f a b = Make (show $ f a b) []
-
-mkInt2 f a b = Const $ AInt $ f a b
 
 
 intInteger = [("YHC.Primitive.primIntegerSub","prim_SUB_W")
