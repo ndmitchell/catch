@@ -59,17 +59,19 @@ convExpr datas name ren free x =
                           Just y -> y
                           Nothing -> Fun x
         
+        CoreCon x -> Ctr x
+        
         CoreCase on opts -> Let [(free, f on)] $ Case (Var free) $ map (uncurry g) opts
             where
                 g (CoreVar "_") y = Default $ f2 ren (free+1) y
-                g (CoreApp (CoreCon x) xs) y = Alt (ACtor x) $ f2 (newren++ren) (free+1) y
+                g (CoreApp (CoreCon x) xs) y = AltCtr x $ f2 (newren++ren) (free+1) y
                     where
                         newren = zipWith (\a b -> (getName a, Sel (Var free) b)) xs sels
                         sels = ctorArgs $ getCtor (Hill datas []) x
                 
                 g (CoreCon x) y = g (CoreApp (CoreCon x) []) y
                 
-                g x y = Alt (convConst x) $ f2 ren (free+1) y
+                g x y = AltConst (convConst x) $ f2 ren (free+1) y
         
         CoreLet [] body -> f body
         CoreLet binds body ->
@@ -95,7 +97,6 @@ convExpr datas name ren free x =
         
         
         convConst x = case x of
-            CoreCon x -> ACtor x
             CoreInt x -> AInt x
             CoreInteger x -> AInteger x
             CoreDouble x -> ADouble x

@@ -64,18 +64,21 @@ simplifyEx opts hill x = mapOverHill f x
             where y = lookup x binds
         
         -- case Ctor of Ctor -> x ==> x
-        f (Case on alts) | isJust onConst && isJust alt = fromJust alt
+        f (Case (Const x) alts) | not $ null match = head match
+            where match = [b | AltConst a b <- alts, a == x]
+        
+        f (Case on alts) | isJust onCtor && not (null match) = head match
             where
-                onConst = getConst on
-                alt = listToMaybe [y | Alt x y <- alts, x == fromJust onConst]
+                onCtor = getCtor on
+                match = [y | AltCtr x y <- alts, x == fromJust onCtor]
             
-                getConst (Make x xs) = Just $ ACtor x
-                getConst (Apply x _) = getConst x
-                getConst (Const x) = Just x
-                getConst _ = Nothing
+                getCtor (Make x xs) = Just x
+                getCtor (Ctr x) = Just x
+                getCtor (Apply x _) = getCtor x
+                getCtor _ = Nothing
         
         -- case x of Alt x -> x.path ==> x.path (where only one ctor)
-        f (Case (Var x) [Alt _ y]) | f y = y
+        f (Case (Var x) [alt]) | f (altExpr alt) = altExpr alt
             where
                 f (Sel y _) = f y
                 f (Var y) = x == y
@@ -88,7 +91,7 @@ simplifyEx opts hill x = mapOverHill f x
                 (ctor,pos) = (ctorName carg, cargPos carg)
                 
                 res = g on
-                g (Apply (Const (ACtor name)) args) = g (Make name args)
+                g (Apply (Ctr name) args) = g (Make name args)
                 g (Make name args) | name == ctor && length args > pos = Just (args !! pos)
                 g _ = Nothing
         
@@ -171,12 +174,12 @@ useVector hill = mapOverHill f hill
                 | null $ funcArgs $ getFunc hill x
                 = Call x []
         
-        f (Apply (Const (ACtor x)) xs)
+        f (Apply (Ctr x) xs)
                 | length (ctorArgs ctor) == length xs
                 = Make x xs
             where ctor = getCtor hill x
         
-        f (Const (ACtor x))
+        f (Ctr x)
                 | null $ ctorArgs $ getCtor hill x
                 = Make x []
 
@@ -186,12 +189,12 @@ useVector hill = mapOverHill f hill
 useVectorMake :: ManipulateHill hill => hill -> hill
 useVectorMake x = mapOverHill f x
     where
-        f (Apply (Const (ACtor x)) xs) = Make x xs
+        f (Apply (Ctr x) xs) = Make x xs
         f x = x
 
 
 noVector hill = mapOverHill f hill
     where
         f (Call x xs) = Apply (Fun x) xs
-        f (Make x xs) = Apply (Const (ACtor x)) xs
+        f (Make x xs) = Apply (Ctr x) xs
         f x = x

@@ -108,7 +108,7 @@ runStore hill = execState base (Store (calcUnique hill) Map.empty [])
                           Make q _ -> Make q (y ++ [z])
                           Call q _ -> Call q (y ++ [z])
             
-                alt = altExpr $ head $ filter ((== ACtor x) . altVal) alts
+                alt = altExpr $ head $ filter ((== x) . altCtr) alts
                 Case on alts = body $ getFunc hill "ap%"
         
         alterBind (n,Call x xs) = do

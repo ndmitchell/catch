@@ -39,16 +39,13 @@ reachDatas :: Hill -> Expr -> [DataName]
 reachDatas hill x =
     case x of
         Make x _ -> fromCtor x
-        Const x -> fromConst x
+        Ctr x -> fromCtor x
         Sel _ x -> fromCArg x
         Case _ x -> concatMap fromAlt x
         _ -> []
     where
-        fromAlt (Alt x _) = fromConst x
+        fromAlt (AltCtr x _) = fromCtor x
         fromAlt _ = []
-        
-        fromConst (ACtor x) = fromCtor x
-        fromConst _ = []
         
         fromCArg x = [dataName $ getCArg hill x]
         fromCtor x = [dataName $ getCtor hill x]

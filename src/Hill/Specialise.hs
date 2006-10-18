@@ -60,7 +60,7 @@ makeCode hill template = hill{funcs = map makeFunc needed}
         selArgs args xs = concat $ zipWith selArg args xs
         
         selArg (Var 0) x = [x]
-        selArg (Make x xs) (Apply (Const (ACtor y)) ys) = selArgs xs ys
+        selArg (Make x xs) (Apply (Ctr y) ys) = selArgs xs ys
         selArg arg x = selArgs (getChildren arg) (getChildren x)
         
 
@@ -143,7 +143,7 @@ evalExpr hill evalFunc x = f x
                         nxs = length xs
                         nargs = length $ funcArgs $ getFunc hill x
                 
-                Const (ACtor x)
+                Ctr x
                     | length (ctorArgs $ getCtor hill x) == length ys
                     -> return $ Make x ys
                     

@@ -26,16 +26,13 @@ shortName hill = Hill (map h2 ds) (map h1 fs)
         
         g (Fun x) = Fun $ fromJustNote ("shortName(1), missing " ++ x) $ lookup x rename
         g (Call x xs) = Call (fromJustNote ("shortName(1), missing " ++ x) $ lookup x rename) xs
+        g (Ctr x) = Ctr (makeShort x)
         g (Make x xs) = Make (makeShort x) xs
-        g (Const x) = Const $ g2 x
-        g (Case on alts) = Case on (map g3 alts)
+        g (Case on alts) = Case on (map g2 alts)
         g x = x
         
-        g2 (ACtor x) = ACtor $ makeShort x
+        g2 (AltCtr x y) = AltCtr (makeShort x) y
         g2 x = x
-        
-        g3 (Default x) = Default x
-        g3 (Alt x y) = Alt (g2 x) y
         
         
         h1 func = func{funcName = fromJustNote "shortName(2)" $ lookup (funcName func) rename}

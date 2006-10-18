@@ -60,6 +60,7 @@ data Expr =
             Var Int
           | Star
           | Fun FuncName
+          | Ctr CtorName
           | Const Const
             
             -- calls
@@ -88,12 +89,12 @@ data Const = AInt Int
            | ADouble Double
            | AChar Char
            | AString String
-           | ACtor CtorName
           deriving (Eq, Ord)
 
 
 data Alt = Default {altExpr :: Expr}
-         | Alt {altVal :: Const, altExpr :: Expr}
+         | AltConst {altVal :: Const, altExpr :: Expr}
+         | AltCtr {altCtr :: CtorName, altExpr :: Expr}
          deriving (Eq, Ord)
 
 
@@ -107,10 +108,7 @@ instance Manipulate Expr where
           
         Sel x _ -> [x]
         Let xs x -> x : map snd xs
-        Case x y -> x : map f y
-            where
-                f (Default x) = x
-                f (Alt _ x) = x
+        Case x y -> x : map altExpr y
 
         Lambda _ x -> [x]
         Apply x xs -> x:xs
@@ -126,9 +124,7 @@ instance Manipulate Expr where
         Sel _ y -> Sel xs1 y
         Let ys _ -> Let (zip (map fst ys) xst) xsh
         Case _ ys -> Case xsh (zipWith f ys xst)
-            where
-                f (Default _) x = Default x
-                f (Alt y _) x = Alt y x
+            where f y x = y{altExpr = x}
         
         Lambda y _ -> Lambda y xs1
         Apply _ _ -> Apply xsh xst

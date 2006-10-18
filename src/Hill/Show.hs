@@ -29,6 +29,7 @@ instance Show Expr where
             f b i x = case x of
                 Var name -> '@' : show name
                 Fun x -> x
+                Ctr x -> x
                 Star -> "?"
                 Const x -> show x
 
@@ -43,8 +44,9 @@ instance Show Expr where
                                      if null opts then "    {- NO OPTIONS! -}" else
                                      (init $ unlines $ map (g (i+4)) opts)
                     where
-                        g i (Default b) = g i (Alt (ACtor "_") b)
-                        g i (Alt a b) = replicate i ' ' ++ show a ++ " -> " ++ f False i b
+                        g i (Default b) = g i (AltCtr "_" b)
+                        g i (AltConst a b) = replicate i ' ' ++ show a ++ " -> " ++ f False i b
+                        g i (AltCtr a b) = replicate i ' ' ++ a ++ " -> " ++ f False i b
 
                 Let bind x -> brack b $ "let\n" ++ (unlines $ map (g (i+4)) bind) ++
                                         replicate i ' ' ++ "in\n" ++ replicate (i+4) ' ' ++ f False (i+4) x
@@ -65,4 +67,3 @@ instance Show Const where
         ADouble y -> show y
         AChar y -> show y
         AString y -> show y
-        ACtor y -> y

@@ -53,7 +53,7 @@ defunc hill = Hill (applyData : datas2) (applyFunc : funcs2)
         
         applyFunc = Func "ap%" [0,1] (Case (Var 0) (map f allApplys))
             where
-                f (name,n) = Alt (ACtor nam) body
+                f (name,n) = AltCtr nam body
                     where
                         body = if arity == n+1
                                then Call name args
@@ -89,8 +89,7 @@ reachDefunc hill | null apData || null keep = Hill restDatas restFuncs
         newFunc = case map letInline apFunc of
                       [] -> []
                       [Func fnam args (Case on alts)] ->
-                            [Func fnam args $ Case on [alt | alt <- alts, let ACtor x = altVal alt,
-                                                             splitName x `elem` keep]]
+                            [Func fnam args $ Case on [alt | alt <- alts, splitName (altCtr alt) `elem` keep]]
                       _ -> error $ show ("Hill.Defunc.reachDefunc",apFunc)
 
         ctrName (Ctor a _ _) = a
