@@ -48,6 +48,7 @@ outputHaskell state _ (ValueHill badhill) = do
                   map ("import "++) primImports ++
                   ("main = unio (" ++ oc "main" ++ ")") :
                   ("io x = " ++ od "IO" ++ " $! unsafePerformIO x") :
+                  ("bool x = if x then " ++ od "True" ++ " else " ++ od "False") :
                   ("unio (" ++ od "IO" ++ " x) = (return :: a -> IO a) x") :
                   map outPrim primitives ++
                   map outData (datas hill) ++
@@ -55,14 +56,22 @@ outputHaskell state _ (ValueHill badhill) = do
     
         primitives = snub [x | Prim x _ <- allOverHill hill]
     
-        outData (Data name ctrs _) =
-                "data " ++ od name ++ concatMap (' ':) tvars ++ " = "
-                         ++ concat (intersperse " | " $ map outCtor frees)
+        outData (Data name ctrs typs) =
+                "data " ++ od name ++ concatMap (' ':) typs ++ " = "
+                        ++ concat (intersperse " | " $ map outCtor ctrs)
                 
             where
+                outCtor (Ctor name _ typ) = od name ++ concatMap ((' ':) . outType) typ
+                
+                outType (TyFree x) = x
+                outType (TyCon x xs) = "(" ++ od x ++ concatMap ((' ':) . outType) xs ++ ")"
+                
+                {-
+            
                 outCtor (name, n, i) = od name ++ concatMap (' ':) ["t" ++ show n ++ "_" ++ show j | j <- [1..i]]
                 tvars = ["t" ++ show n ++ "_" ++ show j | (_, n, i) <- frees, j <- [1..i]]
-                frees = [(nam, n, length x) | (n, Ctor nam x _) <- zip [1..] ctrs]
+                frees = [(nam, n, length x, typ) | (n, Ctor nam x typ) <- zip [1..] ctrs]
+                -}
 
 
         outFunc (Func name args body) = oc name ++ concat [' ':'v':show i | i <- args] ++ " = " ++ outExpr body

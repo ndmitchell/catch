@@ -50,5 +50,5 @@ primHaskell x =
         Nothing -> x
         Just y -> 
             case y of
-                BoolOp s _ -> "(" ++ s ++ " :: Int -> Int -> Bool)"
+                BoolOp s _ -> "\\a b -> bool ((" ++ s ++ " :: Int -> Int -> Bool) a b)"
                 IntOp  s _ -> "(" ++ s ++ " :: Int -> Int -> Int)"
