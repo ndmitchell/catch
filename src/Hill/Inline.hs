@@ -2,6 +2,7 @@
 module Hill.Inline(cmdsInline) where
 
 import Hill.Type
+import Hill.Lets
 import Data.List
 import General.General
 
@@ -47,7 +48,7 @@ simpleInline hill = mapOverHill f hill
 
 -- inline everything with only one caller, which is not main
 inlineOnce :: Hill -> Hill
-inlineOnce hill = mapOverHill f hill
+inlineOnce hill = uniqueLets $ mapOverHill f hill
     where
         f (Call x xs) | x `elem` once = mkLet (zip (funcArgs func) xs) (mapOverHill f $ body func)
             where func = getFunc hill x
