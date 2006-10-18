@@ -106,13 +106,14 @@ outputHaskell state _ (ValueHill badhill) = do
                 
                 g (AltConst x y) = outConst x
         
-        outExpr x = error $ show x
+        outExpr x = error $ "outExpr, unhandled " ++ show x
         
         
         outConst (AInt x) = "(" ++ show x ++ " :: Int)"
         outConst (AChar x) = outConst (AInt (ord x))
         outConst (AString []) = od "[]"
         outConst (AString (x:xs)) = "(" ++ od ":" ++ " " ++ outConst (AChar x) ++ outConst (AString xs) ++ ")"
+        outConst x = error $ "outConst, unhandled " ++ show x
         
         
         outPrim name = oc name ++ " = " ++ primHaskell name
