@@ -18,6 +18,7 @@ hill1
 
 hill2
 	hill-arity-raise
+	hill-simplify
 	hill-simple-inline
 	hill-reachable
 	hill-arity-callers
