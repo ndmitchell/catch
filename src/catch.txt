@@ -33,6 +33,12 @@ hill3
 	hill-reachable
 	hill-reach-defunc
 
+hill4
+	hill-inline1
+	hill-reachable
+	hill-let-inline1
+	hill-simplify
+
 hill
 	hill1
 	hill2
