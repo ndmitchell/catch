@@ -9,6 +9,8 @@ import Data.List
 
 cmdsLets = [hillCmdPure "add-let" (const addLets)
            ,hillCmdPure "top-let" (const topLets)
+           ,hillCmdPure "nub-let" (const nubLets)
+           ,hillCmdPure "let-inline-simp" (const letInlineSimp)
            ,hillCmdPure "let-inline1" (const letInlineOnce)
            ]
 
@@ -92,6 +94,16 @@ letInline x = mapOverHill f x
         f x = x
 
 
+letInlineSimp :: Hill -> Hill
+letInlineSimp x = mapOverHill f x
+    where
+        f (Let binds x) | not $ null inline = mkLet keep (replaceFree inline x)
+            where (inline, keep) = partition (isSimp . snd) binds
+        f x = x
+        
+        isSimp (Make _ _) = True
+        isSimp x = isVarSel x
+
 
 letInlineOnce :: ManipulateHill hill => hill -> hill
 letInlineOnce x = mapOverHill f x
@@ -103,4 +115,19 @@ letInlineOnce x = mapOverHill f x
                 once = sused \\ snub (used \\ sused)
                 sused = snub used
                 used = [i | Var i <- allOverHill x]
+        f x = x
+
+
+nubLets :: Hill -> Hill
+nubLets hill = mapOverHill f hill
+    where
+        f (Let binds x) | null rens = Let binds (f x)
+                        | otherwise = Let (map head grps) (f $ replaceFree rens x)
+            where 
+                grps = groupSetExtract snd binds
+                rens = concatMap g grps
+                
+                g [x] = []
+                g (x:xs) = zip (map fst xs) (repeat $ Var $ fst x)
+
         f x = x

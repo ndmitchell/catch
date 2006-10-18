@@ -39,6 +39,10 @@ hill4
 	hill-reachable
 	hill-var-rejoin
 	hill-simplify
+	hill-add-let
+	hill-top-let
+	hill-nub-let
+	hill-let-inline-simp
 	hill-let-inline1
 	hill-simplify
 	hill-let-inline1
