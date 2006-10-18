@@ -46,6 +46,7 @@ hill
 	hill1
 	hill2
 	hill3
+	hill4
 
 compilepre
 	short-name
