@@ -7,6 +7,7 @@ import Hill.Type
 biops :: [(String, Int -> Int -> Expr)]
 biops = [("prim_LT_W", mkBool2 (<))
         ,("prim_GT_W", mkBool2 (>))
+        ,("prim_SUB_W", mkInt2 (-))
         ]
 
 
@@ -21,6 +22,7 @@ evalPrim _ _ = Nothing
 
 mkBool2 f a b = Make (show $ f a b) []
 
+mkInt2 f a b = Const $ AInt $ f a b
 
 
 intInteger = [("YHC.Primitive.primIntegerSub","prim_SUB_W")
