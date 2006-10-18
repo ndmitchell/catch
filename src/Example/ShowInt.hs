@@ -1,4 +1,4 @@
 
 module ShowInt where
 
-main x = show (x :: Int)
+main x = print (x :: Int)
