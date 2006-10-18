@@ -70,13 +70,14 @@ runStore hill = execState base (Store (calcUnique hill) Map.empty [])
         
         add :: FuncName -> Func -> [Expr] -> State Store Expr
         add newname func args = do
-                body4 <- {- liftM (simplify hill) $ -} alter body3
-                let newfunc = Func newname [0..nargs-1] body4
+                body4 <- alter body3
+                let newfunc = Func newname newargs body4
                 modify $ \store -> store{storeCode = newfunc : storeCode store}
                 return $ makeAbstractRes False hill body4
             where
-                body3 = topLetsExpr $ addLetsExpr (funcArgs func) $ simplify hill body2
-                body2 = replaceFree (zip (funcArgs func) reps) $ body func
+                newargs = [0..nargs-1]
+                body3 = topLetsExpr $ addLetsExpr (funcArgs func ++ newargs) $ simplify hill body2
+                body2 = replaceFree (zip (funcArgs func) reps) $ uniqueLetsExpr newargs $ body func
                 (nargs,reps) = ascendingFrees args
 
 
