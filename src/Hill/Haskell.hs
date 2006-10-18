@@ -17,24 +17,22 @@ cmdsHaskell = [Action "hill-haskell" outputHaskell]
 
 -- make it suitable for Haskell
 makeHaskell :: Hill -> Hill
-makeHaskell hill = hill {- completeCase $ caseBeforeSel hill
-
-
-
-
-
-caseBeforeSel :: Hill -> Hill
-caseBeforeSel hill = hill{funcs = [func{body = f [] (body func)} | func <- funcs res]}
+makeHaskell hill = mapOverHill reqLets $ mapOverHill letDownwards hill
     where
-        res = mapOverHill addCase hill
-        
-        f :: [Expr] -> Expr -> Expr
-        f seen (Sel 
-        
-        
-        addCase x = allExpr x
--}
+        letDownwards (Let binds (Case on alts)) = mkLet keep (Case on alts2)
+            where
+                freeze = snub [i | Var i <- allOverHill on]
+                (keep,move) = partition ((`elem` freeze) . fst) binds
+                
+                alts2 = [alt{altExpr = letDownwards $ mkLet move (altExpr alt)} | alt <- alts]
+        letDownwards x = x            
 
+
+        reqLets (Let binds x) = mkLet binds2 x
+            where
+                req = requiredFree x
+                binds2 = filter ((`elem` req) . fst) binds
+        reqLets x = x
 
 
 outputHaskell :: CmdLineState -> String -> ValueHill -> IO ValueHill
