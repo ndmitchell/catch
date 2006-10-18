@@ -71,7 +71,7 @@ primHaskell x =
         Nothing | x `elem` opsRaw -> x
                 | otherwise -> error $ "Hill.PrimOp, unrecognised " ++ x
         Just y -> case y of
-            OpIntIntBool s _ -> "\\a b -> bool ((" ++ s ++ " :: Int -> Int -> Bool) a b)"
+            OpIntIntBool s _ -> "(" ++ s ++ " :: Int -> Int -> Bool)"
             OpIntIntInt  s _ -> "(" ++ s ++ " :: Int -> Int -> Int)"
             OpIntInt     s _ -> "(" ++ s ++ " :: Int -> Int)"
             OpIntegerInt s _ -> "(" ++ s ++ " :: Integer -> Int)"

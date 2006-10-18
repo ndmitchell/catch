@@ -42,15 +42,16 @@ outputHaskell state _ (ValueHill badhill) = do
         return $ ValueHill hill
     where
         hill = makeHaskell badhill
+        
+        keepData = ["IO","Bool"]
+        keepCtor = ["True","False"]
     
         outHill = "module Main(main) where" : 
                   map ("import "++) primImports ++
                   ("main" ++ mainargs ++ " = unio (" ++ oc "main" ++ mainargs ++ ")") :
                   ("io x = " ++ od "IO" ++ " $! unsafePerformIO x") :
-                  ("bool x = if x then " ++ od "True" ++ " else " ++ od "False") :
                   ("unio (" ++ od "IO" ++ " x) = x") : -- (return :: a -> IO a) x") :
                   ("err x = error (map chr x)") :
-                  ("data " ++ od "Bool" ++ " = " ++ od "False" ++ " | " ++ od "True") :
                   ("data " ++ od "IO" ++ " x = " ++ od "IO" ++ " x") :
                   map outPrim primitives ++
                   concatMap outData (datas hill) ++
@@ -61,7 +62,7 @@ outputHaskell state _ (ValueHill badhill) = do
         primitives = snub [x | Prim x _ <- allOverHill hill]
     
         outData (Data name ctrs typs)
-                | name `elem` ["IO","Bool"] = []
+                | name `elem` keepData = []
                 | otherwise = 
                 ["data " ++ od name ++ concatMap (' ':) typs ++ " = "
                          ++ concat (intersperse " | " $ map outCtor ctrs)]
@@ -116,7 +117,8 @@ outputHaskell state _ (ValueHill badhill) = do
         
         outPrim name = oc name ++ " = " ++ primHaskell name
 
-        od x = "D" ++ out x
+        od x | x `elem` keepCtor = x
+             | otherwise = "D" ++ out x
         oc x = "f" ++ out x
         
         out xs = concatMap f xs
