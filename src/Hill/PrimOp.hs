@@ -4,15 +4,22 @@ module Hill.PrimOp(evalPrim, primIntToInteger) where
 import Hill.Type
 
 
+biops :: [(String, Int -> Int -> Expr)]
+biops = [("prim_LT_W", mkBool2 (<))
+        ,("prim_GT_W", mkBool2 (>))
+        ]
+
+
 evalPrim :: String -> [Expr] -> Maybe Expr
-evalPrim "prim_LT_W" [Const (AInt a), Const (AInt b)] = Just $ mkBool $ a < b
-evalPrim "prim_GT_W" [Const (AInt a), Const (AInt b)] = Just $ mkBool $ a > b
+evalPrim name [Const (AInt a), Const (AInt b)] = do
+        res <- lookup name biops
+        return $ res a b
+
 evalPrim _ _ = Nothing
 
 
 
-mkBool True  = Make "True"  []
-mkBool False = Make "False" []
+mkBool2 f a b = Make (show $ f a b) []
 
 
 
