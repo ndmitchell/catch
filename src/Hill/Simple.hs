@@ -70,7 +70,10 @@ simplifyEx opts hill x = mapOverHill f x
         
         -- case Ctor of Ctor -> x ==> x
         f (Case (Const x) alts) | not $ null match = head match
-            where match = [b | AltConst a b <- alts, a == x]
+                                | not $ null def   = head def
+            where
+                match = [b | AltConst a b <- alts, a == x]
+                def = [x | Default x <- alts]
         
         f (Case on alts) | isJust onCtor && not (null match) = head match
             where
