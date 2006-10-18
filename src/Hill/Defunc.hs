@@ -17,14 +17,14 @@ cmdsDefunc = [hillCmdPure "defunc" (const defunc)
 
 
 splitName :: String -> (FuncName, Int)
-splitName x = let (a,_:b) = break (== '%') x in (a, read b) 
+splitName x = let (a,_:b) = break (== '@') x in (a, read b) 
 
 joinName :: FuncName -> Int -> String
-joinName a b = a ++ "%" ++ show b
+joinName a b = a ++ "@" ++ show b
 
 
 isName :: String -> Bool
-isName x = '%' `elem` x
+isName x = '@' `elem` x
 
 
 defunc :: Hill -> Hill
@@ -32,8 +32,8 @@ defunc hill = Hill (applyData : datas2) (applyFunc : funcs2)
     where
         Hill datas2 funcs2 = mapOverHill f $ applyFuns hill 
     
-        f (Apply (Fun x) xs) = Make (x ++ "%" ++ show (length xs)) xs
-        f (Apply x xs) = foldl (\a b -> Call "ap%" [a,b]) x xs
+        f (Apply (Fun x) xs) = Make (x ++ "@" ++ show (length xs)) xs
+        f (Apply x xs) = foldl (\a b -> Call "ap@" [a,b]) x xs
         f x = x
         
 
@@ -46,22 +46,22 @@ defunc hill = Hill (applyData : datas2) (applyFunc : funcs2)
                     where arity = length $ funcArgs $ getFunc hill name
 
         
-        applyData = Data "Ap%" (map f allApplys) []
+        applyData = Data "Ap@" (map f allApplys) []
             where
                 f (name,n) = Ctor nam [nam ++ "_" ++ show i | i <- [1..n]] []
                     where nam = joinName name n
         
-        applyFunc = Func "ap%" [0,1] (Case (Var 0) (map f allApplys))
+        applyFunc = Func "ap@" [0,1] (Case (Var 0) (map f allApplys))
             where
                 f (name,n) = AltCtr nam body
                     where
                         body = if arity == n+1
                                then Call name args
-                               else Make (name ++ "%" ++ show (n+1)) args
+                               else Make (name ++ "@" ++ show (n+1)) args
                         args = [Sel (Var 0) (nam ++ "_" ++ show i) | i <- [1..n]] ++ [Var 1]
 
                         arity = length $ funcArgs $ getFunc hill name
-                        nam = name ++ "%" ++ show n
+                        nam = name ++ "@" ++ show n
 
 
 reachDefunc :: Hill -> Hill
@@ -70,10 +70,10 @@ reachDefunc hill | null apData || null keep = Hill restDatas restFuncs
     where
         [Data dnam ctrs typs] = apData
         
-        (apData,restDatas) = partition (\x -> dataName x == "Ap%") (datas hill)
-        (apFunc,restFuncs) = partition (\x -> funcName x == "ap%") (funcs hill)
+        (apData,restDatas) = partition (\x -> dataName x == "Ap@") (datas hill)
+        (apFunc,restFuncs) = partition (\x -> funcName x == "ap@") (funcs hill)
         
-        users = snub [splitName x | func <- funcs hill, funcName func /= "ap%",
+        users = snub [splitName x | func <- funcs hill, funcName func /= "ap@",
                                     Make x _ <- allOverHill $ body func, isName x]
         
         lowball = map head $ groupBy (\a b -> fst a == fst b) users
