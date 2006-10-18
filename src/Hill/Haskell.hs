@@ -43,8 +43,8 @@ outputHaskell state _ (ValueHill badhill) = do
     where
         hill = makeHaskell badhill
         
-        keepData = ["IO","Bool"]
-        keepCtor = ["True","False"]
+        keepData = ["IO","Bool","[]"]
+        keepCtor = ["True","False",":","[]"]
     
         outHill = "module Main(main) where" : 
                   map ("import "++) primImports ++
@@ -117,7 +117,7 @@ outputHaskell state _ (ValueHill badhill) = do
         
         outPrim name = oc name ++ " = " ++ primHaskell name
 
-        od x | x `elem` keepCtor = x
+        od x | x `elem` keepCtor = "(" ++ x ++ ")"
              | otherwise = "D" ++ out x
         oc x = "f" ++ out x
         
