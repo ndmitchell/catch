@@ -1,8 +1,11 @@
 
-module Hill.PrimOp(evalPrim, primIntToInteger) where
+module Hill.PrimOp(evalPrim, primImports, primHaskell, primIntToInteger) where
 
 import Hill.Type
 
+
+
+primImports = ["System.IO", "Data.Char", "Foreign"]
 
 
 data BiOp = IntOp String (Int -> Int -> Int)
@@ -34,3 +37,7 @@ intInteger = [("YHC.Primitive.primIntegerSub","prim_SUB_W")
 primIntToInteger x = case lookup x intInteger of
                          Just y -> y
                          Nothing -> x
+
+
+primHaskell "System.IO.hPutChar" = "\\h x -> io (System.IO.hPutChar h (chr x))"
+primHaskell x = x

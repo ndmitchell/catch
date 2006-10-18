@@ -2,6 +2,7 @@
 module Hill.Haskell(cmdsHaskell) where
 
 import Hill.Type
+import Hill.PrimOp
 import Front.CmdLine
 import Data.List
 import Data.Char
@@ -43,7 +44,16 @@ outputHaskell state _ (ValueHill badhill) = do
     where
         hill = makeHaskell badhill
     
-        outHill = "module Main(main) where" : map outData (datas hill) ++ map outFunc (funcs hill)
+        outHill = "module Main(main) where" : 
+                  map ("import "++) primImports ++
+                  ("main = unio (" ++ oc "main" ++ ")") :
+                  ("io x = " ++ od "IO" ++ " $! unsafePerformIO x") :
+                  ("unio (" ++ od "IO" ++ " x) = (return :: a -> IO a) x") :
+                  map outPrim primitives ++
+                  map outData (datas hill) ++
+                  map outFunc (funcs hill)
+    
+        primitives = snub [x | Prim x _ <- allOverHill hill]
     
         outData (Data name ctrs _) =
                 "data " ++ od name ++ concatMap (' ':) tvars ++ " = "
@@ -87,7 +97,8 @@ outputHaskell state _ (ValueHill badhill) = do
         outConst (AString []) = od "[]"
         outConst (AString (x:xs)) = "(" ++ od ":" ++ " " ++ outConst (AChar x) ++ outConst (AString xs) ++ ")"
         
-
+        
+        outPrim name = oc name ++ " = " ++ primHaskell name
 
         od x = "D" ++ out x
         oc x = "f" ++ out x
