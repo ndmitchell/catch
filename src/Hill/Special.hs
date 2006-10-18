@@ -182,6 +182,11 @@ makeAbstractRes variables hill x = f Star x
                         var2 = Sel var (cargName c)
                         c = getCArgPos hill x n
 
+        f var (Case on alts) = f var $ foldr1 g $ map (f var . altExpr) alts
+            where
+                g (Make x xs) (Make y ys) | x == y = Make x (zipWith g xs ys)
+                g x y = if x == y then x else Star
+
         f var x | isVarSel x && variables = x
                 | otherwise = var
 
