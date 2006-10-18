@@ -119,6 +119,8 @@ runStore hill = execState base (Store (calcUnique hill) Map.empty [])
         
         alterBind (n,Prim x xs) =
             case evalPrim x xs of
+                -- do not inline new constants, as you might
+                -- get out of control
                 Just y -> if isConst y && not (y `elem` xs)
                           then return (y, Var n)
                           else alterBind (n,y)
