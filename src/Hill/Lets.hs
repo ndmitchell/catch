@@ -37,6 +37,7 @@ addLetsExpr args x = evalState (mapOverM f x) (freshFree x \\ args)
         liftLet (Apply _ _) = True
         liftLet (Call _ _) = True
         liftLet (Prim _ _) = True
+        liftLet (Sel _ _) = True
         liftLet _ = False
 
 
