@@ -79,6 +79,7 @@ letInlineOnce x = mapOverHill f x
             where
                 (inline,leave) = partition (\x -> fst x `elem` once) binds
             
-                once = used \\ (used \\ snub used)
+                once = sused \\ snub (used \\ sused)
+                sused = snub used
                 used = [i | Var i <- allOverHill x]
         f x = x
