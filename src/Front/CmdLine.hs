@@ -11,7 +11,7 @@ import Control.Monad
 
 data CmdLineState = CmdLineState
     {cmdLineHandle :: Handle -- the handle of the open file
-    ,cmdLineLogging :: String -> FilePath -- generate a log file near this file
+    ,cmdLineOutput :: String -> FilePath -- generate a log file near this file
     ,cmdLineOptions :: [String] -- options passed
     }
     
@@ -34,7 +34,7 @@ cmdLine initial actions cmds =
         (opts,files) = partition ("@" `isPrefixOf`) other
 
         f aliases file = do
-            hndl <- openFile (logFile file "") WriteMode
+            hndl <- openFile (logFile file ".log") WriteMode
             hPutStrLn hndl $ "-- Catch log file, " ++ file
             let state = CmdLineState hndl (\x -> logFile file ('.':x)) (map tail opts)
             
@@ -66,7 +66,7 @@ cmdLine initial actions cmds =
 
         
         logFile :: String -> String -> FilePath
-        logFile source tag = "Logs/" ++ source ++ tag ++ ".log"
+        logFile source tag = "Logs/" ++ source ++ tag
 
 
 
