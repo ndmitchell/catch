@@ -30,6 +30,8 @@ evalPrim name [Const (AInt a), Const (AInt b)] = do
             BoolOp _ op -> Make (show $ op a b) []
             IntOp _ op -> Const $ AInt $ op a b
 
+evalPrim "YHC.Primitive.primIntFromInteger" [Const (AInteger x)] = Just $ Const $ AInt $ fromInteger x
+
 evalPrim _ _ = Nothing
 
 
