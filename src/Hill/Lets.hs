@@ -1,5 +1,5 @@
 
-module Hill.Lets(addLetsFunc, addLetsExpr, letInline, uniqueLets, addLets, topLets, topLetsExpr, cmdsLets) where
+module Hill.Lets(addLetsFunc, addLetsExpr, letInline, uniqueLets, uniqueLetsExpr, addLets, topLets, topLetsExpr, cmdsLets) where
 
 import Hill.Type
 import General.General
@@ -44,16 +44,19 @@ addLetsExpr args x = evalState (mapOverM f x) (freshFree x \\ args)
 uniqueLets :: Hill -> Hill
 uniqueLets hill = hill{funcs = map f (funcs hill)}
     where
-        f func = func{body = evalState (mapOverM g (body func)) (freshFreeFunc func)}
-        
-        g (Let binds x) = do
+        f func = func{body = uniqueLetsExpr (funcArgs func) (body func)}
+
+
+uniqueLetsExpr :: [Int] -> Expr -> Expr
+uniqueLetsExpr args x = evalState (mapOverM f x) (freshFree x \\ args)
+    where
+        f (Let binds x) = do
             free <- get
             let (used, rest) = splitAt (length binds) free
                 (lhs,rhs) = unzip binds
             put rest
             return $ Let (zip used rhs) $ replaceFree (zip lhs (map Var used)) x
-        g x = return x
-
+        f x = return x
 
 
 ---------------------------------------------------------------------
