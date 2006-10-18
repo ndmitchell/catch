@@ -18,6 +18,7 @@ ops :: [(String,Op)]
 ops = [("prim_LT_W",  OpIntIntBool "(<)" (<))
       ,("prim_GT_W",  OpIntIntBool "(>)" (>))
       ,("prim_EQ_W",  OpIntIntBool "(==)" (==))
+      ,("prim_NE_W",  OpIntIntBool "(/=)" (/=))
 
       ,("prim_NEG_W", OpIntInt     "negate" negate)
 
@@ -27,8 +28,12 @@ ops = [("prim_LT_W",  OpIntIntBool "(<)" (<))
       ,("prim_QUOT",  OpIntIntInt  "quot" quot)
       ,("prim_REM",   OpIntIntInt  "rem" rem)
       
+      ,("YHC.Primitive.primIntSignum", OpIntInt "signum" signum)
+      
       ,("YHC.Primitive.primIntFromInteger", OpIntegerInt "fromInteger" fromInteger)
       ]
+
+opsRaw = ["System.IO.stdout", "System.IO.stdin"]
 
 
 evalPrim :: String -> [Expr] -> Maybe Expr
@@ -62,7 +67,8 @@ primHaskell "System.IO.hPutChar" = "\\h x -> io (System.IO.hPutChar h (chr x))"
 
 primHaskell x = 
     case lookup x ops of
-        Nothing -> x
+        Nothing | x `elem` opsRaw -> x
+                | otherwise -> error $ "Hill.PrimOp, unrecognised " ++ x
         Just y -> case y of
             OpIntIntBool s _ -> "\\a b -> bool ((" ++ s ++ " :: Int -> Int -> Bool) a b)"
             OpIntIntInt  s _ -> "(" ++ s ++ " :: Int -> Int -> Int)"
