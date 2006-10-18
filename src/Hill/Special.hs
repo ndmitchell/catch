@@ -175,7 +175,7 @@ makeAbstractRes variables hill x = f Star x
             where
                 hasTypes = not $ null $ types $ getCtor hill x
             
-                g n xs | hasTypes && cargRec c = var2
+                g n xs | not variables && hasTypes && cargRec c = var2
                        | otherwise = f var2 xs
                     where
                         var2 = Sel var (cargName c)
