@@ -3,6 +3,7 @@ module Hill.Haskell(cmdsHaskell) where
 
 import Hill.Type
 import Hill.PrimOp
+import Hill.Show
 import Front.CmdLine
 import Data.List
 import Data.Char
