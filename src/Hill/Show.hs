@@ -17,7 +17,7 @@ instance Show Hill where
 
 instance Show Func where
     show (Func name args expr) =
-        "\n" ++ name ++ concatMap ((' ':) . show) args ++
+        "\n" ++ name ++ concatMap ((' ':) . ('@':) . show) args ++
         " = " ++ show expr
 
 instance Show Expr where
@@ -36,7 +36,7 @@ instance Show Expr where
                 Call x [] -> x
                 Call x xs -> brack b $ x ++ concatMap ((' ':) . f True i) xs
                 Make x xs -> f b i (Call x xs)
-                Prim x xs -> f b i (Call x xs)
+                Prim x xs -> f b i (Call (x ++ "#") xs)
 
                 Sel x xs -> f True i x ++ "." ++ xs
                 
@@ -62,7 +62,7 @@ instance Show Expr where
 instance Show Const where
     show x = case x of
         AInt y -> show y
-        AInteger y -> show y
+        AInteger y -> '0' : show y
         AFloat y -> show y
         ADouble y -> show y
         AChar y -> show y
