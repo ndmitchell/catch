@@ -45,6 +45,8 @@ moveLambdas hill = mapOverHill f hill
         
         f (Lambda n (Lambda m x)) = mkLambda (n+m) x
         
+        f (Let binds (Lambda n x)) = Lambda n (Let binds x)
+        
         f (Case on alts) = mkLambda arity (Case on [alt{altExpr = dropLambda (altExpr alt)} | alt <- alts])
             where arity = maximum (0:[n | Lambda n _ <- map altExpr alts])
 
