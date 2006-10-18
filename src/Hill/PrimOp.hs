@@ -15,7 +15,11 @@ data BiOp = IntOp String (Int -> Int -> Int)
 biops :: [(String,BiOp)]
 biops = [("prim_LT_W", BoolOp "(<)" (<))
         ,("prim_GT_W", BoolOp "(>)" (>))
+        ,("prim_EQ_W", BoolOp "(==)" (==))
         ,("prim_SUB_W", IntOp "(-)" (-))
+        ,("prim_ADD_W", IntOp "(+)" (+))
+        ,("prim_QUOT", IntOp "quot" quot)
+        ,("prim_REM", IntOp "rem" rem)
         ]
 
 
@@ -40,4 +44,11 @@ primIntToInteger x = case lookup x intInteger of
 
 
 primHaskell "System.IO.hPutChar" = "\\h x -> io (System.IO.hPutChar h (chr x))"
-primHaskell x = x
+primHaskell "prim_NEG_W" = "\\x -> ((0 :: Int) - x)"
+primHaskell x = 
+    case lookup x biops of
+        Nothing -> x
+        Just y -> 
+            case y of
+                BoolOp s _ -> "(" ++ s ++ " :: Int -> Int -> Bool)"
+                IntOp  s _ -> "(" ++ s ++ " :: Int -> Int -> Int)"
