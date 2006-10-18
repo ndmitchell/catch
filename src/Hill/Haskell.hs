@@ -49,17 +49,20 @@ outputHaskell state _ (ValueHill badhill) = do
                   ("main = unio (" ++ oc "main" ++ ")") :
                   ("io x = " ++ od "IO" ++ " $! unsafePerformIO x") :
                   ("bool x = if x then " ++ od "True" ++ " else " ++ od "False") :
-                  ("unio (" ++ od "IO" ++ " x) = (return :: a -> IO a) x") :
+                  ("unio (" ++ od "IO" ++ " x) = x") : -- (return :: a -> IO a) x") :
+                  ("data " ++ od "Bool" ++ " = " ++ od "False" ++ " | " ++ od "True") :
+                  ("data " ++ od "IO" ++ " x = " ++ od "IO" ++ " x") :
                   map outPrim primitives ++
-                  map outData (datas hill) ++
+                  concatMap outData (datas hill) ++
                   map outFunc (funcs hill)
     
         primitives = snub [x | Prim x _ <- allOverHill hill]
     
-        outData (Data name ctrs typs) =
-                "data " ++ od name ++ concatMap (' ':) typs ++ " = "
-                        ++ concat (intersperse " | " $ map outCtor ctrs)
-                
+        outData (Data name ctrs typs)
+                | name `elem` ["IO","Bool"] = []
+                | otherwise = 
+                ["data " ++ od name ++ concatMap (' ':) typs ++ " = "
+                         ++ concat (intersperse " | " $ map outCtor ctrs)]
             where
                 outCtor (Ctor name _ typ) = od name ++ concatMap ((' ':) . outType) typ
                 
