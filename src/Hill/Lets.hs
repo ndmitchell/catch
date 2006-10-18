@@ -24,17 +24,17 @@ addLetsFunc x = x{body = addLetsExpr (funcArgs x) (body x)}
 addLetsExpr :: [Int] -> Expr -> Expr
 addLetsExpr args x = evalState (mapOverM f x) (freshFree x \\ args)
     where
-        f (Apply y ys) = do
+        f orig | liftLet orig = do
             (x:xs) <- get
             put xs
-            return $ Let [(x, Apply y ys)] (Var x)
-        
-        f (Call y ys) = do
-            (x:xs) <- get
-            put xs
-            return $ Let [(x, Call y ys)] (Var x)
-            
+            return $ Let [(x, orig)] (Var x)
+
         f x = return x
+        
+        
+        liftLet (Apply _ _) = True
+        liftLet (Call _ _) = True
+        liftLet _ = False
 
 ---------------------------------------------------------------------
 
