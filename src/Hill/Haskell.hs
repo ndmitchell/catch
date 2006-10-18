@@ -47,7 +47,7 @@ outputHaskell state _ (ValueHill badhill) = do
     
         outHill = "module Main(main) where" : 
                   map ("import "++) primImports ++
-                  ("main = unio (" ++ oc "main" ++ ")") :
+                  ("main" ++ mainargs ++ " = unio (" ++ oc "main" ++ mainargs ++ ")") :
                   ("io x = " ++ od "IO" ++ " $! unsafePerformIO x") :
                   ("bool x = if x then " ++ od "True" ++ " else " ++ od "False") :
                   ("unio (" ++ od "IO" ++ " x) = x") : -- (return :: a -> IO a) x") :
@@ -56,6 +56,8 @@ outputHaskell state _ (ValueHill badhill) = do
                   map outPrim primitives ++
                   concatMap outData (datas hill) ++
                   map outFunc (funcs hill)
+    
+        mainargs = concat [' ':'v':show i | i <- [0..(length $ funcArgs $ getFunc hill "main")-1]]
     
         primitives = snub [x | Prim x _ <- allOverHill hill]
     
