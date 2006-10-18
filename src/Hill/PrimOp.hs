@@ -42,6 +42,7 @@ evalPrim name args = do
     case (res, args) of
         (OpIntIntBool _ op, [Const (AInt a), Const (AInt b)]) -> Just $ mkBool $ op a b
         (OpIntIntInt  _ op, [Const (AInt a), Const (AInt b)]) -> Just $ mkInt  $ op a b
+        (OpIntInt     _ op, [Const (AInt a)]) -> Just $ mkInt $ op a
         (OpIntegerInt _ op, [Const (AInteger a)]) -> Just $ mkInt $ op a
         _ -> Nothing
 
