@@ -1,5 +1,5 @@
 
-module Hill.PrimOp(evalPrim) where
+module Hill.PrimOp(evalPrim, primIntToInteger) where
 
 import Hill.Type
 
@@ -13,3 +13,13 @@ evalPrim _ _ = Nothing
 
 mkBool True  = Make "True"  []
 mkBool False = Make "False" []
+
+
+
+intInteger = [("YHC.Primitive.primIntegerSub","prim_SUB_W")
+             ,("YHC.Primitive.primIntegerLt","prim_LT_W")
+             ]
+
+primIntToInteger x = case lookup x intInteger of
+                         Just y -> y
+                         Nothing -> x

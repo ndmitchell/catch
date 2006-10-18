@@ -2,6 +2,7 @@
 module Hill.Simple(cmdsSimple, simplify, simplifyEx, SimplifyOpt(..), normalise, applyFuns, useVectorMake) where
 
 import Hill.Type
+import Hill.PrimOp
 import Data.List
 import Data.Maybe
 import General.General
@@ -14,6 +15,7 @@ cmdsSimple =
     ,hillCmdPure "simple-inline" (const simpleInline)
     ,hillCmdPure "vector" (const useVector)
     ,hillCmdPure "novector" (const noVector)
+    ,hillCmdPure "int" (const useInt)
     ]
 
 
@@ -199,3 +201,21 @@ noVector hill = mapOverHill f hill
         f (Call x xs) = Apply (Fun x) xs
         f (Make x xs) = Apply (Ctr x) xs
         f x = x
+
+
+---------------------------------------------------------------------
+
+-- do not use Integer, flip to Int everywhere
+useInt :: Hill -> Hill
+useInt x = mapOverHill f x
+    where
+        f (Case on alts) = Case on (map fa alts)
+        f (Const x) = Const (fc x)
+        f (Prim x xs) = Prim (primIntToInteger x) xs
+        f x = x
+        
+        fa (AltConst x y) = AltConst (fc x) y
+        fa x = x
+        
+        fc (AInteger x) = AInt $ fromInteger x
+        fc x = x
