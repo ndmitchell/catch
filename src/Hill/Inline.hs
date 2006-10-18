@@ -2,10 +2,13 @@
 module Hill.Inline(cmdsInline) where
 
 import Hill.Type
+import Data.List
 import General.General
 
 
-cmdsInline = [hillCmdPure "simple-inline" (const simpleInline)]
+cmdsInline = [hillCmdPure "simple-inline" (const simpleInline)
+             ,hillCmdPure "inline1" (const inlineOnce)
+             ]
 
 
 ---------------------------------------------------------------------
@@ -40,3 +43,17 @@ simpleInline hill = mapOverHill f hill
         canInlineExpr (Prim name args) = uniqueVars args
         canInlineExpr _ = False
 
+
+
+-- inline everything with only one caller, which is not main
+inlineOnce :: Hill -> Hill
+inlineOnce hill = mapOverHill f hill
+    where
+        f (Call x xs) | x `elem` once = mkLet (zip (funcArgs func) xs) (mapOverHill f $ body func)
+            where func = getFunc hill x
+        f x = x
+    
+        once = delete "main" $ map head $ filter singleton $ group $ sort [x | Call x _ <- allOverHill hill]
+        
+        singleton [x] = True
+        singleton _ = False
