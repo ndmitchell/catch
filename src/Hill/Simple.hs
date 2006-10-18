@@ -48,7 +48,9 @@ simplifyEx opts hill x = mapOverHill f x
         -- move applications inwards
         f (Apply (Case on alts) xs) = Case on [alt{altExpr = f (mkApply (altExpr alt) xs)} | alt <- alts]
         f (Apply (Let binds x) xs) = Let binds (f $ Apply x xs)
+        -- move selectors inwards
         f (Sel (Let binds x) path) = Let binds (f $ Sel x path)
+        f (Sel (Case on alts) path) = Case on [alt{altExpr = f $ Sel (altExpr alt) path} | alt <- alts]
         
         -- discard unused lets
         f (Let binds x) | yesLet && not (null unused) = f $ mkLet used x
@@ -104,6 +106,15 @@ simplifyEx opts hill x = mapOverHill f x
         
         f (Make ":" [Const (AChar x), Const (AString xs)]) = Const $ AString (x:xs)
         f (Make ":" [Const (AChar x), Make "[]" []]) = Const $ AString [x]
+        
+        -- collapse : @1.hd @1.tl ==> @1
+        f (Make x ys@(Sel var _:_)) | f cs ys = var
+            where
+                f [] [] = True
+                f (c:cs) (Sel a b:xs) = b == c && a == var && f cs xs
+                f _ _ = False
+            
+                cs = ctorArgs $ getCtor hill x
         
         f x = x
 
@@ -187,3 +198,4 @@ useInt x = mapOverHill f x
         
         fc (AInteger x) = AInt $ fromInteger x
         fc x = x
+
