@@ -51,6 +51,7 @@ outputHaskell state _ (ValueHill badhill) = do
                   ("io x = " ++ od "IO" ++ " $! unsafePerformIO x") :
                   ("bool x = if x then " ++ od "True" ++ " else " ++ od "False") :
                   ("unio (" ++ od "IO" ++ " x) = x") : -- (return :: a -> IO a) x") :
+                  ("err x = error (map chr x)") :
                   ("data " ++ od "Bool" ++ " = " ++ od "False" ++ " | " ++ od "True") :
                   ("data " ++ od "IO" ++ " x = " ++ od "IO" ++ " x") :
                   map outPrim primitives ++
@@ -91,6 +92,7 @@ outputHaskell state _ (ValueHill badhill) = do
         outExpr (Prim x xs) = outExpr (Call x xs)
         outExpr (Make x xs) = "(" ++ od x ++ concatMap ((' ':) . outExpr) xs ++ ")"
         outExpr (Const x) = outConst x
+        outExpr (Error x) = "(err " ++ outExpr x ++ ")"
         outExpr (Case on alts) = "(case " ++ outExpr on ++ " of {" ++ intercat " ; " (map f alts) ++ "})"
             where
                 f x = g x ++ " -> " ++ outExpr (altExpr x)
