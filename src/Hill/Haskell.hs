@@ -110,6 +110,7 @@ outputHaskell state _ (ValueHill badhill) = do
         
         outConst (AInt x) = "(" ++ show x ++ " :: Int)"
         outConst (AChar x) = outConst (AInt (ord x))
+        outConst (AInteger x) = "(" ++ show x ++ " :: Integer)"
         outConst (AString []) = od "[]"
         outConst (AString (x:xs)) = "(" ++ od ":" ++ " " ++ outConst (AChar x) ++ outConst (AString xs) ++ ")"
         outConst x = error $ "outConst, unhandled " ++ show x
