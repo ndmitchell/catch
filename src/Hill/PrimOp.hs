@@ -12,6 +12,8 @@ data Op = OpIntIntInt  String (Int -> Int -> Int)
         | OpIntIntBool String (Int -> Int -> Bool)
         | OpIntInt     String (Int -> Int)
         | OpIntegerInt String (Integer -> Int)
+        | OpIntegerIntegerBool String (Integer -> Integer -> Bool)
+        | OpIntegerIntegerInteger String (Integer -> Integer -> Integer)
 
 
 ops :: [(String,Op)]
@@ -31,6 +33,10 @@ ops = [("prim_LT_W",  OpIntIntBool "(<)" (<))
       ,("YHC.Primitive.primIntSignum", OpIntInt "signum" signum)
       
       ,("YHC.Primitive.primIntFromInteger", OpIntegerInt "fromInteger" fromInteger)
+      
+      ,("YHC.Primitive.primIntegerLt", OpIntegerIntegerBool "(<)" (<))
+      
+      ,("YHC.Primitive.primIntegerSub", OpIntegerIntegerInteger "(-)" (-))
       ]
 
 opsRaw = ["System.IO.stdout", "System.IO.stdin"]
@@ -75,3 +81,5 @@ primHaskell x =
             OpIntIntInt  s _ -> "(" ++ s ++ " :: Int -> Int -> Int)"
             OpIntInt     s _ -> "(" ++ s ++ " :: Int -> Int)"
             OpIntegerInt s _ -> "(" ++ s ++ " :: Integer -> Int)"
+            OpIntegerIntegerBool s _ -> "(" ++ s ++ " :: Integer -> Integer -> Bool)"
+            OpIntegerIntegerInteger s _ -> "(" ++ s ++ " :: Integer -> Integer -> Integer)"
