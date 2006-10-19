@@ -8,9 +8,14 @@ import Front.CmdLine
 import Data.List
 import Data.Char
 import General.General
+import Control.Exception
+import System
+import System.Directory
 
 
-cmdsHaskell = [Action "hill-haskell" outputHaskell]
+cmdsHaskell = [Action "hill-haskell" outputHaskell
+              ,Action "hill-ghc" compileHillGHC
+              ,Action "ghc" compileGHC]
 
 
 ---------------------------------------------------------------------
@@ -35,6 +40,44 @@ makeHaskell hill = mapOverHill reqLets $ mapOverHill letDownwards hill
         reqLets x = x
 
 
+compileHillGHC :: CmdLineState -> String -> ValueHill -> IO ValueHill
+compileHillGHC state _ val = do
+        let src = cmdLineOutput state "hs"
+            name = cmdLineName state
+            junk = "Cache/Obj/chc-" ++ name
+
+        ensureDirectory "Cache/Bin"
+        ensureDirectory "Cache/Obj"
+        ensureDirectory junk
+        
+        system $ "ghc --make " ++ src ++ " -o Cache/Bin/" ++ name  ++ "_chc.exe" ++
+                 " -odir " ++ junk ++ " -hidir " ++ junk ++ " -O2 -fvia-C -fglasgow-exts"
+
+        return val
+
+compileGHC :: CmdLineState -> String -> ValueHill -> IO ValueHill
+compileGHC state _ val = do
+        let name = cmdLineName state
+            junk = "Cache/Obj/ghc-" ++ name
+            
+            src1 = "Nofib/" ++ name ++ ".hs"
+            src2 = "Example/" ++ name ++ ".hs"
+        
+        b1 <- doesFileExist src1
+        b2 <- doesFileExist src2
+        let src = if b1 then src1 else assert b2 src2
+        
+        ensureDirectory "Cache/Bin"
+        ensureDirectory "Cache/Obj"
+        ensureDirectory junk
+        
+        system $ "ghc --make " ++ src ++ " -o Cache/Bin/" ++ name  ++ "_ghc.exe" ++
+                 " -odir " ++ junk ++ " -hidir " ++ junk ++
+                 " -cpp -D" ++ name ++ "=Main -O2 -fvia-C -fglasgow-exts"
+
+        return val
+
+
 outputHaskell :: CmdLineState -> String -> ValueHill -> IO ValueHill
 outputHaskell state _ (ValueHill badhill) = do
         let file = cmdLineOutput state "hs"
@@ -48,7 +91,7 @@ outputHaskell state _ (ValueHill badhill) = do
     
         outHill = "module Main(main) where" : 
                   map ("import "++) primImports ++
-                  ("main" ++ mainargs ++ " = unio (" ++ oc "main" ++ mainargs ++ ")") :
+                  ("main" ++ mainargs ++ " = return $! unio (" ++ oc "main" ++ mainargs ++ ")") :
                   ("io x = " ++ od "IO" ++ " $! unsafePerformIO x") :
                   ("unio (" ++ od "IO" ++ " x) = x") : -- (return :: a -> IO a) x") :
                   ("err x = error (map chr x)") :

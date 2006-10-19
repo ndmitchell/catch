@@ -13,6 +13,7 @@ data CmdLineState = CmdLineState
     {cmdLineHandle :: Handle -- the handle of the open file
     ,cmdLineOutput :: String -> FilePath -- generate a log file near this file
     ,cmdLineOptions :: [String] -- options passed
+    ,cmdLineName :: String -- the name that you started from
     }
     
 
@@ -36,7 +37,7 @@ cmdLine initial actions cmds =
         f aliases file = do
             hndl <- openFile (logFile file ".log") WriteMode
             hPutStrLn hndl $ "-- Catch log file, " ++ file
-            let state = CmdLineState hndl (\x -> logFile file ('.':x)) (map tail opts)
+            let state = CmdLineState hndl (\x -> logFile file ('.':x)) (map tail opts) file
             
             x <- initial state file
             x <- g aliases state x (map tail acts)
