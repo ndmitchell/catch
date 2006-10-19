@@ -4,54 +4,76 @@ module Hill.Show where
 import Hill.Type
 import List
 import General.General
+import Text.PrettyPrint.HughesPJ
 
 
 instance Show Hill where
-    show (Hill datas funcs) = unlines (map show datas ++ map show funcs)
+    show (Hill datas funcs) = unlines (map show datas ++ map (('\n':) . show) funcs)
     
 
 instance Show Func where
-    show (Func name args expr) =
-        "\n" ++ name ++ concatMap ((' ':) . ('@':) . show) args ++
-        " = " ++ show expr
+    show x = render $ docFunc x
 
 instance Show Expr where
-    show x = f False 0 x
-        where
-            brack True x = "(" ++ x ++ ")"
-            brack False x = x
+    show x = render $ docExpr x
+
+
+
+docFunc :: Func -> Doc
+docFunc (Func name args expr) = text initial <>> docExpr expr
+    where initial = name ++ concatMap ((' ':) . ('@':) . show) args ++ " ="
+
+
+docExpr :: Expr -> Doc
+docExpr x = f 0 x
+    where
+        -- number mean:
+        -- 0 is do deep lets
+        -- 1 is do identation bracketing
+        -- 2 is do real bracketing
+    
+        f _ (Var name) = text $ '@': show name
+        f _ (Star) = char '?'
+        f _ (Fun x) = text x
+        f _ (Ctr x) = text x
+        f _ (Const x) = text $ show x
+        
+        f _ (Sel x y) = f 2 x <> text ('.':y)
+
+        f _ (Call x []) = text x
+        f i (Call x xs) = (if i >= 2 then parens else id) $
+                          call (text x) (map (f 2) xs)
+        
+        f i (Prim x xs) = f i (Call (x++"#") xs)
+        f i (Make x xs) = f i (Call x xs)
+        f i (Error x) = f i (Prim "error" [x])
+        
+        f _ (Apply x xs) = braces $ call (f 2 x) (map (f 2) xs)
+        
+        f i (Let binds x) = text "let" <+> vcat (map g binds) $$ text "in" <+> f i x
+            where
+                g (lhs,rhs) = text ("@" ++ show lhs ++ " =") <+> f i rhs
+
+        f i (Case on alts) =
+                (if i >= 2 then parens else id) $
+                text "case" <+> f i on <+> text "of" $$ inner (vcat $ map g alts)
+            where
+                g x = h x <+> text "->" <>> f i (altExpr x)
             
-            f b i x = case x of
-                Var name -> '@' : show name
-                Fun x -> x
-                Ctr x -> x
-                Star -> "?"
-                Const x -> show x
+                h (Default x) = text "_"
+                h (AltCtr x _) = text x
+                h (AltConst x _) = text $ show x
 
-                Call x [] -> x
-                Call x xs -> brack b $ x ++ concatMap ((' ':) . f True i) xs
-                Make x xs -> f b i (Call x xs)
-                Prim x xs -> f b i (Call (x ++ "#") xs)
+        f i x = error "Hill.Show, unhandled"
+        
+        -- implement a call
+        call x xs = sep $ x : map (nest 2) xs
+    
+    
+inner = nest 4
 
-                Sel x xs -> f True i x ++ "." ++ xs
-                
-                Case cond opts -> brack b $ "case " ++ show cond ++ " of\n" ++
-                                     if null opts then "    {- NO OPTIONS! -}" else
-                                     (init $ unlines $ map (g (i+4)) opts)
-                    where
-                        g i (Default b) = g i (AltCtr "_" b)
-                        g i (AltConst a b) = replicate i ' ' ++ show a ++ " -> " ++ f False i b
-                        g i (AltCtr a b) = replicate i ' ' ++ a ++ " -> " ++ f False i b
 
-                Let bind x -> brack b $ "let\n" ++ (unlines $ map (g (i+4)) bind) ++
-                                        replicate i ' ' ++ "in\n" ++ replicate (i+4) ' ' ++ f False (i+4) x
-                    where
-                        g i (lhs, rhs) = replicate i ' ' ++ "@" ++ show lhs ++ " = " ++ f False (i+4) rhs
-                
-                Lambda n x -> brack b $ "\\" ++ show n ++ " -> " ++ show x
-                Apply x xs -> "{" ++ (concat $ intersperse " " $ map (f True i) (x:xs)) ++ "}"
-          
-                Error x -> f b i $ Call "@error" [x]
+a <>> b = sep [a, inner b]
 
 
 instance Show Const where
