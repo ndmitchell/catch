@@ -6,6 +6,8 @@ import Hill.PrimOp
 import Data.List
 import Data.Maybe
 import General.General
+import Hill.Cache
+import Front.CmdLine
 
 
 cmdsSimple =
@@ -16,6 +18,8 @@ cmdsSimple =
     ,hillCmdPure "novector" (const noVector)
     ,hillCmdPure "int" (const useInt)
     ,hillCmdPure "var-rejoin" (const varRejoin)
+    ,Action "hill-load" hillLoad
+    ,Action "hill-save" hillSave
     ]
 
 
@@ -217,3 +221,17 @@ varRejoin hill = mapOverHill f hill
                 cs = ctorArgs $ getCtor hill x
         
         f x = x
+
+---------------------------------------------------------------------
+
+
+hillLoad :: CmdLineState -> String -> ValueHill -> IO ValueHill
+hillLoad state _ _ = do
+    res <- readCacheHill (cmdLineOutput state "hill")
+    return $ ValueHill res
+
+
+hillSave :: CmdLineState -> String -> ValueHill -> IO ValueHill
+hillSave state _ (ValueHill hill) = do
+    writeCacheHill hill (cmdLineOutput state "hill")
+    return $ ValueHill hill
