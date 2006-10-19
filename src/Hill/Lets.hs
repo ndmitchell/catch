@@ -124,8 +124,10 @@ nubLets hill = mapOverHill f hill
         f (Let binds x) | null rens = Let binds (f x)
                         | otherwise = Let (map head grps) (f $ replaceFree rens x)
             where 
-                grps = groupSetExtract snd binds
+                grps = groupSetBy eq binds
                 rens = concatMap g grps
+                
+                eq (_,a) (_,b) = isVarSel a && a == b
                 
                 g [x] = []
                 g (x:xs) = zip (map fst xs) (repeat $ Var $ fst x)
