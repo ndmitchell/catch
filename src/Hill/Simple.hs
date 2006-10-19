@@ -225,13 +225,8 @@ varRejoin hill = mapOverHill f hill
 ---------------------------------------------------------------------
 
 
-hillLoad :: CmdLineState -> String -> ValueHill -> IO ValueHill
-hillLoad state _ _ = do
-    res <- readCacheHill (cmdLineOutput state "hill")
-    return $ ValueHill res
+hillLoad :: CmdLineState -> String -> Hill -> IO Hill
+hillLoad state _ _ = readCacheHill (cmdLineOutput state "hill")
 
-
-hillSave :: CmdLineState -> String -> ValueHill -> IO ValueHill
-hillSave state _ (ValueHill hill) = do
-    writeCacheHill hill (cmdLineOutput state "hill")
-    return $ ValueHill hill
+hillSave :: CmdLineState -> String -> Hill -> IO Hill
+hillSave state _ hill = writeCacheHill hill (cmdLineOutput state "hill") >> return hill

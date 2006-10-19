@@ -163,14 +163,11 @@ instance ManipulateHill Expr where
 
 -- command stuff
 
-data ValueHill = ValueHill Hill
-               | ValueNone
-
-type HillAction = Action ValueHill
+type HillAction = Action Hill
 
 
 hillCmd :: String -> (String -> Hill -> IO Hill) -> HillAction
-hillCmd a b = Action ("hill-" ++ a) (\state extra (ValueHill x) -> liftM ValueHill $ b extra x)
+hillCmd a b = Action ("hill-" ++ a) (\state extra x -> b extra x)
 
 hillCmdPure :: String -> (String -> Hill -> Hill) -> HillAction
 hillCmdPure a b = hillCmd a (\x y -> return $ b x y)

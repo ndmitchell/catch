@@ -6,11 +6,6 @@ import List
 import General.General
 
 
-instance Show ValueHill where
-    show (ValueHill x) = show x
-    show ValueNone = ""
-
-
 instance Show Hill where
     show (Hill datas funcs) = unlines (map show datas ++ map show funcs)
     

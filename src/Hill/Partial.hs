@@ -22,8 +22,8 @@ cmdsPartial = [Action "hill-partial" partial]
 
 ---------------------------------------------------------------------
 
-partial :: CmdLineState -> String -> ValueHill -> IO ValueHill
-partial state _ (ValueHill hillBad) = error $ show $ runStore hill
+partial :: CmdLineState -> String -> Hill -> IO Hill
+partial state _ hillBad = error $ show $ runStore hill
         --hPutStrLn (cmdLineHandle state) $ showTemplate template
         --return $ ValueHill $ makeCode hill template
     where

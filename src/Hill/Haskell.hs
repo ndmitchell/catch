@@ -40,7 +40,7 @@ makeHaskell hill = mapOverHill reqLets $ mapOverHill letDownwards hill
         reqLets x = x
 
 
-compileHillGHC :: CmdLineState -> String -> ValueHill -> IO ValueHill
+compileHillGHC :: CmdLineState -> String -> Hill -> IO Hill
 compileHillGHC state _ val = do
         let src = cmdLineOutput state "hs"
             name = cmdLineName state
@@ -55,7 +55,7 @@ compileHillGHC state _ val = do
 
         return val
 
-compileGHC :: CmdLineState -> String -> ValueHill -> IO ValueHill
+compileGHC :: CmdLineState -> String -> Hill -> IO Hill
 compileGHC state _ val = do
         let name = cmdLineName state
             junk = "Cache/Obj/ghc-" ++ name
@@ -78,11 +78,11 @@ compileGHC state _ val = do
         return val
 
 
-outputHaskell :: CmdLineState -> String -> ValueHill -> IO ValueHill
-outputHaskell state _ (ValueHill badhill) = do
+outputHaskell :: CmdLineState -> String -> Hill -> IO Hill
+outputHaskell state _ badhill = do
         let file = cmdLineOutput state "hs"
         writeFile file (unlines outHill)
-        return $ ValueHill hill
+        return hill
     where
         hill = makeHaskell badhill
         
