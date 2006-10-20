@@ -4,6 +4,7 @@ module Hill.Lets(addLetsFunc, addLetsExpr, letInline, letInlineSimp, letInlineOn
 import Hill.Type
 import General.General
 import Control.Monad.State
+import Control.Exception
 import Data.List
 
 
@@ -12,6 +13,7 @@ cmdsLets = [hillCmdPure "add-let" (const addLets)
            ,hillCmdPure "nub-let" (const nubLets)
            ,hillCmdPure "let-inline-simp" (const letInlineSimp)
            ,hillCmdPure "let-inline1" (const letInlineOnce)
+           ,hillCmdPure "let-nf" (const letNormalForm)
            ]
 
 
@@ -133,3 +135,95 @@ nubLets hill = mapOverHill f hill
                 g (x:xs) = zip (map fst xs) (repeat $ Var $ fst x)
 
         f x = x
+
+
+---------------------------------------------------------------------
+
+
+letNormalForm :: Hill -> Hill
+letNormalForm hill = hill{funcs = map (letNormalFormFunc []) (funcs hill)}
+
+
+letNormalFormFunc :: [Int] -> Func -> Func
+letNormalFormFunc avoid (Func name args body) = Func name newargs bod
+    where
+        bod = letNormalFormExpr (avoid2++newargs) $ replaceFree (zip args (map Var newargs)) body
+        
+        newargs = take (length args) $ [1..] \\ avoid2
+        avoid2 = snub $ avoid ++ usedFree body ++ args
+
+
+letNormalFormExpr :: [Int] -> Expr -> Expr
+letNormalFormExpr avoid x = x4
+    where
+        x4 = letOrder $ commonSub $ alwaysTop x3
+        (x3,free3) = alwaysLet free2 x2
+        (x2,free2) = uniqueLet free $ fullLet x
+    
+        free = [1..] \\ avoid
+        
+        
+        -- replace Let (b:bs) in x ==> Let b (Let bs in x)
+        fullLet x = mapOverHill f x
+            where
+                f (Let (b:bs) x) = Let [b] $ f $ mkLet bs x
+                f x = x
+        
+        
+        uniqueLet free x = runState (mapOverM f x) free
+            where
+                f (Let binds x) = do
+                    free <- get
+                    let (used, rest) = splitAt (length binds) free
+                        (lhs,rhs) = unzip binds
+                    put rest
+                    return $ Let (zip used rhs) $ replaceFree (zip lhs (map Var used)) x
+                f x = return x
+
+
+        alwaysLet free x = runState (mapOverM f x) free
+            where
+                f (Var x) = return $ Var x
+            
+                f orig = do
+                    (x:xs) <- get
+                    put xs
+                    return $ Let [(x, orig)] (Var x)
+
+
+        alwaysTop x = Let binds bod
+            where
+                binds = [(lhs,elimLet rhs) | Let bs _ <- allOverHill x, (lhs,rhs) <- bs]
+                bod = dropLet x
+
+
+        commonSub (Let binds x)
+                | not $ null rep  = commonSub $ replaceFree rept $ mkLet keep x
+            where
+                (simp,complex) = partition (isVar . snd) binds
+                keep = map head groups
+                rep = simp ++ [(fst r, Var (fst g)) | (g:rp) <- groups, r <- rp]
+
+                groups = groupSetBy f complex
+                f (_,r1) (_,r2) = r1 == r2 && (isMake r1 || isVarSel r1)
+
+                rept = [(a,g b) | (a,b) <- rep]
+                g (Var i) = case lookup i rep of
+                                Just x -> g x
+                                Nothing -> Var i
+                g x = x
+
+        commonSub x = x
+        
+        
+        letOrder (Let binds inside) = assert (not $ null top) $ Let (top++lower) inside2
+            where
+                (lower,inside2) = case letOrder $ mkLet other inside of
+                                       Let a b -> (a,b)
+                                       a -> ([],a)
+                
+                (top,other) = partition g binds
+                g y = not $ any (`elem` lhss) [i | Var i <- allOverHill $ snd y]
+                lhss = map fst binds
+
+        letOrder x = x
