@@ -3,6 +3,7 @@ module Hill.ArityRaise(cmdsArityRaise) where
 
 import Hill.Type
 import Hill.Lambdas
+import Hill.Producer
 import Hill.Simple
 import Data.List
 import qualified Data.Map as Map
@@ -52,44 +53,29 @@ liftLambdas hill | null lift = Nothing
 
 type ArityCallersState = (Int, Map.Map (FuncName, Int) (FuncName, Bool))
 
+type Spec = (FuncName,Int)
+
 arityCallers :: Hill -> Hill
-arityCallers hill = hill{funcs = evalState (driver (funcs hill)) (calcUnique hill, Map.empty)}
+arityCallers hill = hill{funcs = funcs2}
     where
-        driver :: [Func] -> State ArityCallersState [Func]
-        driver [] = return []
-        driver funcs =
-            do
-                funcs2 <- mapM (\x -> do body2 <- addRequests (body x) ; return x{body=body2}) funcs
-                (n,mp) <- get
-                let newfuncs = [genFunc oldname arity newname | ((oldname,arity),(newname,False)) <- Map.toList mp]
-                put (n, Map.map (\x -> (fst x, True)) mp)
-                newfuncs2 <- driver newfuncs
-                return $ funcs2 ++ newfuncs2
+        funcs2 = fst $ producer hill (funcs hill) processor generator
         
-        
-        -- convert an expression, adding the items required
-        addRequests :: Expr -> State ArityCallersState Expr
-        addRequests x = mapOverM f x
+        processor :: Monad m => (Spec -> m FuncName) -> Func -> m Func
+        processor ask x = do bod <- mapOverM f $ body x ; return x{body = bod}
             where
                 f (Apply (Fun x) xs) | length xs > nargs = do
-                        (n,mp) <- get
-                        case Map.lookup (x, nxs) mp of
-                            Just q -> return $ Apply (Fun (fst q)) xs
-                            Nothing -> do
-                                let newname = genUnique x n
-                                put (n+1, Map.insert (x,nxs) (newname,False) mp)
-                                return $ Apply (Fun newname) xs
+                    x2 <- ask (x,nxs)
+                    return $ Apply (Fun x2) xs
                     where
                         nxs = length xs
                         nargs = length $ funcArgs $ getFunc hill x
                 
                 f x = return x
 
-        
-        -- add the functions that are required
-        genFunc :: FuncName -> Int -> FuncName -> Func
-        genFunc name arity newname =
+        generator :: Spec -> Int -> Func
+        generator (name,arity) idn = 
                 Func newname (args++free) $ simplify hill $ Apply body (map Var free)
             where
+                newname = genUnique name idn
                 free = take (arity - length args) $ freshFreeFunc func
                 func@(Func _ args body) = getFunc hill name
