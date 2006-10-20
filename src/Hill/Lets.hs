@@ -1,5 +1,5 @@
 
-module Hill.Lets(addLetsFunc, addLetsExpr, letInline, uniqueLets, uniqueLetsExpr, addLets, topLets, topLetsExpr, cmdsLets) where
+module Hill.Lets(addLetsFunc, addLetsExpr, letInline, letInlineSimp, letInlineOnce, uniqueLets, nubLets, uniqueLetsExpr, addLets, topLets, topLetsExpr, cmdsLets) where
 
 import Hill.Type
 import General.General
@@ -94,7 +94,7 @@ letInline x = mapOverHill f x
         f x = x
 
 
-letInlineSimp :: Hill -> Hill
+letInlineSimp :: ManipulateHill hill => hill -> hill
 letInlineSimp x = mapOverHill f x
     where
         f (Let binds x) | not $ null inline = mkLet keep (replaceFree inline x)
@@ -118,7 +118,7 @@ letInlineOnce x = mapOverHill f x
         f x = x
 
 
-nubLets :: Hill -> Hill
+nubLets :: ManipulateHill hill => hill -> hill
 nubLets hill = mapOverHill f hill
     where
         f (Let binds x) | null rens = Let binds (f x)
