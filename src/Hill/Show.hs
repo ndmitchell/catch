@@ -58,7 +58,7 @@ docExpr x = f 0 x
                 (if i >= 2 then parens else id) $
                 text "case" <+> f i on <+> text "of" $$ inner (vcat $ map g alts)
             where
-                g x = h x <+> text "->" <>> f i (altExpr x)
+                g x = (h x <+> text "->") <>> f i (altExpr x)
             
                 h (Default x) = text "_"
                 h (AltCtr x _) = text x
