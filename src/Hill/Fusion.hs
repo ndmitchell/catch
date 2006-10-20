@@ -24,10 +24,13 @@ cmdsFusion = [Action "hill-fusion" fusion]
 
 fusion :: CmdLineState -> String -> Hill -> IO Hill
 fusion state _ hill = do
+        error $ showFuseTable fuseTable
+        {-
         hPutStrLn (cmdLineHandle state) $ showFuseTable fuseTable
         let (items, funcs2) = useFusion hill fuseTable
         hPutStrLn (cmdLineHandle state) $ showFuseItems items
         return $ hill{funcs = funcs2 ++ genFusion hill fuseTable items}
+        -}
     where
         fuseTable = calcFusion hill
 
@@ -56,27 +59,33 @@ showFuseItems xs = unlines [b ++ " = " ++ intercat " . " a | (a,b) <- xs]
 calcFusion :: Hill -> FuseTable
 calcFusion hill = Map.fromList $ map f (funcs hill)
     where
-        f (Func name args body) = (name, Fusion (produce body) (consume body))
+        f (Func name args body) = (name, Fusion (produce inner) (consume inner))
             where
+                (binds,Var inner) = fromLet body
             
-                produce :: Expr -> Maybe DataName
-                produce (Make x xs) = Just $ dataName $ getCtor hill x
-                produce (Let _ x) = produce x
-                produce (Case on alts) = listToMaybe $ concatMap maybeToList res
-                    where res = map (produce . altExpr) alts
-                produce x = Nothing
+                -- getting a binding may be nothing
+                -- if its a variable
+                produce :: Int -> Maybe DataName
+                produce i = do
+                    res <- lookup i binds
+                    case res of
+                        Make x xs -> Just $ dataName $ getCtor hill x
+                        Case on alts -> listToMaybe $ concatMap maybeToList res
+                            where res = map (produce . fromVar . altExpr) alts
+                        _ -> Nothing
                 
+                consume :: Int -> Maybe (Int, DataName)
+                consume i = do
+                    res <- lookup i binds
+                    case res of
+                        Case (Var on) alts | not $ null cs -> do
+                            pos <- elemIndex on args
+                            return (pos, dataName $ getCtor hill $ head cs)
+                            where cs = [c | AltCtr c _ <- alts]
+                        _ -> Nothing
 
-                consume :: Expr -> Maybe (Int, DataName)
-                consume (Case (Var on) alts) | not $ null cs
-                        = do pos <- elemIndex on args
-                             return (pos, dataName $ getCtor hill $ head cs)
-                    where
-                        cs = [c | AltCtr c _ <- alts]
 
-                consume (Let _ x) = consume x
-                consume _ = Nothing
-
+{-
 
 
 data Store = Store {
@@ -174,3 +183,4 @@ genFusion hill table items = map genFunc items
                 args = take (length $ funcArgs func) $ [1..] \\ (given ++ usedFree (body func) ++ funcArgs func)
                 bod = uniqueLetsExpr (args++given) $ replaceFree (zip (funcArgs func) (map Var args)) $ body func
 
+-}
