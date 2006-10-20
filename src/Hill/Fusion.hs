@@ -5,6 +5,7 @@ import Hill.Type
 import Hill.Show
 import Hill.Lets
 import Hill.Simple
+import Hill.Producer
 
 import qualified Data.Map as Map
 import Data.Map((!))
@@ -24,20 +25,17 @@ cmdsFusion = [Action "hill-fusion" fusion]
 
 fusion :: CmdLineState -> String -> Hill -> IO Hill
 fusion state _ hill = do
-        error $ showFuseTable fuseTable
-        {-
         hPutStrLn (cmdLineHandle state) $ showFuseTable fuseTable
-        let (items, funcs2) = useFusion hill fuseTable
+        let (funcs2,items) = producer hill (funcs hill) (processor hill fuseTable) generator
         hPutStrLn (cmdLineHandle state) $ showFuseItems items
-        return $ hill{funcs = funcs2 ++ genFusion hill fuseTable items}
-        -}
+        return $ hill{funcs = funcs2}
     where
         fuseTable = calcFusion hill
 
 
 type FuseTable = Map.Map FuncName Fusion
 
-data Fusion = Fusion {producer :: Maybe DataName, consumer :: Maybe (Int, DataName)}
+data Fusion = Fusion {produce :: Maybe DataName, consume :: Maybe (Int, DataName)}
               deriving Show
 
 
@@ -59,23 +57,23 @@ showFuseItems xs = unlines [b ++ " = " ++ intercat " . " a | (a,b) <- xs]
 calcFusion :: Hill -> FuseTable
 calcFusion hill = Map.fromList $ map f (funcs hill)
     where
-        f (Func name args body) = (name, Fusion (produce inner) (consume inner))
+        f (Func name args body) = (name, Fusion (prod inner) (cons inner))
             where
                 (binds,Var inner) = fromLet body
             
                 -- getting a binding may be nothing
                 -- if its a variable
-                produce :: Int -> Maybe DataName
-                produce i = do
+                prod :: Int -> Maybe DataName
+                prod i = do
                     res <- lookup i binds
                     case res of
                         Make x xs -> Just $ dataName $ getCtor hill x
                         Case on alts -> listToMaybe $ concatMap maybeToList res
-                            where res = map (produce . fromVar . altExpr) alts
+                            where res = map (prod . fromVar . altExpr) alts
                         _ -> Nothing
                 
-                consume :: Int -> Maybe (Int, DataName)
-                consume i = do
+                cons :: Int -> Maybe (Int, DataName)
+                cons i = do
                     res <- lookup i binds
                     case res of
                         Case (Var on) alts | not $ null cs -> do
@@ -83,6 +81,60 @@ calcFusion hill = Map.fromList $ map f (funcs hill)
                             return (pos, dataName $ getCtor hill $ head cs)
                             where cs = [c | AltCtr c _ <- alts]
                         _ -> Nothing
+
+
+
+
+processor :: Monad m => Hill -> FuseTable -> ([FuncName] -> m FuncName) -> Func -> m Func
+processor hill fuseTable ask func =
+    do
+        binds2 <- mapM useFuse binds
+        return func{body = mkLet binds2 (Var inner)}
+    where
+        -- nub since variables may be reached in more than one way
+        lst = nub $ f inner
+    
+        (binds,Var inner) = fromLet $ body func
+        
+        useFuse (lhs,rhs) =
+            case lookup lhs lst of
+                Nothing -> return (lhs,rhs)
+                Just (fs,args) -> do
+                    name <- ask fs
+                    return (lhs, Call name args)
+        
+        f i = case lookup i binds of
+                  Nothing -> []
+                  Just (Call x xs) ->
+                      case fuseChain (Call x xs) of
+                          Nothing -> concatMap (f . fromVar) xs
+                          Just (fs,args) ->
+                              [(i,(fs,args)) | length fs > 1] ++
+                              concatMap (f . fromVar) args
+
+                  Just x -> concatMap f [i | Var i <- allOverHill x]
+        
+        -- return a list of the functions in the chain
+        -- their arguments which are't fused
+        -- and the expression at the tail
+        fuseChain :: Expr -> Maybe ([FuncName],[Expr])
+        fuseChain (Call x xs) = do
+                (pos,typc) <- consume (fuseTable ! x)
+                Call y ys <- lookup (fromVar (xs !! pos)) binds
+                typp <- produce (fuseTable ! y)
+                let fuseargs = [b | (a,b) <- zip [0..] xs, a /= pos]
+                if typc /= typp
+                    then Nothing
+                    else Just $ case fuseChain (Call y ys) of
+                            Nothing -> ([x,y], fuseargs ++ ys)
+                            Just (fs,zs) -> (x:fs, fuseargs ++ zs)
+            where
+                getCall x@(Call _ _) = Just x
+                getCall _ = Nothing
+
+
+generator :: [FuncName] -> Int -> Func
+generator names idn = Func (genUnique (head names) idn) [] (Var 1)
 
 
 {-
