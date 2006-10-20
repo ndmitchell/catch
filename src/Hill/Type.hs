@@ -46,6 +46,11 @@ dropLambda x = x
 dropLet (Let _ x) = dropLet x
 dropLet x = x
 
+fromLet (Let x y) = (x,y)
+fromLet x = ([],x)
+
+fromVar (Var x) = x
+
 elimLet x = mapOverHill dropLet x
 
 
