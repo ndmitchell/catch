@@ -2,6 +2,7 @@
 module Hill.Reachable(reachable, cmdsReachable) where
 
 import Hill.Type
+import Hill.Producer
 import General.General
 
 
@@ -17,22 +18,25 @@ reachable name hill = reachableList [name]   hill
 reachableList :: [FuncName] -> Hill -> Hill
 reachableList names hill@(Hill datas funcs) = Hill aliveDatas aliveFuncs
     where
-        aliveFuncs = [x | x <- funcs, funcName x `elem` aliveFuncNames]
+        -- function stuff
+        aliveFuncs = fst $ producer hill (map (getFunc hill) names) processor generator
+        
+        processor :: Monad m => (FuncName -> m FuncName) -> Func -> m Func
+        processor ask x = do bod <- mapOverM f $ body x ; return x{body = bod}
+            where
+                f (Call x xs) = do x2 <- ask x ; return $ Call x2 xs
+                f (Fun x) = do x2 <- ask x ; return $ Fun x2
+                f x = return x
+
+
+        generator :: FuncName -> Int -> Func
+        generator fun _ = getFunc hill fun
+
+        -- data stuff
         aliveDatas = [x | x@(Data name _ _) <- datas, name `elem` aliveDataNames]
-        
-        aliveFuncNames = fixSet allFuncs names
-        aliveDataNames = snub $ concatMap allDatas aliveFuncNames
-        
-        allFuncs = snub . concatMap (reachFuncs hill) . allOverHill . body . getFunc hill
-        allDatas = snub . concatMap (reachDatas hill) . allOverHill . body . getFunc hill
+        aliveDataNames = snub $ concatMap allDatas aliveFuncs
+        allDatas = snub . concatMap (reachDatas hill) . allOverHill . body
 
-
-
-reachFuncs :: Hill -> Expr -> [FuncName]
-reachFuncs hill x = case x of
-    Call x xs -> [x]
-    Fun x -> [x]
-    _ -> []
 
 
 reachDatas :: Hill -> Expr -> [DataName]
