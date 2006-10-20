@@ -43,11 +43,18 @@ mkLambda n x = Lambda n x
 dropLambda (Lambda n x) = x
 dropLambda x = x
 
+dropLet (Let _ x) = dropLet x
+dropLet x = x
+
+elimLet x = mapOverHill dropLet x
+
 
 isVar (Var _) = True; isVar _ = False
 
 isVarSel (Sel x _) = isVarSel x
 isVarSel x = isVar x
+
+isMake (Make{}) = True; isMake _ = False
 
 isConst (Const _) = True; isConst _ = False
 
