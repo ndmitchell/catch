@@ -14,10 +14,11 @@ import Hill.Special
 import Hill.Defunc
 import Hill.Inline
 import Hill.Haskell
+import Hill.Fusion
 
 
 cmdsHill :: [HillAction]
 cmdsHill = cmdsReachable ++ cmdsShortName ++ cmdsSimple ++ cmdsArityRaise ++
            cmdsSpecialise ++ cmdsLambda ++ cmdsLets ++ cmdsPartial ++ cmdsDefunc ++
-           cmdsSpecial ++ cmdsInline ++ cmdsHaskell
+           cmdsSpecial ++ cmdsInline ++ cmdsHaskell ++ cmdsFusion
 
