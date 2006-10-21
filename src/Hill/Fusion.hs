@@ -24,12 +24,13 @@ cmdsFusion = [Action "hill-fusion" fusion]
 ---------------------------------------------------------------------
 
 fusion :: CmdLineState -> String -> Hill -> IO Hill
-fusion state _ hill = do
+fusion state _ badHill = do
         hPutStrLn (cmdLineHandle state) $ showFuseTable fuseTable
         let (funcs2,items) = producer hill (funcs hill) (processor hill fuseTable) generator
         hPutStrLn (cmdLineHandle state) $ showFuseItems items
         return $ hill{funcs = funcs2}
     where
+        hill = letNormalForm badHill
         fuseTable = calcFusion hill
 
 
