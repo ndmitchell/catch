@@ -135,8 +135,9 @@ processor hill fuseTable ask func =
 
 
 generator :: [FuncName] -> Int -> Func
-generator names idn = Func (genUnique (head names) idn) [] (Var 1)
-
+generator names idn = Func newname [] (Var 1)
+    where
+        newname = genUnique (intercat "_" names) idn
 
 {-
 
