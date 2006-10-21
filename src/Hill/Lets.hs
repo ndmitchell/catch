@@ -6,7 +6,8 @@ module Hill.Lets(
     uniqueLets, nubLets, uniqueLetsExpr,
     addLets,
     topLets, topLetsExpr,
-    letNormalForm, letNormalFormFunc, letNormalFormExpr
+    letNormalForm, letNormalFormFunc, letNormalFormExpr,
+    letLinearForm
     ) where
 
 import Hill.Type
@@ -164,7 +165,7 @@ letNormalFormFunc hill avoid (Func name args body) = Func name newargs bod
 letNormalFormExpr :: Hill -> [Int] -> Expr -> Expr
 letNormalFormExpr hill avoid x = x4
     where
-        x4 = letOrder $ commonSub $ alwaysTop x3
+        x4 = letSpecialise $ letOrder $ commonSub $ alwaysTop x3
         (x3,free3) = alwaysLet free2 x2
         (x2,free2) = uniqueLet free $ fullLet x
     
@@ -235,3 +236,39 @@ letNormalFormExpr hill avoid x = x4
                 lhss = map fst binds
 
         letOrder x = x
+
+
+        -- do not case or sel on something you know
+        letSpecialise (Let binds inside) | not $ null reps =
+                letSpecialise $ replaceFree reps (Let newbinds inside)
+            where
+                newbinds = filter (\x -> not $ fst x `elem` map fst reps) binds
+                reps = concatMap f binds
+                
+                f (lhs,Sel (Var x) path) =
+                    case lookup x binds of
+                        Just (Make y ys) | y == ctorName carg -> [(lhs,ys !! cargPos carg)]
+                            where carg = getCArg hill path
+                        _ -> []
+                
+                f (lhs,Case (Var x) alts) =
+                    case lookup x binds of
+                        Just (Const a) | length poss == 1 -> [(lhs, altExpr $ head poss)]
+                            where poss = filterAltsConst a alts
+                        Just (Make x _) | length poss == 1 -> [(lhs, altExpr $ head poss)]
+                            where poss = filterAltsCtr x alts
+                        _ -> []
+
+                f (lhs,Var x) = [(lhs,Var x)]
+                f _ = []
+
+                
+        letSpecialise x = x
+        
+
+
+letLinearForm :: Hill -> Hill
+letLinearForm hill = mapOverHill f hill
+    where
+        f (Let (x:xs) y) = Let [x] $ f $ mkLet xs y
+        f x = x
