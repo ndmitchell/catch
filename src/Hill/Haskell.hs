@@ -91,7 +91,7 @@ outputHaskell state _ badhill = do
     
         outHill = "module Main(main) where" : 
                   map ("import "++) primImports ++
-                  ("main" ++ mainargs ++ " = return $! unio (" ++ oc "main" ++ mainargs ++ ")") :
+                  ("main" ++ mainargs ++ " = (return :: a -> IO a) $! unio (" ++ oc "main" ++ mainargs ++ ")") :
                   ("io x = " ++ od "IO" ++ " $! unsafePerformIO x") :
                   ("unio (" ++ od "IO" ++ " x) = x") : -- (return :: a -> IO a) x") :
                   ("err x = error (map chr x)") :
