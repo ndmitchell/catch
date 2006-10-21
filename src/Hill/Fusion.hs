@@ -107,7 +107,7 @@ processor hill fuseTable ask func =
         f i = case lookup i binds of
                   Nothing -> []
                   Just (Call x xs) ->
-                      case fuseChain (Call x xs) of
+                      case fuseChain [] (Call x xs) of
                           Nothing -> concatMap (f . fromVar) xs
                           Just (fs,args) ->
                               [(i,(fs,args)) | length fs > 1] ++
@@ -118,20 +118,19 @@ processor hill fuseTable ask func =
         -- return a list of the functions in the chain
         -- their arguments which are't fused
         -- and the expression at the tail
-        fuseChain :: Expr -> Maybe ([FuncName],[Expr])
-        fuseChain (Call x xs) = do
+        fuseChain :: [FuncName] -> Expr -> Maybe ([FuncName],[Expr])
+        fuseChain seen (Call x xs) = do
                 (pos,typc) <- consume (fuseTable ! x)
                 Call y ys <- lookup (fromVar (xs !! pos)) binds
                 typp <- produce (fuseTable ! y)
                 let fuseargs = xs \!! pos
-                if typc /= typp
+                if typc /= typp || y `elem` seen2
                     then Nothing
-                    else Just $ case fuseChain (Call y ys) of
+                    else Just $ case fuseChain seen2 (Call y ys) of
                             Nothing -> ([x,y], fuseargs ++ ys)
                             Just (fs,zs) -> (x:fs, fuseargs ++ zs)
             where
-                getCall x@(Call _ _) = Just x
-                getCall _ = Nothing
+                seen2 = x:seen
 
 
 
