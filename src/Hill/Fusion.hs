@@ -153,11 +153,13 @@ generator hill fuseTable names idn = res{funcName = newname}
             
                 consumer2 = letNormalFormFunc hill (usedFree (body producer) ++ funcArgs producer) consumer
                 
-                producer2 = Func "" ((funcArgs consumer2 \!! pos) ++ funcArgs producer) (mkLet (map f binds) (Var on))
+                producer2 = Func "" ((funcArgs consumer2 \!! pos) ++ funcArgs producer) (mkLet (map f binds) on2)
                     where
                         f (lhs,Case x alts) | lhs `elem` endset
                             = (lhs,Case x [alt{altExpr = g $ altExpr alt} | alt <- alts])
                         f x = x
+                        
+                        on2 = if null endset then g (Var on) else Var on
                         
                         g (Var i) | i `elem` endset = Var i
                                   | otherwise = case lookup i binds of
