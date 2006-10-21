@@ -69,6 +69,22 @@ expandStr1 "" = Make "[]" []
 expandStr1 (x:xs) = Make ":" [Const (AChar x), Const (AString xs)]
 
 
+
+filterAltsConst :: Const -> [Alt] -> [Alt]
+filterAltsConst c alts = filter f alts
+    where
+        f (Default _) = True
+        f (AltConst x _) = x == c
+        f _ = False
+
+filterAltsCtr :: CtorName -> [Alt] -> [Alt]
+filterAltsCtr c alts = filter f alts
+    where
+        f (Default _) = True
+        f (AltCtr x _) = x == c
+        f _ = False
+
+
 data Expr = 
             -- atoms
             Var Int
