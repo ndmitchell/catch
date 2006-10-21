@@ -1,5 +1,13 @@
 
-module Hill.Lets(addLetsFunc, addLetsExpr, letInline, letInlineSimp, letInlineOnce, uniqueLets, nubLets, uniqueLetsExpr, addLets, topLets, topLetsExpr, cmdsLets) where
+module Hill.Lets(
+    cmdsLets,
+    addLetsFunc, addLetsExpr,
+    letInline, letInlineSimp, letInlineOnce,
+    uniqueLets, nubLets, uniqueLetsExpr,
+    addLets,
+    topLets, topLetsExpr,
+    letNormalForm, letNormalFormFunc, letNormalFormExpr
+    ) where
 
 import Hill.Type
 import General.General
