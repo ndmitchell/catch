@@ -50,6 +50,8 @@ evalPrim name args = do
         (OpIntIntInt  _ op, [Const (AInt a), Const (AInt b)]) -> Just $ mkInt  $ op a b
         (OpIntInt     _ op, [Const (AInt a)]) -> Just $ mkInt $ op a
         (OpIntegerInt _ op, [Const (AInteger a)]) -> Just $ mkInt $ op a
+        (OpIntegerIntegerBool _ op, [Const (AInteger a), Const (AInteger b)]) -> Just $ mkBool $ op a b
+        (OpIntegerIntegerInteger _ op, [Const (AInteger a), Const (AInteger b)]) -> Just $ mkInteger $ op a b
         _ -> Nothing
 
 
@@ -59,6 +61,9 @@ mkBool x = Make (show x) []
 
 mkInt :: Int -> Expr
 mkInt = Const . AInt
+
+mkInteger :: Integer -> Expr
+mkInteger = Const . AInteger
 
 
 intInteger = [("YHC.Primitive.primIntegerSub","prim_SUB_W")
