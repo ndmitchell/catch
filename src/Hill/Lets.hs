@@ -149,20 +149,20 @@ nubLets hill = mapOverHill f hill
 
 
 letNormalForm :: Hill -> Hill
-letNormalForm hill = hill{funcs = map (letNormalFormFunc []) (funcs hill)}
+letNormalForm hill = hill{funcs = map (letNormalFormFunc hill []) (funcs hill)}
 
 
-letNormalFormFunc :: [Int] -> Func -> Func
-letNormalFormFunc avoid (Func name args body) = Func name newargs bod
+letNormalFormFunc :: Hill -> [Int] -> Func -> Func
+letNormalFormFunc hill avoid (Func name args body) = Func name newargs bod
     where
-        bod = letNormalFormExpr (avoid2++newargs) $ replaceFree (zip args (map Var newargs)) body
+        bod = letNormalFormExpr hill (avoid2++newargs) $ replaceFree (zip args (map Var newargs)) body
         
         newargs = take (length args) $ [1..] \\ avoid2
         avoid2 = snub $ avoid ++ usedFree body ++ args
 
 
-letNormalFormExpr :: [Int] -> Expr -> Expr
-letNormalFormExpr avoid x = x4
+letNormalFormExpr :: Hill -> [Int] -> Expr -> Expr
+letNormalFormExpr hill avoid x = x4
     where
         x4 = letOrder $ commonSub $ alwaysTop x3
         (x3,free3) = alwaysLet free2 x2

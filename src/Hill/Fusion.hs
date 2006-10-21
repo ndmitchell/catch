@@ -147,11 +147,11 @@ generator hill fuseTable names idn = res{funcName = newname}
 
         -- consumer, pos, producer
         merge :: Func -> Int -> Func -> Func
-        merge consumer pos producer =  error $ show $ letNormalFormFunc [] producer2
+        merge consumer pos producer =  error $ show $ letNormalFormFunc hill [] producer2
             where
                 (binds, Var on) = fromLet $ body producer
             
-                consumer2 = letNormalFormFunc (usedFree (body producer) ++ funcArgs producer) consumer
+                consumer2 = letNormalFormFunc hill (usedFree (body producer) ++ funcArgs producer) consumer
                 
                 producer2 = Func "" ((funcArgs consumer2 \!! pos) ++ funcArgs producer) (mkLet (map f binds) (Var on))
                     where
