@@ -142,12 +142,13 @@ generator hill fuseTable names idn = res{funcName = newname}
         newname = genUnique (intercat "_" names) idn
         
         f [x] = x
-        f (p:c:xs) = merge c (fst $ fromJust $ consume $ fuseTable ! funcName c) p
+        f (p:c:xs) = f (pc:xs)
+            where pc = merge c (fst $ fromJust $ consume $ fuseTable ! funcName c) p
 
 
         -- consumer, pos, producer
         merge :: Func -> Int -> Func -> Func
-        merge consumer pos producer =  error $ show $ letNormalFormFunc hill [] producer2
+        merge consumer pos producer = letNormalFormFunc hill [] producer2
             where
                 (binds, Var on) = fromLet $ body producer
             
