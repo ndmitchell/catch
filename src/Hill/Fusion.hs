@@ -147,34 +147,31 @@ generator hill fuseTable names idn = res{funcName = newname}
 
         -- consumer, pos, producer
         merge :: Func -> Int -> Func -> Func
-        merge consumer pos producerArgs = letNormalFormFunc hill [] producer2
+        merge consumer pos producer = letNormalFormFunc hill [] producer2
             where
-                producer = argLets producerArgs
                 (binds, Var on) = fromLet $ body producer
             
                 consumer2 = letNormalFormFunc hill (usedFree (body producer) ++ funcArgs producer) consumer
                 
                 producer2 = Func "" ((funcArgs consumer2 \!! pos) ++ funcArgs producer) (mkLet (map f binds) (Var on))
                     where
-                        f (lhs,rhs) | lhs `elem` endset = (lhs,makeEnding rhs)
-                                    | otherwise = (lhs,rhs)
+                        f (lhs,Case x alts) | lhs `elem` endset
+                            = (lhs,Case x [alt{altExpr = g $ altExpr alt} | alt <- alts])
+                        f x = x
+                        
+                        g (Var i) | i `elem` endset = Var i
+                                  | otherwise = case lookup i binds of
+                            Just (Make x xs) ->
+                                Let [(funcArgs consumer2 !! pos, Make x xs)] (body consumer2)
+                            _ -> Call (funcName consumer2) (map Var (funcArgs consumer2) !!! (pos,Var i))
                 
+                -- all those case statements which are reached
+                -- from the root
                 endset = f on
                     where
                         f i = case lookup i binds of
-                                  Just (Case on alts) -> concatMap (f . fromVar . altExpr) alts
-                                  _ -> [i]
-
-                makeEnding (Make x xs) = Let [(funcArgs consumer2 !! pos, Make x xs)] (body consumer2)
-                makeEnding x = Call (funcName consumer2) (map Var (funcArgs consumer2) !!! (pos,x))
-
-
-                argLets func@(Func name args body) =
-                        Func name free (mkLet (argbinds++binds) inner)
-                    where
-                        argbinds = zip args (map Var free)
-                        (binds, inner) = fromLet body
-                        free = take (length args) $ freshFreeFunc func
+                                  Just (Case on alts) -> i : concatMap (f . fromVar . altExpr) alts
+                                  _ -> []
 
 
 {-
