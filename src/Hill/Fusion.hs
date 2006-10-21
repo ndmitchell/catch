@@ -147,8 +147,9 @@ generator hill fuseTable names idn = res{funcName = newname}
 
         -- consumer, pos, producer
         merge :: Func -> Int -> Func -> Func
-        merge consumer pos producer = letNormalFormFunc hill [] producer2
+        merge consumer pos producerArgs = letNormalFormFunc hill [] producer2
             where
+                producer = argLets producerArgs
                 (binds, Var on) = fromLet $ body producer
             
                 consumer2 = letNormalFormFunc hill (usedFree (body producer) ++ funcArgs producer) consumer
@@ -166,6 +167,14 @@ generator hill fuseTable names idn = res{funcName = newname}
 
                 makeEnding (Make x xs) = Let [(funcArgs consumer2 !! pos, Make x xs)] (body consumer2)
                 makeEnding x = Call (funcName consumer2) (map Var (funcArgs consumer2) !!! (pos,x))
+
+
+                argLets func@(Func name args body) =
+                        Func name free (mkLet (argbinds++binds) inner)
+                    where
+                        argbinds = zip args (map Var free)
+                        (binds, inner) = fromLet body
+                        free = take (length args) $ freshFreeFunc func
 
 
 {-
