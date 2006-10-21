@@ -45,6 +45,7 @@ producer hill todo processor generator = (reverse $ stateDone state, Map.toList 
                 Nothing -> do
                     let newfunc = generator spec (stateId s)
                         newname = funcName newfunc
-                    put s{stateTodo = newfunc : stateTodo s
+                    put s{stateId = stateId s + 1
+                         ,stateTodo = newfunc : stateTodo s
                          ,stateTable = Map.insert spec newname (stateTable s)}
                     return newname
