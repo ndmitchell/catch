@@ -48,6 +48,10 @@ hill4
 	hill-simplify
 	hill-let-inline1
 
+hill5
+	hill-fusion
+	hill4
+
 hill
 	hill1
 	hill2
