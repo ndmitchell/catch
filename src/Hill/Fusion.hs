@@ -26,7 +26,7 @@ cmdsFusion = [Action "hill-fusion" fusion]
 fusion :: CmdLineState -> String -> Hill -> IO Hill
 fusion state _ badHill = do
         hPutStrLn (cmdLineHandle state) $ showFuseTable fuseTable
-        let (funcs2,items) = producer hill (funcs hill) (processor hill fuseTable) generator
+        let (funcs2,items) = producer hill (funcs hill) (processor hill fuseTable) (generator hill fuseTable)
         hPutStrLn (cmdLineHandle state) $ showFuseItems items
         return $ hill{funcs = funcs2}
     where
@@ -123,7 +123,7 @@ processor hill fuseTable ask func =
                 (pos,typc) <- consume (fuseTable ! x)
                 Call y ys <- lookup (fromVar (xs !! pos)) binds
                 typp <- produce (fuseTable ! y)
-                let fuseargs = [b | (a,b) <- zip [0..] xs, a /= pos]
+                let fuseargs = xs \!! pos
                 if typc /= typp
                     then Nothing
                     else Just $ case fuseChain (Call y ys) of
@@ -134,10 +134,39 @@ processor hill fuseTable ask func =
                 getCall _ = Nothing
 
 
-generator :: [FuncName] -> Int -> Func
-generator names idn = Func newname [] (Var 1)
+
+generator :: Hill -> FuseTable -> [FuncName] -> Int -> Func
+generator hill fuseTable names idn = res{funcName = newname}
     where
+        res = f $ map (getFunc hill) $ reverse names
         newname = genUnique (intercat "_" names) idn
+        
+        f [x] = x
+        f (p:c:xs) = merge c (fst $ fromJust $ consume $ fuseTable ! funcName c) p
+
+
+        -- consumer, pos, producer
+        merge :: Func -> Int -> Func -> Func
+        merge consumer pos producer =  error $ show $ letNormalFormFunc [] producer2
+            where
+                (binds, Var on) = fromLet $ body producer
+            
+                consumer2 = letNormalFormFunc (usedFree (body producer) ++ funcArgs producer) consumer
+                
+                producer2 = Func "" ((funcArgs consumer2 \!! pos) ++ funcArgs producer) (mkLet (map f binds) (Var on))
+                    where
+                        f (lhs,rhs) | lhs `elem` endset = (lhs,makeEnding rhs)
+                                    | otherwise = (lhs,rhs)
+                
+                endset = f on
+                    where
+                        f i = case lookup i binds of
+                                  Just (Case on alts) -> concatMap (f . fromVar . altExpr) alts
+                                  _ -> [i]
+
+                makeEnding (Make x xs) = Let [(funcArgs consumer2 !! pos, Make x xs)] (body consumer2)
+                makeEnding x = Call (funcName consumer2) (map Var (funcArgs consumer2) !!! (pos,x))
+
 
 {-
 
