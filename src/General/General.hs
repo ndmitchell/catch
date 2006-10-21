@@ -329,10 +329,17 @@ lexes x = case lex x of
 
 
 
+-- replace a given element
 (!!!) :: [a] -> (Int, a) -> [a]
 [] !!! _ = error "!!!"
 (x:xs) !!! (0,y) = y:xs
 (x:xs) !!! (n,y) = x : (xs !!! (n-1,y))
+
+
+-- delete a given element
+(\!!) :: [a] -> Int -> [a]
+(x:xs) \!! 0 = xs
+(x:xs) \!! n = x : (xs \!! (n-1))
 
 
 
