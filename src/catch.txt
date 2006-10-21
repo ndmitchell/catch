@@ -35,6 +35,7 @@ hill3
 
 hill4
 	hill-simplify
+	hill-reachable
 	hill-inline1
 	hill-reachable
 	hill-var-rejoin
