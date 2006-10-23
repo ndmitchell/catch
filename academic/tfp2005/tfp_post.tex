@@ -87,7 +87,7 @@
 
 \newcounter{exmp}
 \setcounter{exmp}{1}
-\newcommand{\yesexample}{\subsubsection*{Example \arabic{exmp}}\addtocounter{exmp}{1}}
+\newcommand{\yesexample}{\subsubsection*{Example 2.\arabic{exmp}}\addtocounter{exmp}{1}}
 \newcommand{\noexample}{\hfill\boxx}
 
 \newenvironment{code}{\begin{alltt}\small}{\end{alltt}}
@@ -100,7 +100,12 @@
 
 \begin{document}
 
-\chaptitle{A static checker for safe pattern matching in Haskell}
+\pagestyle{plain}
+
+
+\setcounter{chapter}{1} \setcounter{page}{15}
+
+\chaptitle{A Static Checker for Safe Pattern Matching in Haskell}
 
 \chapter{A Static Checker for Safe Pattern Matching in Haskell}
 
@@ -130,7 +135,7 @@ http://www.cs.york.ac.uk/$\sim$colin}
 
 % \maketitle
 
-\paragraph{Abstract}
+\paragraph{Abstract:}
 % \begin{abstract}
 A Haskell program may fail at runtime with a pattern-match error if
 the program has any incomplete (non-exhaustive) patterns in
@@ -1229,7 +1234,7 @@ The first author is a PhD student supported by a studentship from
 the Engineering and Physical Sciences Research Council of the UK.
 
 % \nocite{*}
-\bibliographystyle{abbrv}
+\bibliographystyle{alpha}
 \bibliography{case_check}
 
 \end{document}
