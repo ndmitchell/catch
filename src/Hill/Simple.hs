@@ -1,5 +1,5 @@
 
-module Hill.Simple(cmdsSimple, simplify, simplifyEx, SimplifyOpt(..), normalise, applyFuns, useVectorMake) where
+module Hill.Simple(cmdsSimple, simplify, simplifyEx, SimplifyOpt(..), normalise, applyFuns, useVectorMake, noStrings) where
 
 import Hill.Type
 import Hill.PrimOp
@@ -18,6 +18,7 @@ cmdsSimple =
     ,hillCmdPure "novector" (const noVector)
     ,hillCmdPure "int" (const useInt)
     ,hillCmdPure "var-rejoin" (const varRejoin)
+    ,hillCmdPure "no-string" (const noStrings)
     ,Action "hill-load" hillLoad
     ,Action "hill-save" hillSave
     ]
@@ -128,6 +129,12 @@ simplifyEx opts hill x = mapOverHill f x
 
 
 ---------------------------------------------------------------------
+
+noStrings :: ManipulateHill hill => hill -> hill
+noStrings hill = mapOverHill f hill
+    where
+        f (Const (AString x)) = expandStr x
+        f x = x
 
 
 normalise :: ManipulateHill hill => hill -> hill
