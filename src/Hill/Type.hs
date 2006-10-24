@@ -51,10 +51,14 @@ fromLet x = ([],x)
 
 fromVar (Var x) = x
 
+fromFun (Fun x) = x
+
 elimLet x = mapOverHill dropLet x
 
 
 isVar (Var _) = True; isVar _ = False
+
+isFun (Fun _) = True; isFun _ = False
 
 isVarSel (Sel x _) = isVarSel x
 isVarSel x = isVar x
