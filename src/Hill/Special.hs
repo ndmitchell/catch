@@ -76,7 +76,7 @@ runStore hill = execState base (Store (calcUnique hill) Map.empty [])
                 return $ makeAbstractRes False hill body4
             where
                 newargs = [0..nargs-1]
-                body3 = topLetsExpr $ addLetsExpr (funcArgs func ++ newargs) $ simplify hill body2
+                body3 = noStrings $ topLetsExpr $ addLetsExpr (funcArgs func ++ newargs) $ simplify hill body2
                 body2 = replaceFree (zip (funcArgs func) reps) $ uniqueLetsExpr newargs $ body func
                 (nargs,reps) = ascendingFrees args
 
@@ -176,7 +176,7 @@ makeAbstractRes variables hill x = f Star x
             where
                 hasTypes = not $ null $ types $ getCtor hill x
             
-                g n xs | not variables && hasTypes && cargRec c = var2
+                g n xs | {- not variables && -} hasTypes && cargRec c = var2
                        | otherwise = f var2 xs
                     where
                         var2 = Sel var (cargName c)

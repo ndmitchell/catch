@@ -10,6 +10,8 @@ verbose Show the Hite at each step
 version Show version information
 
 hill1
+	hill-remove-dict
+	hill-reachable
 	hill-short-name
 	hill-simplify
 	hill-simple-inline
@@ -27,6 +29,7 @@ hill2
 hill3
 	hill-vector
 	hill-defunc
+	hill-no-string
 	hill-special
 	hill-simplify
 	hill-simple-inline

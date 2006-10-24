@@ -73,6 +73,10 @@ expandStr1 "" = Make "[]" []
 expandStr1 (x:xs) = Make ":" [Const (AChar x), Const (AString xs)]
 
 
+expandStr :: String -> Expr
+expandStr "" = Make "[]" []
+expandStr (x:xs) = Make ":" [Const (AChar x), expandStr xs]
+
 
 filterAltsConst :: Const -> [Alt] -> [Alt]
 filterAltsConst c alts = filter f alts
