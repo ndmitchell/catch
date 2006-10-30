@@ -5,6 +5,7 @@ import Hill.Type
 import Hill.PrimOp
 import Data.List
 import Data.Maybe
+import Control.Monad
 import General.General
 import Hill.Cache
 import Front.CmdLine
@@ -232,8 +233,8 @@ varRejoin hill = mapOverHill f hill
 ---------------------------------------------------------------------
 
 
-hillLoad :: CmdLineState -> String -> Hill -> IO Hill
-hillLoad state _ _ = readCacheHill (cmdLineOutput state "hill")
+hillLoad :: CmdLineState -> String -> Value -> IO Value
+hillLoad state _ _ = liftM ValueHill $ readCacheHill $ cmdLineOutput state "hill"
 
-hillSave :: CmdLineState -> String -> Hill -> IO Hill
-hillSave state _ hill = writeCacheHill hill (cmdLineOutput state "hill") >> return hill
+hillSave :: CmdLineState -> String -> Value -> IO Value
+hillSave state _ value = writeCacheHill (valueHill value) (cmdLineOutput state "hill") >> return value

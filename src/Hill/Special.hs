@@ -22,11 +22,11 @@ cmdsSpecial = [Action "hill-special" special]
 
 ---------------------------------------------------------------------
 
-special :: CmdLineState -> String -> Hill -> IO Hill
-special state _ hill = do
+special :: CmdLineState -> String -> Value -> IO Value
+special state _ (ValueHill hill) = do
         let store = runStore hill
         hPutStrLn (cmdLineHandle state) $ showStoreTable store
-        return $ hill{funcs = storeCode store}
+        return $ ValueHill $ hill{funcs = storeCode store}
 
 
 data Store = Store {

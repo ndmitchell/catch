@@ -11,6 +11,7 @@ import General.General
 import Data.List
 import Data.Char
 import Control.Exception
+import Yhc.Core
 
 
 data Hill = Hill {datas :: [Data], funcs :: [Func]}
@@ -199,11 +200,15 @@ instance ManipulateHill Expr where
 
 -- command stuff
 
-type HillAction = Action Hill
+data Value = ValueHill {valueHill :: Hill}
+           | ValueFile {valueFile :: FilePath}
+           | ValueCore {valueCore :: Core}
+
+type HillAction = Action Value
 
 
 hillCmd :: String -> (String -> Hill -> IO Hill) -> HillAction
-hillCmd a b = Action ("hill-" ++ a) (\state extra x -> b extra x)
+hillCmd a b = Action ("hill-" ++ a) (\state extra x -> liftM ValueHill $ b extra $ valueHill x)
 
 hillCmdPure :: String -> (String -> Hill -> Hill) -> HillAction
 hillCmdPure a b = hillCmd a (\x y -> return $ b x y)

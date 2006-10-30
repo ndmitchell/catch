@@ -15,5 +15,5 @@ cmdHill args = do
     return ()
 
 
-initialHill :: CmdLineState -> FilePath -> IO Hill
-initialHill state file = makeHill file
+initialHill :: CmdLineState -> FilePath -> IO Value
+initialHill state file = return $ ValueFile file

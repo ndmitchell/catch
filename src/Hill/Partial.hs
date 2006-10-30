@@ -22,12 +22,12 @@ cmdsPartial = [Action "hill-partial" partial]
 
 ---------------------------------------------------------------------
 
-partial :: CmdLineState -> String -> Hill -> IO Hill
+partial :: CmdLineState -> String -> Value -> IO Value
 partial state _ hillBad = error $ show $ runStore hill
         --hPutStrLn (cmdLineHandle state) $ showTemplate template
         --return $ ValueHill $ makeCode hill template
     where
-        hill = moveLambdas $ addLambdas $ topLets $ addLets $ applyFuns hillBad
+        hill = moveLambdas $ addLambdas $ topLets $ addLets $ applyFuns $ valueHill hillBad
         --template = filterTemplate $ makeTemplate hill
 
 

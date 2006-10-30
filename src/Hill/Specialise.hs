@@ -19,12 +19,12 @@ cmdsSpecialise = [Action "hill-specialise" specialise]
 
 ---------------------------------------------------------------------
 
-specialise :: CmdLineState -> String -> Hill -> IO Hill
+specialise :: CmdLineState -> String -> Value -> IO Value
 specialise state _ hillBad = do
         hPutStrLn (cmdLineHandle state) $ showTemplate template
-        return $ makeCode hill template
+        return $ ValueHill $ makeCode hill template
     where
-        hill = moveLambdas $ addLambdas hillBad
+        hill = moveLambdas $ addLambdas $ valueHill hillBad
         template = filterTemplate $ makeTemplate hill
 
 

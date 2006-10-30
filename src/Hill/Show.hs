@@ -2,6 +2,7 @@
 module Hill.Show where
 
 import Hill.Type
+import Yhc.Core
 import List
 import General.General
 import Text.PrettyPrint.HughesPJ
@@ -84,3 +85,10 @@ instance Show Const where
         ADouble y -> show y
         AChar y -> show y
         AString y -> show y
+
+
+
+instance Show Value where
+    show (ValueHill x) = show x
+    show (ValueCore x) = show x
+    show (ValueFile x) = "FILE: " ++ x
