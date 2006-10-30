@@ -16,10 +16,12 @@ import Hill.Inline
 import Hill.Haskell
 import Hill.Fusion
 import Hill.Dictionary
+import Hill.File
 
 
 cmdsHill :: [HillAction]
 cmdsHill = cmdsReachable ++ cmdsShortName ++ cmdsSimple ++ cmdsArityRaise ++
            cmdsSpecialise ++ cmdsLambda ++ cmdsLets ++ cmdsPartial ++ cmdsDefunc ++
-           cmdsSpecial ++ cmdsInline ++ cmdsHaskell ++ cmdsFusion ++ cmdsDictionary
+           cmdsSpecial ++ cmdsInline ++ cmdsHaskell ++ cmdsFusion ++ cmdsDictionary ++
+           cmdsFile
 

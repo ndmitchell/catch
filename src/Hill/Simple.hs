@@ -20,8 +20,6 @@ cmdsSimple =
     ,hillCmdPure "int" (const useInt)
     ,hillCmdPure "var-rejoin" (const varRejoin)
     ,hillCmdPure "no-string" (const noStrings)
-    ,Action "hill-load" hillLoad
-    ,Action "hill-save" hillSave
     ]
 
 
@@ -229,12 +227,3 @@ varRejoin hill = mapOverHill f hill
                 cs = ctorArgs $ getCtor hill x
         
         f x = x
-
----------------------------------------------------------------------
-
-
-hillLoad :: CmdLineState -> String -> Value -> IO Value
-hillLoad state _ _ = liftM ValueHill $ readCacheHill $ cmdLineOutput state "hill"
-
-hillSave :: CmdLineState -> String -> Value -> IO Value
-hillSave state _ value = writeCacheHill (valueHill value) (cmdLineOutput state "hill") >> return value
