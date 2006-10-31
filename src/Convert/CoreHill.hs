@@ -2,7 +2,8 @@
 module Convert.CoreHill(convHill, mergeHills, convDatas, convFuncs) where
 
 import Core
-import Hill.All
+import Hill.Type
+import Hill.Reachable
 import Convert.CoreData
 
 import List
@@ -58,6 +59,8 @@ convExpr datas name ren free x =
         CoreVar x -> case lookup x ren of
                           Just y -> y
                           Nothing -> Fun x
+        CoreFun x -> Fun x
+        CorePrim x -> Fun ("Primitive.prim_" ++ x)
         
         CoreCon x -> Ctr x
         
