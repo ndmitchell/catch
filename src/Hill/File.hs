@@ -3,6 +3,7 @@ module Hill.File(cmdsFile) where
 
 import Hill.Type
 import Hill.Cache
+import Yhc.Core
 import Front.CmdLine
 import Control.Monad
 import System.FilePath
@@ -11,7 +12,7 @@ import System
 
 cmdsFile =
     [Action "core-make" coreMake
-     -- ,Action "core-load" coreLoad
+    ,Action "core-load" coreLoad
      -- ,Action "core-save" coreSave
     ,Action "hill-load" hillLoad
     ,Action "hill-save" hillSave
@@ -21,6 +22,12 @@ cmdsFile =
 
 coreMake :: CmdLineState -> String -> Value -> IO Value
 coreMake state _ (ValueFile x) = system ("yhc -hide -linkcore " ++ x) >> return (ValueFile x)
+
+
+coreLoad :: CmdLineState -> String -> Value -> IO Value
+coreLoad state _ (ValueFile x) = liftM ValueCore $ loadCore x2
+    where x2 = dropFileName x </> "ycr" </> getBaseName x <.> "yca"
+
 
 
 hillLoad :: CmdLineState -> String -> Value -> IO Value
