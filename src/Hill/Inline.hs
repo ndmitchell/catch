@@ -20,6 +20,7 @@ simpleInline hill = mapOverHill f hill
     where
         f orig@(Call x xs) = checkInline orig x xs
         f orig@(Apply (Fun x) xs) = checkInline orig x xs
+        f orig@(Fun x) = checkInline orig x []
         f x = x
         
         
@@ -34,11 +35,14 @@ simpleInline hill = mapOverHill f hill
     
         canInline (Func nam _ (Apply (Fun name) args)) | name /= nam = uniqueVars args
         canInline (Func nam _ (Call name args)) | name /= nam = uniqueVars args
+        canInline (Func nam _ (Apply (Ctr name) args)) = uniqueVars args
+        canInline (Func nam _ (Make name args)) = uniqueVars args
         canInline x = canInlineExpr $ body x
         
         uniqueVars xs = all isVar xs && length xs == length (snub [x | Var x <- xs])
         
         canInlineExpr (Const _) = True
+        canInlineExpr (Ctr _) = True
         canInlineExpr (Sel x _) = canInlineExpr x
         canInlineExpr (Var _) = True
         canInlineExpr (Prim name args) = uniqueVars args
