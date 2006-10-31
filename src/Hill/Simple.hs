@@ -19,6 +19,7 @@ cmdsSimple =
     ,hillCmdPure "novector" (const noVector)
     ,hillCmdPure "int" (const useInt)
     ,hillCmdPure "var-rejoin" (const varRejoin)
+    ,hillCmdPure "tag-main" (const tagMain)
     ,hillCmdPure "no-string" (const noStrings)
     ]
 
@@ -227,3 +228,11 @@ varRejoin hill = mapOverHill f hill
                 cs = ctorArgs $ getCtor hill x
         
         f x = x
+
+
+tagMain :: Hill -> Hill
+tagMain x = x{funcs = concatMap f $ funcs x}
+    where
+        f func@Func{funcName=name, funcArgs=args}
+            | ".main" `isSuffixOf` name = [Func "main" args (Apply (Fun name) (map Var args)), func]
+            | otherwise = [func]
