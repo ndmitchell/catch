@@ -13,6 +13,7 @@ import System
 cmdsFile =
     [Action "core-make" coreMake
     ,Action "core-load" coreLoad
+    ,Action "overlay-make" overlayMake
      -- ,Action "core-save" coreSave
     ,Action "hill-load" hillLoad
     ,Action "hill-save" hillSave
@@ -22,6 +23,9 @@ cmdsFile =
 
 coreMake :: CmdLineState -> String -> Value -> IO Value
 coreMake state _ (ValueFile x) = system ("yhc -hide -linkcore " ++ x) >> return (ValueFile x)
+
+overlayMake :: CmdLineState -> String -> Value -> IO Value
+overlayMake state _ val = system "yhc -hide -core Library/Primitive.hs" >> return val
 
 
 coreLoad :: CmdLineState -> String -> Value -> IO Value
