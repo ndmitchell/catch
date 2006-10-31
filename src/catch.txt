@@ -9,7 +9,8 @@ help Show this help list
 verbose Show the Hite at each step
 version Show version information
 
-hill0
+hill-make
+	core-make
 	core-load
 	overlay-apply
 	core-hill
