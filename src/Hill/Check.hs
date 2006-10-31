@@ -1,5 +1,5 @@
 
-module Hill.Check(cmdsCheck) where
+module Hill.Check(cmdsCheck, hillCheck) where
 
 import Hill.Type
 import General.General
