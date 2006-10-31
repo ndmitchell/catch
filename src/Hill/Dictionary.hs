@@ -38,7 +38,8 @@ removeDictionary hill = hill{datas = newdatas ++ datas hill, funcs = newfuncs ++
             
                 f t@(TypeValue modu val) = Ctor ("Type" ++ val)
                              ["type" ++ val ++ show i | i <- [1..fre]]
-                             (replicate fre (TyCon "Type" []))
+                             [] -- (replicate fre (TyCon "Type" []))
+                    -- NOTE: If given a recursive type, this stops the specialiser from doing its job
                     where
                         fre = typeFree t
         
