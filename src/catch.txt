@@ -14,12 +14,14 @@ hill-make
 	core-load
 	overlay-apply
 	core-hill
+	hill-remove-dict
+	hill-tag-main
+	hill-reachable
 	hill-short-name
 	hill-reachable
 	hill-save
 
 hill1
-	hill-remove-dict
 	hill-reachable
 	hill-short-name
 	hill-simplify
