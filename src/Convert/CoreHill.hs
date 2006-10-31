@@ -54,13 +54,15 @@ convExpr datas name ren free x =
         -- do the simple ones first
         CorePos _ x -> f x
         
+        CoreApp (CorePrim x) xs -> Prim x (map f xs)
+        CorePrim x -> Prim x []
+        
         CoreApp x xs -> Apply (f x) (map f xs)
         
         CoreVar x -> case lookup x ren of
                           Just y -> y
                           Nothing -> Fun x
         CoreFun x -> Fun x
-        CorePrim x -> Fun ("Primitive.prim_" ++ x)
         
         CoreCon x -> Ctr x
         
