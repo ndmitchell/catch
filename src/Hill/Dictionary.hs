@@ -6,7 +6,7 @@ import Data.List
 import Data.Char
 import General.TextUtil
 import General.General
-
+import Debug.Trace
 
 
 cmdsDictionary = [hillCmdPure "remove-dict" (const removeDictionary)]
@@ -52,15 +52,23 @@ removeDictionary hill = hill{datas = newdatas ++ datas hill, funcs = newfuncs ++
         
         newaccess = concatMap f $ groupSetExtract typCls dicts
             where
-                f xs@(x:_) = map (g (typCls x) xs) (zip [0..] members)
+                f xs@(x:_) = map (g (typCls x) xs) members
                     where
-                        members = map (reverse . takeWhile (/= '.') . reverse) $ getMembers $ getFunc hill $ dictName x
+                        members = getMembers $ getFunc hill $ dictName x
                 
-                g typcls xs (n,member) = Func (typeClassModu typcls ++ "." ++ member) [0] (Case (Var 0) alts)
+                g typcls xs member = trace name $ Func name [0] (Case (Var 0) alts)
                     where
+                        memname = (reverse . takeWhile (/= '.') . reverse) member
+                        name = if isUpper (head memname) then name2 else typeClassModu typcls ++ "." ++ memname
+
+                        dict = splitName member
+                        name2 = dictModu dict ++ "." ++
+                                typeClassModu typcls ++ "." ++ cls typcls ++ "." ++ 
+                                typeClassModu (typCls dict) ++ "." ++ cls (typCls dict)
+
                         alts = [AltCtr
                                     ("Type" ++ tstr)
-                                    (Apply (Fun $ dictName x ++ "." ++ member) (map (\i -> Var 0 `Sel` ("type" ++ tstr ++ show i)) [1..typeFree (typVal x)]))
+                                    (Apply (Fun $ dictName x ++ "." ++ memname) (map (\i -> Var 0 `Sel` ("type" ++ tstr ++ show i)) [1..typeFree (typVal x)]))
                                     | x <- xs, let tstr = val (typVal x)]
         
         getMembers (Func _ _ (Apply _ xs)) = map fromFun xs
@@ -72,15 +80,7 @@ removeDictionary hill = hill{datas = newdatas ++ datas hill, funcs = newfuncs ++
 getDictionaries :: Hill -> [Dictionary]
 getDictionaries hill = concatMap f (funcs hill)
     where
-        f (Func name args body) | isDictionary args body =
-                case length nams of
-                    5 -> [Dictionary name (nams!!0) (TypeValue (nams!!3) (nams!!4)) (TypeClass (nams!!1) (nams!!2))]
-                    -- 7 -> [Dictionary (nams!!0 ++ "." ++ nams!!1) (TypeValue (nams!!3) (nams!!4)) (TypeClass (nams!!1) (nams!!2))]
-                    _ -> error $ show ("Hill.Dictionary.getDictionaries",name)
-            where
-                nams = splitList "." name
-                
-                
+        f (Func name args body) | isDictionary args body = [splitName name]
         f _ = []
         
         isDictionary args (Apply (Ctr tup) xs) = isTuple tup && all (isFunCall args) xs
@@ -92,3 +92,14 @@ getDictionaries hill = concatMap f (funcs hill)
 
         isTuple x | "Prelude." `isPrefixOf` x = isTuple $ drop 8 x
                   | otherwise = "(" `isPrefixOf` x && ")" `isSuffixOf` x && all (== ',') (init $ tail x)
+
+
+
+splitName :: String -> Dictionary
+splitName name =  
+    case length nams of
+        5 -> Dictionary name (nams!!0) (TypeValue (nams!!3) (nams!!4)) (TypeClass (nams!!1) (nams!!2))
+        -- 7 -> [Dictionary (nams!!0 ++ "." ++ nams!!1) (TypeValue (nams!!3) (nams!!4)) (TypeClass (nams!!1) (nams!!2))]
+        _ -> error $ show ("Hill.Dictionary.getDictionaries",name)
+    where
+        nams = splitList "." name
