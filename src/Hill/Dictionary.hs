@@ -71,6 +71,7 @@ getDictionaries hill = concatMap f (funcs hill)
     where
         f (Func name args body) | isDictionary body =
                 if length nams == 5 then [Dict name (nams !! 2) (nams !! 1) (nams !! 4) (nams !! 3)]
+                else if length nams == 7 then [Dict name (nams !! 3) (nams !! 2) (nams !! 6) ((nams !! 4) ++ "." ++ (nams !! 5))]
                 else error $ show ("Hill.Dictionary.getDictionaries",name)
             where
                 nams = splitList "." name
