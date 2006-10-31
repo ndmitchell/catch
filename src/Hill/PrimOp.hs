@@ -17,18 +17,18 @@ data Op = OpIntIntInt  String (Int -> Int -> Int)
 
 
 ops :: [(String,Op)]
-ops = [("prim_LT_W",  OpIntIntBool "(<)" (<))
-      ,("prim_GT_W",  OpIntIntBool "(>)" (>))
-      ,("prim_EQ_W",  OpIntIntBool "(==)" (==))
-      ,("prim_NE_W",  OpIntIntBool "(/=)" (/=))
+ops = [("LT_W",  OpIntIntBool "(<)" (<))
+      ,("GT_W",  OpIntIntBool "(>)" (>))
+      ,("EQ_W",  OpIntIntBool "(==)" (==))
+      ,("NE_W",  OpIntIntBool "(/=)" (/=))
 
-      ,("prim_NEG_W", OpIntInt     "negate" negate)
+      ,("NEG_W", OpIntInt     "negate" negate)
 
-      ,("prim_SUB_W", OpIntIntInt  "(-)" (-))
-      ,("prim_ADD_W", OpIntIntInt  "(+)" (+))
+      ,("SUB_W", OpIntIntInt  "(-)" (-))
+      ,("ADD_W", OpIntIntInt  "(+)" (+))
 
-      ,("prim_QUOT",  OpIntIntInt  "quot" quot)
-      ,("prim_REM",   OpIntIntInt  "rem" rem)
+      ,("QUOT",  OpIntIntInt  "quot" quot)
+      ,("REM",   OpIntIntInt  "rem" rem)
       
       ,("YHC.Primitive.primIntSignum", OpIntInt "signum" signum)
       
