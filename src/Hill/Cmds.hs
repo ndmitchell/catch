@@ -17,11 +17,12 @@ import Hill.Haskell
 import Hill.Fusion
 import Hill.Dictionary
 import Hill.File
+import Hill.Check
 
 
 cmdsHill :: [HillAction]
 cmdsHill = cmdsReachable ++ cmdsShortName ++ cmdsSimple ++ cmdsArityRaise ++
            cmdsSpecialise ++ cmdsLambda ++ cmdsLets ++ cmdsPartial ++ cmdsDefunc ++
            cmdsSpecial ++ cmdsInline ++ cmdsHaskell ++ cmdsFusion ++ cmdsDictionary ++
-           cmdsFile
+           cmdsFile ++ cmdsCheck
 
