@@ -31,7 +31,7 @@ data Dict = Dict {
 
 
 removeDictionary :: Hill -> Hill
-removeDictionary hill = hill{datas = newdatas ++ datas hill, funcs = newfuncs ++ concatMap usedatas (funcs hill)}
+removeDictionary hill = hill{datas = newdatas ++ datas hill, funcs = map usedatas (newfuncs ++ filter elimold (funcs hill))}
     where
         dicts = getDictionaries hill
         classes = groupSetExtract dictClass dicts
@@ -41,22 +41,31 @@ removeDictionary hill = hill{datas = newdatas ++ datas hill, funcs = newfuncs ++
                 f xs@(x:_) = Data ("Dict" ++ dictClass x) (map g xs) []
                 g x = Ctor (dictClass x ++ dictType x) [] []
 
-        newfuncs = concatMap f classes
+        newpairs = concatMap f dicts
             where
-                f xs@(x:_) = zipWith (g xs) [0..] $ getMembers $ getFunc hill $ dictImp x
-                
-                g xs pos member = Func name [0] (Case (Var 0) alts)
+                f x = zipWith (\n a -> ((cls,n),a)) [0..] members
                     where
-                        name = dictClassMod (head xs) ++ "." ++ (reverse $ takeWhile (/= '.') $ reverse member)
-                        alts = [AltCtr (dictClass x ++ dictType x) (Fun $ mems !! pos) | x <- xs,
-                                        let mems = getMembers $ getFunc hill $ dictImp x]
-            
-            
-                getMembers (Func _ _ (Apply _ xs)) = map fromFun xs
+                        members = getMembers $ getFunc hill $ dictImp x
+                        cls = dictClass x ++ dictType x
+                        
+        getMembers (Func _ _ (Apply _ xs)) = map fromFun xs
+        
+        newfuncs = concatMap (f . head) classes
+            where
+                f x = zipWith (g x) [0..] $ getMembers $ getFunc hill $ dictImp x
+                
+                g x pos member = Func name [0] (Case (Var 0) alts)
+                    where
+                        memname = reverse $ takeWhile (/= '.') $ reverse member
+                        name = if isUpper (head memname)
+                               then concat $ intersperse "." (init (splitList "." (dictImp x)) ++ [splitList "." member !! 2])
+                               else dictClassMod x ++ "." ++ memname
+                        alts = [AltCtr a (Fun c) | ((a,b),c) <- newpairs, b == pos, a == dictClass x ++ dictType x]
 
         
-        usedatas x | funcName x `elem` map funcName newfuncs = []
-                   | otherwise = [mapOverHill f x]
+        elimold x = not $ funcName x `elem` map funcName newfuncs
+
+        usedatas x = mapOverHill f x
             where
                 f (Fun y) = case [d | d <- dicts, dictImp d == y] of
                                 [] -> Fun y
