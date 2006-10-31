@@ -40,10 +40,12 @@ foreign import primitive prim_EQ_D :: a -> b -> c
 
 -- erroneous mkIO stuff, to catch bugs elsewhere
 global_YHC'_Internal'__mkIOok2 :: (c->b->a) -> (c->b->IO a)
-global_YHC'_Internal'__mkIOok2 = undefined
+global_YHC'_Internal'__mkIOok2 = undef
 
 global_YHC'_Internal'__mkIOok3 :: (d->c->b->a) -> (d->c->b->IO a)
-global_YHC'_Internal'__mkIOok3 = undefined
+global_YHC'_Internal'__mkIOok3 = undef
+
+undef = error "undefined"
 
 
 -- make error primitive
