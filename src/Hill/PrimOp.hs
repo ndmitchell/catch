@@ -2,6 +2,7 @@
 module Hill.PrimOp(evalPrim, primImports, primHaskell, primIntToInteger) where
 
 import Hill.Type
+import Data.Char
 
 
 
@@ -46,7 +47,8 @@ evalPrim :: String -> [Expr] -> Maybe Expr
 evalPrim name args = do
     res <- lookup name ops
     case (res, args) of
-        (OpIntIntBool _ op, [Const (AInt a), Const (AInt b)]) -> Just $ mkBool $ op a b
+        (OpIntIntBool _ op, [Const (AInt  a), Const (AInt  b)]) -> Just $ mkBool $ op a b
+        (OpIntIntBool _ op, [Const (AChar a), Const (AChar b)]) -> Just $ mkBool $ op (ord a) (ord b)
         (OpIntIntInt  _ op, [Const (AInt a), Const (AInt b)]) -> Just $ mkInt  $ op a b
         (OpIntInt     _ op, [Const (AInt a)]) -> Just $ mkInt $ op a
         (OpIntegerInt _ op, [Const (AInteger a)]) -> Just $ mkInt $ op a
