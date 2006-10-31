@@ -14,8 +14,9 @@ hill-make
 	core-load
 	overlay-apply
 	core-hill
-	hill-remove-dict
 	hill-tag-main
+	hill-reachable
+	hill-remove-dict
 	hill-reachable
 	hill-short-name
 	hill-reachable
