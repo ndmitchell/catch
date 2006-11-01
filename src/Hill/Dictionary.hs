@@ -6,7 +6,6 @@ import Data.List
 import Data.Char
 import General.TextUtil
 import General.General
-import Debug.Trace
 
 
 cmdsDictionary = [hillCmdPure "remove-dict" (const removeDictionary)]
@@ -56,7 +55,7 @@ removeDictionary hill = hill{datas = newdatas ++ datas hill, funcs = newfuncs ++
                     where
                         members = getMembers $ getFunc hill $ dictName x
                 
-                g typcls xs member = trace name $ Func name [0] (Case (Var 0) alts)
+                g typcls xs member = Func name [0] (Case (Var 0) alts)
                     where
                         memname = (reverse . takeWhile (/= '.') . reverse) member
                         name = if isUpper (head memname) then name2 else typeClassModu typcls ++ "." ++ memname
@@ -66,9 +65,12 @@ removeDictionary hill = hill{datas = newdatas ++ datas hill, funcs = newfuncs ++
                                 typeClassModu typcls ++ "." ++ cls typcls ++ "." ++ 
                                 typeClassModu (typCls dict) ++ "." ++ cls (typCls dict)
 
+                        name3 x = if isUpper (head memname) then name4 x else Fun $ dictName x ++ "." ++ memname
+                        name4 x = Ctr ("Type" ++ val (typVal x))
+
                         alts = [AltCtr
                                     ("Type" ++ tstr)
-                                    (Apply (Fun $ dictName x ++ "." ++ memname) (map (\i -> Var 0 `Sel` ("type" ++ tstr ++ show i)) [1..typeFree (typVal x)]))
+                                    (Apply (name3 x) (map (\i -> Var 0 `Sel` ("type" ++ tstr ++ show i)) [1..typeFree (typVal x)]))
                                     | x <- xs, let tstr = val (typVal x)]
         
         getMembers (Func _ _ (Apply _ xs)) = map fromFun xs
