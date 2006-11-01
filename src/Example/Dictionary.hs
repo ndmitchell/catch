@@ -2,15 +2,6 @@
 module Dictionary where
 
 
-main :: Int -> Int -> [Bool]
-main a b = test a b : []
-
-
-test a b = a == b && a < b
-
-
-{-
-
 main :: Int -> Int -> String -> String -> Bool
 main a b c d = test a b && same c d
 
@@ -20,5 +11,3 @@ test a b = a == b && a < b
 
 same :: Eq a => a -> a -> Bool
 same a b = a == b
-
--}
