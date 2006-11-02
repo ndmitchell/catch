@@ -22,6 +22,7 @@ cmdsLets = [hillCmdPure "add-let" (const addLets)
            ,hillCmdPure "nub-let" (const nubLets)
            ,hillCmdPure "let-inline-simp" (const letInlineSimp)
            ,hillCmdPure "let-inline1" (const letInlineOnce)
+           ,hillCmdPure "let-inline" (const letInline)
            ,hillCmdPure "let-nf" (const letNormalForm)
            ]
 
@@ -99,7 +100,7 @@ topLetsExpr x = pickBinds (map fst binds) binds $ noLet x
 
 
 letInline :: ManipulateHill hill => hill -> hill
-letInline x = mapOverHill f x
+letInline x = mapOverHill f $ fullLet x
     where
         f (Let binds y) = replaceFree binds y
         f x = x
@@ -138,7 +139,7 @@ nubLets hill = mapOverHill f hill
                 grps = groupSetBy eq binds
                 rens = concatMap g grps
                 
-                eq (_,a) (_,b) = isVarSel a && a == b
+                eq (_,a) (_,b) = (isVarSel a || isConst a) && a == b
                 
                 g [x] = []
                 g (x:xs) = zip (map fst xs) (repeat $ Var $ fst x)
@@ -162,6 +163,13 @@ letNormalFormFunc hill avoid (Func name args body) = Func name newargs bod
         avoid2 = snub $ avoid ++ usedFree body ++ args
 
 
+-- replace Let (b:bs) in x ==> Let b (Let bs in x)
+fullLet x = mapOverHill f x
+    where
+        f (Let (b:bs) x) = Let [b] $ f $ mkLet bs x
+        f x = x
+
+
 letNormalFormExpr :: Hill -> [Int] -> Expr -> Expr
 letNormalFormExpr hill avoid x = x4
     where
@@ -171,12 +179,6 @@ letNormalFormExpr hill avoid x = x4
     
         free = [1..] \\ avoid
         
-        
-        -- replace Let (b:bs) in x ==> Let b (Let bs in x)
-        fullLet x = mapOverHill f x
-            where
-                f (Let (b:bs) x) = Let [b] $ f $ mkLet bs x
-                f x = x
         
         
         uniqueLet free x = runState (mapOverM f x) free
