@@ -4,6 +4,7 @@ module Hill.Dictionary(cmdsDictionary) where
 import Hill.Type
 import Data.List
 import Data.Char
+import Data.Maybe
 import General.TextUtil
 import General.General
 
@@ -60,7 +61,7 @@ removeDictionary hill = hill{datas = newdatas ++ datas hill, funcs = newfuncs ++
                         memname = (reverse . takeWhile (/= '.') . reverse) member
                         name = if isUpper (head memname) then name2 else typeClassModu typcls ++ "." ++ memname
 
-                        dict = splitName member
+                        dict = fromJust $ splitName member
                         name2 = dictModu dict ++ "." ++
                                 typeClassModu typcls ++ "." ++ cls typcls ++ "." ++ 
                                 typeClassModu (typCls dict) ++ "." ++ cls (typCls dict)
@@ -82,7 +83,7 @@ removeDictionary hill = hill{datas = newdatas ++ datas hill, funcs = newfuncs ++
 getDictionaries :: Hill -> [Dictionary]
 getDictionaries hill = concatMap f (funcs hill)
     where
-        f (Func name args body) | isDictionary args body = [splitName name]
+        f (Func name args body) | isDictionary args body = maybeToList $ splitName name
         f _ = []
         
         isDictionary args (Apply (Ctr tup) xs) = isTuple tup && all (isFunCall args) xs
@@ -97,8 +98,9 @@ getDictionaries hill = concatMap f (funcs hill)
 
 
 
-splitName :: String -> Dictionary
-splitName name =  
+splitName :: String -> Maybe Dictionary
+splitName name | not $ isUpper $ head $ last nams = Nothing
+               | otherwise = Just $
     case length nams of
         5 -> Dictionary name (nams!!0) (TypeValue (nams!!3) (nams!!4)) (TypeClass (nams!!1) (nams!!2))
         -- 7 -> [Dictionary (nams!!0 ++ "." ++ nams!!1) (TypeValue (nams!!3) (nams!!4)) (TypeClass (nams!!1) (nams!!2))]
