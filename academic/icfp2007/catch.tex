@@ -80,6 +80,13 @@ keyword1, keyword2
 
 \subsection{Road map}
 
+This paper first introduces a constraint language, along with examples of
+constraints and their informal meaning. Next we introduce the constraints in a
+more formal way, along with a small core functional language. Rather than
+extending the core language, we choose to transform full Haskell into this
+reduced language -- this section details our method. Finally the system is
+tested on a benchmark of Haskell programs, and the results are given.
+
 The Catch tool can be seen as 3 entirely separate sections. Initially a program
 is translated into the reduced Haskell language \S\ref{chap:yhc}. Second, the
 program is transformed into a simpler first-order program with the same
@@ -87,6 +94,114 @@ semantics \S\ref{chap:defunc}. Third, a constraint language
 \S\ref{chap:constraints} is used to analyse the program \S\ref{chap:backward}.
 Results are presented \S\ref{chap:results} along with concluding remarks
 \S\ref{chap:conc}.
+
+\section{Overview of Constraints}
+
+In order to implement a checker that can ensure unfailing patterns,
+it is useful to have some way of expressing properties of data
+values. A constraint is written as $\tup{e,r,c}$ , where $e$ is an
+expression, $r$ is a regular expression over selectors and $c$ is a
+set of constructors. Such a constraint asserts that any well-defined
+application to $e$ of a path of selectors described by $r$ must
+reach a constructor in the set $c$.
+
+These constraints are used as atoms in a predicate language with
+conjunction and disjunction, so constraints can be about several
+expressions and relations between them. The checker does not require
+a negation operator. We also use the term constraint to refer to
+logical formulae with constraints as atoms.
+
+\yesexample
+
+Consider the function \T{minimum}, defined as:
+
+\begin{code}
+minimum [x] = x
+minimum (a:b:xs) = minimum (min a b : xs)
+
+min a b = if a < b then a else b
+\end{code}
+
+Now consider the expression \T{minimum $e$}. The constraint that
+must hold for this expression to be safe is \cc{$e$}{:}. This says
+that the expression $e$ must reduce to an application of \T{:}, i.e.
+a non-empty list. In this example the path was $\lambda$ -- the
+empty path.\noexample
+
+\yesexample
+
+Consider the expression \T{map minimum $e$}. In this case the
+constraint generated is \c{$e$}{tl\K\D hd}{:}. If we apply any
+number (possibly zero) of \T{tl}s to $e$, then apply \T{hd}, we
+reach a \T{:} construction. Values satisfying this constraint
+include \T{[]} and \T{[[1],[2],[3]]}, but not \T{[[1],[]]}. The
+value \T{[]} satisfies this constraint because it is impossible to
+apply either \T{tl} or \T{hd}, and therefore the constraint does not
+assert anything about the possible constructors.
+
+\noexample
+
+Constraints divide up into three parts -- the \textit{subject}, the
+\textit{path} and the \textit{condition}.
+
+\begin{description}
+\item[The subject] in the above two examples was just $e$,
+representing any expression -- including a call, a construction or
+even a \T{case}.
+
+\item[The path] is a regular expression over selectors.
+
+A regular expression is defined as:\\ \\
+\begin{tabular}{ll}
+$s+t$ & union of regular expressions $s$ and $t$ \\
+$s\D t$ & concatenation of regular expressions $s$ then $t$ \\
+$s\K$  & any number (possibly zero) occurrences of $s$ \\
+\T{x} & a selector, such as \T{hd} or \T{tl} \\
+$\lambda$ & the language is the set containing the empty string \\
+$\phi$ & the language is the empty set
+\end{tabular}
+
+\item[The condition] is a set of constructors which, due to static type
+checking, must all be of the same result type.
+\end{description}
+
+
+\section{A Small Core Language}
+
+The Core language chosen for this purpose is like most others, with the
+exception of paths. The language is first order, has only simple case
+statements, and only algebraic data types. The evaluation strategy is lazy. All
+case statements are defined to be complete, with error being introduced where a
+pattern match error would occur. This means that the challenge is checking for
+calls to \textit{error}.
+
+The one thing present in our Core language, but not in other languages, is the
+\textit{path}. A path is represented as $e\D{}p$, where $e$ is the expression,
+and $p$ is a \textit{selector}. Some examples of selectors include \T{hd} and
+\T{tl}. A selector asserts that a data value has a given constructor, and then
+follows its appropriate field. For example \T(1:2:[]\D{}hd) is \T{1}. It is
+forbidden to write \T{[]\D{}hd}, or to ever require the evaluation of a
+variables selector which has the wrong constructor.
+
+Our use of paths contrasts with a traditional Core language's use of \T{case}
+statements with bindings, however our choice has a number of merits:
+
+
+\section{Manipulating Constraints}
+
+\subsection{Generating Constraints}
+
+
+
+\subsection{Manipulating Constraints}
+
+
+
+
+
+
+
+
 
 \section{Haskell: Sugarless and Typeless}
 \label{chap:yhc}
