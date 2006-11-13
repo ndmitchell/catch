@@ -2,6 +2,7 @@
 module Front.CmdHill(cmdHill) where
 
 import System.Directory
+import Control.Monad
 
 import Front.MakeHill
 import Front.CmdLine
@@ -40,4 +41,4 @@ initialHill _ x = do
 
 cmdsAnalysis = [Action "tram-patterns" f]
     where
-        f state arg (ValueHill x) = tramDriver state x >> return (ValueHill x)
+        f state arg (ValueHill x) = liftM ValueBool $ tramDriver state x

@@ -92,3 +92,4 @@ instance Show Value where
     show (ValueHill x) = show x
     show (ValueCore x) = show x
     show (ValueFile x) = "FILE: " ++ x
+    show (ValueBool x) = "BOOL: " ++ show x

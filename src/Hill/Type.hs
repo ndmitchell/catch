@@ -205,6 +205,7 @@ instance ManipulateHill Expr where
 data Value = ValueHill {valueHill :: Hill}
            | ValueFile {valueFile :: FilePath}
            | ValueCore {valueCore :: Core}
+           | ValueBool {valueBool :: Bool}
 
 type HillAction = Action Value
 
