@@ -25,3 +25,18 @@ propagate hill@(Hill _ funcs) (Scope func reqs) = res
 		
 		h args (Var name) = lookupJust name (zip funcArgs args)
 		h args x = x
+
+
+collect :: Hill -> (Expr -> Bool) -> [(FuncName, Reqs, Expr)]
+collect hill test = [(name,reqs,expr) | Func name _ body <- funcs hill, (reqs,expr) <- f propTrue body]
+    where
+        f prop expr = [(prop, expr) | test expr] ++
+                      case expr of
+                          Case on alts -> concatMap (g prop expr) alts
+                          _ -> concatMap (f prop) (getChildren expr)
+
+        g prop (Case on alts) (Default expr) = f (propAnd prop req) expr
+            where req = newReqs hill on (emptyPath hill) (ctorOthers $ getCtor hill $ altCtr $ head alts)
+        
+        g prop (Case on alts) (AltCtr ctr expr) = f (propAnd prop req) expr
+            where req = newReqs hill on (emptyPath hill) [ctr]
