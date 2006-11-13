@@ -1,5 +1,5 @@
 
-module Tram.Propagate(propagate) where
+module Tram.Propagate(propagate, collect) where
 
 import Tram.Type
 import Tram.Reduce

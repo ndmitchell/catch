@@ -8,6 +8,7 @@ import Control.Monad
 import Tram.Template
 import Tram.Type
 import Tram.Backward
+import Tram.Propagate
 import Hill.All
 import General.General
 import Front.CmdLine
@@ -61,6 +62,4 @@ tramDriver cmdState hill = do
 
 
 initialReqs :: Hill -> [Scope]
-initialReqs (Hill _ funcs) = concatMap f funcs
-	where
-		f (Func name _ alts) = error "Driver.initialReqs, todo" -- [Scope name (reqsNot cond) | (cond,Left _) <- alts]
+initialReqs hill = [Scope func (reqsNot reqs) | (func,reqs,expr) <- collect hill isError]
