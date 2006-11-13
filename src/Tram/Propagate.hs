@@ -13,18 +13,22 @@ import Hill.All
 -- which would give a speed up
 propagate :: Hill -> Scope -> Scopes
 propagate hill@(Hill _ funcs) (Scope func reqs) = res
-	where
-		res = scopesAnds $ concatMap f funcs
-		Func _ funcArgs _ = getFunc hill func
-	
-		f (Func name _ xs) = error "Propagate.propagate, todo" {- [Scope name newReq |
-			(cond, Right code) <- xs, Call calls args <- allOver code, calls == func,
-			let newReq = reqsNot cond `propOr` propMapReduce (g args) reqs, not $ propIsTrue newReq] -}
-			
-		g args (Req hite expr path ctor) = newReqs hite (mapOver (h args) expr) path ctor
-		
-		h args (Var name) = lookupJust name (zip funcArgs args)
-		h args x = x
+    where
+        res = scopesAnds [Scope name newReq |
+                    (name,cond,Call _ args) <- collect hill isCall,
+                    let newReq = reqsNot cond `propOr` propMapReduce (g args) reqs,
+                    not $ propIsTrue newReq]
+
+        isCall (Call nam _) = nam == func
+        isCall _ = False
+        
+
+        argList = funcArgs $ getFunc hill func
+    
+        g args (Req hill expr path ctor) = newReqs hill (mapOver (h args) expr) path ctor
+        
+        h args (Var name) = lookupJust name (zip argList args)
+        h args x = x
 
 
 collect :: Hill -> (Expr -> Bool) -> [(FuncName, Reqs, Expr)]
