@@ -5,14 +5,16 @@ import System.Directory
 
 import Front.MakeHill
 import Front.CmdLine
+import Tram.Driver
 import Hill.All
 import Hill.Check
 
 
+allCmds = cmdsHill ++ cmdsAnalysis
 
 cmdHill :: [String] -> IO ()
 cmdHill args = do
-    cmdLine initialHill (map insertCheck cmdsHill) args
+    cmdLine initialHill (map insertCheck allCmds) args
     return ()
 
 
@@ -34,3 +36,8 @@ initialHill _ x = do
     case [a | (a,b) <- zip files bs, b] of
         [] -> error $ "File not found, " ++ x
         (x:_) -> return $ ValueFile x
+
+
+cmdsAnalysis = [Action "tram-patterns" f]
+    where
+        f state arg (ValueHill x) = tramDriver state x >> return (ValueHill x)
