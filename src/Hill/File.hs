@@ -8,7 +8,7 @@ import Yhc.Core
 import Convert.CoreHill
 import Front.CmdLine
 import Control.Monad
-import System.FilePath
+import System.FilePath.Version_0_10
 import Data.List
 import System
 
@@ -34,7 +34,7 @@ overlayMake state _ val = system "yhc -hide -core Library/Primitive.hs" >> retur
 
 coreLoad :: CmdLineState -> String -> Value -> IO Value
 coreLoad state _ (ValueFile x) = liftM ValueCore $ loadCore x2
-    where x2 = dropFileName x </> "ycr" </> getBaseName x <.> "yca"
+    where x2 = dropFileName x </> "ycr" </> takeBaseName x <.> "yca"
 
 coreHill :: CmdLineState -> String -> Value -> IO Value
 coreHill state _ (ValueCore x) = return $ ValueHill $ convHill x
