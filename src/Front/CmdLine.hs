@@ -80,7 +80,7 @@ loadAliases =
         f acc [] = [acc]
     
         f acc@(name,cmds) ((x1:xs):ss)
-            | isSpace x1 =
+            | isSpace x1 && not (all isSpace xs) =
                 f (name, cmds ++ [dropWhile isSpace xs]) ss
         
             | otherwise =
