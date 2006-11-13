@@ -68,6 +68,8 @@ isMake (Make{}) = True; isMake _ = False
 
 isConst (Const _) = True; isConst _ = False
 
+isError (Error{}) = True; isError _ = False
+
 
 expandStr1 :: String -> Expr
 expandStr1 "" = Make "[]" []
