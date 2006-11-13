@@ -103,7 +103,7 @@ templateCalc template hill hndl req = do
 instantiate :: Hill -> Req -> Reqs
 instantiate (Hill datas funcs) r1@(Req a (Call name args) b c) = res
     where
-        res = undefined -- propMapReduce rep $ newReqs a body b c
+        res = propMapReduce rep $ newReqs a body b c
     
         (args2, body) = head [(a,b) | Func nam a b <- funcs, nam == name]
         
