@@ -40,7 +40,7 @@ tramDriver cmdState hill = do
     where
         hndl = cmdLineHandle cmdState
         conds = initialReqs hill
-        logFile x = cmdLineOutput cmdState x
+        logFile x = cmdLineOutput cmdState x ++ ".log"
         
         outBoth msg = hPutStrLn hndl msg >> putStrLn msg
         
