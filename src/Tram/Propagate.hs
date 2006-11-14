@@ -40,7 +40,7 @@ collect hill test = [(name,reqs,expr) | Func name _ body <- funcs hill, (reqs,ex
                           _ -> concatMap (f prop) (getChildren expr)
 
         g prop (Case on alts) (Default expr) = f (propAnd prop req) expr
-            where req = newReqs hill on (emptyPath hill) (ctorOthers $ getCtor hill $ altCtr $ head alts)
+            where req = newReqs hill on (emptyPath hill) (defaultAlts hill alts)
         
         g prop (Case on alts) (AltCtr ctr expr) = f (propAnd prop req) expr
             where req = newReqs hill on (emptyPath hill) [ctr]
