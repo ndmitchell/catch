@@ -97,6 +97,16 @@ hill-anal4
 	hill-let-inline1
 
 
+prep
+	hill-make
+	hill-analyse
+	hill-save
+
+anal
+	hill-load
+	tram-patterns
+
+
 compilepre
 	short-name
 	reachable
