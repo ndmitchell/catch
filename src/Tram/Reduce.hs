@@ -17,30 +17,37 @@ reduces reqs = propMap reduce reqs
 
 reduce :: Req -> Reqs
 reduce req@(Req hite expr path ctors) = case expr of
-	Call{} -> propLit req
-	Var{} -> propLit req
-	_ -> reduces $ reduceOne req
+    Call{} -> propLit req
+    Var{} -> propLit req
+    _ -> reduces $ reduceOne req
 
 
 -- apply 1 step reduction to a Sel or a Make
 -- this function does the real work!
 reduceOne :: Req -> Reqs
 reduceOne req@(Req hite expr path ctors) = case expr of
-	Star -> propFalse
-	Sel x y -> newReqs hite x (path `integrate` y) ctors
-	Make y xs -> propAnds (p1:ps)
-		where
-			cargs = ctorArgs $ getCtor hite y
+    Star -> propFalse
+    Sel x y -> newReqs hite x (path `integrate` y) ctors
+    Make y xs -> propAnds (p1:ps)
+        where
+            cargs = ctorArgs $ getCtor hite y
 
-			p1 = if ewpPath path then propBool (y `elem` ctors) else propTrue
-			ps = zipWithEq f xs cargs
-			
-			f x carg = case path `differentiate` carg of
-						   Nothing -> propTrue
-						   Just path2 -> newReqs hite x path2 ctors
-	
-	_ -> error $ "reduceOne: " ++ show req
-	
+            p1 = if ewpPath path then propBool (y `elem` ctors) else propTrue
+            ps = zipWithEq f xs cargs
+            
+            f x carg = case path `differentiate` carg of
+                           Nothing -> propTrue
+                           Just path2 -> newReqs hite x path2 ctors
+    
+    Case on alts -> propAnds $ map f alts
+        where
+            f (AltCtr ctr ex) = g [ctr] ex
+            f (Default ex) = g (defaultAlts hite alts) ex
+            
+            g ctrs ex = propNot (newReqs hite on (emptyPath hite) ctrs) `propOr` newReqs hite ex path ctors
+    
+    _ -> error $ "reduceOne: " ++ show req
+    
 
 
 -- take a function that reduces a Call
@@ -51,9 +58,9 @@ reducesWithM f reqs = propMapReduceM (reduceWithM f) reqs
 
 reduceWithM :: (Req -> IO Reqs) -> Req -> IO Reqs
 reduceWithM f req@(Req hite expr path ctors) = case expr of
-	Call{} -> f req >>= reducesWithM f
-	Var{} -> return $ propLit req
-	_ -> reducesWithM f $ reduceOne req
+    Call{} -> f req >>= reducesWithM f
+    Var{} -> return $ propLit req
+    _ -> reducesWithM f $ reduceOne req
 
 
 propMapReduceM :: Monad m => (Req -> m Reqs) -> Reqs -> m Reqs
