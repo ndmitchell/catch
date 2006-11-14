@@ -2,7 +2,6 @@
 module Data.Proposition.Internal where
 
 import Control.Monad.Identity
-import General.General
 
 
 class Prop p where

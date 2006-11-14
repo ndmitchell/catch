@@ -3,8 +3,6 @@ module Data.BDD(BDD, {-BDDLit(..), -} showBDDBy, bddAnd, bddNot, bddOr, bddLit, 
 	bddIsTrue, mapBDDM, bddIsFalse, mapBDD, bddBool, bddTrue, bddFalse, bddSimplify,
 	bddApplyAnd) where
     
-import Debug.Trace
-import General.General
 import qualified Data.Map as Map
 import Data.IORef
 import Control.Monad
