@@ -46,7 +46,7 @@ class (Show a, Ord a) => PropLit a where
 	
 	a ?/\ b = None
 	a ?\/ b = None
-	a ?=> b = Nothing
+	a ?=> b = lookup b a
 	simp a = Nothing
 
 
