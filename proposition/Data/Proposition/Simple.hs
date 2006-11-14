@@ -50,4 +50,6 @@ instance Prop PropSimple where
     propAll (And xs) = concatMap propAll xs
     propAll (Or  xs) = concatMap propAll xs
 
-
+    propRebuild (Atom a) = propLit a
+    propRebuild (And xs) = propAnds (map propRebuild xs)
+    propRebuild (Or  xs) = propOrs  (map propRebuild xs)
