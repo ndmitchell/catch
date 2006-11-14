@@ -1,14 +1,25 @@
+{-|
+    Proposition that focuses on being correct,
+    and working as a test harness/comparison
+    function
+-}
 
-module Data.Proposition.Simple where
+module Data.Proposition.Simple(PropSimple) where
 
 import Data.Proposition.Internal
 import Control.Monad
-
+import Data.List
 
 
 data PropSimple a = Atom a
                   | And [PropSimple a]
                   | Or  [PropSimple a]
+
+
+instance Show a => Show (PropSimple a) where
+    show (Atom a) = show a
+    show (And xs) = "(" ++ concat (intersperse " ^ " (map show xs)) ++ ")"
+    show (Or  xs) = "(" ++ concat (intersperse " v " (map show xs)) ++ ")"
 
 
 instance Prop PropSimple where
