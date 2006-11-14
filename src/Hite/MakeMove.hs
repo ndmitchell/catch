@@ -9,6 +9,7 @@ import Hite.Type
 import Hite.Show
 import Maybe
 import General.General
+import Safe
 
 cmd = cmdHitePure (const makeMove) "make-move"
             "Move constructors to the best place"

@@ -5,6 +5,7 @@ import Hite.Type(FuncName, FuncArg)
 import Hite.DataType
 import General.General
 import Data.List
+import Safe
 
 
 data IHite = IHite Datas [IFunc]
@@ -135,7 +136,7 @@ collectFree x = nub $ concatMap collectFree $ getChildren x
 
 replaceFree :: [(Int,IExpr)] -> IExpr -> IExpr
 replaceFree rep x = case x of
-	Var i -> lookupDefault (Var i) i rep
+	Var i -> lookupJustDef (Var i) i rep
 	Lambda i x -> Lambda i $ replaceFree [(a,b) | (a,b) <- rep, a `notElem` i] x
 	x -> setChildren x (map (replaceFree rep) (getChildren x))
 

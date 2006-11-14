@@ -7,6 +7,7 @@ import Tram.Path
 import Data.Proposition
 import Data.BDD
 import Data.List
+import Safe
 
 
 -- DATA DEFINITIONS

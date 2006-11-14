@@ -5,6 +5,7 @@ import Hite.Type
 import List
 import General.General
 import Data.Predicate
+import Safe
 
 
 cmd = cmdHitePure (const mcase) "mcase"

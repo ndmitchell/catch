@@ -5,6 +5,7 @@ import Transform.Type
 import General.General
 import Data.List
 import Control.Exception
+import Safe
 
 
 specialise :: IHite -> IHite

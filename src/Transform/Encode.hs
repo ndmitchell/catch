@@ -4,6 +4,7 @@ module Transform.Encode(encode) where
 import Hite.Type as L
 import Transform.Type as R
 import General.General
+import Safe
 
 
 encode :: Hite -> IHite

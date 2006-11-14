@@ -4,6 +4,7 @@ module Hite.Blur(unrollExpr) where
 import Hite.Type
 import Options
 import General.General
+import Safe
 
 
 unrollExpr :: Expr -> Expr

@@ -7,6 +7,7 @@ import Control.Exception
 import Data.List
 import Data.Maybe
 import General.General
+import Safe
 
 
 exprTweak = joinTweaks [basicExpr, inlineExpr]

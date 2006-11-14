@@ -11,6 +11,7 @@ import Hite.DataType
 import Hite.TypeType
 
 import General.General
+import Safe
 import General.Commands
 import Maybe
 import List

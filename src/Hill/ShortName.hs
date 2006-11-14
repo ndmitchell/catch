@@ -4,7 +4,7 @@ module Hill.ShortName(shortName, cmdsShortName) where
 import Hill.Type
 import List
 import Maybe
-import General.General
+import Safe
 
 cmdsShortName = [hillCmdPure "short-name" (const shortName)]
 

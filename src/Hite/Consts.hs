@@ -7,6 +7,7 @@ import Hite.Normalise
 
 import List
 import General.General
+import Safe
 import Maybe
 
 import Debug.Trace

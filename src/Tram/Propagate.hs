@@ -7,6 +7,7 @@ import Data.Maybe
 import General.General
 import Data.Proposition
 import Hill.All
+import Safe
 
 -- NOTE: may produce lots of (f,a) (f,b) pairs
 -- can collapse some at the propagate stage if have same cond

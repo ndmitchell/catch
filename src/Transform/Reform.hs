@@ -7,6 +7,7 @@ import General.General
 import Data.List
 import Data.Maybe
 import Debug.Trace
+import Safe
 
 
 
@@ -141,7 +142,7 @@ specialiseStrong ihite@(IHite datas funcs) args = IHite datas $ f funcs []
         collectCall :: FuncName -> [IExpr] -> Maybe Desc
         collectCall x xs = if all (== TemplateId) res then Nothing else Just (x,res)
             where res = [if a == Strong then b else TemplateId
-                        | (a,b) <- zip (lookupNote "collectCall" x args) (map makeTemplate xs)]
+                        | (a,b) <- zip (lookupJustNote "collectCall" x args) (map makeTemplate xs)]
 
 
         makeTemplate :: IExpr -> Template
@@ -159,7 +160,7 @@ specialiseStrong ihite@(IHite datas funcs) args = IHite datas $ f funcs []
 eliminateWeak :: IHite -> ArgWeights -> (IHite, ArgWeights)
 eliminateWeak (IHite datas funcs) weights = (IHite datas $ map f funcs, map h weights)
     where
-        keep name lst = [a | (a,b) <- zip lst (lookupNote "eliminateWeak" name weights), b /= Weak]
+        keep name lst = [a | (a,b) <- zip lst (lookupJustNote "eliminateWeak" name weights), b /= Weak]
     
         f (Func name args body _) = Func name (keep name args) (mapOver g body) []
         
@@ -194,7 +195,7 @@ calcArgs ihite@(IHite datas funcs) = fixp next base
                 h i = maximum $ Weak : [a | (a,b) <- res, b == i]
             
                 g (Case on xs) = [(Strong, on)]
-                g (Call name xs) = zip (lookupNote "calcArgs" name know) xs
+                g (Call name xs) = zip (lookupJustNote "calcArgs" name know) xs
                 g (Apply x args) = (Strong,x) : zip (repeat Normal) args
                 g x = []
 

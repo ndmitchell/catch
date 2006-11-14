@@ -65,44 +65,6 @@ fromLeft  (Left  x) = x
 ---------------------------------------------------------------------
 -- SAFE VERSIONS
 
-headNote msg (x:xs) = x
-headNote msg [] = error $ "headNote: [] (" ++ msg ++ ")"
-
-fromJustNote msg (Just a) = a
-fromJustNote msg Nothing = error $ "fromJust2: Nothing (" ++ msg ++ ")"
-
-lookupJust x ys = case lookup x ys of
-                       Nothing -> error $ "lookupJust, " ++ show x
-                       Just y -> y
-
-lookupDefault def x ys = case lookup x ys of
-							  Nothing -> def
-							  Just y -> y
-
-lookupNote msg x ys = case lookup x ys of
-                           Nothing -> error $ "lookupNote, " ++ show x ++ ", " ++ msg
-                           Just y -> y
-
-
-assertNote :: String -> Bool -> x -> x
-assertNote msg False _ = error $ "Assertion failed: " ++ msg
-assertNote _ True x = x
-
-
-readNote :: Read a => String -> String -> a
-readNote msg s =  case [x | (x,t) <- reads s, ("","") <- lex t] of
-              [x] -> x
-              []  -> error $ "readNote: " ++ msg ++ " no parse: " ++ s
-              _   -> error $ "readNote: " ++ msg ++ " ambiguous parse: " ++ s
-
-
-
-lookupDef def val lst = case lookup val lst of
-                            Nothing -> def
-                            Just x -> x
-
-
-
 
 zipWithEqNote :: (Show a, Show b) => String -> (a -> b -> c) -> [a] -> [b] -> [c]
 zipWithEqNote msg f x y = g x y
