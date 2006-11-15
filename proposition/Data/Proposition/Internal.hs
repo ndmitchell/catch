@@ -2,6 +2,7 @@
 module Data.Proposition.Internal where
 
 import Control.Monad.Identity
+import Control.Monad.State
 
 
 class Prop p where
@@ -16,7 +17,6 @@ class Prop p where
     propNot :: PropNot a => p a -> p a
 
     propMapM :: (Monad m, PropLit a) => (a -> m (p a)) -> p a -> m (p a)
-    propAll  :: p a -> [a]
     
     propRebuild :: (PropLit a, Prop q) => p a -> q a
 
@@ -31,6 +31,10 @@ class Prop p where
     propMap  :: PropLit a => (a -> p a) -> p a -> p a
     propMap f = runIdentity . propMapM (return . f)
 
+    propAll  :: PropLit a => p a -> [a]
+    propAll x = execState (propMapM f x) []
+        where f x = modify (x:) >> return (propLit x)
+    
     propBool :: Bool -> p a
     propBool b = if b then propTrue else propFalse
 

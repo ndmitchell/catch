@@ -46,10 +46,6 @@ instance Prop PropSimple where
     propMapM f (And xs) = liftM And $ mapM (propMapM f) xs
     propMapM f (Or  xs) = liftM Or  $ mapM (propMapM f) xs
     
-    propAll (Lit a ) = [a]
-    propAll (And xs) = concatMap propAll xs
-    propAll (Or  xs) = concatMap propAll xs
-
     propRebuild (Lit a ) = propLit a
     propRebuild (And xs) = propAnds (map propRebuild xs)
     propRebuild (Or  xs) = propOrs  (map propRebuild xs)
