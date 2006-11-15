@@ -13,6 +13,43 @@ data Formula a = Lit a
 
 
 
+instance Ord a => Ord (Formula a) where
+    compare = compareFormula
+
+
+sortFormula :: Ord a => Formula a -> Formula a
+sortFormula (Or  x) = Or  $ sortFormulas x
+sortFormula (And x) = And $ sortFormulas x
+sortFormula x = x
+
+
+sortFormulas :: Ord a => [Formula a] -> [Formula a]
+sortFormulas xs = sortBy compareFormula xs
+
+
+compareFormula :: Ord a => Formula a -> Formula a -> Ordering
+compareFormula (Lit a) (Lit b) = compare a b
+compareFormula (Or  x) (Or  y) = compareList x y
+compareFormula (And x) (And y) = compareList x y
+compareFormula x y = asInt x `compare` asInt y
+    where
+        asInt (Lit _) = 0
+        asInt (Or  _) = 1
+        asInt (And _) = 2
+
+
+compareList :: Ord a => [Formula a] -> [Formula a] -> Ordering
+compareList [] [] = EQ
+compareList [] _  = LT
+compareList _  [] = GT
+compareList (x:xs) (y:ys) | x == y = compareList xs ys
+                          | otherwise = compare x y
+
+
+
+
+
+
 instance Prop Formula where
     propTrue = predTrue
     propFalse = predFalse
