@@ -5,7 +5,6 @@ import Hill.All
 import General.General
 import Tram.Path
 import Data.Proposition
-import Data.BDD
 import Data.List
 import Safe
 
@@ -61,6 +60,12 @@ newReqs hite zexpr path ctors | null ctors = propFalse
 
 instance PropLit Req where
 
+    (?=>) = impliesReq
+    (?/\) a b = case combineReqsAnd a b of
+                    Nothing -> None
+                    Just x -> Value x
+
+
 instance PropNot Req where
 	litNot (Req hite expr path ctors) =
 		newReq hite expr path
@@ -75,7 +80,7 @@ reqsNot x = propNot x
 
 -- SIMPLIFIERS
 
-simplifyReqs = bddSimplify impliesReq . bddApplyAnd combineReqsAnd
+simplifyReqs x = propSimplify x -- bddSimplify impliesReq . bddApplyAnd combineReqsAnd
 
 --simplifyScopes = id -- mapBDD f . bddApplyAnd combineScopesAnd
 --	where
