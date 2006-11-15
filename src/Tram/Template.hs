@@ -5,8 +5,8 @@ import Tram.Type
 import Tram.Reduce
 import Tram.Fixp
 import System.IO
-import Data.BDD
 import General.General
+import Data.Proposition
 import Data.IORef
 import Data.Char
 import Data.List
@@ -46,7 +46,7 @@ templateAbstract (Req a (Call name xs) b c) = newReq a (Call name args) b c
 
 
 templateConcrete :: Req -> Reqs -> Reqs
-templateConcrete (Req _ (Call name args) _ _) y = propMapReduce (bddLit . f) y
+templateConcrete (Req _ (Call name args) _ _) y = propMapReduce (propLit . f) y
     where
         f (Req a b c d) = newReq a (mapOver g b) c d
         g (Var i) = args !! i
@@ -57,7 +57,7 @@ templateConcrete (Req _ (Call name args) _ _) y = propMapReduce (bddLit . f) y
 templateCalc :: Template -> Hill -> Handle -> Req -> IO Reqs
 templateCalc template hill hndl req = do
         hPutStrLn hndl $ "BEGIN: templateCalc, " ++ show req
-        res <- liftM simplifyReqs $ fixp bddTrue f req
+        res <- liftM simplifyReqs $ fixp propTrue f req
         hPutStrLn hndl $ "END  : templateCalc, " ++ show res
         return $ simplifyReqs res
     where
