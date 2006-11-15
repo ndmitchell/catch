@@ -4,7 +4,6 @@ module Tram.Reduce(reduce, reduces, reduceWithM, reducesWithM, propMapReduceM, p
 import Tram.Type
 import General.General
 import Data.Proposition
-import Data.BDD
 import Control.Monad
 import Control.Monad.Identity
 import Hill.All
@@ -64,7 +63,7 @@ reduceWithM f req@(Req hill expr path ctors) = case expr of
 
 
 propMapReduceM :: Monad m => (Req -> m Reqs) -> Reqs -> m Reqs
-propMapReduceM f x = mapBDDM (liftM reduces . f) x
+propMapReduceM f x = propMapM (liftM reduces . f) x
 
 propMapReduce :: (Req -> Reqs) -> Reqs -> Reqs
 propMapReduce f x = runIdentity $ propMapReduceM (return . f) x
