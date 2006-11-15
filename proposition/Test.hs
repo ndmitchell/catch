@@ -25,29 +25,26 @@ instance (PropLit a, Arbitrary a) => Arbitrary (PropSimple a) where
             f n = oneof [liftM id half, liftM2 propAnd half half, liftM2 propOr half half]
                 where half = f (n `div` 2)
 
+instance (PropLit a, Arbitrary a) => Arbitrary (PropAll a) where
+    arbitrary = do x <- arbitrary
+                   return $ PropAll x (propRebuild x) (propRebuild x)
 
-type Test = PropSimple PropTest
+
+type Test = PropAll PropTest
 
 
 test :: Test -> Bool
-test simp = eval simp == eval bdd
-    where bdd = propRebuild simp :: BDD PropTest
+test simp = eval simp
 
 
 testAnd :: Test -> Test -> Bool
-testAnd a b = eval (a `propAnd` b) == eval (a2 `propAnd` b2)
-    where
-        a2 = propRebuildBDD a
-        b2 = propRebuildBDD b
+testAnd a b = eval (a `propAnd` b)
 
 testOr :: Test -> Test -> Bool
-testOr a b = eval (a `propOr` b) == eval (a2 `propOr` b2)
-    where
-        a2 = propRebuildBDD a
-        b2 = propRebuildBDD b
+testOr a b = eval (a `propOr` b)
 
 testMap :: Test -> Bool
-testMap a = eval (propMap f a) == eval (propMap f $ propRebuildBDD a)
+testMap a = eval (propMap f a)
     where
         rep = [('a','f'),('f','a')]
         f (PropTest x) = propLit $ case lookup x rep of
@@ -59,7 +56,7 @@ testMap a = eval (propMap f a) == eval (propMap f $ propRebuildBDD a)
 
 eval :: Prop p => p PropTest -> Bool
 eval prop = if propIsTrue res then True
-            else if propIsFalse res then False
+            else if propIsFalse res then True
             else error "Proposition.eval does not return a boolean"
     where
         res = propMap f prop
