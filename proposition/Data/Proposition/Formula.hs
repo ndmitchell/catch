@@ -45,16 +45,16 @@ disableSimplify = False
 
 (??\/) :: PropLit a => a -> a -> Reduce a
 a ??\/ b | disableSimplify = None
-         | otherwise = case [(a,True)] ?=> b of
-                            Just y -> if y then Literal True else Value a
-                            Nothing -> a ?\/ b
+         | otherwise = a ?\/ b {- case [(a,True)] ?=> b of
+                            Just True -> Value a
+                            _ -> a ?\/ b -}
 
 
 (??/\) :: PropLit a => a -> a -> Reduce a
 a ??/\ b | disableSimplify = None
          | otherwise = case [(a,True)] ?=> b of
-                            Just y -> if y then Value a else Literal False
-                            Nothing -> a ?/\ b
+                            Just True -> Value a
+                            _ -> a ?/\ b
 
 
 reduceList :: PropLit a => (a -> a -> Reduce a) -> [a] -> [Formula a]
