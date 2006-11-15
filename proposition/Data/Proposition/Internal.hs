@@ -34,6 +34,9 @@ class Prop p where
     propAll  :: PropLit a => p a -> [a]
     propAll x = execState (propMapM f x) []
         where f x = modify (x:) >> return (propLit x)
+        
+    propSimplify :: PropLit a => p a -> p a
+    propSimplify = id
     
     propBool :: Bool -> p a
     propBool b = if b then propTrue else propFalse
