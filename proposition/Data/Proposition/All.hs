@@ -23,12 +23,12 @@ instance Prop PropAll where
     
     propIsTrue (PropAll a b c) =
         if propIsTrue a
-        then assertNote "PropAll.propIsTrue" (propIsTrue b && propIsTrue c) True
+        then assertNote ("PropAll.propIsTrue" ++ show (a,b,c)) (propIsTrue b && propIsTrue c) True
         else False
 
     propIsFalse (PropAll a b c) =
         if propIsFalse a
-        then assertNote "PropAll.propIsFalse" (propIsFalse b && propIsFalse c) True
+        then assertNote ("PropAll.propIsFalse" ++ show (a,b,c)) (propIsFalse b && propIsFalse c) True
         else False
     
     propLit a = PropAll (propLit a) (propLit a) (propLit a)

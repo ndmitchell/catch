@@ -8,8 +8,8 @@ import Control.Monad.State
 class Prop p where
     propTrue  :: p a
     propFalse :: p a
-    propIsTrue  :: p a -> Bool
-    propIsFalse :: p a -> Bool
+    propIsTrue  :: PropLit a => p a -> Bool
+    propIsFalse :: PropLit a => p a -> Bool
     
     propLit :: PropLit a => a -> p a
     propAnd :: PropLit a => p a -> p a -> p a
