@@ -1,8 +1,9 @@
 
 import Data.Proposition
+import Data.Proposition.Char
 import Test.QuickCheck
 import Control.Monad
-
+import Debug.Trace
 
 
 data PropTest = PropTest Char deriving (Eq, Ord)
@@ -54,8 +55,9 @@ testMap a = eval (propMap f a)
 
 
 
-eval :: Prop p => p PropTest -> Bool
-eval prop = if propIsTrue res then True
+eval :: (Show (p PropTest), Prop p) => p PropTest -> Bool
+eval prop = -- trace (show prop) $
+            if propIsTrue res then True
             else if propIsFalse res then True
             else error "Proposition.eval does not return a boolean"
     where
