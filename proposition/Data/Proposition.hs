@@ -18,3 +18,5 @@ propRebuildBDD = propRebuild
 propRebuildSimple :: (Prop p, PropLit a) => p a -> PropSimple a
 propRebuildSimple = propRebuild
 
+propRebuildFormula :: (Prop p, PropLit a) => p a -> Formula a
+propRebuildFormula = propRebuild
