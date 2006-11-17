@@ -16,9 +16,6 @@ data BDD a = AtomTrue
 		   deriving (Eq, Ord)
 
 
-class (Show a, Ord a) => BDDLit a where
-	litNot :: a -> BDD a
-
 instance Show a => Show (BDD a) where
     show a = showBDDBy show a
 
