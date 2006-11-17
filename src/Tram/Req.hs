@@ -45,7 +45,7 @@ scopesAnds xs = filter (\(Scope a b) -> not (propIsTrue b)) $ map f $
 
 newReq :: Hill -> Expr -> Path -> [CtorName] -> Req
 newReq hite zexpr path ctors
---	| path == newPath hite ["tl"] && ctors == ["[]"] = Req hite zexpr (emptyPath hite) ctors
+	| path == newPath hite ["tl"] && ctors == ["[]"] = Req hite zexpr (emptyPath hite) ctors
 	| otherwise = Req hite zexpr path (nub $ sort ctors)
 
 newReqs :: Hill -> Expr -> Path -> [CtorName] -> Reqs
