@@ -19,6 +19,20 @@ instance Show Expr where
     show x = render $ docExpr x
 
 
+-- show an expression, wrapped in brackets if required
+showExprBrackets :: Expr -> String
+showExprBrackets x = ['('|b] ++ show x ++ [')'|b]
+    where
+        b = f x
+        
+        f (Var _) = False
+        f Star = False
+        f (Fun _) = False
+        f (Ctr _) = False
+        f (Const _) = False
+        f (Sel _ _) = False
+        f _ = True
+
 
 docFunc :: Func -> Doc
 docFunc (Func name args expr) = text initial <>> docExpr expr
