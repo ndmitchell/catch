@@ -29,10 +29,12 @@ instance Prop PropSimple where
     propFalse = Or []
     
     propIsTrue (Lit _ ) = False
+    propIsTrue (Not x ) = propIsFalse x
     propIsTrue (And xs) = all propIsTrue xs
     propIsTrue (Or  xs) = any propIsTrue xs
     
     propIsFalse (Lit _ ) = False
+    propIsFalse (Not x ) = propIsTrue x
     propIsFalse (And xs) = any propIsFalse xs
     propIsFalse (Or  xs) = all propIsFalse xs
     
@@ -42,9 +44,11 @@ instance Prop PropSimple where
     propOr  a b = Or  [a,b]
 
     propMapM f (Lit a ) = f a
+    propMapM f (Not a ) = liftM Not $ propMapM f a
     propMapM f (And xs) = liftM And $ mapM (propMapM f) xs
     propMapM f (Or  xs) = liftM Or  $ mapM (propMapM f) xs
     
     propRebuild (Lit a ) = propLit a
+    propRebuild (Not a ) = propNot  (propRebuild a)
     propRebuild (And xs) = propAnds (map propRebuild xs)
     propRebuild (Or  xs) = propOrs  (map propRebuild xs)
