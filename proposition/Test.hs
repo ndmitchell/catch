@@ -34,8 +34,8 @@ instance (PropLit a, Arbitrary a) => Arbitrary (PropAll a) where
 type Test = PropAll PropTest
 
 
-test :: Test -> Bool
-test simp = eval simp
+testBasic :: Test -> Bool
+testBasic simp = eval simp
 
 
 testAnd :: Test -> Test -> Bool
