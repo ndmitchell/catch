@@ -8,6 +8,7 @@ import Control.Monad
 
 
 data Formula a = Lit a
+               | Not a
                | Or  [Formula a]
                | And [Formula a]
 
@@ -231,12 +232,13 @@ predBool False = predFalse
 
 
 -- | Negate a predicate
-predNot :: PropNot a => Formula a -> Formula a
+predNot :: PropLit a => Formula a -> Formula a
 predNot x =
     case x of
         Or  xs -> predAnd $ map predNot xs
         And xs -> predOr  $ map predNot xs
-        Lit x  -> Lit $ litNot x
+        Not x  -> Lit x
+        Lit x  -> Not x
 
 
 -- * Show

@@ -13,7 +13,7 @@ instance Prop BDD where
     propLit = bddLit
     propAnd = bddAnd
     propOr  = bddOr
-    propNot = bddNot litNot
+    propNot = bddNot
 
     propMapM = mapBDDM
 

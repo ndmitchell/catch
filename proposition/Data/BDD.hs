@@ -56,12 +56,10 @@ bddAnds x = foldr bddAnd AtomTrue  x
 bddOrs  x = foldr bddOr  AtomFalse x
 
 
-bddNot :: (Show a, Ord a) => (a -> a) -> BDD a -> BDD a
-bddNot invert = rebalance . swap
-	where
-		swap AtomFalse = AtomTrue
-		swap AtomTrue  = AtomFalse
-		swap (Choice a f t) = Choice (invert a) (swap t) (swap f)
+bddNot :: (Show a, Ord a) => BDD a -> BDD a
+bddNot AtomTrue  = AtomFalse
+bddNot AtomFalse = AtomTrue
+bddNot (Choice a f t) = Choice a (bddNot f) (bddNot t)
 
 
 bddAnd :: Ord a => BDD a -> BDD a -> BDD a

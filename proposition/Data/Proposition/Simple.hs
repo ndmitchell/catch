@@ -12,12 +12,14 @@ import Data.List
 
 
 data PropSimple a = Lit a
+                  | Not (PropSimple a)
                   | And [PropSimple a]
                   | Or  [PropSimple a]
 
 
 instance Show a => Show (PropSimple a) where
     show (Lit a ) = show a
+    show (Not x ) = "~(" ++ show x ++ ")"
     show (And xs) = "(" ++ concat (intersperse " ^ " (map show xs)) ++ ")"
     show (Or  xs) = "(" ++ concat (intersperse " v " (map show xs)) ++ ")"
 
@@ -35,12 +37,9 @@ instance Prop PropSimple where
     propIsFalse (Or  xs) = all propIsFalse xs
     
     propLit = Lit
+    propNot a = Not a
     propAnd a b = And [a,b]
     propOr  a b = Or  [a,b]
-    
-    propNot (Lit a ) = Lit $ litNot a
-    propNot (And xs) = Or  $ map propNot xs
-    propNot (Or  xs) = And $ map propNot xs
 
     propMapM f (Lit a ) = f a
     propMapM f (And xs) = liftM And $ mapM (propMapM f) xs
