@@ -7,7 +7,7 @@ import Data.Proposition
 import Control.Monad
 import Control.Monad.Identity
 import Hill.All
-import Debug.Trace
+import Data.List
 
 
 reduces :: Reqs -> Reqs
@@ -40,11 +40,14 @@ reduceOne req@(Req hill expr path ctors) = case expr of
     
     Case on alts -> propAnds $ map f alts
         where
-            f (AltCtr ctr ex) = g [ctr] ex
-            f (Default ex) = g (defaultAlts hill alts) ex
+            allCtrs = ctorNames $ getCtor hill $ altCtr $ head alts
+            seenCtrs = [x | AltCtr x _ <- alts]
+
+            f (AltCtr ctr ex) = g (delete ctr allCtrs) ex
+            f (Default ex) = g (allCtrs \\ seenCtrs) ex
             
-            g ctrs ex = propNot (newReqs hill on (emptyPath hill) ctrs) `propOr` newReqs hill ex path ctors
-    
+            g ctrs ex = newReqs hill on (emptyPath hill) ctrs `propOr` newReqs hill ex path ctors
+
     _ -> error $ "reduceOne: " ++ show req
     
 

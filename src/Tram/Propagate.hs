@@ -4,6 +4,7 @@ module Tram.Propagate(propagate, collect) where
 import Tram.Type
 import Tram.Reduce
 import Data.Maybe
+import Data.List
 import General.General
 import Data.Proposition
 import Hill.All
@@ -17,7 +18,7 @@ propagate hill@(Hill _ funcs) (Scope func reqs) = res
     where
         res = scopesAnds [Scope name newReq |
                     (name,cond,Call _ args) <- collect hill isCall,
-                    let newReq = reqsNot cond `propOr` propMapReduce (g args) reqs,
+                    let newReq = cond `propOr` propMapReduce (g args) reqs,
                     not $ propIsTrue newReq]
 
         isCall (Call nam _) = nam == func
@@ -33,15 +34,20 @@ propagate hill@(Hill _ funcs) (Scope func reqs) = res
 
 
 collect :: Hill -> (Expr -> Bool) -> [(FuncName, Reqs, Expr)]
-collect hill test = [(name,reqs,expr) | Func name _ body <- funcs hill, (reqs,expr) <- f propTrue body]
+collect hill test = [(name,reqs,expr) | Func name _ body <- funcs hill, (reqs,expr) <- f propFalse body]
     where
         f prop expr = [(prop, expr) | test expr] ++
                       case expr of
-                          Case on alts -> concatMap (g prop expr) alts
-                          _ -> concatMap (f prop) (getChildren expr)
+                          Case on alts -> concatMap g alts
+                              where
+                                  allCtrs = ctorNames $ getCtor hill $ altCtr $ head alts
+                                  seenCtrs = [x | AltCtr x _ <- alts]
+                                  
+                                  g (AltCtr ctr ex) = h (delete ctr allCtrs) ex
+                                  g (Default ex) = h (allCtrs \\ seenCtrs) ex
+                                  
+                                  h ctrs ex = f (propOr prop reqs) ex
+                                      where reqs = newReqs hill on (emptyPath hill) ctrs
 
-        g prop (Case on alts) (Default expr) = f (propAnd prop req) expr
-            where req = newReqs hill on (emptyPath hill) (defaultAlts hill alts)
-        
-        g prop (Case on alts) (AltCtr ctr expr) = f (propAnd prop req) expr
-            where req = newReqs hill on (emptyPath hill) [ctr]
+                          
+                          _ -> concatMap (f prop) (getChildren expr)
