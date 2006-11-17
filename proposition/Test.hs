@@ -52,6 +52,8 @@ testMap a = eval (propMap f a)
                              Nothing -> PropTest x
                              Just y -> PropTest y
 
+testNot :: Test -> Bool
+testNot a = eval (propNot a)
 
 
 
