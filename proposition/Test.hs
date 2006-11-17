@@ -23,7 +23,7 @@ instance (PropLit a, Arbitrary a) => Arbitrary (PropSimple a) where
     arbitrary = sized f
         where
             f 0 = liftM propLit arbitrary
-            f n = oneof [liftM id half, liftM2 propAnd half half, liftM2 propOr half half]
+            f n = oneof [liftM id half, liftM propNot half, liftM2 propAnd half half, liftM2 propOr half half]
                 where half = f (n `div` 2)
 
 instance (PropLit a, Arbitrary a) => Arbitrary (PropAll a) where
