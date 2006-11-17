@@ -23,6 +23,7 @@ showBDDBy :: (a -> String) -> BDD a -> String
 showBDDBy f AtomTrue = "True"
 showBDDBy f AtomFalse = "False"
 showBDDBy f (Choice a AtomFalse AtomTrue) = f a
+showBDDBy f (Choice a AtomTrue AtomFalse) = "~" ++ f a
 showBDDBy f (Choice a f1 t1) = f a ++ " <" ++ showBDDBy f f1 ++ " | " ++ showBDDBy f t1 ++ ">"
 
 
