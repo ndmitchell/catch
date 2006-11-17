@@ -65,11 +65,12 @@ instance PropLit Req where
                     Nothing -> None
                     Just x -> Value x
 
-
+{-
 instance PropNot Req where
 	litNot (Req hite expr path ctors) =
 		newReq hite expr path
 		(ctorNames (getCtor hite (headNote "Tram.Type.reqNot" ctors)) \\ ctors)
+-}
 
 reqsNot :: Reqs -> Reqs
 reqsNot x = propNot x
