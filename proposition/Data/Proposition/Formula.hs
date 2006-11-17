@@ -301,6 +301,7 @@ mapPropLitM f x =
         Or  xs -> liftM predOr  $ fs xs
         And xs -> liftM predAnd $ fs xs
         Lit x  -> f x
+        Not x  -> liftM predNot $ f x
     where
         fs = mapM (mapPropLitM f)
 
