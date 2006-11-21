@@ -48,7 +48,7 @@ newReq hite zexpr path ctors
     | path == newPath hite ["tl"] && ctors == ["[]"] = Req hite zexpr (emptyPath hite) ctors
     | otherwise = Req hite zexpr path (nub $ sort ctors)
 
-newReqs :: Hill -> Expr -> Path -> [CtorName] -> Reqs
+newReqs :: Prop p => Hill -> Expr -> Path -> [CtorName] -> p Req
 newReqs hite zexpr path ctors | null ctors = propFalse
                               | ctors `setEq` baseSet = propTrue
                               | otherwise = propLit $ newReq hite zexpr path ctors
