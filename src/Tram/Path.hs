@@ -1,7 +1,7 @@
 
 module Tram.Path(Path, nullPath, newPath, ewpPath,
 	emptyPath, finitePath, makeFinitePath, integrate, differentiate,
-	subsetPath) where
+	subsetPath, blurPath) where
 
 import General.General
 import Data.Char
@@ -90,3 +90,22 @@ subsetPath (Path _ a) (Path _ b) = f a b
 		f xs              (PathStar y:ys) = f xs ys
 		f [] [] = True
 		f _ _ = False
+
+
+-- blur paths are required
+-- the result must be a superset of the input
+blurPath :: Hill -> Path -> Path
+blurPath hill (Path hite x) = Path hite (combineSucc $ map useStar x)
+    where
+        useStar (PathAtom ctor)
+            | TyCon (dataName carg) (map TyFree $ frees carg) == cargType carg
+            = PathStar [ctor]
+            where carg = getCArg hite ctor
+        useStar x = x
+    
+    
+        combineSucc (PathStar x1:PathStar x2:xs)
+            | dataName (getCArg hite $ head x1) == dataName (getCArg hite $ head x2)
+            = combineSucc (PathStar (nub $ x1 ++ x2) : xs)
+        combineSucc (x:xs) = x : combineSucc xs
+        combineSucc [] = []

@@ -94,4 +94,20 @@ impliesReq given req@(Req hite on path ctors) =
 impliesReq _ _ = Nothing
 
 
+-- NEGATION AND BLURRING
 
+-- make sure there is no negation within a formula
+noNegate :: Formula Req -> Formula Req
+noNegate = toProp . propFold (PropFold (lst propOrs) (lst propAnds) negate Right)
+    where
+        toProp = either id propLit
+        lst join = Left . join . map toProp
+        
+        negate (Right (Req hill expr path ctrs)) = Right $ Req hill expr path ctrs2
+            where ctrs2 = ctorNames (getCtor hill (head ctrs)) \\ ctrs
+        negate x = error "Tram.Req.noNegate, bad"
+
+
+blurReqs :: Formula Req -> Formula Req
+blurReqs = propMap f . noNegate
+    where f (Req hill expr path ctrs) = propLit $ Req hill expr (blurPath hill path) ctrs
