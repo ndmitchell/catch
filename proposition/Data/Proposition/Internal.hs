@@ -5,6 +5,10 @@ import Control.Monad.Identity
 import Control.Monad.State
 
 
+data PropFold lit res = PropFold {foldOr  :: [res] -> res, foldAnd :: [res] -> res,
+                                  foldNot :: res -> res  , foldLit :: lit -> res  }
+
+
 class Prop p where
     propTrue  :: p a
     propFalse :: p a
@@ -18,8 +22,8 @@ class Prop p where
 
     propMapM :: (Monad m, PropLit a) => (a -> m (p a)) -> p a -> m (p a)
     
-    propRebuild :: (PropLit a, Prop q) => p a -> q a
-
+    propFold :: PropLit a => PropFold a res -> p a -> res
+    
     -- non essential methods
     propAnds :: PropLit a => [p a] -> p a
     propAnds = foldr propAnd propTrue
@@ -27,6 +31,8 @@ class Prop p where
     propOrs :: PropLit a => [p a] -> p a
     propOrs = foldr propOr propFalse
 
+    propRebuild :: (PropLit a, Prop q) => p a -> q a
+    propRebuild = propFold (PropFold propOrs propAnds propNot propLit)
 
     propMap  :: PropLit a => (a -> p a) -> p a -> p a
     propMap f = runIdentity . propMapM (return . f)
