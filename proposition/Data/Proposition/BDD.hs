@@ -24,7 +24,7 @@ instance Prop BDD where
 
     propMapM = mapMonadic
 
-    propSimplify = bddSimplify (?=>) . bddApplyAnd liftAnd
+    propSimplify = bddSimplify (?=>) -- . bddApplyAnd liftAnd
         where
             liftAnd a b = case a ?/\ b of
                                Value x -> Just x
@@ -88,3 +88,42 @@ mapMonadic app x = do
             AtomTrue -> t
             AtomFalse -> f
             Choice a f1 t1 -> Choice a (replaceBools f1 f t) (replaceBools t1 f t)
+
+
+
+data Focus = FLeft | FRight | FBoth | FNone
+
+rebalance :: (Show a, Ord a) => BDD a -> BDD a
+rebalance AtomTrue = AtomTrue
+rebalance AtomFalse = AtomFalse
+rebalance (Choice a f t) = {- assert (hasBalance res) $ -} res
+    where
+        res = g $ Choice a (rebalance f) (rebalance t)
+        
+        g (Choice a f t) = case focus of
+                FNone -> choice a f t
+                FBoth ->
+                    case compare a af of
+                        EQ -> choice a ff tt
+                        LT -> choice a f t
+                        GT -> choice af (g $ Choice a ff tf) (g $ Choice a ft tt)
+                FLeft ->
+                    case compare a af of
+                        EQ -> choice a ff t
+                        LT -> choice a f t
+                        GT -> choice af (g $ Choice a ff t) (g $ Choice a ft t)
+                FRight ->
+                    case compare a at of
+                        EQ -> choice a f tt
+                        LT -> choice a f t
+                        GT -> choice at (g $ Choice a f tf) (g $ Choice a f tt)
+            where
+                Choice af ff ft = f
+                Choice at tf tt = t
+            
+                focus = case (f,t) of
+                            (Choice a _ _, Choice b _ _) -> case compare a b of {EQ -> FBoth; LT -> FLeft; GT -> FRight}
+                            (Choice a _ _, _) -> FLeft
+                            (_, Choice b _ _) -> FRight
+                            _ -> FNone
+
