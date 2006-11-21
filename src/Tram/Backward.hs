@@ -53,5 +53,5 @@ backward hill template hndl x = do
             
         simple :: Scope -> IO Scope
         simple (Scope name x) = do
-            x2 <- reducesWithM (templateGet template) $ simplifyReqs x
-            return $ Scope name $ simplifyReqs x2
+            x2 <- reducesWithM (templateGet template) $ propSimplify x
+            return $ Scope name $ propSimplify x2

@@ -68,9 +68,6 @@ instance PropLit Req where
 
 -- SIMPLIFIERS
 
-simplifyReqs x = propSimplify x
-
-
 combineReqsAnd :: Req -> Req -> Maybe Req
 combineReqsAnd (Req hite on1 path1 ctors1) (Req _ on2 path2 ctors2)
     | on1 == on2 && path1 == path2 = Just (Req hite on1 path1 (sort $ ctors2 `intersect` ctors1))
