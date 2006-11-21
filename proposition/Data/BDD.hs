@@ -161,28 +161,28 @@ mapBDDM :: (Show a, Monad m, Ord a) => (a -> m (BDD a)) -> BDD a -> m (BDD a)
 mapBDDM app x = do
         (d, res) <- g app x Map.empty
         return $ rebalance res
+    where
+
+        g app (Choice a f0 t0) cache = do
+            (cache,a2) <- case Map.lookup a cache of
+                Just a2 -> return (cache,a2)
+                Nothing -> do
+                    a2 <- app a
+                    return (Map.insert a a2 cache,a2)
+
+            case a2 of
+                AtomTrue -> g app t0 cache
+                AtomFalse -> g app f0 cache
+                Choice a2 f1 t1 -> do
+                    (cache,f0) <- g app f0 cache
+                    (cache,t0) <- g app t0 cache
+                    return (cache, Choice a2 (h f1 f0 t0) (h t1 f0 t0))
 
 
-g app (Choice a f0 t0) cache = do
-    (cache,a2) <- case Map.lookup a cache of
-        Just a2 -> return (cache,a2)
-        Nothing -> do
-            a2 <- app a
-            return (Map.insert a a2 cache,a2)
+        g app x cache = return (cache,x)
 
-    case a2 of
-        AtomTrue -> g app t0 cache
-        AtomFalse -> g app f0 cache
-        Choice a2 f1 t1 -> do
-            (cache,f0) <- g app f0 cache
-            (cache,t0) <- g app t0 cache
-            return (cache, Choice a2 (h f1 f0 t0) (h t1 f0 t0))
-
-
-g app x cache = return (cache,x)
-
--- replace all occurances of AtomTrue/AtomFalse with the given predicate
-h rep f t = case rep of
-    AtomTrue -> t
-    AtomFalse -> f
-    Choice a f1 t1 -> Choice a (h f1 f t) (h t1 f t)
+        -- replace all occurances of AtomTrue/AtomFalse with the given predicate
+        h rep f t = case rep of
+            AtomTrue -> t
+            AtomFalse -> f
+            Choice a f1 t1 -> Choice a (h f1 f t) (h t1 f t)
