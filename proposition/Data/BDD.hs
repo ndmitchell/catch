@@ -8,13 +8,6 @@ data BDD a = AtomTrue
 		   deriving (Eq, Ord)
 
 
-instance Show a => Show (BDD a) where
-    show AtomTrue = "True"
-    show AtomFalse = "False"
-    show (Choice a AtomFalse AtomTrue) = show a
-    show (Choice a AtomTrue AtomFalse) = "~" ++ show a
-    show (Choice a f t) = show a ++ " <" ++ show f ++ " | " ++ show t ++ ">"
-
 
 bddValid :: Ord a => BDD a -> Bool
 bddValid (Choice a f1 t1) = f a f1 && f a t1

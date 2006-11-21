@@ -31,6 +31,14 @@ instance Prop BDD where
                                _ -> Nothing
 
 
+instance Show a => Show (BDD a) where
+    show AtomTrue = "True"
+    show AtomFalse = "False"
+    show (Choice a AtomFalse AtomTrue) = show a
+    show (Choice a AtomTrue AtomFalse) = "~" ++ show a
+    show (Choice a f t) = show a ++ " <" ++ show f ++ " | " ++ show t ++ ">"
+
+
 ---------------------------------------------------------------------
 -- MERGING, FOR OR/AND
 
