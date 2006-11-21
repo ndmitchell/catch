@@ -1,5 +1,5 @@
 
-module Data.BDD(BDD, {-BDDLit(..), -} showBDDBy, bddAnd, bddNot, bddOr, bddLit, bddAnds, bddOrs,
+module Data.BDD(BDD, {-BDDLit(..), -} showBDDBy, bddAnd, bddNot, bddOr, bddLit,
 	bddIsTrue, mapBDDM, bddIsFalse, bddTrue, bddFalse, bddSimplify,
 	bddApplyAnd) where
     
@@ -49,9 +49,6 @@ bddApplyAnd merge = rebalance . f
 
 bddLit :: a -> BDD a
 bddLit a = Choice a AtomFalse AtomTrue
-
-bddAnds x = foldr bddAnd AtomTrue  x
-bddOrs  x = foldr bddOr  AtomFalse x
 
 
 bddNot :: (Show a, Ord a) => BDD a -> BDD a
