@@ -1,7 +1,7 @@
 
 module Tram.Propagate(propagate, collect) where
 
-import Tram.Type
+import Tram.Req
 import Tram.Reduce
 import Data.Maybe
 import Data.List

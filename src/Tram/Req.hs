@@ -1,5 +1,5 @@
 
-module Tram.Req where
+module Tram.Req(module Tram.Req, module Tram.Path) where
 
 import Hill.All
 import General.General

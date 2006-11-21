@@ -1,7 +1,7 @@
 
 module Tram.Backward(backward) where
 
-import Tram.Type
+import Tram.Req
 import Tram.Template
 import Tram.Propagate
 import Tram.Reduce

@@ -1,7 +1,7 @@
 
 module Tram.Template(Template, templateInit, templateGet) where
 
-import Tram.Type
+import Tram.Req
 import Tram.Reduce
 import Tram.Fixp
 import System.IO

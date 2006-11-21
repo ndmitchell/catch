@@ -1,7 +1,7 @@
 
 module Tram.Reduce(reduce, reduces, reduceWithM, reducesWithM, propMapReduceM, propMapReduce) where
 
-import Tram.Type
+import Tram.Req
 import General.General
 import Data.Proposition
 import Control.Monad

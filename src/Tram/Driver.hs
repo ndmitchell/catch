@@ -6,7 +6,7 @@ import Data.Proposition
 import Control.Monad
 
 import Tram.Template
-import Tram.Type
+import Tram.Req
 import Tram.Backward
 import Tram.Propagate
 import Hill.All
