@@ -24,7 +24,7 @@ instance Prop BDD where
 
     propMapM = mapMonadic
 
-    propSimplify = bddSimplify (?=>) -- . bddApplyAnd liftAnd
+    propSimplify = simplifyImplies -- . bddApplyAnd liftAnd
         where
             liftAnd a b = case a ?/\ b of
                                Value x -> Just x
@@ -126,4 +126,16 @@ rebalance (Choice a f t) = {- assert (hasBalance res) $ -} res
                             (Choice a _ _, _) -> FLeft
                             (_, Choice b _ _) -> FRight
                             _ -> FNone
+
+---------------------------------------------------------------------
+-- SIMPLIFICATION
+
+simplifyImplies :: PropLit a => BDD a -> BDD a
+simplifyImplies x = f [] x
+    where
+        f context (Choice on false true) =
+            case context ?=> on of
+                Nothing -> choice on (f ((on,False):context) false) (f ((on,True):context) true)
+                Just b -> f context (if b then true else false)
+        f _ x = x
 

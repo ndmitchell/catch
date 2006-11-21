@@ -46,13 +46,3 @@ hasBalance (Choice a f t) = check a f && check a t
         check a0 _ = True
 hasBalance _ = True
 
-
-
-bddSimplify :: Ord a => ([(a,Bool)] -> a -> Maybe Bool) -> BDD a -> BDD a
-bddSimplify test x = f [] x
-	where
-		f context (Choice on false true) =
-			case test context on of
-				Nothing -> choice on (f ((on,False):context) false) (f ((on,True):context) true)
-				Just b -> f context (if b then true else false)
-		f _ x = x
