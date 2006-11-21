@@ -238,7 +238,7 @@ predNot x =
         Or  xs -> predAnd $ map predNot xs
         And xs -> predOr  $ map predNot xs
         Not x  -> Lit x
-        Lit x  -> Not x
+        Lit x  -> maybe (Not x) Lit (litNot x)
 
 
 -- * Show
