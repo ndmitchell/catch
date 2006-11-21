@@ -152,3 +152,19 @@ simplifyAnd = rebalance . f
         f (Choice on false true) = Choice on (f false) (f true)
         f x = x
 
+
+---------------------------------------------------------------------
+-- CHECKS
+
+isValid :: Ord a => BDD a -> Bool
+isValid = isBalanced
+
+
+isBalanced :: Ord a => BDD a -> Bool
+isBalanced (Choice a f t) = check a f && check a t
+    where
+        check a0 (Choice a f t) = a0 < a && check a f && check a t
+        check a0 _ = True
+isBalanced _ = True
+
+
