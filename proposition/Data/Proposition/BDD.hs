@@ -28,6 +28,7 @@ instance Prop BDD where
     propOr  = mergeWith propIsFalse propIsTrue
 
     propMapM = mapMonadic
+    propFold = fold
 
     propSimplify = simplifyImplies . simplifyAnd
 
@@ -130,6 +131,25 @@ rebalance (Choice a f t) = {- assert (hasBalance res) $ -} res
                             (Choice a _ _, _) -> FLeft
                             (_, Choice b _ _) -> FRight
                             _ -> FNone
+
+
+---------------------------------------------------------------------
+-- FOLDING
+
+fold :: PropFold a res -> BDD a -> res
+fold fs AtomTrue  = foldAnd fs []
+fold fs AtomFalse = foldOr  fs []
+
+-- (a => t) ^ (¬a => f)
+-- (¬a v t) ^ (a  v  f)
+fold fs (Choice a f t) = (not a2 || fold fs t) && (a2 || fold fs f)
+    where
+        a2 = foldLit fs a
+        not = foldNot fs
+        (||) a b = foldOr  fs [a,b]
+        (&&) a b = foldAnd fs [a,b]
+
+
 
 ---------------------------------------------------------------------
 -- SIMPLIFICATION
