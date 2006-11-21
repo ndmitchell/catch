@@ -4,10 +4,6 @@ module Data.BDD(BDD, bddAnd, bddNot, bddOr, bddLit,
 	bddApplyAnd) where
     
 import qualified Data.Map as Map
-import Data.IORef
-import Control.Monad
-import Control.Monad.Identity
-import Control.Exception
 
 
 data BDD a = AtomTrue
