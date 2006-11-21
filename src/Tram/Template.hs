@@ -14,7 +14,7 @@ import Control.Monad
 import Hill.All
 
 
-data Template = Template Hill Handle (IORef [(Req, Reqs)])
+data Template = Template Hill Handle (IORef [(Req, BDD Req)])
 
 
 templateInit :: Hill -> Handle -> IO Template
@@ -24,7 +24,7 @@ templateInit hill hndl = do
 
 
 -- first element of Req must be a Call
-templateGet :: Template -> Req -> IO Reqs
+templateGet :: Prop p => Template -> Req -> IO (p Req)
 templateGet template@(Template hill hndl cache) req = do
     let abstract = templateAbstract req
     res <- readIORef cache
@@ -35,7 +35,7 @@ templateGet template@(Template hill hndl cache) req = do
                    modifyIORef cache ((abstract,ans):)
                    hPutStrLn hndl $ "Add: " ++ show abstract ++ " = " ++ show ans
                    return ans
-    return $ templateConcrete req ans
+    return $ propRebuild $ templateConcrete req ans
 
 
 
@@ -45,7 +45,7 @@ templateAbstract (Req a (Call name xs) b c) = newReq a (Call name args) b c
     where args = map Var [0..length xs-1]
 
 
-templateConcrete :: Req -> Reqs -> Reqs
+templateConcrete :: Prop p => Req -> p Req -> p Req
 templateConcrete (Req _ (Call name args) _ _) y = propMapReduce (propLit . f) y
     where
         f (Req a b c d) = newReq a (mapOver g b) c d
