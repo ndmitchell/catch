@@ -1,5 +1,5 @@
 
-module Data.BDD(BDD, {-BDDLit(..), -} showBDDBy, bddAnd, bddNot, bddOr, bddLit,
+module Data.BDD(BDD, showBDDBy, bddAnd, bddNot, bddOr, bddLit,
 	bddIsTrue, mapBDDM, bddIsFalse, bddTrue, bddFalse, bddSimplify,
 	bddApplyAnd) where
     
