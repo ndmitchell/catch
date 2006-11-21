@@ -7,8 +7,6 @@ import Tram.Propagate
 import Tram.Reduce
 import Tram.Fixp
 import System.IO
-import General.General
-import Control.Monad
 import Data.Proposition
 import Data.Maybe
 import Data.List
