@@ -1,7 +1,5 @@
 
-module Data.BDD(BDD, bddAnd, bddNot, bddOr, bddLit,
-	bddIsTrue, mapBDDM, bddIsFalse, bddTrue, bddFalse, bddSimplify,
-	bddApplyAnd) where
+module Data.BDD where
     
 import qualified Data.Map as Map
 
