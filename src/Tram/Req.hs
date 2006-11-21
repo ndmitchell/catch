@@ -65,37 +65,16 @@ instance PropLit Req where
                     Nothing -> None
                     Just x -> Value x
 
-{-
-instance PropNot Req where
-    litNot (Req hite expr path ctors) =
-        newReq hite expr path
-        (ctorNames (getCtor hite (headNote "Tram.Type.reqNot" ctors)) \\ ctors)
--}
-
-
--- instance PropLit Scope where
-    
-
 
 -- SIMPLIFIERS
 
-simplifyReqs x = propSimplify x -- bddSimplify impliesReq . bddApplyAnd combineReqsAnd
-
---simplifyScopes = id -- mapBDD f . bddApplyAnd combineScopesAnd
---    where
---        f (Scope func xs) = newScopes func (simplifyReqs xs)
+simplifyReqs x = propSimplify x
 
 
 combineReqsAnd :: Req -> Req -> Maybe Req
 combineReqsAnd (Req hite on1 path1 ctors1) (Req _ on2 path2 ctors2)
     | on1 == on2 && path1 == path2 = Just (Req hite on1 path1 (sort $ ctors2 `intersect` ctors1))
     | otherwise = Nothing
-
-
---combineScopesAnd :: Scope -> Scope -> Maybe Scope        
---combineScopesAnd (Scope f1 x1) (Scope f2 x2)
---    | f1 == f2 = Just (Scope f1 (propAnd x1 x2))
---    | otherwise = Nothing
 
 
 impliesReq :: [(Req, Bool)] -> Req -> Maybe Bool
