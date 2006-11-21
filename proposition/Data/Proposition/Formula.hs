@@ -65,7 +65,7 @@ instance Prop Formula where
 
     propMapM = mapPropLitM
     
-    propRebuild = foldPred propAnds propOrs propLit
+    propFold = foldFormula
 
 
 -- * Debugging options
@@ -326,6 +326,16 @@ foldPred for fand fone x =
         Lit x -> fone x
     where
         f = map (foldPred for fand fone)
+
+
+foldFormula :: PropFold a res -> Formula a -> res
+foldFormula fs x =
+    case x of
+        Or  x -> foldOr  fs (map (foldFormula fs) x)
+        And x -> foldAnd fs (map (foldFormula fs) x)
+        Lit x -> foldLit fs x
+        Not x -> foldNot fs (foldLit fs x)
+
 
 {-
 
