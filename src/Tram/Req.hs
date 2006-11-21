@@ -18,6 +18,9 @@ data Scope = Scope FuncName Reqs
 type Reqs = BDD Req
 data Req = Req Hill Expr Path [CtorName]
 
+-- Formula Req has no negation within in
+-- BDD Req may do
+
 instance Eq Req where
     (Req _ a1 b1 c1) == (Req _ a2 b2 c2) = a1 == a2 && b1 == b2 && c1 == c2
 
@@ -61,6 +64,7 @@ newReqs hite zexpr path ctors | null ctors = propFalse
 instance PropLit Req where
     (?=>) = impliesReq
     (?/\) = combineReqsAnd
+    litNot = Just . notReq
 
 
 -- SIMPLIFIERS
@@ -96,18 +100,10 @@ impliesReq _ _ = Nothing
 
 -- NEGATION AND BLURRING
 
--- make sure there is no negation within a formula
-noNegate :: Formula Req -> Formula Req
-noNegate = toProp . propFold (PropFold (lst propOrs) (lst propAnds) negate Right)
-    where
-        toProp = either id propLit
-        lst join = Left . join . map toProp
-        
-        negate (Right (Req hill expr path ctrs)) = Right $ Req hill expr path ctrs2
-            where ctrs2 = ctorNames (getCtor hill (head ctrs)) \\ ctrs
-        negate x = error "Tram.Req.noNegate, bad"
+notReq (Req hill expr path ctrs) = Req hill expr path ctrs2
+    where ctrs2 = ctorNames (getCtor hill (head ctrs)) \\ ctrs
 
 
 blurReqs :: Formula Req -> Formula Req
-blurReqs = propMap f . noNegate
+blurReqs = propMap f
     where f (Req hill expr path ctrs) = propLit $ Req hill expr (blurPath hill path) ctrs
