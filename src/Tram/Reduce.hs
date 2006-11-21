@@ -10,11 +10,12 @@ import Hill.All
 import Data.List
 
 
-reduces :: Reqs -> Reqs
+-- | Should have no negate done first
+reduces :: Prop p => p Req -> p Req
 reduces reqs = propMap reduce reqs
 
 
-reduce :: Req -> Reqs
+reduce :: Prop p => Req -> p Req
 reduce req@(Req hill expr path ctors) = case expr of
     Call{} -> propLit req
     Var{} -> propLit req
@@ -23,7 +24,7 @@ reduce req@(Req hill expr path ctors) = case expr of
 
 -- apply 1 step reduction to a Sel or a Make
 -- this function does the real work!
-reduceOne :: Req -> Reqs
+reduceOne :: Prop p => Req -> p Req
 reduceOne req@(Req hill expr path ctors) = case expr of
     Star -> propFalse
     Sel x y -> newReqs hill x (path `integrate` y) ctors
@@ -54,19 +55,19 @@ reduceOne req@(Req hill expr path ctors) = case expr of
 
 -- take a function that reduces a Call
 -- and reduce the entire thing
-reducesWithM :: (Req -> IO Reqs) -> Reqs -> IO Reqs
+reducesWithM :: Prop p => (Req -> IO (p Req)) -> p Req -> IO (p Req)
 reducesWithM f reqs = propMapReduceM (reduceWithM f) reqs
 
 
-reduceWithM :: (Req -> IO Reqs) -> Req -> IO Reqs
+reduceWithM :: Prop p => (Req -> IO (p Req)) -> Req -> IO (p Req)
 reduceWithM f req@(Req hill expr path ctors) = case expr of
     Call{} -> f req >>= reducesWithM f
     Var{} -> return $ propLit req
     _ -> reducesWithM f $ reduceOne req
 
 
-propMapReduceM :: Monad m => (Req -> m Reqs) -> Reqs -> m Reqs
+propMapReduceM :: (Prop p, Monad m) => (Req -> m (p Req)) -> p Req -> m (p Req)
 propMapReduceM f x = propMapM (liftM reduces . f) x
 
-propMapReduce :: (Req -> Reqs) -> Reqs -> Reqs
+propMapReduce :: Prop p => (Req -> p Req) -> p Req -> p Req
 propMapReduce f x = runIdentity $ propMapReduceM (return . f) x
