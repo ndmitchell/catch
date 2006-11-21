@@ -153,10 +153,6 @@ bddSimplify test x = f [] x
 		f _ x = x
 
 
-getSize (Choice _ f t) = getSize f + getSize t + 1
-getSize _ = 1
-
-
 mapBDDM :: (Show a, Monad m, Ord a) => (a -> m (BDD a)) -> BDD a -> m (BDD a)
 mapBDDM app x = do
         (d, res) <- g app x Map.empty
