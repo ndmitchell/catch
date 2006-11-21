@@ -38,9 +38,6 @@ bddApplyAnd merge = rebalance . f
 		f x = x
 
 
-bddLit :: a -> BDD a
-bddLit a = Choice a AtomFalse AtomTrue
-
 
 bddNot :: (Show a, Ord a) => BDD a -> BDD a
 bddNot AtomTrue  = AtomFalse

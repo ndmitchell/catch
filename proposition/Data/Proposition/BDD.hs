@@ -11,7 +11,8 @@ instance Prop BDD where
     propIsTrue  AtomTrue  = True; propIsTrue  _ = False
     propIsFalse AtomFalse = True; propIsFalse _ = False
 
-    propLit = bddLit
+    propLit a = Choice a AtomFalse AtomTrue
+
     propAnd = bddAnd
     propOr  = bddOr
     propNot = bddNot
