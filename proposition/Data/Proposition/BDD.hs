@@ -22,7 +22,7 @@ instance Prop BDD where
     propAnd = mergeWith propIsTrue  propIsFalse 
     propOr  = mergeWith propIsFalse propIsTrue
 
-    propMapM = mapBDDM
+    propMapM = mapMonadic
 
     propSimplify = bddSimplify (?=>) . bddApplyAnd liftAnd
         where
@@ -53,12 +53,11 @@ mergeWith ignore promote c1@(Choice a1 f1 t1) c2@(Choice a2 f2 t2) =
 ---------------------------------------------------------------------
 -- MAPPING
 
-mapBDDM :: (Show a, Monad m, Ord a) => (a -> m (BDD a)) -> BDD a -> m (BDD a)
-mapBDDM app x = do
+mapMonadic :: (Show a, Monad m, Ord a) => (a -> m (BDD a)) -> BDD a -> m (BDD a)
+mapMonadic app x = do
         (d, res) <- g app x Map.empty
         return $ rebalance res
     where
-
         g app (Choice a f0 t0) cache = do
             (cache,a2) <- case Map.lookup a cache of
                 Just a2 -> return (cache,a2)
@@ -72,13 +71,12 @@ mapBDDM app x = do
                 Choice a2 f1 t1 -> do
                     (cache,f0) <- g app f0 cache
                     (cache,t0) <- g app t0 cache
-                    return (cache, Choice a2 (h f1 f0 t0) (h t1 f0 t0))
-
+                    return (cache, Choice a2 (replaceBools f1 f0 t0) (replaceBools t1 f0 t0))
 
         g app x cache = return (cache,x)
 
         -- replace all occurances of AtomTrue/AtomFalse with the given predicate
-        h rep f t = case rep of
+        replaceBools rep f t = case rep of
             AtomTrue -> t
             AtomFalse -> f
-            Choice a f1 t1 -> Choice a (h f1 f t) (h t1 f t)
+            Choice a f1 t1 -> Choice a (replaceBools f1 f t) (replaceBools t1 f t)
