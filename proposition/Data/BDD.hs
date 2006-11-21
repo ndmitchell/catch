@@ -1,6 +1,6 @@
 
 module Data.BDD(BDD, {-BDDLit(..), -} showBDDBy, bddAnd, bddNot, bddOr, bddLit, bddAnds, bddOrs,
-	bddIsTrue, mapBDDM, bddIsFalse, bddBool, bddTrue, bddFalse, bddSimplify,
+	bddIsTrue, mapBDDM, bddIsFalse, bddTrue, bddFalse, bddSimplify,
 	bddApplyAnd) where
     
 import qualified Data.Map as Map
@@ -98,9 +98,6 @@ bddIsFalse :: BDD a -> Bool
 bddIsFalse AtomFalse = True
 bddIsFalse _ = False
 
-
-bddBool True = AtomTrue
-bddBool False = AtomFalse
 
 bddTrue = AtomTrue
 bddFalse = AtomFalse
