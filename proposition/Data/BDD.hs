@@ -19,7 +19,6 @@ bddValid _ = True
 
 
 
-choice a t f = if t == f then t else Choice a t f
 
 
 {-

@@ -38,6 +38,9 @@ instance Show a => Show (BDD a) where
 ---------------------------------------------------------------------
 -- MERGING, FOR OR/AND
 
+choice a t f = if t == f then t else Choice a t f
+
+
 mergeWith :: Ord a => (BDD a -> Bool) -> (BDD a -> Bool) -> BDD a -> BDD a -> BDD a
 mergeWith ignore promote c1 c2
     | ignore c1 = c2
