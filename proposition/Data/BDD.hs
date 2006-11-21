@@ -159,10 +159,9 @@ getSize _ = 1
 
 mapBDDM :: (Show a, Monad m, Ord a) => (a -> m (BDD a)) -> BDD a -> m (BDD a)
 mapBDDM app x = do
-        (d, res) <- g (appWrap app) x Map.empty
+        (d, res) <- g app x Map.empty
         return $ rebalance res
 
-appWrap app x = app x
 
 g app (Choice a f0 t0) cache = do
     (cache,a2) <- case Map.lookup a cache of
