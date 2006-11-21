@@ -140,6 +140,13 @@ fold :: PropFold a res -> BDD a -> res
 fold fs AtomTrue  = foldAnd fs []
 fold fs AtomFalse = foldOr  fs []
 
+-- some special short cuts, to get better output
+-- can be removed safely
+fold fs (Choice a AtomTrue AtomFalse) = foldLit fs a
+fold fs (Choice a AtomFalse AtomTrue) = foldLit fs a
+fold fs (Choice a AtomFalse b) = foldAnd fs [foldLit fs a, fold fs b]
+fold fs (Choice a AtomTrue  b) = foldOr  fs [foldLit fs a, fold fs b]
+
 -- (a => t) ^ (¬a => f)
 -- (¬a v t) ^ (a  v  f)
 fold fs (Choice a f t) = (not a2 || fold fs t) && (a2 || fold fs f)
