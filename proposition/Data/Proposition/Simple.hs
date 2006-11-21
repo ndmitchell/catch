@@ -48,7 +48,7 @@ instance Prop PropSimple where
     propMapM f (And xs) = liftM And $ mapM (propMapM f) xs
     propMapM f (Or  xs) = liftM Or  $ mapM (propMapM f) xs
     
-    propRebuild (Lit a ) = propLit a
-    propRebuild (Not a ) = propNot  (propRebuild a)
-    propRebuild (And xs) = propAnds (map propRebuild xs)
-    propRebuild (Or  xs) = propOrs  (map propRebuild xs)
+    propFold fs (Lit a ) = foldLit fs a
+    propFold fs (Not a ) = foldNot fs (propFold fs a)
+    propFold fs (And xs) = foldAnd fs (map (propFold fs) xs)
+    propFold fs (Or  xs) = foldOr  fs (map (propFold fs) xs)
