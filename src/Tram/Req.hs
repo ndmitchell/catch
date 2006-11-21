@@ -72,8 +72,6 @@ instance PropNot Req where
         (ctorNames (getCtor hite (headNote "Tram.Type.reqNot" ctors)) \\ ctors)
 -}
 
-reqsNot :: Reqs -> Reqs
-reqsNot x = propNot x
 
 -- instance PropLit Scope where
     
