@@ -59,19 +59,16 @@ newReqs hite zexpr path ctors | null ctors = propFalse
 -- UTILITIES
 
 instance PropLit Req where
-
     (?=>) = impliesReq
-    (?/\) a b = case combineReqsAnd a b of
-                    Nothing -> None
-                    Just x -> Value x
+    (?/\) = combineReqsAnd
 
 
 -- SIMPLIFIERS
 
-combineReqsAnd :: Req -> Req -> Maybe Req
+combineReqsAnd :: Req -> Req -> Reduce Req
 combineReqsAnd (Req hite on1 path1 ctors1) (Req _ on2 path2 ctors2)
-    | on1 == on2 && path1 == path2 = Just (Req hite on1 path1 (sort $ ctors2 `intersect` ctors1))
-    | otherwise = Nothing
+    | on1 == on2 && path1 == path2 = Value (Req hite on1 path1 (sort $ ctors2 `intersect` ctors1))
+    | otherwise = None
 
 
 impliesReq :: [(Req, Bool)] -> Req -> Maybe Bool
