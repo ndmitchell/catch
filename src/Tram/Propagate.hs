@@ -33,7 +33,7 @@ propagate hill@(Hill _ funcs) (Scope func reqs) = res
         h args x = x
 
 
-collect :: Hill -> (Expr -> Bool) -> [(FuncName, Reqs, Expr)]
+collect :: Prop p => Hill -> (Expr -> Bool) -> [(FuncName, p Req, Expr)]
 collect hill test = [(name,reqs,expr) | Func name _ body <- funcs hill, (reqs,expr) <- f propFalse body]
     where
         f prop expr = [(prop, expr) | test expr] ++
