@@ -5,10 +5,11 @@ import Data.Proposition.Internal
 import Data.BDD
 
 instance Prop BDD where
-    propTrue  = bddTrue
-    propFalse = bddFalse
-    propIsTrue  = bddIsTrue
-    propIsFalse = bddIsFalse
+    propTrue  = AtomTrue
+    propFalse = AtomFalse
+    
+    propIsTrue  AtomTrue  = True; propIsTrue  _ = False
+    propIsFalse AtomFalse = True; propIsFalse _ = False
 
     propLit = bddLit
     propAnd = bddAnd

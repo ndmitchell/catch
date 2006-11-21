@@ -78,19 +78,6 @@ mergeWith f c1@(Choice a1 f1 t1) c2@(Choice a2 f2 t2) =
 choice a t f = if t == f then t else Choice a t f
 
 
-bddIsTrue :: BDD a -> Bool
-bddIsTrue AtomTrue = True
-bddIsTrue _ = False
-
-bddIsFalse :: BDD a -> Bool
-bddIsFalse AtomFalse = True
-bddIsFalse _ = False
-
-
-bddTrue = AtomTrue
-bddFalse = AtomFalse
-
-
 propRebal :: BDD Char -> Bool
 propRebal x = hasBalance $ rebalance x
 
