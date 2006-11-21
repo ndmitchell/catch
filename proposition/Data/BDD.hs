@@ -1,5 +1,5 @@
 
-module Data.BDD(BDD, showBDDBy, bddAnd, bddNot, bddOr, bddLit,
+module Data.BDD(BDD, bddAnd, bddNot, bddOr, bddLit,
 	bddIsTrue, mapBDDM, bddIsFalse, bddTrue, bddFalse, bddSimplify,
 	bddApplyAnd) where
     
@@ -17,14 +17,11 @@ data BDD a = AtomTrue
 
 
 instance Show a => Show (BDD a) where
-    show a = showBDDBy show a
-
-showBDDBy :: (a -> String) -> BDD a -> String
-showBDDBy f AtomTrue = "True"
-showBDDBy f AtomFalse = "False"
-showBDDBy f (Choice a AtomFalse AtomTrue) = f a
-showBDDBy f (Choice a AtomTrue AtomFalse) = "~" ++ f a
-showBDDBy f (Choice a f1 t1) = f a ++ " <" ++ showBDDBy f f1 ++ " | " ++ showBDDBy f t1 ++ ">"
+    show AtomTrue = "True"
+    show AtomFalse = "False"
+    show (Choice a AtomFalse AtomTrue) = show a
+    show (Choice a AtomTrue AtomFalse) = "~" ++ show a
+    show (Choice a f t) = show a ++ " <" ++ show f ++ " | " ++ show t ++ ">"
 
 
 bddValid :: Ord a => BDD a -> Bool
