@@ -1,6 +1,6 @@
 
 module Data.BDD(BDD, {-BDDLit(..), -} showBDDBy, bddAnd, bddNot, bddOr, bddLit, bddAnds, bddOrs,
-	bddIsTrue, mapBDDM, bddIsFalse, mapBDD, bddBool, bddTrue, bddFalse, bddSimplify,
+	bddIsTrue, mapBDDM, bddIsFalse, bddBool, bddTrue, bddFalse, bddSimplify,
 	bddApplyAnd) where
     
 import qualified Data.Map as Map
@@ -164,10 +164,6 @@ bddSimplify test x = f [] x
 				Nothing -> choice on (f ((on,False):context) false) (f ((on,True):context) true)
 				Just b -> f context (if b then true else false)
 		f _ x = x
-
-
-mapBDD :: (Show a, Ord a) => (a -> BDD a) -> BDD a -> BDD a
-mapBDD f = runIdentity . mapBDDM (return . f)
 
 
 getSize (Choice _ f t) = getSize f + getSize t + 1
