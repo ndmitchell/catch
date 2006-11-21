@@ -254,6 +254,7 @@ showPredBy f x =
     case x of
         Or  [] -> "False"
         And [] -> "True"
+        Not  a -> "~" ++ f a
         Lit  a -> f a
         Or  xs -> disp 'v' xs
         And xs -> disp '^' xs
