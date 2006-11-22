@@ -45,7 +45,7 @@ reduceOne req@(Req hill expr path ctors) = case expr of
             seenCtrs = [x | AltCtr x _ <- alts]
 
             f (AltCtr ctr ex) = g (delete ctr allCtrs) ex
-            f (Default ex) = g (allCtrs \\ seenCtrs) ex
+            f (Default ex) = g seenCtrs ex
             
             g ctrs ex = newReqs hill on (emptyPath hill) ctrs `propOr` newReqs hill ex path ctors
 

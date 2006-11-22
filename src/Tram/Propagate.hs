@@ -44,7 +44,7 @@ collect hill test = [(name,reqs,expr) | Func name _ body <- funcs hill, (reqs,ex
                                   seenCtrs = [x | AltCtr x _ <- alts]
                                   
                                   g (AltCtr ctr ex) = h (delete ctr allCtrs) ex
-                                  g (Default ex) = h (allCtrs \\ seenCtrs) ex
+                                  g (Default ex) = h seenCtrs ex
                                   
                                   h ctrs ex = f (propOr prop reqs) ex
                                       where reqs = newReqs hill on (emptyPath hill) ctrs
