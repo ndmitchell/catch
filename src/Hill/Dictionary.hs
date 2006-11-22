@@ -103,7 +103,9 @@ splitName name | not $ isUpper $ head $ last nams = Nothing
                | otherwise = Just $
     case length nams of
         5 -> Dictionary name (nams!!0) (TypeValue (nams!!3) (nams!!4)) (TypeClass (nams!!1) (nams!!2))
+        6 -> Dictionary name (nams!!0) (TypeValue (dot [nams!!3, nams!!4]) (nams!!5)) (TypeClass (nams!!1) (nams!!2))
         -- 7 -> [Dictionary (nams!!0 ++ "." ++ nams!!1) (TypeValue (nams!!3) (nams!!4)) (TypeClass (nams!!1) (nams!!2))]
         _ -> error $ show ("Hill.Dictionary.getDictionaries",name)
     where
+        dot = concat . intersperse "."
         nams = splitList "." name
