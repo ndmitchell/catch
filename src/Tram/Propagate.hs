@@ -29,7 +29,7 @@ propagate hill@(Hill _ funcs) (Scope func reqs) = res
     
         g args (Req hill expr path ctor) = newReqs hill (mapOver (h args) expr) path ctor
         
-        h args (Var name) = lookupJustNote ("Tram.Propagate.propagate" ++ show (name,argList,args))  name (zip argList args)
+        h args (Var name) = lookupJustNote "Tram.Propagate.propagate"  name (zip argList args)
         h args x = x
 
 
