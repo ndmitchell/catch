@@ -16,6 +16,7 @@ data Scope p = Scope FuncName (p Req)
 
 
 data Req = Req Hill Expr Path [CtorName]
+         | Top
 
 -- Formula Req has no negation within in
 -- BDD Req may do
@@ -32,6 +33,7 @@ instance Show (p Req) => Show (Scope p) where
 instance Show Req where
     show (Req _ expr path ctor) =
         showExprBrackets expr ++ show path ++ strSet ctor
+    show (Top) = "?"
 
 
 -- SMART CONSTRUCTORS
@@ -118,7 +120,10 @@ blurReq :: Req -> Req
 blurReq (Req hill expr path ctrs) = Req hill expr (blurPath hill path) ctrs
 
 blurReqs :: Formula Req -> Formula Req
-blurReqs = propMap (propLit . blurReq)
+blurReqs = propMap f
+    where
+        f Top = propFalse
+        f x = propLit $ blurReq x
 
 blurScope :: Scope Formula -> Scope Formula
 blurScope (Scope a b) = Scope a (blurReqs b)
