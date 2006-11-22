@@ -94,7 +94,7 @@ hill-anal4
 	hill-let-inline-simp
 	hill-let-inline1
 	hill-simplify
-	hill-let-inline1
+	hill-let-inline
 
 
 prep
