@@ -35,5 +35,5 @@ fixpReqs :: Formula Req -> (Req -> (Req -> IO (Formula Req)) -> IO (Formula Req)
 fixpReqs def solve key = liftM propRebuildFormula $ fixp (propRebuildBDD def) solve2 key
     where
         solve2 :: Req -> (Req -> IO (BDD Req)) -> IO (BDD Req)
-        solve2 key onestep = liftM (propRebuildBDD . blurReqs) $ solve key onestep2
+        solve2 key onestep = liftM (propSimplify . propRebuildBDD . blurReqs) $ solve key onestep2
             where onestep2 x = liftM propRebuildFormula $ onestep x
