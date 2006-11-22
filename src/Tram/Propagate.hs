@@ -4,6 +4,7 @@ module Tram.Propagate(propagate, collect) where
 import Tram.Req
 import Tram.Reduce
 import Data.List
+import Data.Maybe
 import General.General
 import Data.Proposition
 import Hill.All
@@ -34,20 +35,24 @@ propagate hill@(Hill _ funcs) (Scope func reqs) = res
 
 
 collect :: Prop p => Hill -> (Expr -> Bool) -> [(FuncName, p Req, Expr)]
-collect hill test = [(name,reqs,expr) | Func name _ body <- funcs hill, (reqs,expr) <- f propFalse body]
+collect hill test = [(name,reqs,expr) | Func name _ body <- funcs hill, let (lets,bod) = fromLet body,
+                                        (reqs,expr) <- f lets propFalse bod]
     where
-        f prop expr = [(prop, expr) | test expr] ++
-                      case expr of
-                          Case on alts -> concatMap g alts
-                              where
-                                  allCtrs = ctorNames $ getCtor hill $ altCtr $ head alts
-                                  seenCtrs = [x | AltCtr x _ <- alts]
-                                  
-                                  g (AltCtr ctr ex) = h (delete ctr allCtrs) ex
-                                  g (Default ex) = h seenCtrs ex
-                                  
-                                  h ctrs ex = f (propOr prop reqs) ex
-                                      where reqs = newReqs hill on (emptyPath hill) ctrs
+        f lets prop expr =
+            [(prop, expr) | test expr] ++
+            case expr of
+                Case on alts -> concatMap g alts
+                    where
+                        allCtrs = ctorNames $ getCtor hill $ altCtr $ head alts
+                        seenCtrs = [x | AltCtr x _ <- alts]
 
-                          
-                          _ -> concatMap (f prop) (getChildren expr)
+                        g (AltCtr ctr ex) = h (delete ctr allCtrs) ex
+                        g (Default ex) = h seenCtrs ex
+
+                        h ctrs ex = f lets (propOr prop reqs) ex
+                            where reqs = newReqs hill on (emptyPath hill) ctrs
+
+                Var i | isJust res -> f lets prop (fromJust res)
+                    where res = lookup i lets
+
+                _ -> concatMap (f lets prop) (getChildren expr)
