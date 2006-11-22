@@ -244,6 +244,7 @@ varSplit hill = mapOverHill f hill
                 h z = z
                 
                 rep = Make c $ map (x `Sel`) (ctorArgs $ getCtor hill c)
+        g x y = y
 
 
 tagMain :: Hill -> Hill
