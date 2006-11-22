@@ -63,6 +63,7 @@ newReqs hite zexpr path ctors | null ctors = propFalse
 instance PropLit Req where
     (?=>) = impliesReq
     (?/\) = combineReqsAnd
+    (?\/) = combineReqsOr
     litNot = Just . notReq
 
 
@@ -76,6 +77,15 @@ combineReqsAnd (Req hite on1 path1 ctors1) (Req _ on2 path2 ctors2)
     | on1 == on2 && path1 == path2 =
         let ctrs = sort $ ctors2 `intersect` ctors1
         in if null ctrs then Literal False else Value (Req hite on1 path1 ctrs)
+    | otherwise = None
+
+
+combineReqsOr :: Req -> Req -> Reduce Req
+combineReqsOr (Req hite on1 path1 ctors1) (Req _ on2 path2 ctors2)
+    | on1 == on2 && path1 == path2 && finitePath path1 =
+        let ctrs = snub $ ctors2 ++ ctors1
+            baseSet = ctorNames $ getCtor hite (head ctrs)
+        in if length ctrs == length baseSet then Literal True else Value (Req hite on1 path1 ctrs)
     | otherwise = None
 
 
