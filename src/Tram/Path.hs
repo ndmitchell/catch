@@ -68,7 +68,7 @@ isStar hite x = TyCon (dataName obj) (map TyFree $ frees obj) == cargType obj
 
 
 integrate :: Path -> CtorArg -> Path
-integrate (Path hite x) ctor = Path hite (f x)
+integrate (Path hite x) ctor = Path hite (PathAtom ctor : x) -- -} (f x)
 	where
 		carg = getCArg hite ctor
 		star = TyCon (dataName carg) (map TyFree $ frees carg) == cargType carg

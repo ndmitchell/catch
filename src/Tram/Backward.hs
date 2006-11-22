@@ -10,23 +10,32 @@ import System.IO
 import Data.Proposition
 import Data.Maybe
 import Data.List
+import Control.Monad
 import Hill.All
 import qualified Data.Map as Map
 
 
-backward :: Hill -> Template -> Handle -> Scopes -> IO (BDD Req)
+-- basic idea:
+-- store everything as a Map, with a BDD of each Req
+-- to process, first operation is to convert out of BDD
+-- process, reencode as BDD and look for fixp
+
+type FixpMap = Map.Map FuncName (BDD Req)
+
+
+backward :: Hill -> Template -> Handle -> Scopes Formula -> IO (Formula Req)
 backward hill template hndl x = do
 		newMap <- f origMap origTodo
-		return $ Map.findWithDefault propTrue "main" newMap
+		return $ propRebuildFormula $ Map.findWithDefault propTrue "main" newMap
 	where
-        origMap = Map.fromList [(a,b) | Scope a b <- x]
+        origMap = Map.fromList [(a, propRebuildBDD b) | Scope a b <- x]
         origTodo = Map.keys origMap
     
-        f :: Map.Map FuncName (BDD Req) -> [FuncName] -> IO (Map.Map FuncName (BDD Req))
+        f :: FixpMap -> [FuncName] -> IO FixpMap
         f table [] = return table
         f table (x:xs) = do
             hPutStrLn hndl $ "Processing: " ++ x
-            res <- oneStep $ Scope x $ fromJust $ Map.lookup x table
+            res <- oneStep $ Scope x $ propRebuildFormula $ fromJust $ Map.lookup x table
             
             let (todo2,table2) = foldr g ([], table) res
             if null todo2
@@ -38,18 +47,19 @@ backward hill template hndl x = do
                 outLine table x
                     = hPutStrLn hndl $ ("  " ++) $ show $ Scope x $ Map.findWithDefault propTrue x table
 
+        g :: Scope Formula -> ([FuncName], FixpMap) -> ([FuncName], FixpMap)
         g (Scope func x) (todo,mp)
                 | ans == ans2 = (todo,mp)
                 | otherwise = (func:todo,Map.insert func ans2 mp)
             where
                 ans = Map.findWithDefault propTrue func mp
-                ans2 = propAnd x ans
+                ans2 = propAnd (propRebuildBDD x) ans
         
         
-        oneStep :: Scope -> IO Scopes
-        oneStep scope = mapM simple $ propagate hill scope
+        oneStep :: Scope Formula -> IO (Scopes Formula)
+        oneStep scope = liftM blurScopes $ mapM simple $ propagate hill scope
             
-        simple :: Scope -> IO Scope
+        simple :: Scope Formula -> IO (Scope Formula)
         simple (Scope name x) = do
             x2 <- reducesWithM (templateGet template) $ propSimplify x
             return $ Scope name $ propSimplify x2

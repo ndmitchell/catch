@@ -13,7 +13,7 @@ import Safe
 -- NOTE: may produce lots of (f,a) (f,b) pairs
 -- can collapse some at the propagate stage if have same cond
 -- which would give a speed up
-propagate :: Hill -> Scope -> Scopes
+propagate :: Hill -> Scope Formula -> Scopes Formula
 propagate hill@(Hill _ funcs) (Scope func reqs) = res
     where
         res = scopesAnds [Scope name newReq |

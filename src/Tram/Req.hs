@@ -11,9 +11,9 @@ import Safe
 
 -- DATA DEFINITIONS
 
-type Scopes = [Scope]
-data Scope = Scope FuncName (BDD Req)
-             deriving (Eq, Ord)
+type Scopes p = [Scope p]
+data Scope p = Scope FuncName (p Req)
+
 
 data Req = Req Hill Expr Path [CtorName]
 
@@ -26,7 +26,7 @@ instance Eq Req where
 instance Ord Req where
     compare (Req _ a1 b1 c1) (Req _ a2 b2 c2) = compare (a1,b1,c1) (a2,b2,c2)
 
-instance Show Scope where
+instance Show (p Req) => Show (Scope p) where
     show (Scope name reqs) = "(\\forall " ++ name ++ ", " ++ show reqs ++ ")"
 
 instance Show Req where
@@ -36,7 +36,7 @@ instance Show Req where
 
 -- SMART CONSTRUCTORS
 
-scopesAnds :: Scopes -> Scopes
+scopesAnds :: Prop p => Scopes p -> Scopes p
 scopesAnds xs = filter (\(Scope a b) -> not (propIsTrue b)) $ map f $
                groupSetExtract (\(Scope a b) -> a) xs
     where
@@ -67,6 +67,9 @@ instance PropLit Req where
 
 
 -- SIMPLIFIERS
+
+notReq (Req hill expr path ctrs) = Req hill expr path ctrs2
+    where ctrs2 = ctorNames (getCtor hill (head ctrs)) \\ ctrs
 
 combineReqsAnd :: Req -> Req -> Reduce Req
 combineReqsAnd (Req hite on1 path1 ctors1) (Req _ on2 path2 ctors2)
@@ -99,10 +102,13 @@ impliesReq _ _ = Nothing
 
 -- NEGATION AND BLURRING
 
-notReq (Req hill expr path ctrs) = Req hill expr path ctrs2
-    where ctrs2 = ctorNames (getCtor hill (head ctrs)) \\ ctrs
-
+blurReq :: Req -> Req
+blurReq (Req hill expr path ctrs) = Req hill expr (blurPath hill path) ctrs
 
 blurReqs :: Formula Req -> Formula Req
-blurReqs = propMap f
-    where f (Req hill expr path ctrs) = propLit $ Req hill expr (blurPath hill path) ctrs
+blurReqs = propMap (propLit . blurReq)
+
+blurScope :: Scope Formula -> Scope Formula
+blurScope (Scope a b) = Scope a (blurReqs b)
+
+blurScopes = map blurScope

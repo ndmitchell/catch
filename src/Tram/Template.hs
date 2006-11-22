@@ -14,7 +14,7 @@ import Control.Monad
 import Hill.All
 
 
-data Template = Template Hill Handle (IORef [(Req, BDD Req)])
+data Template = Template Hill Handle (IORef [(Req, Formula Req)])
 
 
 templateInit :: Hill -> Handle -> IO Template
@@ -24,7 +24,7 @@ templateInit hill hndl = do
 
 
 -- first element of Req must be a Call
-templateGet :: Prop p => Template -> Req -> IO (p Req)
+templateGet :: Template -> Req -> IO (Formula Req)
 templateGet template@(Template hill hndl cache) req = do
     let abstract = templateAbstract req
     res <- readIORef cache
@@ -45,7 +45,7 @@ templateAbstract (Req a (Call name xs) b c) = newReq a (Call name args) b c
     where args = map Var [0..length xs-1]
 
 
-templateConcrete :: Prop p => Req -> p Req -> p Req
+templateConcrete :: Req -> Formula Req -> Formula Req
 templateConcrete (Req _ (Call name args) _ _) y = propMapReduce (propLit . f) y
     where
         f (Req a b c d) = newReq a (mapOver g b) c d
@@ -54,7 +54,7 @@ templateConcrete (Req _ (Call name args) _ _) y = propMapReduce (propLit . f) y
 
 
 -- expr is Call
-templateCalc :: Template -> Hill -> Handle -> Req -> IO (BDD Req)
+templateCalc :: Template -> Hill -> Handle -> Req -> IO (Formula Req)
 templateCalc template hill hndl req = do
         hPutStrLn hndl $ "BEGIN: templateCalc, " ++ show req
         res <- liftM propSimplify $ fixp propTrue f req
@@ -100,7 +100,7 @@ templateCalc template hill hndl req = do
 -}
 
 
-instantiate :: Prop p => Hill -> Req -> p Req
+instantiate :: Hill -> Req -> Formula Req
 instantiate (Hill datas funcs) r1@(Req a (Call name args) b c) = res
     where
         res = propMapReduce rep $ newReqs a body b c
