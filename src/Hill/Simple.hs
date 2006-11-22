@@ -116,12 +116,13 @@ simplifyEx opts hill x = mapOverHill f x
         f (Make ":" [Const (AChar x), Const (AString xs)]) = Const $ AString (x:xs)
         f (Make ":" [Const (AChar x), Make "[]" []]) = Const $ AString [x]
         
-        f (Case on alts) | not (null ctrs) && complete = Case on (filter f alts)
+        f (Case on alts) | not (null ctrs) && null defs = Case on (filter (not . isDefault) alts)
+                         | not (null ctrs) && length defs == 1 = Case on (map f alts)
             where
-                f (Default _) = False
-                f _ = True
+                f (Default x) = AltCtr (head defs) x
+                f x = x
             
-                complete = ctrs `setEq` (map ctorName $ ctors $ getCtor hill $ head ctrs)
+                defs = (ctorNames $ getCtor hill $ head ctrs) \\ ctrs
                 ctrs = [c | AltCtr c _ <- alts]
         
         f x = x
