@@ -14,7 +14,7 @@ import Hill.All
 import qualified Data.Map as Map
 
 
-backward :: Hill -> Template -> Handle -> Scopes -> IO Reqs
+backward :: Hill -> Template -> Handle -> Scopes -> IO (BDD Req)
 backward hill template hndl x = do
 		newMap <- f origMap origTodo
 		return $ Map.findWithDefault propTrue "main" newMap
@@ -22,7 +22,7 @@ backward hill template hndl x = do
         origMap = Map.fromList [(a,b) | Scope a b <- x]
         origTodo = Map.keys origMap
     
-        f :: Map.Map FuncName Reqs -> [FuncName] -> IO (Map.Map FuncName Reqs)
+        f :: Map.Map FuncName (BDD Req) -> [FuncName] -> IO (Map.Map FuncName (BDD Req))
         f table [] = return table
         f table (x:xs) = do
             hPutStrLn hndl $ "Processing: " ++ x
