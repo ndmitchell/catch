@@ -19,6 +19,7 @@ cmdsSimple =
     ,hillCmdPure "novector" (const noVector)
     ,hillCmdPure "int" (const useInt)
     ,hillCmdPure "var-rejoin" (const varRejoin)
+    ,hillCmdPure "var-split" (const varSplit)
     ,hillCmdPure "tag-main" (const tagMain)
     ,hillCmdPure "no-string" (const noStrings)
     ]
@@ -229,6 +230,20 @@ varRejoin hill = mapOverHill f hill
                 cs = ctorArgs $ getCtor hill x
         
         f x = x
+
+-- case x of : -> ... x ..., becomes (x.hd:x.tl)
+varSplit :: Hill -> Hill
+varSplit hill = mapOverHill f hill
+    where
+        f (Case x alts) = Case x (map (g x) alts)
+        f x = x
+        
+        g x (AltCtr c y) = AltCtr c (mapOverHill h y)
+            where
+                h z | x == z = rep
+                h z = z
+                
+                rep = Make c $ map (x `Sel`) (ctorArgs $ getCtor hill c)
 
 
 tagMain :: Hill -> Hill

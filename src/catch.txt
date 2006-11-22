@@ -93,6 +93,7 @@ hill-anal4
 	hill-nub-let
 	hill-let-inline-simp
 	hill-let-inline1
+	hill-var-split
 	hill-simplify
 	hill-let-inline
 
