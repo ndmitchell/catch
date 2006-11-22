@@ -16,20 +16,20 @@ data Scope p = Scope FuncName (p Req)
 
 
 data Req = Req Hill Expr Path [CtorName]
-         | Top
+         | Demonic
 
 -- Formula Req has no negation within in
 -- BDD Req may do
 
 instance Eq Req where
     (Req _ a1 b1 c1) == (Req _ a2 b2 c2) = a1 == a2 && b1 == b2 && c1 == c2
-    Top == Top = True
+    Demonic == Demonic = True
     _ == _ = False
 
 instance Ord Req where
-    compare Top Top = EQ
-    compare Top _ = LT
-    compare _ Top = GT
+    compare Demonic Demonic = EQ
+    compare Demonic _ = LT
+    compare _ Demonic = GT
     compare (Req _ a1 b1 c1) (Req _ a2 b2 c2) = compare (a1,b1,c1) (a2,b2,c2)
 
 instance Show (p Req) => Show (Scope p) where
@@ -38,7 +38,7 @@ instance Show (p Req) => Show (Scope p) where
 instance Show Req where
     show (Req _ expr path ctor) =
         showExprBrackets expr ++ show path ++ strSet ctor
-    show (Top) = "?"
+    show (Demonic) = "?"
 
 
 -- SMART CONSTRUCTORS
@@ -76,7 +76,7 @@ instance PropLit Req where
 
 -- SIMPLIFIERS
 
-notReq Top = Top
+notReq Demonic = Demonic
 notReq (Req hill expr path ctrs) = Req hill expr path ctrs2
     where ctrs2 = ctorNames (getCtor hill (head ctrs)) \\ ctrs
 
@@ -133,7 +133,7 @@ blurReq (Req hill expr path ctrs) = Req hill expr (blurPath hill path) ctrs
 blurReqs :: Formula Req -> Formula Req
 blurReqs = propMap f
     where
-        f Top = propFalse
+        f Demonic = propFalse
         f x = propLit $ blurReq x
 
 blurScope :: Scope Formula -> Scope Formula
