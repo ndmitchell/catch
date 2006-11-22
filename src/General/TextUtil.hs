@@ -58,8 +58,9 @@ findNext finds str = if null maxs then Nothing else Just (fst (head (sortBy comp
     where
         maxs = mapMaybe f (zip [0..] finds)
         
-        f (id, find) = if isJust q then Just (id, length (fst (fromJust q))) else Nothing
-            where q = splitPair find str
+        f (id, find) = do
+            q <- splitPair find str
+            return (id, length (fst q))
         
         compSnd (_, a) (_, b) = compare a b
 
