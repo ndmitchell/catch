@@ -1,5 +1,5 @@
 
-module Dual2 where
+module Dual3 where
 
 
 main = eq True True && eq False False
