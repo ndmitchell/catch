@@ -57,6 +57,7 @@ collect hill test = [(name,reqs,expr) | Func name _ body <- funcs hill, let (let
 
                         g (AltCtr ctr ex) = h (delete ctr allCtrs) ex
                         g (Default ex) = h seenCtrs ex
+                        g x = f lets prop (altExpr x) -- if unknown must always be true
 
                         h ctrs ex = f lets (propOr prop reqs) ex
                             where reqs = newReqs hill on (emptyPath hill) ctrs
