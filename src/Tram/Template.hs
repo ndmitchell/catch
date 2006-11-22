@@ -78,27 +78,6 @@ templateCalc template hill hndl req = do
             res <- liftM propSimplify $ reducesWithM (g gen) conc
             return res
 
-{-            
-            
-            mapPredLitM (g gen) reqs
-        
-        g gen req = do
-            res <- mapPredLitM (h gen) (reduce req)
-            res2 <- return $ predDnf res
-            putStrLn $ "FROM: " ++ show req
-            putStrLn $ "TO: " ++ show res2
-            return res2
-        
-        h gen req@(Req hite expr path ctors) = case expr of
-            Call name args -> do
-                let abstract = templateAbstract req
-                putStrLn $ "Calling gen: " ++ show abstract
-                answer <- gen abstract
-                putStrLn $ "Answer: " ++ show answer
-                return $ templateConcrete req answer
-            _ -> return $ predLit req
--}
-
 
 instantiate :: Hill -> Req -> Formula Req
 instantiate (Hill datas funcs) r1@(Req a (Call name args) b c) = res
