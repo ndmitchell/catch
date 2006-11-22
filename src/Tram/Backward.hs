@@ -5,7 +5,6 @@ import Tram.Req
 import Tram.Template
 import Tram.Propagate
 import Tram.Reduce
-import Tram.Fixp
 import System.IO
 import Data.Proposition
 import Data.Maybe
