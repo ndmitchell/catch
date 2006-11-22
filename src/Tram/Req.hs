@@ -82,10 +82,13 @@ notReq (Req hill expr path ctrs) = Req hill expr path ctrs2
 
 combineReqsAnd :: Req -> Req -> Reduce Req
 combineReqsAnd (Req hite on1 path1 ctors1) (Req _ on2 path2 ctors2)
-    | on1 == on2 && path1 == path2 =
-        let ctrs = sort $ ctors2 `intersect` ctors1
-        in if null ctrs then Literal False else Value (Req hite on1 path1 ctrs)
-    | otherwise = None
+        | on1 == on2 && path1 == path2
+        = if null ctrs then Literal False else Value (Req hite on1 path1 ctrs)
+    where
+        ctrs = sort $ ctors2 `intersect` ctors1
+
+combineReqsAnd _ _ = None
+
 
 
 combineReqsOr :: Req -> Req -> Reduce Req
