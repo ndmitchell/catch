@@ -12,10 +12,9 @@ import Safe
 -- DATA DEFINITIONS
 
 type Scopes = [Scope]
-data Scope = Scope FuncName Reqs
+data Scope = Scope FuncName (BDD Req)
              deriving (Eq, Ord)
 
-type Reqs = BDD Req
 data Req = Req Hill Expr Path [CtorName]
 
 -- Formula Req has no negation within in
