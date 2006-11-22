@@ -56,7 +56,7 @@ backward hill template hndl x = do
         
         
         oneStep :: Scope Formula -> IO (Scopes Formula)
-        oneStep scope = liftM blurScopes $ mapM simple $ propagate hill scope
+        oneStep = liftM blurScopes . mapM simple . propagate hill
             
         simple :: Scope Formula -> IO (Scope Formula)
         simple (Scope name x) = do
