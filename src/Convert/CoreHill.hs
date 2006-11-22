@@ -27,7 +27,7 @@ convHill (Core n d datas funcs) = Hill newData (map (convFunc newData) funcs)
 injectData :: [Data]
 injectData = [Data "Prelude.[]"
                   [Ctor "Prelude.[]" [] []
-                  ,Ctor "Prelude.:" ["hd","tl"] [TyFree "a", TyCon ":" [TyFree "a"]]]
+                  ,Ctor "Prelude.:" ["hd","tl"] [TyFree "a", TyCon "Prelude.[]" [TyFree "a"]]]
                   ["a"]
              ]
 
