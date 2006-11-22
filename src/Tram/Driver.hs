@@ -62,4 +62,4 @@ tramDriver cmdState hill = do
 
 
 initialReqs :: Hill -> Scopes Formula
-initialReqs hill = [Scope func reqs | (func,reqs,expr) <- collect hill isError]
+initialReqs hill = [Scope func reqs | (func,reqs,expr) <- collect hill isError, not $ propIsTrue reqs]
