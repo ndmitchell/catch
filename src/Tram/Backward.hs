@@ -11,6 +11,7 @@ import Data.Maybe
 import Data.List
 import Control.Monad
 import Hill.All
+import Safe
 import qualified Data.Map as Map
 
 
@@ -34,7 +35,7 @@ backward hill template hndl x = do
         f table [] = return table
         f table (x:xs) = do
             hPutStrLn hndl $ "Processing: " ++ x
-            res <- oneStep $ Scope x $ propRebuildFormula $ fromJust $ Map.lookup x table
+            res <- oneStep $ Scope x $ propRebuildFormula $ fromJustNote "Tram.Backward" $ Map.lookup x table
             
             let (todo2,table2) = foldr g ([], table) res
             if null todo2
