@@ -54,7 +54,7 @@ templateConcrete (Req _ (Call name args) _ _) y = propMapReduce (propLit . f) y
 
 
 -- expr is Call
-templateCalc :: Template -> Hill -> Handle -> Req -> IO Reqs
+templateCalc :: Template -> Hill -> Handle -> Req -> IO (BDD Req)
 templateCalc template hill hndl req = do
         hPutStrLn hndl $ "BEGIN: templateCalc, " ++ show req
         res <- liftM propSimplify $ fixp propTrue f req
@@ -100,7 +100,7 @@ templateCalc template hill hndl req = do
 -}
 
 
-instantiate :: Hill -> Req -> Reqs
+instantiate :: Prop p => Hill -> Req -> p Req
 instantiate (Hill datas funcs) r1@(Req a (Call name args) b c) = res
     where
         res = propMapReduce rep $ newReqs a body b c
