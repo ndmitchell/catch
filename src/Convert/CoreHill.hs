@@ -19,7 +19,21 @@ mergeHills xs = reachable "" $
 
 convHill :: Core -> Hill
 convHill (Core n d datas funcs) = Hill newData (map (convFunc newData) funcs)
-    where newData = map convData datas
+    where
+        newData = injectData ++ filter ((`notElem` injected) . dataName) (map convData datas)
+        injected = map dataName injectData
+
+
+injectData :: [Data]
+injectData = [Data "Prelude.[]"
+                  [Ctor "Prelude.[]" [] []
+                  ,Ctor "Prelude.:" ["hd","tl"] [TyFree "a", TyCon ":" [TyFree "a"]]]
+                  ["a"]
+             ,Data "Primitive.IO"
+                  [Ctor "Primitive.IO" ["oi"] [TyFree "b"]]
+                  ["b"]
+             ]
+
 
 
 convDatas :: [CoreData] -> Hill
