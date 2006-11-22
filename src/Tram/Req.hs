@@ -19,6 +19,10 @@ data Req = Req Hill Expr Path [CtorName]
          | Demonic
          | Angelic
 
+
+reqExpr (Req _ x _ _) = x
+
+
 -- Formula Req has no negation within in
 -- BDD Req may do
 

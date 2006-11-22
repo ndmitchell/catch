@@ -15,8 +15,12 @@ import Safe
 -- can collapse some at the propagate stage if have same cond
 -- which would give a speed up
 propagate :: Hill -> Scope Formula -> Scopes Formula
-propagate hill@(Hill _ funcs) (Scope func reqs) = res
+propagate hill@(Hill _ funcs) (Scope func reqs) 
+        | null (vars \\ argList) = res -- standard propagate
+        | otherwise = [Scope func $ propMap useLet reqs] -- propagate only to the lets
     where
+        vars = nub $ map (fromVar . reqExpr) $ propAll reqs
+    
         res = scopesAnds [Scope name newReq |
                     (name,cond,Call _ args) <- collect hill isCall,
                     let newReq = cond `propOr` propMapReduce (g args) reqs,
@@ -25,8 +29,13 @@ propagate hill@(Hill _ funcs) (Scope func reqs) = res
         isCall (Call nam _) = nam == func
         isCall _ = False
         
-
-        argList = funcArgs $ getFunc hill func
+        Func _ argList funcBody = getFunc hill func
+        funcLets = fst $ fromLet funcBody
+        
+        useLet (Req hill (Var x) path ctor) | isJust x2 = propLit $ Req hill (fromJust x2) path ctor
+            where x2 = lookup x funcLets
+        useLet x = propLit x
+    
     
         g args (Req hill expr path ctor) = newReqs hill (mapOver (h args) expr) path ctor
         
