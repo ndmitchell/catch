@@ -16,11 +16,11 @@ reduces reqs = propMap reduce reqs
 
 
 reduce :: Req -> Formula Req
-reduce Demonic = propLit Demonic
 reduce req@(Req hill expr path ctors) = case expr of
     Call{} -> propLit req
     Var{} -> propLit req
     _ -> reduces $ reduceOne req
+reduce x = propLit x
 
 
 -- apply 1 step reduction to a Sel or a Make
@@ -51,6 +51,7 @@ reduceOne req@(Req hill expr path ctors) = case expr of
             g ctrs ex = newReqs hill on (emptyPath hill) ctrs `propOr` newReqs hill ex path ctors
 
     Prim x ys -> propLit Demonic -- absolutely no idea what the result is
+    Error _ -> propLit Angelic -- since will never return anything
 
     _ -> error $ "reduceOne: " ++ show req
     
@@ -63,11 +64,11 @@ reducesWithM f reqs = propMapReduceM (reduceWithM f) reqs
 
 
 reduceWithM :: (Req -> IO (Formula Req)) -> Req -> IO (Formula Req)
-reduceWithM f Demonic = return $ propLit Demonic
 reduceWithM f req@(Req hill expr path ctors) = case expr of
     Call{} -> f req >>= reducesWithM f
     Var{} -> return $ propLit req
     _ -> reducesWithM f $ reduceOne req
+reduceWithM f x = return $ propLit x
 
 
 propMapReduceM :: Monad m => (Req -> m (Formula Req)) -> Formula Req -> m (Formula Req)
