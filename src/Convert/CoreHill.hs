@@ -29,9 +29,6 @@ injectData = [Data "Prelude.[]"
                   [Ctor "Prelude.[]" [] []
                   ,Ctor "Prelude.:" ["hd","tl"] [TyFree "a", TyCon ":" [TyFree "a"]]]
                   ["a"]
-             ,Data "Primitive.IO"
-                  [Ctor "Primitive.IO" ["oi"] [TyFree "b"]]
-                  ["b"]
              ]
 
 
