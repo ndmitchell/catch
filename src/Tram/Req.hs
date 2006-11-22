@@ -23,8 +23,13 @@ data Req = Req Hill Expr Path [CtorName]
 
 instance Eq Req where
     (Req _ a1 b1 c1) == (Req _ a2 b2 c2) = a1 == a2 && b1 == b2 && c1 == c2
+    Top == Top = True
+    _ == _ = False
 
 instance Ord Req where
+    compare Top Top = EQ
+    compare Top _ = LT
+    compare _ Top = GT
     compare (Req _ a1 b1 c1) (Req _ a2 b2 c2) = compare (a1,b1,c1) (a2,b2,c2)
 
 instance Show (p Req) => Show (Scope p) where
@@ -71,6 +76,7 @@ instance PropLit Req where
 
 -- SIMPLIFIERS
 
+notReq Top = Top
 notReq (Req hill expr path ctrs) = Req hill expr path ctrs2
     where ctrs2 = ctorNames (getCtor hill (head ctrs)) \\ ctrs
 
@@ -84,11 +90,13 @@ combineReqsAnd (Req hite on1 path1 ctors1) (Req _ on2 path2 ctors2)
 
 combineReqsOr :: Req -> Req -> Reduce Req
 combineReqsOr (Req hite on1 path1 ctors1) (Req _ on2 path2 ctors2)
-    | on1 == on2 && path1 == path2 && finitePath path1 =
-        let ctrs = snub $ ctors2 ++ ctors1
-            baseSet = ctorNames $ getCtor hite (head ctrs)
-        in if length ctrs == length baseSet then Literal True else Value (Req hite on1 path1 ctrs)
-    | otherwise = None
+        | on1 == on2 && path1 == path2 && finitePath path1
+        = if length ctrs == length baseSet then Literal True else Value (Req hite on1 path1 ctrs)
+    where
+        ctrs = snub $ ctors2 ++ ctors1
+        baseSet = ctorNames $ getCtor hite (head ctrs)
+        
+combineReqsOr _ _ = None
 
 
 impliesReq :: [(Req, Bool)] -> Req -> Maybe Bool

@@ -16,6 +16,7 @@ reduces reqs = propMap reduce reqs
 
 
 reduce :: Req -> Formula Req
+reduce Top = propLit Top
 reduce req@(Req hill expr path ctors) = case expr of
     Call{} -> propLit req
     Var{} -> propLit req
@@ -49,6 +50,8 @@ reduceOne req@(Req hill expr path ctors) = case expr of
             
             g ctrs ex = newReqs hill on (emptyPath hill) ctrs `propOr` newReqs hill ex path ctors
 
+    Prim x ys -> propLit Top -- absolutely no idea what the result is
+
     _ -> error $ "reduceOne: " ++ show req
     
 
@@ -60,6 +63,7 @@ reducesWithM f reqs = propMapReduceM (reduceWithM f) reqs
 
 
 reduceWithM :: (Req -> IO (Formula Req)) -> Req -> IO (Formula Req)
+reduceWithM f Top = return $ propLit Top
 reduceWithM f req@(Req hill expr path ctors) = case expr of
     Call{} -> f req >>= reducesWithM f
     Var{} -> return $ propLit req
