@@ -57,7 +57,7 @@ templateConcrete (Req _ (Call name args) _ _) y = propMapReduce (propLit . f) y
 templateCalc :: Template -> Hill -> Handle -> Req -> IO (Formula Req)
 templateCalc template hill hndl req = do
         hPutStrLn hndl $ "BEGIN: templateCalc, " ++ show req
-        res <- liftM propSimplify $ fixp propTrue f req
+        res <- liftM propSimplify $ fixpReqs propTrue f req
         hPutStrLn hndl $ "END  : templateCalc, " ++ show res
         return $ propSimplify res
     where
