@@ -13,6 +13,7 @@ hill-make
 	core-make
 	core-load
 	overlay-apply
+	core-reachable
 	core-hill
 	hill-reachable
 	hill-remove-dict
@@ -95,7 +96,6 @@ hill-anal4
 	hill-let-inline1
 	hill-var-split
 	hill-simplify
-	hill-let-inline
 
 
 prep

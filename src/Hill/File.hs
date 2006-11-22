@@ -17,6 +17,7 @@ cmdsFile =
     [Action "core-make" coreMake
     ,Action "core-load" coreLoad
     ,Action "core-hill" coreHill
+    ,Action "core-reachable" coreReach
     ,Action "overlay-make" overlayMake
     ,Action "overlay-apply" overlayApply
      -- ,Action "core-save" coreSave
@@ -38,6 +39,10 @@ coreLoad state _ (ValueFile x) = liftM ValueCore $ loadCore x2
 
 coreHill :: CmdLineState -> String -> Value -> IO Value
 coreHill state _ (ValueCore x) = return $ ValueHill $ convHill x
+
+
+coreReach :: CmdLineState -> String -> Value -> IO Value
+coreReach _ _ (ValueCore x) = return $ ValueCore $ coreReachable ["main"] x
 
 
 overlayApply :: CmdLineState -> String -> Value -> IO Value
