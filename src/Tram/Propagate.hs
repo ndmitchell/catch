@@ -32,7 +32,7 @@ propagate hill@(Hill _ funcs) (Scope func reqs)
         Func _ argList funcBody = getFunc hill func
         funcLets = fst $ fromLet funcBody
         
-        useLet (Req hill (Var x) path ctor) | isJust x2 = propLit $ Req hill (fromJust x2) path ctor
+        useLet (Req hill (Var x) path ctor) | isJust x2 = newReqs hill (fromJust x2) path ctor
             where x2 = lookup x funcLets
         useLet x = propLit x
     

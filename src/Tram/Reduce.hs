@@ -50,7 +50,7 @@ reduceOne req@(Req hill expr path ctors) = case expr of
             
             g ctrs ex = newReqs hill on (emptyPath hill) ctrs `propOr` newReqs hill ex path ctors
 
-    Let binds x -> propLit $ Req hill x path ctors
+    Let binds x -> newReqs hill x path ctors
 
     Prim x ys -> propLit Demonic -- absolutely no idea what the result is
     Const _ -> propLit Demonic -- if you care, abstract before here
