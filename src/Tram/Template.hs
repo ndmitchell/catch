@@ -49,7 +49,7 @@ templateConcrete :: Req -> Formula Req -> Formula Req
 templateConcrete (Req _ (Call name args) _ _) y = propMapReduce (propLit . f) y
     where
         nargs = length args
-        f (Req a b c d) = newReq a (mapOver g b) c d
+        f (Req a b c d) = newReq a (mapOverOld g b) c d
         g (Var i) | i < nargs = args !! i
         g x = x
 
@@ -87,7 +87,7 @@ instantiate (Hill datas funcs) r1@(Req a (Call name args) b c) = res
     
         (args2, body) = head [(a,b) | Func nam a b <- funcs, nam == name]
         
-        rep (Req a b c d) = newReqs a (mapOver g b) c d
+        rep (Req a b c d) = newReqs a (mapOverOld g b) c d
         
         g (Var x) = case lookup x (zip args2 args) of
                           Nothing -> Var x -- a let bound var
@@ -104,5 +104,5 @@ reachSet :: Hill -> FuncName -> [FuncName]
 reachSet hill name = fixSet f [name]
     where
         f :: FuncName -> [FuncName]
-        f x = nub [y | Call y _ <- allOver body]
+        f x = nub [y | Call y _ <- allOverOld body]
             where Func _ _ body = getFunc hill x

@@ -11,7 +11,7 @@ encodeSpec ihite@(IHite a b) = IHite a (concatMap (encodeFunc ihite) b)
 
 encodeFunc :: IHite -> IFunc -> [IFunc]
 encodeFunc ihite (Func name args body _)
-        = [Func name args (mapOver f body) [(TweakExpr (map (const $ Var 0) args), name)]]
+        = [Func name args (mapOverOld f body) [(TweakExpr (map (const $ Var 0) args), name)]]
     where
         f (Call x xs) = Cell (FuncPtr x (map (const $ Var 0) $ funcArgs $ getFunc ihite x)) 0 xs
     

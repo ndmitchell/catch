@@ -38,7 +38,7 @@ addLetsFunc :: Func -> Func
 addLetsFunc x = x{body = addLetsExpr (funcArgs x) (body x)}
 
 addLetsExpr :: [Int] -> Expr -> Expr
-addLetsExpr args x = evalState (mapOverM f x) (freshFree x \\ args)
+addLetsExpr args x = evalState (mapOverOldM f x) (freshFree x \\ args)
     where
         f orig | liftLet orig = do
             (x:xs) <- get
@@ -63,7 +63,7 @@ uniqueLets hill = hill{funcs = map f (funcs hill)}
 
 
 uniqueLetsExpr :: [Int] -> Expr -> Expr
-uniqueLetsExpr args x = evalState (mapOverM f x) (freshFree x \\ args)
+uniqueLetsExpr args x = evalState (mapOverOldM f x) (freshFree x \\ args)
     where
         f (Let binds x) = do
             free <- get
@@ -181,7 +181,7 @@ letNormalFormExpr hill avoid x = x4
         
         
         
-        uniqueLet free x = runState (mapOverM f x) free
+        uniqueLet free x = runState (mapOverOldM f x) free
             where
                 f (Let binds x) = do
                     free <- get
@@ -192,7 +192,7 @@ letNormalFormExpr hill avoid x = x4
                 f x = return x
 
 
-        alwaysLet free x = runState (mapOverM f x) free
+        alwaysLet free x = runState (mapOverOldM f x) free
             where
                 f (Var x) = return $ Var x
             

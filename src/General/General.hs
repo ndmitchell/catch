@@ -235,16 +235,16 @@ class Manipulate a where
     setChildren = snd . replaceChildren
 
 
-allOver :: Manipulate a => a -> [a]
-allOver x = x : concatMap allOver (getChildren x)
+allOverOld :: Manipulate a => a -> [a]
+allOverOld x = x : concatMap allOverOld (getChildren x)
 
 
-mapOver :: Manipulate a => (a -> a) -> a -> a
-mapOver f x = f $ setChildren x $ map (mapOver f) $ getChildren x
+mapOverOld :: Manipulate a => (a -> a) -> a -> a
+mapOverOld f x = f $ setChildren x $ map (mapOverOld f) $ getChildren x
 
 
-mapOverM :: (Monad m, Manipulate a) => (a -> m a) -> a -> m a
-mapOverM f x = f . setChildren x =<< mapM (mapOverM f) (getChildren x)
+mapOverOldM :: (Monad m, Manipulate a) => (a -> m a) -> a -> m a
+mapOverOldM f x = f . setChildren x =<< mapM (mapOverOldM f) (getChildren x)
 
 
 ---------------------------------------------------------------------

@@ -229,8 +229,8 @@ instance ManipulateHill a => ManipulateHill [a] where
     allOverHill xs = concatMap allOverHill xs
 
 instance ManipulateHill Expr where
-    mapOverHill f xs = mapOver f xs
-    allOverHill xs = allOver xs
+    mapOverHill f xs = mapOverOld f xs
+    allOverHill xs = allOverOld xs
 
 
 

@@ -112,10 +112,10 @@ instance Manipulate IExpr where
 
 
 allIExpr :: IExpr -> [IExpr]
-allIExpr = allOver
+allIExpr = allOverOld
 
 mapIExpr :: (IExpr -> IExpr) -> IExpr -> IExpr
-mapIExpr = mapOver
+mapIExpr = mapOverOld
 
 
 freshFree :: IExpr -> [Int]

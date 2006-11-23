@@ -61,7 +61,7 @@ arityCallers hill = hill{funcs = funcs2}
         funcs2 = fst $ producer hill (funcs hill) processor generator
         
         processor :: Monad m => (Spec -> m FuncName) -> Func -> m Func
-        processor ask x = do bod <- mapOverM f $ body x ; return x{body = bod}
+        processor ask x = do bod <- mapOverOldM f $ body x ; return x{body = bod}
             where
                 f (Apply (Fun x) xs) | length xs > nargs = do
                     x2 <- ask (x,nxs)

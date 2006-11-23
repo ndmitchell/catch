@@ -48,7 +48,7 @@ lambdaLift :: IHite -> IHite
 lambdaLift ihite@(IHite datas funcs) = IHite datas (map f funcs)
     where
         f (Func name args (Lambda xs body) rest) = f (Func name (args++xs) body rest)
-        f (Func name args body rest) = Func name args (mapOver g body) rest
+        f (Func name args body rest) = Func name args (mapOverOld g body) rest
         
         getArity :: FuncName -> Int
         getArity name = h $ funcExpr $ getFunc ihite name
@@ -117,7 +117,7 @@ specialiseStrong ihite@(IHite datas funcs) args = IHite datas $ f funcs []
                 
             
         useTemplate :: IFunc -> [(Desc,FuncName)] -> IFunc
-        useTemplate x desc = x{funcExpr = mapOver f (funcExpr x)}
+        useTemplate x desc = x{funcExpr = mapOverOld f (funcExpr x)}
             where
                 f (Call x xs) | isJust res && isJust name = Call (fromJust name) (concat $ zipWith g xs (snd jres))
                     where
@@ -134,7 +134,7 @@ specialiseStrong ihite@(IHite datas funcs) args = IHite datas $ f funcs []
     
         -- figure out what templates can be used
         collectTemplate :: IFunc -> [Desc]
-        collectTemplate func = concatMap f $ allOver $ funcExpr func
+        collectTemplate func = concatMap f $ allOverOld $ funcExpr func
             where
                 f (Call x xs) = maybeToList $ collectCall x xs
                 f x = []
@@ -151,7 +151,7 @@ specialiseStrong ihite@(IHite datas funcs) args = IHite datas $ f funcs []
         makeTemplate (Lambda free (Call name args))
                 | filter hasLocal args == map Var free
                 = TemplateFunc name (map hasLocal args)
-            where hasLocal x = [v | Var v <- allOver x] `overlap` free
+            where hasLocal x = [v | Var v <- allOverOld x] `overlap` free
 
         makeTemplate _ = TemplateId
 
@@ -162,7 +162,7 @@ eliminateWeak (IHite datas funcs) weights = (IHite datas $ map f funcs, map h we
     where
         keep name lst = [a | (a,b) <- zip lst (lookupJustNote "eliminateWeak" name weights), b /= Weak]
     
-        f (Func name args body _) = Func name (keep name args) (mapOver g body) []
+        f (Func name args body _) = Func name (keep name args) (mapOverOld g body) []
         
         g (Call x xs) = Call x (keep x xs)
         g x = x
@@ -191,7 +191,7 @@ calcArgs ihite@(IHite datas funcs) = fixp next base
             where
                 func = getFunc ihite funcname
                 body = funcExpr func
-                res = nub $ concatMap tweak $ (Normal,body) : concatMap g (allOver body)
+                res = nub $ concatMap tweak $ (Normal,body) : concatMap g (allOverOld body)
                 h i = maximum $ Weak : [a | (a,b) <- res, b == i]
             
                 g (Case on xs) = [(Strong, on)]

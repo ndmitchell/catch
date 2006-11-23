@@ -22,7 +22,7 @@ reachableList names hill@(Hill datas funcs) = Hill aliveDatas aliveFuncs
         aliveFuncs = fst $ producer hill (map (getFunc hill) names) processor generator
         
         processor :: Monad m => (FuncName -> m FuncName) -> Func -> m Func
-        processor ask x = do bod <- mapOverM f $ body x ; return x{body = bod}
+        processor ask x = do bod <- mapOverOldM f $ body x ; return x{body = bod}
             where
                 f (Call x xs) = do x2 <- ask x ; return $ Call x2 xs
                 f (Fun x) = do x2 <- ask x ; return $ Fun x2

@@ -37,7 +37,7 @@ propagate hill@(Hill _ funcs) (Scope func reqs)
         useLet x = propLit x
     
     
-        g args (Req hill expr path ctor) = newReqs hill (mapOver (h args) expr) path ctor
+        g args (Req hill expr path ctor) = newReqs hill (mapOverOld (h args) expr) path ctor
         
         h args (Var name) = lookupJustNote "Tram.Propagate.propagate"  name (zip argList args)
         h args x = x

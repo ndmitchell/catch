@@ -36,7 +36,7 @@ drive x = f (simpler x)
 
 
 applyAll :: (IExpr -> IExpr) -> IHite -> IHite
-applyAll f (IHite a b) = IHite a [func{funcExpr = mapOver f (funcExpr func)} | func <- b]
+applyAll f (IHite a b) = IHite a [func{funcExpr = mapOverOld f (funcExpr func)} | func <- b]
 
 
 getFunc2 :: IHite -> FuncPtr -> IFunc
@@ -57,7 +57,7 @@ reach ihite@(IHite a b) = IHite a $ filter (\x -> funcName x `elem` keep) b
     where
         keep = fixSet f ["main"]
         
-        f x = nub [x | Cell (FuncPtr x _) _ _ <- allOver $ funcExpr $ getFunc ihite x]
+        f x = nub [x | Cell (FuncPtr x _) _ _ <- allOverOld $ funcExpr $ getFunc ihite x]
 
 
 
@@ -84,7 +84,7 @@ inliner ihite = if res `eqFuncs` ihite then Nothing else Just res
     where
         res = applyAll f ihite
     
-        f (Cell name 0 xs) | canInline func = mapOver f $ mapOver g (funcExpr func)
+        f (Cell name 0 xs) | canInline func = mapOverOld f $ mapOverOld g (funcExpr func)
             where
                 func = getFunc2 ihite name 
                 g (Var i) = xs !! i
@@ -200,7 +200,7 @@ genSpecOne ihite@(IHite datas funcs) = if null newFuncs then Nothing else Just r
         res = IHite datas (map f newFuncs ++ funcs)
         newFuncs = nub reqFuncs \\ haveFuncs
         haveFuncs = [FuncPtr b a | func <- funcs, let [(TweakExpr a,b)] = funcTweaks func]
-        reqFuncs = [x | func <- funcs, Cell x _ _ <- allOver (funcExpr func)]
+        reqFuncs = [x | func <- funcs, Cell x _ _ <- allOverOld (funcExpr func)]
         
         f (FuncPtr name args) = res
             where
@@ -208,7 +208,7 @@ genSpecOne ihite@(IHite datas funcs) = if null newFuncs then Nothing else Just r
             
                 Func _ origArgs origBody _ = getFunc ihite name
                 (argCount, args2) = giveNumbers args
-                body = Apply (mapOver g origBody) (drop (length origArgs) args2)
+                body = Apply (mapOverOld g origBody) (drop (length origArgs) args2)
                 
                 g (Var i) = args2 !! i
                 g x = x
@@ -255,7 +255,7 @@ specFunc ihite orig@(Cell (FuncPtr name specs) n args) = res
         applySpec :: [IExpr] -> [IExpr]
         applySpec newspecs =
                 assertNote (show (orig,specs,n2,x2,ys)) (n2 == length ys) $
-                map (mapOver g2) x2
+                map (mapOverOld g2) x2
             where
                 ys = newspecs ++ replicate n (Var 0)
                 (n2,x2) = giveNumbers specs
@@ -265,7 +265,7 @@ specFunc ihite orig@(Cell (FuncPtr name specs) n args) = res
 
         -- check specialisation
         checkSpec :: [IExpr] -> Bool
-        checkSpec x = all (all f . allOver) x
+        checkSpec x = all (all f . allOverOld) x
             where
                 f (Make x xs) = and [not $ cargRec $ getCArgPos ihite x i
                                     | (i,Make x2 _) <- zip [0..] xs, x2 == x]
