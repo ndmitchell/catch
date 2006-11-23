@@ -31,7 +31,7 @@ coreMake :: CmdLineState -> String -> Value -> IO Value
 coreMake state _ (ValueFile x) = system ("yhc -hide -linkcore " ++ x) >> return (ValueFile x)
 
 overlayMake :: CmdLineState -> String -> Value -> IO Value
-overlayMake state _ val = system "yhc -hide -core Library/Primitive.hs" >> return val
+overlayMake state _ val = system "yhc -hide -core ../examples/Library/Primitive.hs" >> return val
 
 coreLoad :: CmdLineState -> String -> Value -> IO Value
 coreLoad state _ (ValueFile x) = liftM ValueCore $ loadCore x2
@@ -47,7 +47,7 @@ coreReach _ _ (ValueCore x) = return $ ValueCore $ coreReachable ["main"] x
 
 overlayApply :: CmdLineState -> String -> Value -> IO Value
 overlayApply state _ (ValueCore x) = do
-    prim <- loadCore "Library/ycr/Primitive.ycr"
+    prim <- loadCore "../examples/Library/ycr/Primitive.ycr"
     return $ ValueCore $ coreOverlay x prim
 
 
