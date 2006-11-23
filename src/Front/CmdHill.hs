@@ -30,12 +30,12 @@ insertCheck (Action name exec) = Action name exec2
 
 initialHill :: CmdLineState -> FilePath -> IO Value
 initialHill _ x = do
-    let file1 = "Example/" ++ x ++ ".hs"
-        file2 = "Nofib/" ++ x ++ ".hs"
+    let file1 = "../examples/Example/" ++ x ++ ".hs"
+        file2 = "../examples/Nofib/" ++ x ++ ".hs"
         files = [x, file1, file2]
     bs <- mapM doesFileExist files
     case [a | (a,b) <- zip files bs, b] of
-        [] -> error $ "File not found, " ++ x
+        [] -> error $ "File not found, " ++ x ++ "\nLooked at " ++ show files
         (x:_) -> return $ ValueFile x
 
 
