@@ -3,6 +3,8 @@ module Front.CmdLine(cmdLine, CmdLineState(..), Action(..)) where
 
 import Control.Exception
 import System.IO
+import System.Directory
+import System.FilePath
 import Data.List
 import Data.Char
 import Control.Monad
@@ -35,7 +37,9 @@ cmdLine initial actions cmds =
         (opts,files) = partition ("@" `isPrefixOf`) other
 
         f aliases file = do
-            hndl <- openFile (logFile file ".log") WriteMode
+            let logger = logFile file ".log"
+            createDirectoryIfMissing True (takeDirectory logger)
+            hndl <- openFile logger WriteMode
             hPutStrLn hndl $ "-- Catch log file, " ++ file
             let state = CmdLineState hndl (\x -> logFile file ('.':x)) (map tail opts) file
             
@@ -67,7 +71,7 @@ cmdLine initial actions cmds =
 
         
         logFile :: String -> String -> FilePath
-        logFile source tag = "Logs/" ++ source ++ tag
+        logFile source tag = "../logs/" ++ source ++ "/" ++ source ++ tag
 
 
 
