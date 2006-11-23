@@ -8,6 +8,7 @@ import Hite.TypeType
 import Front.CmdLine
 import Control.Monad
 import General.General
+import General.Play
 import Data.List
 import Data.Char
 import Control.Exception
@@ -141,6 +142,38 @@ data Alt = Default {altExpr :: Expr}
 
 
 -- Manipulate stuff
+
+
+instance Play Expr where
+    replaceChildren x = case x of
+        Call x xs -> (xs, Call x)
+        Make x xs -> (xs, Make x)
+        Prim x xs -> (xs, Prim x)
+          
+        Sel x y -> playOne (`Sel` y) x
+        Let xs x -> (x:xr, \(y:ys) -> Let (zip xl ys) y)
+            where (xl,xr) = unzip xs
+        Case x y -> (x:map altExpr y, \(x2:y2) -> Case x2 (zipWith (\a b -> a{altExpr=b}) y y2))
+
+        Lambda n x -> playOne (Lambda n) x
+        Apply x xs -> (x:xs, \(x:xs) -> Apply x xs)
+        
+        Error x -> playOne Error x
+        x -> playDefault x
+
+
+instance PlayEx Func Expr where
+    replaceChildrenEx func = ([body func], \[x] -> func{body=x})
+
+instance PlayEx Hill Expr where
+    replaceChildrenEx hill =
+        (
+            bods,
+            \xs -> hill{funcs = zipWith (\func bod -> func{body=bod}) (funcs hill) bods}
+        )
+        where bods = map body (funcs hill)
+
+
 
 instance Manipulate Expr where
     getChildren x = case x of
