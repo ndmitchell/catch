@@ -61,6 +61,11 @@ mapUnderEx :: PlayEx on with => (with -> with) -> on -> on
 mapUnderEx f x = generate $ map (mapUnder f) current
     where (current, generate) = replaceChildrenEx x
 
+mapUnderExM :: (Monad m, PlayEx on with) => (with -> m with) -> on -> m on
+mapUnderExM f x = liftM generate $ mapM (mapUnderM f) current
+    where (current, generate) = replaceChildrenEx x
+
+
 
 instance (Play with, PlayEx on with) => PlayEx [on] with where
     replaceChildrenEx x = (concat currents, zipWith ($) generates . divide currents)
