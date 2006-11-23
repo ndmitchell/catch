@@ -48,8 +48,9 @@ templateAbstract (Req a (Call name xs) b c) = newReq a (Call name args) b c
 templateConcrete :: Req -> Formula Req -> Formula Req
 templateConcrete (Req _ (Call name args) _ _) y = propMapReduce (propLit . f) y
     where
+        nargs = length args
         f (Req a b c d) = newReq a (mapOver g b) c d
-        g (Var i) = args !! i
+        g (Var i) | nargs < i = args !! i
         g x = x
 
 
@@ -89,7 +90,7 @@ instantiate (Hill datas funcs) r1@(Req a (Call name args) b c) = res
         rep (Req a b c d) = newReqs a (mapOver g b) c d
         
         g (Var x) = case lookup x (zip args2 args) of
-                          Nothing -> error $ "Tram.Template.instantiate: not found" -- Var x
+                          Nothing -> Var x -- a let bound var
                           Just y -> y
         g x = x
 
