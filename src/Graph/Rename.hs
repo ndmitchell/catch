@@ -4,7 +4,7 @@ module Graph.Rename(Rename, getRename, validRename, mergeRename, applyRename) wh
 import Graph.Type
 import Graph.Show
 import Hite
-import Data.Predicate
+import Pred.Predicate
 import General.General
 
 import Control.Exception

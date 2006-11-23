@@ -4,7 +4,7 @@ module Train.Convert where
 import Hite
 import Train.Type
 import General.General
-import Data.Predicate
+import Pred.Predicate
 import Data.Proposition
 
 

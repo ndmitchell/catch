@@ -4,7 +4,7 @@ module Hite.MCase(mcase, cmd) where
 import Hite.Type
 import List
 import General.General
-import Data.Predicate
+import Pred.Predicate
 import Safe
 
 

@@ -6,7 +6,7 @@ import Hite.Type
 import List
 import Maybe
 import General.General
-import Data.Predicate
+import Pred.Predicate
 
 
 cmd = cmdHitePure reachable "reachable"

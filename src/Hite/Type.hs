@@ -16,7 +16,7 @@ import General.Commands
 import Maybe
 import List
 import Char
-import Data.Predicate
+import Pred.Predicate
 
 
 cmdHite :: (String -> Hite -> IO Hite) -> String -> String -> Command Hite

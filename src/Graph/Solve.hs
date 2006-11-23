@@ -9,7 +9,7 @@ import Hite
 import Data.Maybe
 import Data.List
 import Debug.Trace
-import Data.Predicate
+import Pred.Predicate
 import Control.Exception(assert)
 import Directory
 import Monad

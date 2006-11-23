@@ -17,7 +17,7 @@ import List
 
 import Star.Type
 
-import Data.Predicate
+import Pred.Predicate
 
 
 

@@ -2,7 +2,7 @@
 module Typey.Annotate(annotate, annotate2) where
 
 import Hite
-import Data.Predicate
+import Pred.Predicate
 import General.General
 import Data.List
 import Data.Char

@@ -4,7 +4,7 @@ module General.Binary where
 import System.IO
 import Data.Char
 import Control.Monad
-import Data.Predicate
+import Pred.Predicate
 
 
 class Binary a where

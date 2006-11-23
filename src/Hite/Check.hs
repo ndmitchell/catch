@@ -3,7 +3,7 @@ module Hite.Check(check, cmd) where
 
 import Hite.Type
 import Hite.Show
-import Data.Predicate
+import Pred.Predicate
 import List
 import General.General
 

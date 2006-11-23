@@ -10,7 +10,7 @@ import General.General
 import Data.Maybe
 import Data.List
 import Data.Char
-import Data.Predicate
+import Pred.Predicate
 import Debug.Trace
 import Control.Monad
 

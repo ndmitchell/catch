@@ -12,7 +12,7 @@ import List
 import Maybe
 import Char
 
-import Data.Predicate
+import Pred.Predicate
 
 
 instance Show Req where

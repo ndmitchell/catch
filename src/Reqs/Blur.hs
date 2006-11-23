@@ -4,7 +4,7 @@ module Reqs.Blur() where
 import Reqs.Type
 import Reqs.Simplify
 import General.General
-import Data.Predicate
+import Pred.Predicate
 import Reqs.Path
 
 

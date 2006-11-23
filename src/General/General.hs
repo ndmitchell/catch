@@ -5,7 +5,7 @@ import Maybe
 import Directory
 import List
 import Monad
-import Data.Predicate
+import Pred.Predicate
 import Data.Char
 import Foreign(unsafePerformIO)
 import Debug.Trace

@@ -3,7 +3,7 @@ module Subst.Solve(substSolve) where
 
 import qualified Data.Map as Map
 import qualified Data.IntMap as IntMap
-import Data.Predicate
+import Pred.Predicate
 import Data.List
 import Data.Maybe
 

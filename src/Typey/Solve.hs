@@ -6,7 +6,7 @@ import Typey.Type
 import Typey.Pretty
 import Data.List
 import Data.Maybe
-import Data.Predicate
+import Pred.Predicate
 import General.General
 import IO
 import Debug.Trace

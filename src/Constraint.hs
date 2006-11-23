@@ -1,7 +1,7 @@
 
 module Constraint(
         module Reqs.Type, module Reqs.Simplify, module Reqs.Path, module Reqs.Show, module Reqs.Blur,
-        module Data.Predicate
+        module Pred.Predicate
     ) where
 
 
@@ -11,4 +11,4 @@ import Reqs.Blur
 import Reqs.Path
 import Reqs.Show
 
-import Data.Predicate
+import Pred.Predicate

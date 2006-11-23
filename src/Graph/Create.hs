@@ -9,7 +9,7 @@ import Hite
 import General.General
 import Data.List
 import Data.Maybe
-import Data.Predicate
+import Pred.Predicate
 
 
 createGraph :: Hite -> Graph

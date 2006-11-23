@@ -4,7 +4,7 @@ module Reqs.Type(
     ) where
 
 
-import Data.Predicate
+import Pred.Predicate
 
 {-
 import Pred.Type
