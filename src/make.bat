@@ -1,8 +1,11 @@
 @echo off
-mkdir Temp 2> nul
-mkdir Temp\Debug 2> nul
-mkdir Temp\Release 2> nul
-mkdir Temp\Profile 2> nul
+
+set out=..\obj
+
+mkdir %out% 2> nul
+mkdir %out%\Debug 2> nul
+mkdir %out%\Release 2> nul
+mkdir %out%\Profile 2> nul
 
 set mode=%1
 if "%1" == "" set mode=debug
@@ -16,12 +19,12 @@ if %mode% == drift goto drift
 if "%flag%" == "" goto bad_flags
 
 set comp=
-if exist C:\Neil\yhc-devel\src\compiler98 set comp=C:\Neil\yhc-devel\src\compiler98
-if exist D:\sources\yhc\11_sep_2006\yhc-devel\src\compiler98 set comp=D:\sources\yhc\11_sep_2006\yhc-devel\src\compiler98
-if exist C:\Documents\Uni\yhc\15_sep_2006\yhc-devel\src\compiler98 set comp=C:\Documents\Uni\yhc\15_sep_2006\yhc-devel\src\compiler98
+if exist C:\Neil\yhc set comp=C:\Neil\yhc
+if exist D:\sources\yhc\11_sep_2006\yhc-devel set comp=D:\sources\yhc\11_sep_2006\yhc-devel
+if exist C:\Documents\Uni\yhc\15_sep_2006\yhc-devel set comp=C:\Documents\Uni\yhc\15_sep_2006\yhc-devel
 
 echo Compiling for %mode%
-ghc --make Main -o catch%flag% -odir Temp\%mode% -hidir Temp\%mode% -i%comp%
+ghc --make Main -o catch%flag% -odir %out%\%mode% -hidir %out%\%mode% -i%comp%\src\libraries\core -i%comp%\src\libraries\general -i..\proposition
 goto finish
 
 
