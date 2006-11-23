@@ -50,7 +50,7 @@ templateConcrete (Req _ (Call name args) _ _) y = propMapReduce (propLit . f) y
     where
         nargs = length args
         f (Req a b c d) = newReq a (mapOver g b) c d
-        g (Var i) | nargs < i = args !! i
+        g (Var i) | i < nargs = args !! i
         g x = x
 
 
