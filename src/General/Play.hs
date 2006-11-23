@@ -4,6 +4,7 @@ module General.Play where
 import Control.Monad
 
 
+-- THE CLASS
 class Play on where
     replaceChildren :: on -> ([on], [on] -> on)
 
@@ -16,8 +17,16 @@ playOne :: (a -> a) -> a -> ([a], [a] -> a)
 playOne part item = ([item], \[item] -> part item)
 
 
+
+-- THE PLAYERS
+
 mapUnder :: Play on => (on -> on) -> on -> on
 mapUnder f x = f $ generate $ map (mapUnder f) current
+    where (current, generate) = replaceChildren x
+
+
+mapUnderM :: (Monad m, Play on) => (on -> m on) -> on -> m on
+mapUnderM f x = mapM (mapUnderM f) current >>= f . generate
     where (current, generate) = replaceChildren x
 
 
