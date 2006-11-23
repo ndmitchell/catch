@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -fallow-undecidable-instances #-}
+-- for the instance of Formula p
 
 module Tram.Req(module Tram.Req, module Tram.Path) where
 
