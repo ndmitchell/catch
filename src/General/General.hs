@@ -226,8 +226,13 @@ fixSet f elems = fix2 f elems []
 -- MANIPULATE STUFF
 
 class Manipulate a where
-	getChildren :: a -> [a]
-	setChildren :: a -> [a] -> a
+    replaceChildren :: a -> ([a], [a] -> a)
+
+    getChildren :: a -> [a]
+    getChildren = fst . replaceChildren
+
+    setChildren :: a -> [a] -> a
+    setChildren = snd . replaceChildren
 
 
 allOver :: Manipulate a => a -> [a]
