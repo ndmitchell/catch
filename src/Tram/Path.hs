@@ -112,6 +112,6 @@ blurPath hill (Path hite x) = Path hite (combineSucc $ map useStar x)
     
         combineSucc (PathStar x1:PathStar x2:xs)
             | dataName (getCArg hite $ head x1) == dataName (getCArg hite $ head x2)
-            = combineSucc (PathStar (nub $ x1 ++ x2) : xs)
+            = combineSucc (PathStar (snub $ x1 ++ x2) : xs)
         combineSucc (x:xs) = x : combineSucc xs
         combineSucc [] = []
