@@ -46,7 +46,9 @@ backward hill template hndl x = do
                 then hPutStrLn hndl $ "  Always safe"
                 else mapM_ (outLine table2) todo2
             
-            f table2 (nub $ xs ++ todo2)
+            let (todome,todoother) = partition (== x) todo2
+            
+            f table2 (nub $ todome ++ todoother ++ xs)
             where
                 outLine table x
                     = hPutStrLn hndl $ ("  " ++) $ show $ Scope x $ Map.findWithDefault propTrue x table
