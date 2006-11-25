@@ -68,9 +68,8 @@ newReq hite zexpr path ctors
 x.tl*{[]} => x{[]}
 x.p{c} | ewp(p), and x{c} => no items available in p
 -}
-    | ewpPath path &&
-      (pathCtorArgs path `disjoint` concatMap (ctorArgs . getCtor hite) ctors)
-    = Req hite zexpr (emptyPath hite) ctors
+    | ewpPath path
+    = Req hite zexpr (restrictPath path $ concatMap (ctorArgs . getCtor hite) ctors) (snub ctors)
     
     
     | otherwise = Req hite zexpr path (snub ctors)
@@ -99,7 +98,7 @@ instance PropLit Req where
 notReq Demonic = Demonic
 notReq Angelic = Angelic
 notReq (Req hill expr path ctrs) = newReq hill expr path ctrs2
-    where ctrs2 = ctorNames (getCtor hill (head ctrs)) \\ ctrs
+    where ctrs2 = sort $ ctorNames (getCtor hill (head ctrs)) \\ ctrs
 
 combineReqsAnd :: Req -> Req -> Reduce Req
 combineReqsAnd (Req hite on1 path1 ctors1) (Req _ on2 path2 ctors2)
@@ -132,7 +131,8 @@ impliesReq given req@(Req hite on path ctors) =
     where
         doesImply :: (Req,Bool) -> Bool
         doesImply (r@(Req _ on2 path2 ctors2), True)
-            | on == on2 && ctors2 `subset` ctors = newReq hite on path ctors2 == r
+            | on == on2 && ctors2 `subset` ctors && newReq hite on path ctors2 == r = True
+            | on == on2 && ctors `subset` ctors2 && path2 `subsetPath` path = trace (show (req,r)) True
         doesImply _ = False
     
         -- calculate all possible constructors that might arise
