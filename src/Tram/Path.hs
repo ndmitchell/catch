@@ -1,5 +1,5 @@
 
-module Tram.Path(Path, nullPath, newPath, ewpPath,
+module Tram.Path(Path, nullPath, newPath, ewpPath, pathCtorArgs,
 	emptyPath, finitePath, makeFinitePath, integrate, differentiate,
 	subsetPath, blurPath) where
 
@@ -37,6 +37,12 @@ instance Show PathElem where
 
 isPathStar (PathStar{}) = True ; isPathStar _ = False
 isPathAtom = not . isPathStar
+
+
+pathCtorArgs (Path _ x) = snub $ concatMap f x
+    where
+        f (PathAtom x) = [x]
+        f (PathStar xs) = xs
 
 
 nullPath (Path _ x) = null x
