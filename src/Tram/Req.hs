@@ -63,8 +63,19 @@ scopesAnds xs = filter (\(Scope a b) -> not (propIsTrue b)) $ map f $
 
 newReq :: Hill -> Expr -> Path -> [CtorName] -> Req
 newReq hite zexpr path ctors
-    | ewpPath path && (pathCtorArgs path `disjoint` concatMap (ctorArgs . getCtor hite) ctors) = Req hite zexpr (emptyPath hite) ctors
+
+{-
+x.tl*{[]} => x{[]}
+x.p{c} | ewp(p), and x{c} => no items available in p
+-}
+    | ewpPath path &&
+      (pathCtorArgs path `disjoint` concatMap (ctorArgs . getCtor hite) ctors)
+    = Req hite zexpr (emptyPath hite) ctors
+    
+    
     | otherwise = Req hite zexpr path (nub $ sort ctors)
+
+
 
 newReqs :: Prop p => Hill -> Expr -> Path -> [CtorName] -> p Req
 newReqs hite zexpr path ctors | null ctors = propFalse
