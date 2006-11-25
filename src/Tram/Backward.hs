@@ -25,9 +25,13 @@ type FixpMap = Map.Map FuncName (BDD Req)
 
 backward :: Hill -> Template -> Handle -> Scopes Formula -> IO (Formula Req)
 backward hill template hndl x = do
-		newMap <- f origMap origTodo
-		return $ propRebuildFormula $ Map.findWithDefault propTrue "main" newMap
-	where
+        newMap <- f origMap origTodo
+        
+        hPutStrLn hndl "Final:"
+        mapM_ (hPutStrLn hndl) ["  " ++ k ++ " = " ++ show v | (k,v) <- Map.toList newMap]
+        
+        return $ propRebuildFormula $ Map.findWithDefault propTrue "main" newMap
+    where
         origMap = Map.fromList [(a, propRebuildBDD b) | Scope a b <- x]
         origTodo = Map.keys origMap
     
