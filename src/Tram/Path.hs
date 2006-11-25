@@ -1,5 +1,5 @@
 
-module Tram.Path(Path, nullPath, newPath, ewpPath, pathCtorArgs,
+module Tram.Path(Path, nullPath, newPath, ewpPath, pathCtorArgs, restrictPath,
 	emptyPath, finitePath, makeFinitePath, integrate, differentiate,
 	subsetPath, blurPath) where
 
@@ -57,6 +57,13 @@ ewpPath (Path _ x) = all isPathStar x
 finitePath (Path _ x) = all (not . isPathStar) x
 makeFinitePath (Path hite x) = Path hite $ filter (not . isPathStar) x
 
+
+restrictPath :: Path -> [CtorArg] -> Path
+restrictPath (Path h x) allow = Path h (concatMap f x)
+    where
+        f (PathStar x) = if null x2 then [] else [PathStar x2]
+            where x2 = filter (`elem` allow) x
+        f x = [x]
 
 
 differentiate :: Path -> CtorArg -> Maybe Path
