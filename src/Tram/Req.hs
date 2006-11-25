@@ -73,7 +73,7 @@ x.p{c} | ewp(p), and x{c} => no items available in p
     = Req hite zexpr (emptyPath hite) ctors
     
     
-    | otherwise = Req hite zexpr path (nub $ sort ctors)
+    | otherwise = Req hite zexpr path (snub ctors)
 
 
 
