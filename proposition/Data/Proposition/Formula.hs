@@ -83,47 +83,12 @@ disableSimplify = False
 
 (??\/) :: PropLit a => a -> a -> Reduce a
 a ??\/ b | disableSimplify = None
-
-         | [(a,True)] ?=> b == Just True = Value b
-{-
-a b | a => b | a v b | a v b == b
-F F     T        F        T
-F T     T        T        T
-T F     F        T        ?
-T T     T        T        T 
--}
-
-         | [(b,True)] ?=> a == Just True = Value a
-{- reverse of above -}
-
-         | otherwise = a ?\/ b
-
+         | otherwise = fromMaybe (a ?\/ b) (reduceOrWithImp a b)
 
 (??/\) :: PropLit a => a -> a -> Reduce a
 a ??/\ b | disableSimplify = None
+         | otherwise = fromMaybe (a ?/\ b) (reduceAndWithImp a b)
 
-         | a_implies_b == Just True  = Value a
-         | a_implies_b == Just False = Literal False
-         | b_implies_a == Just True  = Value b
-         | b_implies_a == Just False = Literal False
-{-
-a b | a => b | a ^ b | a ^ b == a
-F F     T        F        T
-F T     T        F        T
-T F     F        F        ?
-T T     T        T        T
-
-a b | a => ¬b | a ^ b | a ^ b == F
-F F      T        F        T
-F T      T        F        T
-T F      T        F        T
-T T      F        T        ?
--}
-
-         | otherwise = a ?/\ b
-    where
-        a_implies_b = [(a,True)] ?=> b
-        b_implies_a = [(b,True)] ?=> a
 
 
 reduceList :: PropLit a => (a -> a -> Reduce a) -> [a] -> [Formula a]
