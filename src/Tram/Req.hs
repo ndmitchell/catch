@@ -8,6 +8,7 @@ import General.General
 import Tram.Path
 import Data.Proposition
 import Data.List
+import Data.Maybe
 import Safe
 
 
@@ -107,8 +108,24 @@ combineReqsAnd (Req hite on1 path1 ctors1) (Req _ on2 path2 ctors2)
     where
         ctrs = sort $ ctors2 `intersect` ctors1
 
+combineReqsAnd r1 r2
+        | isJust s1 || isJust s2
+        = fromMaybe (combineReqsAnd t1 t2) (reduceAndWithImp t1 t2)
+    where
+        (s1,s2) = (reduceAnd r2 r1, reduceAnd r1 r2)
+        (t1,t2) = (fromMaybe r1 s1, fromMaybe r2 s2)
+
 combineReqsAnd _ _ = None
 
+
+-- given that a predicate is anded, what must this one be
+-- must make things smaller, or returns Nothing
+reduceAnd :: Req -> Req -> Maybe Req
+reduceAnd (Req hite on1 path1 ctors1) (Req _ on2 path2 ctors2)
+    | on1 == on2 && path2 `subsetPath` path1 && ctors2 /= ctrs
+    = Just $ Req hite on2 path2 ctrs
+    where ctrs = ctors1 `intersect` ctors2
+reduceAnd _ x = Nothing
 
 
 combineReqsOr :: Req -> Req -> Reduce Req
