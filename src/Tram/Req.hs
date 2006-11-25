@@ -125,8 +125,7 @@ combineReqsOr _ _ = None
 
 impliesReq :: [(Req, Bool)] -> Req -> Maybe Bool
 impliesReq given req@(Req hite on path ctors) = 
-        if null ctors then Just False
-        else if poss `subset` ctors then Just True
+        if poss `subset` ctors then Just True
         else if ctors `disjoint` poss then Just False
         else Nothing
     where
