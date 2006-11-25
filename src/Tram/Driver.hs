@@ -31,7 +31,11 @@ tramDriver cmdState hill = do
         when (null conds) $
             putStrLn "No pattern match errors, trivially safe"
 
-        outBoth $ "Final: \\forall main, " ++ show ress
+        let msg = show ress
+            lmsg = length msg
+        outBoth $ "Final: \\forall main, " ++ msg
+        when (lmsg > 200) $
+            outBoth $ "Long: " ++ show lmsg
 
         hFlush hndl
         hClose hndlTemplate
