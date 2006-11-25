@@ -53,7 +53,7 @@ backward hill template hndl x = do
                 | otherwise = (func:todo,Map.insert func ans2 mp)
             where
                 ans = Map.findWithDefault propTrue func mp
-                ans2 = propAnd (propRebuildBDD x) ans
+                ans2 = propSimplify $ propAnd (propRebuildBDD x) ans
         
         
         oneStep :: Scope Formula -> IO (Scopes Formula)
