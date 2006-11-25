@@ -122,6 +122,16 @@ combineReqsOr (Req hite on1 path1 ctors1) (Req _ on2 path2 ctors2)
 combineReqsOr _ _ = None
 
 
+-- impliesPair a b, a => b
+impliesPair :: Req -> Req -> Bool
+impliesPair r1@(Req hite on path ctors) r2@(Req _ on2 path2 ctors2)
+    | on == on2 && ctors2 `subset` ctors && newReq hite on path ctors2 == r2 = True
+    | on == on2 && ctors `subset` ctors2 && path2 `subsetPath` path = True
+impliesPair _ _ = False
+
+
+
+
 impliesReq :: [(Req, Bool)] -> Req -> Maybe Bool
 impliesReq given req@(Req hite on path ctors) =
         if any doesImply given then Just True
@@ -130,11 +140,8 @@ impliesReq given req@(Req hite on path ctors) =
         else Nothing
     where
         doesImply :: (Req,Bool) -> Bool
-        doesImply (r@(Req _ on2 path2 ctors2), True)
-            | on == on2 && ctors2 `subset` ctors && newReq hite on path ctors2 == r = True
-            | on == on2 && ctors `subset` ctors2 && path2 `subsetPath` path = trace (show (req,r)) True
-        doesImply _ = False
-    
+        doesImply (r2,b) = b && impliesPair req r2
+
         -- calculate all possible constructors that might arise
         poss = foldr f baseSet given
         baseSet = ctorNames $ getCtor hite (headNote "Tram.Type.impliesReq" ctors)
