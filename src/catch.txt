@@ -95,6 +95,7 @@ hill-anal4
 	hill-let-inline1
 	hill-var-split
 	hill-simplify
+	hill-let-inline
 
 
 prep
