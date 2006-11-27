@@ -151,7 +151,8 @@ impliesPair _ _ = False
 
 impliesReq :: [(Req, Bool)] -> Req -> Maybe Bool
 impliesReq given req@(Req hite on path ctors) =
-        if any doesImply given then Just True
+        if null ctors then Just False
+        else if any doesImply given then Just True
         else if poss `subset` ctors then Just True
         else if ctors `disjoint` poss then Just False
         else Nothing
