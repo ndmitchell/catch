@@ -8,8 +8,8 @@ import Control.Monad
 
 -- PURE PART
 
-fixp :: (Show v, Show k, Eq v, Eq k) => v -> (k -> (k -> IO v) -> IO v) -> k -> IO v
-fixp def solve key = gen [] key
+fixp :: (Show v, Show k, Eq v, Eq k) => v -> (v -> v -> v) -> (k -> (k -> IO v) -> IO v) -> k -> IO v
+fixp def merge solve key = gen [] key
     where
         -- look up in the stack if possible
         ask stack key = do
@@ -24,7 +24,11 @@ fixp def solve key = gen [] key
             where
                 f value = do
                     value2 <- solve key (ask ((key,value):stack))
-                    if value == value2 then return value else f value2
+                    let value3 = merge value2 value
+                    --putStrLn $ "1: " ++ show value
+                    --putStrLn $ "2: " ++ show value2
+                    --putStrLn $ "3: " ++ show value3
+                    if value == value3 then return value else f value3
 
 
 -- REQ SPECIFIC PART
@@ -32,8 +36,13 @@ fixp def solve key = gen [] key
 -- work on Formula, but use BDD for the fixpoint value
 
 fixpReqs :: Formula Req -> (Req -> (Req -> IO (Formula Req)) -> IO (Formula Req)) -> Req -> IO (Formula Req)
-fixpReqs def solve key = liftM propRebuildFormula $ fixp (propRebuildBDD def) solve2 key
+fixpReqs def solve key = liftM propRebuildFormula $ fixp (propRebuildBDD def) merge2 solve2 key
     where
+        merge2 a b = propAnd (propSimplify $ propRebuildBDD $ propRebuildFormula $ propAnd a b) b
+    
         solve2 :: Req -> (Req -> IO (BDD Req)) -> IO (BDD Req)
-        solve2 key onestep = liftM (propSimplify . propRebuildBDD . blurReqs) $ solve key onestep2
+        solve2 key onestep = do
+                oldValue <- onestep key
+                newValue <- solve key onestep2
+                return $ propSimplify $ propRebuildBDD $ blurReqs $ propAnd (propRebuildFormula oldValue) newValue
             where onestep2 x = liftM propRebuildFormula $ onestep x
