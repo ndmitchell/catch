@@ -42,12 +42,16 @@ zeroApp = mapUnderCore f
 
 
 firstify :: Core -> (Bool, Core)
-firstify x = f 10 x
+firstify x = f 10 emptySpec x
     where
-        f n x | not $ hasHO x = (True, x)
-              | n == 0 = (False, x)
-              | otherwise = f (n-1) (process x)
-            where process = coreReachable ["main"] . coreSimplify . specHO . coreSimplify . inlineHO
+        f n s x | not $ hasHO x = (True, x)
+                | n == 0 = (False, x)
+                | otherwise = uncurry (f (n-1)) (process s x)
+
+        process spec core = (spec2, core2)
+            where
+                core3 = coreReachable ["main"] $ coreSimplify core2
+                (spec2,core2) = specHO spec $ coreSimplify $ inlineHO core
 
 
 arity :: Core -> String -> Int
@@ -80,6 +84,9 @@ inlineHO core = mapUnderCore f $ zeroApp core
 
 
 
+data Special = Special [(String,[CoreExpr],String)]
 
-specHO :: Core -> Core
-specHO = id
+emptySpec = Special []
+
+specHO :: Special -> Core -> (Special, Core)
+specHO spec core = (spec, core)
