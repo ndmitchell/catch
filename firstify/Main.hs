@@ -138,8 +138,10 @@ askSpecial core = nub $ mapMaybe (wantSpecial core) $ allCore core
 
 
 wantSpecial :: Core -> CoreExpr -> Maybe Spec
-wantSpecial core (CoreApp (CoreFun x) xs) | any (isHO core) xs = Just $ f x xs
+wantSpecial core (CoreApp (CoreFun x) xs) | any (isHO core) xsa = Just $ f x xsa
     where
+        xsa = take (arity core x) xs
+    
         f x xs = Spec x xs2 ""
             where CoreApp _ xs2 = g (CoreApp (CoreFun x) (zipWith h [0..] xs))
 
@@ -176,8 +178,9 @@ useSpecial :: Core -> Special -> Core
 useSpecial core spec = mapUnderCore f core
     where
         f o@(CoreApp (CoreFun x) xs) | isJust ms && fromJust ms `elem` spec =
-                CoreApp (CoreFun name) (concatMap g xs)
+                coreApp (CoreApp (CoreFun name) (concatMap g used)) extra
             where
+                (used,extra) = splitAt (arity core x) xs
                 Spec _ args name = head $ filter (==fromJust ms) spec
                 ms = wantSpecial core o
                 
