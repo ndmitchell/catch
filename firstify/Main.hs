@@ -63,8 +63,8 @@ firstify x = f 10 emptySpec x
 
         process spec core = (spec2, core3)
             where
-                core3 = coreReachable ["main"] $ coreSimplify core2
-                (spec2,core2) = specHO spec $ coreSimplify $ fromMaybe core $ inlineHOs core
+                (spec2,core2) = fromMaybe (spec,core) $ specHOs spec core
+                core3 = fromMaybe core2 $ inlineHO core2
 
 
 arity :: Core -> String -> Int
@@ -105,7 +105,7 @@ inlineHO :: Core -> Maybe Core
 inlineHO core | null inline = Nothing
               | otherwise = Just $ coreReachable ["main"] $ coreSimplify $ mapUnderCore f $ zeroApp core
     where
-        inline = [(coreFuncName func, func) | func <- coreFuncs core, isDataHO core $ coreFuncBody func, canInline func]
+        inline = [(coreFuncName func, func) | func <- coreFuncs core, isHO core $ coreFuncBody func, canInline func]
         
         canInline func = null [() | CoreFun name <- allCore (coreFuncBody func), name == coreFuncName func]
         
@@ -128,10 +128,22 @@ instance Eq Spec where
 
 emptySpec = []
 
-specHO :: Special -> Core -> (Special, Core)
-specHO spec core = (spec2, core3)
+
+specHOs :: Special -> Core -> Maybe (Special, Core)
+specHOs spec core = case specHO spec core of
+                        Nothing -> Nothing
+                        Just (s2,c2) -> f s2 c2
     where
-        core3 = useSpecial core2 spec2
+        f s c = case specHO s c of
+                    Nothing -> Just (s,c)
+                    Just (s,c) -> f s c
+        
+
+specHO :: Special -> Core -> Maybe (Special, Core)
+specHO spec core = if changed || not (null new) then Just (spec2, core4) else Nothing
+    where
+        core4 = coreReachable ["main"] $ coreSimplify $ core3
+        (changed,core3) = useSpecial core2 spec2
         core2 = core{coreFuncs = func2 ++ coreFuncs core}
         func2 = genSpecial core new
         spec2 = new ++ spec
@@ -184,9 +196,11 @@ genSpecial core specs = map f specs
                 body2 = coreApp (replaceFreeVars (zip params args) body) (drop (length params) args)
 
 
-useSpecial :: Core -> Special -> Core
-useSpecial core spec = mapUnderCore f core
+useSpecial :: Core -> Special -> (Bool,Core)
+useSpecial core spec = (core2 /= core, core2)
     where
+        core2 = mapUnderCore f core
+
         f o@(CoreApp (CoreFun x) xs) | isJust ms && fromJust ms `elem` spec =
                 CoreApp (CoreFun name) (concatMap g used ++ extra)
             where
@@ -198,4 +212,3 @@ useSpecial core spec = mapUnderCore f core
                     | otherwise = [x]
                 
         f x = x
-
