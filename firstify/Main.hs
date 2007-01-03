@@ -64,7 +64,7 @@ firstify x = f 10 emptySpec x
         process spec core = (spec2, core3)
             where
                 core3 = coreReachable ["main"] $ coreSimplify core2
-                (spec2,core2) = specHO spec $ coreSimplify $ inlineHO core
+                (spec2,core2) = specHO spec $ coreSimplify $ fromMaybe core $ inlineHOs core
 
 
 arity :: Core -> String -> Int
@@ -83,8 +83,21 @@ isHO core (CoreApp (CoreCon _) args) = any (isHO core) args
 isHO core _ = False
 
 
-inlineHO :: Core -> Core
-inlineHO core = mapUnderCore f $ zeroApp core
+
+inlineHOs :: Core -> Maybe Core
+inlineHOs x | isJust x2 = Just $ f $ fromJust x2
+            | otherwise = Nothing
+    where
+        x2 = inlineHO x
+    
+        f x = case inlineHO x of
+                  Nothing -> x
+                  Just y -> f y
+
+
+inlineHO :: Core -> Maybe Core
+inlineHO core | null inline = Nothing
+              | otherwise = Just $ coreReachable ["main"] $ coreSimplify $ mapUnderCore f $ zeroApp core
     where
         inline = [(coreFuncName func, func) | func <- coreFuncs core, isHO core $ coreFuncBody func]
         
