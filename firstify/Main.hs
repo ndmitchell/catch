@@ -35,7 +35,7 @@ findFile file = do
 
 
 lambdas :: Core -> Core
-lambdas core = mapUnderCore f core
+lambdas core = mapUnderCore f $ removeRecursiveLet core
     where
         f orig@(CoreApp (CoreFun name) args) | extra > 0 =
                 CoreLam new (CoreApp (CoreFun name) (args ++ map CoreVar new))
