@@ -83,6 +83,12 @@ isHO core (CoreApp (CoreCon _) args) = any (isHO core) args
 isHO core _ = False
 
 
+isDataHO :: Core -> CoreExpr -> Bool
+isDataHO core (CoreApp (CoreCon _) args) = any (isHO core) args
+isDataHO core (CoreLet _ x) = isDataHO core x
+isDataHO core (CoreCase x ys) = any (isDataHO core . snd) ys
+isDataHO _ _ = False
+
 
 inlineHOs :: Core -> Maybe Core
 inlineHOs x | isJust x2 = Just $ f $ fromJust x2
@@ -99,7 +105,9 @@ inlineHO :: Core -> Maybe Core
 inlineHO core | null inline = Nothing
               | otherwise = Just $ coreReachable ["main"] $ coreSimplify $ mapUnderCore f $ zeroApp core
     where
-        inline = [(coreFuncName func, func) | func <- coreFuncs core, isHO core $ coreFuncBody func]
+        inline = [(coreFuncName func, func) | func <- coreFuncs core, isDataHO core $ coreFuncBody func, canInline func]
+        
+        canInline func = null [() | CoreFun name <- allCore (coreFuncBody func), name == coreFuncName func]
         
         f (CoreApp (CoreFun name) args) | isJust func = coreLam extra rest
             where
@@ -138,9 +146,10 @@ askSpecial core = nub $ mapMaybe (wantSpecial core) $ allCore core
 
 
 wantSpecial :: Core -> CoreExpr -> Maybe Spec
-wantSpecial core (CoreApp (CoreFun x) xs) | any (isHO core) xsa = Just $ f x xsa
+wantSpecial core (CoreApp (CoreFun x) xs) | nxs >= ar && (nxs > ar || any (isHO core) xs) = Just $ f x xs
     where
-        xsa = take (arity core x) xs
+        nxs = length xs
+        ar = arity core x
     
         f x xs = Spec x xs2 ""
             where CoreApp _ xs2 = g (CoreApp (CoreFun x) (zipWith h [0..] xs))
@@ -168,17 +177,18 @@ nameSpecial core xs = f (map coreFuncName $ coreFuncs core) xs
 genSpecial :: Core -> [Spec] -> [CoreFunc]
 genSpecial core specs = map f specs
     where
-        f (Spec func args name) = CoreFunc name (collectFreeVars (CoreApp (CoreFun func) args)) body2
+        f (Spec func args name) = CoreFunc name args2 body2
             where
+                args2 = collectFreeVars (CoreApp (CoreFun func) args)
                 CoreFunc _ params body = coreFunc core func
-                body2 = replaceFreeVars (zip params args) body
+                body2 = coreApp (replaceFreeVars (zip params args) body) (drop (length params) args)
 
 
 useSpecial :: Core -> Special -> Core
 useSpecial core spec = mapUnderCore f core
     where
         f o@(CoreApp (CoreFun x) xs) | isJust ms && fromJust ms `elem` spec =
-                coreApp (CoreApp (CoreFun name) (concatMap g used)) extra
+                CoreApp (CoreFun name) (concatMap g used ++ extra)
             where
                 (used,extra) = splitAt (arity core x) xs
                 Spec _ args name = head $ filter (==fromJust ms) spec
