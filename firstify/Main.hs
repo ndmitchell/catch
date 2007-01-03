@@ -4,6 +4,7 @@ module Main where
 import System.FilePath
 import Yhc.Core
 import System.Environment
+import System.Directory
 import Data.Maybe
 import Data.List
 
@@ -12,13 +13,25 @@ main = do
         x <- getArgs
         mapM_ f x
     where
-        f file = do
+        f fil = do
+            file <- findFile fil
             core <- loadCore file
-            let file2 = replaceBaseName file (takeBaseName file ++ "_first")
+            let file2 = replaceExtension file "first.yca"
                 (fo,core2) = firstify $ mapUnderCore remCorePos $ lambdas $ zeroApp core
             saveCore file2 core2
             print core2
             putStrLn $ "-- " ++ (if fo then "FIRST" else "HIGHER") ++ " order"
+
+
+
+findFile :: String -> IO FilePath
+findFile file = do
+    bs <- mapM doesFileExist files
+    case [a | (a,b) <- zip files bs, b] of
+        (x:_) -> return x
+        _ -> error $ "File not found, " ++ file
+    where files = file : ["../examples" </> s </> "ycr" </> file <.> "over.yca" | s <- ["Example","Nofib"]]
+
 
 
 lambdas :: Core -> Core
