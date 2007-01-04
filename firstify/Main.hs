@@ -212,11 +212,12 @@ nameSpecial core xs = f (map coreFuncName $ coreFuncs core) xs
 genSpecial :: Core -> [Spec] -> [CoreFunc]
 genSpecial core specs = map f specs
     where
-        f (Spec func args name) = CoreFunc name args2 body2
+        f (Spec func args name) = CoreFunc name args2 body3
             where
                 args2 = collectFreeVars (CoreApp (CoreFun func) args)
                 CoreFunc _ params body = coreFunc core func
-                body2 = coreApp (replaceFreeVars (zip params args) body) (drop (length params) args)
+                body3 = coreApp (replaceFreeVars (zip params args) body2) (drop (length params) args)
+                body2 = uniqueBoundVarsWithout (collectAllVars (CoreApp (CoreFun func) args)) body
 
 
 useSpecial :: Core -> Special -> (Bool,Core)
