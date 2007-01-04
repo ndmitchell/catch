@@ -15,6 +15,7 @@ prim_error = error . fromString
 prim_System_IO_stdout = System.IO.stdout
 
 prim_LT_W x y = (x::Int) <  y
+prim_LE_W x y = (x::Int) <= y
 prim_GT_W x y = (x::Int) >  y
 prim_EQ_W x y = (x::Int) == y
 prim_NE_W x y = (x::Int) /= y
