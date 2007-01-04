@@ -108,7 +108,7 @@ inlineHO :: Core -> Maybe Core
 inlineHO core | null inline = Nothing
               | otherwise = Just $ coreReachable ["main"] $ coreSimplify $ mapUnderCore f $ zeroApp core
     where
-        inline = [(coreFuncName func, func) | func <- coreFuncs core, isHO core $ coreFuncBody func, canInline func]
+        inline = [(coreFuncName func, func) | func <- coreFuncs core, isHO core $ coreFuncBody func] --, canInline func]
         
         canInline func = null [() | CoreFun name <- allCore (coreFuncBody func), name == coreFuncName func]
         
