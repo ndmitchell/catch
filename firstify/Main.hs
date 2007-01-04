@@ -21,9 +21,16 @@ main = do
                 (fo,core2) = firstify $ mapUnderCore remCorePos $ lambdas $ zeroApp core
             saveCore file2 core2
             writeFile (file2 <.> "html") (coreHtml core2)
-            writeFile (file2 <.> "hs") (coreHaskell core2)
+            
+            src <- readFile "Prefix.txt"
+            writeFile (file2 <.> "hs") (src ++ coreHaskell (mapUnderCore usePrim core2))
+            
             print core2
             putStrLn $ "-- " ++ (if fo then "FIRST" else "HIGHER") ++ " order"
+
+
+usePrim (CorePrim x) = CorePrim $ "prim_" ++ x
+usePrim x = x
 
 
 
