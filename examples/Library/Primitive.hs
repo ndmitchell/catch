@@ -4,6 +4,8 @@
 module Primitive where
 
 import System.IO(Handle)
+import Data.Char(ord)
+
 
 foreign import primitive prim_local_1 :: a -> b
 foreign import primitive prim_local_2 :: a -> b -> c
@@ -79,3 +81,69 @@ global_Numeric'_floatToDigits a b = prim_local_2 a b
 -- generates too much data
 global_Data'_Char'_showLitChar :: Char -> ShowS
 global_Data'_Char'_showLitChar x y = prim_local_1 x : prim_local_1 x ++ y
+
+
+-- implemented really badly!
+global_Prelude'_Prelude'_Read'_Prelude'_Int'_readsPrec :: Int -> String -> [(Int,String)]
+global_Prelude'_Prelude'_Read'_Prelude'_Int'_readsPrec a b = read_int b
+
+
+global_Prelude'_Prelude'__'_readList :: (Int -> String -> [(a,String)], String -> [([a], String)]) -> String -> [([a], String)]
+global_Prelude'_Prelude'__'_readList (read_item, _) s = read_list read_item s
+
+global_Prelude'_read :: (Int -> String -> [(a,String)], String -> [([a], String)]) -> String -> a
+global_Prelude'_read (a, b) s = case a 0 s of
+                                    [(x,ys)] | spaces ys -> x
+                                    _ -> error "Failed to parse"
+    where
+        spaces [] = True
+        spaces (x:xs) = if isSpace x then spaces xs else False
+
+isDigit x = x >= '0' && x <= '9'
+intToDigit x = ord x - ord '0'
+isSpace x = x `elem` " \t\r\n"
+isAlpha x = (x >= 'a' && x <= 'z') || (x >= 'A' && x <= 'Z')
+
+
+read_int :: String -> [(Int,String)]
+read_int x = f x
+    where
+        f (x:xs) | isSpace x = f xs
+        f ('(':xs) = end_bracket (f xs)
+        f ('-':xs) = case g xs of
+                        [(i,s)] -> [(negate i, s)]
+                        x -> x
+        f xs = g xs
+        
+        g (x:xs) | isDigit x = h (intToDigit x) xs
+        g _ = []
+        
+        h n (x:xs) | isDigit x = h (n*10 + intToDigit x) xs
+                   | isAlpha x = []
+        h n s = [(n,s)]
+
+
+
+read_list :: (Int -> String -> [(a,String)]) -> String -> [([a], String)]
+read_list read_one x = f x
+    where
+        f (x:xs) | isSpace x = f xs
+        f ('(':xs) = end_bracket (f xs)
+        f ('[':xs) = g xs
+        
+        g xs = case read_one 0 xs of
+                   [(a,xs)] -> h [a] xs
+                   [] -> []
+
+        h as (']':xs) = [(reverse as, xs)]
+        h as (',':xs) = case read_one 0 xs of
+                           [(a,xs)] -> h (a:as) xs
+                           [] -> []
+        h as (x:xs) | isSpace x = h as xs
+        h as _ = []
+
+
+end_bracket :: [(a, String)] -> [(a, String)]
+end_bracket [(a, ')':xs)] = [(a,xs)]
+end_bracket [(a, x:xs)] | isSpace x = end_bracket [(a, xs)]
+end_bracket _ = []
