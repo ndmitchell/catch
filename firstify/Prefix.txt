@@ -5,8 +5,7 @@ import Foreign
 import Data.Char
 
 main :: IO ()
-main = case fmain of
-            CPrimitive_46IO C_40_41 -> return ()
+main = fmain `seq` return ()
 
 prim_System_IO_hPutChar x y = unsafePerformIO (System.IO.hPutChar x (chr y) >> return (CPrimitive_46IO C_40_41))
 
@@ -34,7 +33,8 @@ prim_STRING x = map prim_CHR x
 
 fromString x = map chr x
 
+instance Show (DPrimitive_46IO a) where
+	show (CPrimitive_46IO a) = a `seq` ""
 
-data C_40_41 = C_40_41
 
 -- END HAND WRITTEN
