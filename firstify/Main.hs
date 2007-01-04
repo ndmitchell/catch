@@ -181,7 +181,7 @@ wantSpecial core (CoreApp (CoreFun x) xs) | nxs >= ar && (nxs > ar || any (isHO 
         
         g = repFree ['v':show n | n <- [1..]] . repFree ['$':show n | n <- [1..]]
         
-        repFree new x = replaceFreeVars (zip frees (map CoreVar freenew)) $ uniqueFreeVarsWith othernew x
+        repFree new x = replaceFreeVars (zip frees (map CoreVar freenew)) $ uniqueBoundVarsWith othernew x
             where
                 (freenew,othernew) = splitAt (length frees) new
                 frees = collectFreeVars x
