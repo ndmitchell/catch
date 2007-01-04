@@ -7,6 +7,7 @@ import System.Environment
 import System.Directory
 import Data.Maybe
 import Data.List
+import Data.Char
 import Debug.Trace
 
 
@@ -35,7 +36,11 @@ prepare = prepareData . mapUnderCore f
         f (CorePrim xs) = CorePrim $ "prim_" ++ map (\x -> if x == '.' then '_' else x) xs
         f (CoreChr x) = CoreApp (CorePrim "prim_CHR") [CoreChr x]
         f (CoreStr x) = CoreApp (CorePrim "prim_STRING") [CoreStr x]
+        f (CoreCase on alts) = CoreCase on (map g alts)
         f x = x
+        
+        g (CoreApp _ [CoreChr x], rhs) = (CoreInt (ord x), rhs)
+        g x = x
 
 
 prepareData core = core{coreDatas = extraData ++ filter ((`notElem` used) . coreDataName) (coreDatas core)}
