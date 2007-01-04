@@ -30,13 +30,21 @@ main = do
 
 
 prepare :: Core -> Core
-prepare = mapUnderCore f
+prepare = prepareData . mapUnderCore f
     where
         f (CorePrim xs) = CorePrim $ "prim_" ++ map (\x -> if x == '.' then '_' else x) xs
         f (CoreChr x) = CoreApp (CorePrim "prim_CHR") [CoreChr x]
         f (CoreStr x) = CoreApp (CorePrim "prim_STRING") [CoreStr x]
         f x = x
 
+
+prepareData core = core{coreDatas = extraData ++ filter ((`notElem` used) . coreDataName) (coreDatas core)}
+    where used = map coreDataName extraData
+
+
+extraData = [CoreData "()" [] [CoreCtor "()" []]
+            ,CoreData "Primitive.IO" ["a"] [CoreCtor "Primitive.IO" [("a",Nothing)]]
+            ]
 
 
 findFile :: String -> IO FilePath
