@@ -1,0 +1,30 @@
+-- HAND WRITTEN AS PREFIX.TXT
+
+import System.IO
+import Foreign
+import Data.Char
+
+main = fmain
+
+
+prim_error = error . fromString
+prim_IO_stdout = System.IO.stdout
+
+prim_LT_W x y = (x::Int) <  y
+prim_GT_W x y = (x::Int) >  y
+prim_EQ_W x y = (x::Int) == y
+prim_NE_W x y = (x::Int) /= y
+prim_QUOT x y = quot x y :: Int
+prim_REM x y = rem x y :: Int
+prim_ADD_W x y = x + y :: Int
+prim_SUB_W x y = x - y :: Int
+prim_NEG_W x = negate x :: Int
+
+prim_Primitive_primIntSignum x = signum x :: Int
+
+prim_STRING x = map ord x
+fromString x = map chr x
+
+-- END HAND WRITTEN
+data DShow_46Nat = CShow_46Z | CShow_46S DShow_46Nat
+--
