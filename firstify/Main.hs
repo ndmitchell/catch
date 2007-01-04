@@ -233,7 +233,7 @@ useSpecial core spec = (core2 /= core, core2)
         f o@(CoreApp (CoreFun x) xs) | isJust ms && fromJust ms `elem` spec =
                 CoreApp (CoreFun name) (concatMap g used ++ extra)
             where
-                (used,extra) = splitAt (arity core x) xs
+                (used,extra) = splitAt (length args) xs
                 Spec _ args name = head $ filter (==fromJust ms) spec
                 ms = wantSpecial core o
                 
