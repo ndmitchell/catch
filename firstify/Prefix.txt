@@ -24,6 +24,7 @@ prim_REM x y = rem x y :: Int
 prim_ADD_W x y = x + y :: Int
 prim_SUB_W x y = x - y :: Int
 prim_NEG_W x = negate x :: Int
+prim_SEQ x y = seq x y
 
 prim_YHC_Primitive_primIntSignum = prim_Primitive_primIntSignum
 prim_Primitive_primIntSignum x = signum x :: Int
