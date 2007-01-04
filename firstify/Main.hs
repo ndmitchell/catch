@@ -20,6 +20,8 @@ main = do
             let file2 = replaceExtension file "first.yca"
                 (fo,core2) = firstify $ mapUnderCore remCorePos $ lambdas $ zeroApp core
             saveCore file2 core2
+            writeFile (file2 <.> "html") (coreHtml core2)
+            writeFile (file2 <.> "hs") (coreHaskell core2)
             print core2
             putStrLn $ "-- " ++ (if fo then "FIRST" else "HIGHER") ++ " order"
 
