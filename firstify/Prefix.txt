@@ -17,12 +17,14 @@ prim_System_IO_stdout = System.IO.stdout
 prim_LT_W x y = (x::Int) <  y
 prim_LE_W x y = (x::Int) <= y
 prim_GT_W x y = (x::Int) >  y
+prim_GE_W x y = (x::Int) >= y
 prim_EQ_W x y = (x::Int) == y
 prim_NE_W x y = (x::Int) /= y
 prim_QUOT x y = quot x y :: Int
 prim_REM x y = rem x y :: Int
 prim_ADD_W x y = x + y :: Int
 prim_SUB_W x y = x - y :: Int
+prim_MUL_W x y = x * y :: Int
 prim_NEG_W x = negate x :: Int
 prim_SEQ x y = seq x y
 
