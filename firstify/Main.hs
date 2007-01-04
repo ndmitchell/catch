@@ -23,14 +23,19 @@ main = do
             writeFile (file2 <.> "html") (coreHtml core2)
             
             src <- readFile "Prefix.txt"
-            writeFile (file2 <.> "hs") (src ++ coreHaskell (mapUnderCore usePrim core2))
+            writeFile (file2 <.> "hs") (src ++ coreHaskell (prepare core2))
             
             print core2
             putStrLn $ "-- " ++ (if fo then "FIRST" else "HIGHER") ++ " order"
 
 
-usePrim (CorePrim x) = CorePrim $ "prim_" ++ x
-usePrim x = x
+prepare :: Core -> Core
+prepare = mapUnderCore f
+    where
+        f (CorePrim xs) = CorePrim $ "prim_" ++ map (\x -> if x == '.' then '_' else x) xs
+        f (CoreChr x) = CoreApp (CorePrim "prim_CHR") [CoreChr x]
+        f (CoreStr x) = CoreApp (CorePrim "prim_STRING") [CoreStr x]
+        f x = x
 
 
 

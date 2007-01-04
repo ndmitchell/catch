@@ -4,11 +4,16 @@ import System.IO
 import Foreign
 import Data.Char
 
-main = fmain
+main :: IO ()
+main = case fmain of
+            CPrimitive_46IO C_40_41 -> return ()
 
+prim_System_IO_hPutChar x y = unsafePerformIO (System.IO.hPutChar x (chr y) >> return (CPrimitive_46IO C_40_41))
 
+prim_Prelude_error = prim_error
 prim_error = error . fromString
-prim_IO_stdout = System.IO.stdout
+
+prim_System_IO_stdout = System.IO.stdout
 
 prim_LT_W x y = (x::Int) <  y
 prim_GT_W x y = (x::Int) >  y
@@ -20,11 +25,16 @@ prim_ADD_W x y = x + y :: Int
 prim_SUB_W x y = x - y :: Int
 prim_NEG_W x = negate x :: Int
 
+prim_YHC_Primitive_primIntSignum = prim_Primitive_primIntSignum
 prim_Primitive_primIntSignum x = signum x :: Int
 
-prim_STRING x = map ord x
+
+prim_CHR x = ord x
+prim_STRING x = map prim_CHR x
+
 fromString x = map chr x
 
+
+data C_40_41 = C_40_41
+
 -- END HAND WRITTEN
-data DShow_46Nat = CShow_46Z | CShow_46S DShow_46Nat
---
