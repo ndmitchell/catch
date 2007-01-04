@@ -31,6 +31,10 @@ prim_SEQ x y = seq x y
 prim_YHC_Primitive_primIntSignum = prim_Primitive_primIntSignum
 prim_Primitive_primIntSignum x = signum x :: Int
 
+prim_YHC_Primitive_primIntegerNe x y = (x::Integer) /= y
+prim_YHC_Primitive_primIntegerGt x y = (x::Integer) >  y
+
+
 
 prim_CHR x = ord x
 prim_STRING x = map prim_CHR x
