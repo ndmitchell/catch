@@ -7,6 +7,7 @@ import System.Environment
 import System.Directory
 import Data.Maybe
 import Data.List
+import Debug.Trace
 
 
 main = do
@@ -58,7 +59,7 @@ firstify :: Core -> (Bool, Core)
 firstify x = f 10 emptySpec x
     where
         f n s x | not $ hasHO x = (True, x)
-                | n == 0 = (False, x)
+                | n == 0 = trace "Giving up!" (False, x)
                 | otherwise = uncurry (f (n-1)) (process s x)
 
         process spec core = (spec2, core3)
