@@ -41,7 +41,7 @@ letAdd = applyBodyCore f
     where
         f x = evalState (mapUnderCoreM g x2) vars
             where
-                vars = variableSupply 'v' \\ collectAllVars x
+                vars = variableSupply 'v' \\ collectAllVars x2
                 x2 = uniqueBoundVarsWithout (collectAllVars x) x
 
         g (CoreCase (CoreVar x) xs) = return $ CoreCase (CoreVar x) xs
