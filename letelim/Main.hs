@@ -32,10 +32,56 @@ findFile file = do
 
 
 letElim :: Core -> Core
-letElim = letKill . letMove . letAdd . coreReachable ["main"] . coreInline InlineForward
+letElim = letKill . letMove . letAdd . caseFix . coreReachable ["main"] . coreInline InlineForward
+
+{-
+NOTES:
+Algorithm:
+1 Simple cases's on variables
+2 Case completion and variable inside case elimination
+3 Full let addition, for all let's
+4 Let movement
+5 Let elimination
+-}
 
 
+-- case a of C -> ... a ... => case a of C -> ... C ...
+-- case a of [] -> ... ; _ -> ... => case ...... (x:xs) ->
+caseFix :: Core -> Core
+caseFix core = coreSimplify $ applyBodyCore (mapOverCore f) core
+    where
+        f (CoreCase (CoreVar on) alts) = CoreCase (CoreVar on) [(a, replaceFreeVars [(on, a)] b) | (a,b) <- complete alts]
+        f o@(CoreCase on alts) = CoreLet [(newvar,on)] (CoreCase (CoreVar newvar) alts)
+            where newvar = head $ variableSupply 'v' \\ collectAllVars o
+        f x = x
+        
+        -- if there is a default (last one)
+        -- either remove it (complete already)
+        -- or instantiate (one remaining)
+        complete xs =
+                if not (isCoreVar lhs) || unused > 1 then xs
+                else if unused == 0 then start
+                else start ++ [h $ head $ filter ((`notElem` found) . coreCtorName) total]
+            where
+                typ = g $ fst $ head start
+                found = map (g . fst) start
+                total = concat [coreDataCtors dat | dat <- coreDatas core, typ `elem` map coreCtorName (coreDataCtors dat)]
+                unused = length total - length found
+                (start,(lhs,rhs)) = (init xs, last xs)
+                
+                g (CoreApp (CoreCon x) _) = x
+                g (CoreCon x) = x
+                
+                h (CoreCtor name fields) = (lhs2, replaceFreeVars [(fromCoreVar lhs,lhs2)] rhs)
+                    where
+                        lhs2 = CoreApp (CoreCon name) (map CoreVar fresh)
+                        fresh = take (length fields) $ variableSupply 'v' \\ (collectAllVars lhs ++ collectAllVars rhs)
 
+
+-- guarantee unique free variables
+--
+-- case complex of ... => let i = complex in case i of ...
+-- f complex complex => let i = complex in f i i  [NOT DONE YET]
 letAdd :: Core -> Core
 letAdd = applyBodyCore f
     where
@@ -54,6 +100,8 @@ letAdd = applyBodyCore f
 
 -- Assume non-recursive lets
 -- And entirely unique free variables
+--
+-- let a = b in (let c = d in ...) => let a = b ; c = d in ...
 letMove :: Core -> Core
 letMove = applyBodyCore (mapUnderCore f)
     where
@@ -68,6 +116,7 @@ letMove = applyBodyCore (mapUnderCore f)
         f x = x
 
 
+-- let a = b in ... => f' b ...  ;  func f b ... = ...
 letKill :: Core -> Core
 letKill core = core{coreFuncs = concatMap f (coreFuncs core)}
     where
