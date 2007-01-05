@@ -69,5 +69,21 @@ letMove = applyBodyCore (mapUnderCore f)
 
 
 letKill :: Core -> Core
-letKill = id
+letKill core = core{coreFuncs = concatMap f (coreFuncs core)}
+    where
+        f (CoreFunc name args body) = CoreFunc name args body2 : funcs
+            where
+                names = [name ++ "." ++ show i | i <- [1..]]
+                (body2, (_, funcs)) = runState (mapUnderCoreM g body) (names, [])
 
+
+        g :: CoreExpr -> State ([String], [CoreFunc]) CoreExpr
+        g o@(CoreLet bind x) = do
+            body <- g x
+            (name:names,funcs) <- get
+            let vars = collectFreeVars x \\ map fst bind
+                newfunc = CoreFunc name (map fst bind ++ vars) body
+            put (names,newfunc:funcs)
+            return $ CoreApp (CoreFun name) (map snd bind ++ map CoreVar vars)
+
+        g x = return x
