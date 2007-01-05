@@ -18,7 +18,7 @@ main = do
         f fil = do
             file <- findFile fil
             core <- loadCore file
-            let file2 = replaceExtension file "first.yca"
+            let file2 = dropExtensions file <.> "first.yca"
                 (fo,core2) = firstify $ mapUnderCore remCorePos $ lambdas $ zeroApp core
             saveCore file2 core2
             writeFile (file2 <.> "html") (coreHtml core2)
