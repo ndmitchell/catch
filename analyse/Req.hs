@@ -82,7 +82,7 @@ newReqs hite zexpr path ctors | null ctors = propFalse
                               | ctors `setEq` baseSet = propTrue
                               | otherwise = propLit $ newReq hite zexpr path ctors
     where
-        baseSet = ctorNames $ coreFieldData hite (headNote "Tram.Type.impliesReq here" ctors)
+        baseSet = ctorNames $ coreCtorData hite (headNote "Tram.Type.impliesReq here" ctors)
 
 
 -- UTILITIES

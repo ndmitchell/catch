@@ -32,7 +32,7 @@ findFile file = do
 
 exec fil = do
         file <- findFile fil
-        core <- loadCore file
+        core <- liftM prepare $ loadCore file
 
         hCore <- beginLog file "core"
         hPutStrLn hCore (show core)

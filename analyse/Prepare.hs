@@ -18,7 +18,7 @@ import Data.Maybe
 
 
 prepare :: Core -> Core
-prepare core = applyBodyCore (dottedVar core2) core2
+prepare core = applyBodyCore (rename . dottedVar core2) core2
     where core2 = applyCtorCore prepareCtor core
 
 
@@ -40,10 +40,17 @@ prepareCtor (CoreCtor name fields) = CoreCtor name (zipWith f [0..] fields)
 dottedVar :: Core -> CoreExpr -> CoreExpr
 dottedVar core x = mapOverCore f x
     where
-        f (CoreCase (CoreVar x) alts) = CoreCase (CoreVar x) (map (g x) alts)
+        f (CoreCase x alts) = CoreCase x (map (g x) alts)
         f x = x
         
-        g x (CoreVar i, rhs) = (CoreVar x, replaceFreeVars [(i, CoreVar x)] rhs)
+        g x (CoreVar i, rhs) = (x, replaceFreeVars [(i, x)] rhs)
         g x (CoreApp (CoreCon name) is, rhs) =
                 (CoreCon name, replaceFreeVars (zip (map fromCoreVar is) is2) rhs)
-            where is2 = map (\s -> CoreVar $ x ++ "." ++ fromJust (snd s)) $ coreCtorFields $ coreCtor core name
+            where is2 = map (\s -> CoreApp (CoreFun ('.':fromJust (snd s))) [x]) $ coreCtorFields $ coreCtor core name
+
+
+rename :: CoreExpr -> CoreExpr
+rename = mapOverCore f
+    where
+        f (CorePrim "Prelude.error") = CorePrim "error"
+        f x = x

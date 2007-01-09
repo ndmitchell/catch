@@ -5,6 +5,7 @@ import Req
 import Reduce
 import Fixp
 import System.IO
+import Safe
 import General
 import Data.Proposition
 import Data.IORef
@@ -50,7 +51,7 @@ templateConcrete (Req _ (CoreApp (CoreFun name) args) _ _) y = propMapReduce (pr
     where
         nargs = length args
         f (Req a b c d) = newReq a (mapOverCore g b) c d
-        g (CoreVar si) | i < nargs = args !! i where i = read si
+        g (CoreVar ('v':si)) | i < nargs = args !! i where i = readNote ("templateConcrete, " ++ si) si
         g x = x
 
 
