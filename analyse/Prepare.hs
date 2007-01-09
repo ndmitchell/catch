@@ -50,7 +50,7 @@ dottedVar core x = mapOverCore f x
 
 
 rename :: CoreExpr -> CoreExpr
-rename = mapOverCore f
+rename = mapUnderCore f
     where
         f (CorePrim "Prelude.error") = CorePrim "error"
         f x = x

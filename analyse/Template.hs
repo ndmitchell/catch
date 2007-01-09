@@ -50,7 +50,7 @@ templateConcrete :: Req -> Formula Req -> Formula Req
 templateConcrete (Req _ (CoreApp (CoreFun name) args) _ _) y = propMapReduce (propLit . f) y
     where
         nargs = length args
-        f (Req a b c d) = newReq a (mapOverCore g b) c d
+        f (Req a b c d) = newReq a (mapUnderCore g b) c d
         g (CoreVar ('v':si)) | i < nargs = args !! i where i = readNote ("templateConcrete, " ++ si) si
         g x = x
 
@@ -88,7 +88,7 @@ instantiate core r1@(Req a (CoreApp (CoreFun name) args) b c) = res
     
         CoreFunc _ args2 body = coreFunc core name
         
-        rep (Req a b c d) = newReqs a (mapOverCore g b) c d
+        rep (Req a b c d) = newReqs a (mapUnderCore g b) c d
         
         g (CoreVar x) = case lookup x (zip args2 args) of
                           Nothing -> CoreVar x -- a let bound var
