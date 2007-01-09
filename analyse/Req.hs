@@ -69,8 +69,8 @@ newReq core zexpr path ctors
 x.tl*{[]} => x{[]}
 x.p{c} | ewp(p), and x{c} => no items available in p
 -}
-   -- | ewpPath path
-   -- = Req hite zexpr (restrictPath path $ concatMap (ctorArgs . getCtor hite) ctors) (snub ctors)
+   | ewpPath path
+   = Req core zexpr (restrictPath path $ concatMap (map (fromJust . snd) . coreCtorFields . coreCtor core) ctors) (snub ctors)
     
     
     | otherwise = Req core zexpr path (snub ctors)
