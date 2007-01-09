@@ -123,16 +123,3 @@ blurPath hill (Path hite x) = Path hite (combineSucc $ map useStar x)
             = combineSucc (PathStar (snub $ x1 ++ x2) : xs)
         combineSucc (x:xs) = x : combineSucc xs
         combineSucc [] = []
-
-
-
--- Core Data traversal functions
-field2data :: Core -> String -> CoreData
-field2data core = ctor2data core . coreCtorName . field2ctor core
-
-ctor2data :: Core -> String -> CoreData
-ctor2data core name = head [dat | dat <- coreDatas core, name `elem` map coreCtorName (coreDataCtors dat)]
-
-field2ctor :: Core -> String -> CoreCtor
-field2ctor core name = head [ctr | dat <- coreDatas core, ctr <- coreDataCtors dat
-                                 , name `elem` mapMaybe snd (coreCtorFields ctr)]
