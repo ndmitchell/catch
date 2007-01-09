@@ -1,5 +1,5 @@
 
-module Tram.Reduce(reduce, reduces, reduceWithM, reducesWithM, propMapReduceM, propMapReduce) where
+module Reduce(reduce, reduces, reduceWithM, reducesWithM, propMapReduceM, propMapReduce) where
 
 import Req
 import General
