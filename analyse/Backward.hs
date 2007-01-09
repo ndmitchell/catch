@@ -20,10 +20,10 @@ import qualified Data.Map as Map
 -- to process, first operation is to convert out of BDD
 -- process, reencode as BDD and look for fixp
 
-type FixpMap = Map.Map FuncName (BDD Req)
+type FixpMap = Map.Map CoreFuncName (BDD Req)
 
 
-backward :: Hill -> Template -> Handle -> Scopes Formula -> IO (Formula Req)
+backward :: Core -> Template -> Handle -> Scopes Formula -> IO (Formula Req)
 backward hill template hndl x = do
         newMap <- f origMap origTodo
         
@@ -35,7 +35,7 @@ backward hill template hndl x = do
         origMap = Map.fromList [(a, propRebuildBDD b) | Scope a b <- x]
         origTodo = Map.keys origMap
     
-        f :: FixpMap -> [FuncName] -> IO FixpMap
+        f :: FixpMap -> [CoreFuncName] -> IO FixpMap
         f table [] = return table
         f table (x:xs) = do
             hPutStrLn hndl $ "Processing: " ++ x
@@ -53,7 +53,7 @@ backward hill template hndl x = do
                 outLine table x
                     = hPutStrLn hndl $ ("  " ++) $ show $ Scope x $ Map.findWithDefault propTrue x table
 
-        g :: Scope Formula -> ([FuncName], FixpMap) -> ([FuncName], FixpMap)
+        g :: Scope Formula -> ([CoreFuncName], FixpMap) -> ([CoreFuncName], FixpMap)
         g (Scope func x) (todo,mp)
                 | ans == ans2 = (todo,mp)
                 | otherwise = (func:todo,Map.insert func ans2 mp)
