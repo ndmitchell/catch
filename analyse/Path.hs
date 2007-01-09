@@ -1,5 +1,5 @@
 
-module Tram.Path(Path, nullPath, newPath, ewpPath, pathCtorArgs, restrictPath,
+module Path(Path, nullPath, newPath, ewpPath, pathCtorArgs, restrictPath,
 	emptyPath, finitePath, makeFinitePath, integrate, differentiate,
 	subsetPath, blurPath) where
 
