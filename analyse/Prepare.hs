@@ -45,5 +45,5 @@ dottedVar core x = mapOverCore f x
         
         g x (CoreVar i, rhs) = (CoreVar x, replaceFreeVars [(i, CoreVar x)] rhs)
         g x (CoreApp (CoreCon name) is, rhs) =
-                (CoreApp (CoreCon name) is2, replaceFreeVars (zip (map fromCoreVar is) is2) rhs)
+                (CoreCon name, replaceFreeVars (zip (map fromCoreVar is) is2) rhs)
             where is2 = map (\s -> CoreVar $ x ++ "." ++ fromJust (snd s)) $ coreCtorFields $ coreCtor core name

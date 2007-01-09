@@ -229,30 +229,6 @@ fixSet f elems = fix2 f elems []
                 x2 = nub $ concatMap f x
 
 
----------------------------------------------------------------------
--- MANIPULATE STUFF
-
-class Manipulate a where
-    replaceChildren :: a -> ([a], [a] -> a)
-
-    getChildren :: a -> [a]
-    getChildren = fst . replaceChildren
-
-    setChildren :: a -> [a] -> a
-    setChildren = snd . replaceChildren
-
-
-allOverOld :: Manipulate a => a -> [a]
-allOverOld x = x : concatMap allOverOld (getChildren x)
-
-
-mapOverOld :: Manipulate a => (a -> a) -> a -> a
-mapOverOld f x = f $ setChildren x $ map (mapOverOld f) $ getChildren x
-
-
-mapOverOldM :: (Monad m, Manipulate a) => (a -> m a) -> a -> m a
-mapOverOldM f x = f . setChildren x =<< mapM (mapOverOldM f) (getChildren x)
-
 
 ---------------------------------------------------------------------
 -- IO STUFF
