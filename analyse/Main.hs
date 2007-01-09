@@ -7,7 +7,7 @@ import System.Environment
 import System.Directory
 import System.IO
 
-import Backward
+import Prepare
 
 
 main = do
@@ -21,7 +21,7 @@ findFile file = do
     case [a | (a,b) <- zip files bs, b] of
         (x:_) -> return x
         _ -> error $ "File not found, " ++ file
-    where files = file : ["../examples" </> s </> "ycr" </> file <.> "first.yca" | s <- ["Example","Nofib"]]
+    where files = file : ["../examples" </> s </> "ycr" </> file <.> "letelim.yca" | s <- ["Example","Nofib"]]
 
 
 exec fil = do
@@ -33,7 +33,8 @@ exec fil = do
     hBack <- beginLog file "back"
     hFore <- beginLog file "fore"
     
-    backward core hBack hFore
+    print $ prepare core
+    -- backward core hBack hFore
 
     hClose hCore
     hClose hBack
