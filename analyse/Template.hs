@@ -1,23 +1,23 @@
 
 module Tram.Template(Template, templateInit, templateGet) where
 
-import Tram.Req
-import Tram.Reduce
-import Tram.Fixp
+import Req
+import Reduce
+import Fixp
 import System.IO
-import General.General
+import General
 import Data.Proposition
 import Data.IORef
 import Data.Char
 import Data.List
 import Control.Monad
-import Hill.All
+import Yhc.Core
 
 
-data Template = Template Hill Handle (IORef [(Req, Formula Req)])
+data Template = Template Core Handle (IORef [(Req, Formula Req)])
 
 
-templateInit :: Hill -> Handle -> IO Template
+templateInit :: Core -> Handle -> IO Template
 templateInit hill hndl = do
     x <- newIORef []
     return $ Template hill hndl x
@@ -41,21 +41,21 @@ templateGet template@(Template hill hndl cache) req = do
 
 -- need to make it more abstract, and then more concrete, to satisfy the cache
 templateAbstract :: Req -> Req
-templateAbstract (Req a (Call name xs) b c) = newReq a (Call name args) b c
-    where args = map Var [0..length xs-1]
+templateAbstract (Req a (CoreApp (CoreFun name) xs) b c) = newReq a (CoreApp (CoreFun name) args) b c
+    where args = [CoreVar $ 'v':show i | i <- [0..length xs-1]]
 
 
 templateConcrete :: Req -> Formula Req -> Formula Req
-templateConcrete (Req _ (Call name args) _ _) y = propMapReduce (propLit . f) y
+templateConcrete (Req _ (CoreApp (CoreFun name) args) _ _) y = propMapReduce (propLit . f) y
     where
         nargs = length args
-        f (Req a b c d) = newReq a (mapOverOld g b) c d
-        g (Var i) | i < nargs = args !! i
+        f (Req a b c d) = newReq a (mapOverCore g b) c d
+        g (CoreVar si) | i < nargs = args !! i where i = read si
         g x = x
 
 
 -- expr is Call
-templateCalc :: Template -> Hill -> Handle -> Req -> IO (Formula Req)
+templateCalc :: Template -> Core -> Handle -> Req -> IO (Formula Req)
 templateCalc template hill hndl req = do
         hPutStrLn hndl $ "BEGIN: templateCalc, " ++ show req
         res <- liftM propSimplify $ fixpReqs propTrue f req
@@ -80,29 +80,29 @@ templateCalc template hill hndl req = do
             return res
 
 
-instantiate :: Hill -> Req -> Formula Req
-instantiate (Hill datas funcs) r1@(Req a (Call name args) b c) = res
+instantiate :: Core -> Req -> Formula Req
+instantiate core r1@(Req a (CoreApp (CoreFun name) args) b c) = res
     where
         res = propMapReduce rep $ newReqs a body b c
     
-        (args2, body) = head [(a,b) | Func nam a b <- funcs, nam == name]
+        CoreFunc _ args2 body = coreFunc core name
         
-        rep (Req a b c d) = newReqs a (mapOverOld g b) c d
+        rep (Req a b c d) = newReqs a (mapOverCore g b) c d
         
-        g (Var x) = case lookup x (zip args2 args) of
-                          Nothing -> Var x -- a let bound var
+        g (CoreVar x) = case lookup x (zip args2 args) of
+                          Nothing -> CoreVar x -- a let bound var
                           Just y -> y
         g x = x
 
 
 
-getFuncName :: Req -> FuncName
-getFuncName (Req _ (Call nam _) _ _) = nam
+getFuncName :: Req -> CoreFuncName
+getFuncName (Req _ (CoreApp (CoreFun nam) _) _ _) = nam
 
 
-reachSet :: Hill -> FuncName -> [FuncName]
+reachSet :: Core -> CoreFuncName -> [CoreFuncName]
 reachSet hill name = fixSet f [name]
     where
-        f :: FuncName -> [FuncName]
-        f x = nub [y | Call y _ <- allOverOld body]
-            where Func _ _ body = getFunc hill x
+        f :: CoreFuncName -> [CoreFuncName]
+        f x = nub [y | CoreApp (CoreFun y) _ <- allCore body]
+            where CoreFunc _ _ body = coreFunc hill x
