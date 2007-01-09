@@ -15,10 +15,10 @@ import Safe
 -- DATA DEFINITIONS
 
 type Scopes p = [Scope p]
-data Scope p = Scope FuncName (p Req)
+data Scope p = Scope CoreFuncName (p Req)
 
 
-data Req = Req Hill Expr Path [CtorName]
+data Req = Req Core CoreExpr Path [CoreCtorName]
          | Demonic
          | Angelic
 
@@ -46,7 +46,7 @@ instance Show (p Req) => Show (Scope p) where
 
 instance Show Req where
     show (Req _ expr path ctor) =
-        showExprBrackets expr ++ show path ++ strSet ctor
+        showCoreExprGroup expr ++ show path ++ strSet ctor
     show Demonic = "?Demonic"
     show Angelic = "?Angelic"
 
@@ -62,28 +62,31 @@ scopesAnds xs = filter (\(Scope a b) -> not (propIsTrue b)) $ map f $
 
 
 
-newReq :: Hill -> Expr -> Path -> [CtorName] -> Req
-newReq hite zexpr path ctors
+newReq :: Core -> CoreExpr -> Path -> [CoreCtorName] -> Req
+newReq core zexpr path ctors
 
 {-
 x.tl*{[]} => x{[]}
 x.p{c} | ewp(p), and x{c} => no items available in p
 -}
-    | ewpPath path
-    = Req hite zexpr (restrictPath path $ concatMap (ctorArgs . getCtor hite) ctors) (snub ctors)
+   -- | ewpPath path
+   -- = Req hite zexpr (restrictPath path $ concatMap (ctorArgs . getCtor hite) ctors) (snub ctors)
     
     
-    | otherwise = Req hite zexpr path (snub ctors)
+    | otherwise = Req core zexpr path (snub ctors)
 
 
 
-newReqs :: Prop p => Hill -> Expr -> Path -> [CtorName] -> p Req
+newReqs :: Prop p => Core -> CoreExpr -> Path -> [CoreCtorName] -> p Req
 newReqs hite zexpr path ctors | null ctors = propFalse
                               | ctors `setEq` baseSet = propTrue
                               | otherwise = propLit $ newReq hite zexpr path ctors
     where
-        baseSet = ctorNames $ getCtor hite (headNote "Tram.Type.impliesReq here" ctors)
+        baseSet = ctorNames $ coreFieldData hite (headNote "Tram.Type.impliesReq here" ctors)
 
+
+
+ctorNames = map coreCtorName . coreDataCtors
 
 -- UTILITIES
 
@@ -99,7 +102,7 @@ instance PropLit Req where
 notReq Demonic = Demonic
 notReq Angelic = Angelic
 notReq (Req hill expr path ctrs) = newReq hill expr path ctrs2
-    where ctrs2 = sort $ ctorNames (getCtor hill (head ctrs)) \\ ctrs
+    where ctrs2 = sort $ ctorNames (coreCtorData hill (head ctrs)) \\ ctrs
 
 combineReqsAnd :: Req -> Req -> Reduce Req
 combineReqsAnd (Req hite on1 path1 ctors1) (Req _ on2 path2 ctors2)
@@ -108,13 +111,14 @@ combineReqsAnd (Req hite on1 path1 ctors1) (Req _ on2 path2 ctors2)
     where
         ctrs = sort $ ctors2 `intersect` ctors1
 
+{-
 combineReqsAnd r1 r2
         | isJust s1 || isJust s2
         = fromMaybe (combineReqsAnd t1 t2) (reduceAndWithImp t1 t2)
     where
         (s1,s2) = (reduceAnd r2 r1, reduceAnd r1 r2)
         (t1,t2) = (fromMaybe r1 s1, fromMaybe r2 s2)
-
+-}
 combineReqsAnd _ _ = None
 
 
@@ -134,7 +138,7 @@ combineReqsOr (Req hite on1 path1 ctors1) (Req _ on2 path2 ctors2)
         = if length ctrs == length baseSet then Literal True else Value (newReq hite on1 path1 ctrs)
     where
         ctrs = snub $ ctors2 ++ ctors1
-        baseSet = ctorNames $ getCtor hite (head ctrs)
+        baseSet = ctorNames $ coreCtorData hite (head ctrs)
         
 combineReqsOr _ _ = None
 
@@ -162,7 +166,7 @@ impliesReq given req@(Req hite on path ctors) =
 
         -- calculate all possible constructors that might arise
         poss = foldr f baseSet given
-        baseSet = ctorNames $ getCtor hite (headNote "Tram.Type.impliesReq" ctors)
+        baseSet = ctorNames $ coreCtorData hite (headNote "Tram.Type.impliesReq" ctors)
         
         f (Req _ on2 path2 ctors2, False) poss
             | on2 == on && path2 == path && finitePath path
