@@ -8,6 +8,14 @@ import Monad
 import Data.Char
 import Foreign(unsafePerformIO)
 import Debug.Trace
+import Yhc.Core
+
+---------------------------------------------------------------------
+-- YHC.CORE
+
+ctorNames = map coreCtorName . coreDataCtors
+
+
 
 ---------------------------------------------------------------------
 -- SIMPLE UTILITIES

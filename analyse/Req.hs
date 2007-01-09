@@ -85,9 +85,6 @@ newReqs hite zexpr path ctors | null ctors = propFalse
         baseSet = ctorNames $ coreFieldData hite (headNote "Tram.Type.impliesReq here" ctors)
 
 
-
-ctorNames = map coreCtorName . coreDataCtors
-
 -- UTILITIES
 
 instance PropLit Req where
