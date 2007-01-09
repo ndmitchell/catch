@@ -6,8 +6,14 @@ import System.FilePath
 import System.Environment
 import System.Directory
 import System.IO
+import Data.Proposition
+import Control.Monad
 
 import Prepare
+import Propagate
+import Req
+import Backward
+import Template
 
 
 main = do
@@ -25,22 +31,52 @@ findFile file = do
 
 
 exec fil = do
-    file <- findFile fil
-    core <- loadCore file
+        file <- findFile fil
+        core <- loadCore file
 
-    hCore <- beginLog file "core"
-    hPutStrLn hCore (show core)
-    hBack <- beginLog file "back"
-    hFore <- beginLog file "fore"
-    
-    print $ prepare core
-    -- backward core hBack hFore
+        hCore <- beginLog file "core"
+        hPutStrLn hCore (show core)
+        hBack <- beginLog file "back"
+        hFore <- beginLog file "fore"
 
-    hClose hCore
-    hClose hBack
-    hClose hFore
+        template <- templateInit core hFore
+        let conds = initialReqs core
+        res <- mapM (f hFore hBack core template) conds
+        let ress = propAnds res
 
+        when (null conds) $
+            putStrLn "No pattern match errors, trivially safe"
 
+        let msg = show ress
+            lmsg = length msg
+        putStrLn $ "Final: \\forall main, " ++ msg
+        when (lmsg > 200) $
+            putStrLn $ "Long: " ++ show lmsg
+
+        hClose hCore
+        hClose hBack
+        hClose hFore
+    where
+        f hFore hBack core template cond = do
+            let pref = "\n\n" ++ replicate 70 '-' ++ "\n"
+                msg1 = "Solving " ++ show cond
+            putStrLn msg1
+            hPutStrLn hFore (pref ++ msg1)
+            hPutStrLn hBack (pref ++ msg1)
+            
+            res <- backward core template hBack [cond]
+            
+            let msg2 = "Result \\forall main, " ++ show res
+            putStrLn msg2
+            hPutStrLn hBack $ "\n" ++ msg2
+            return res
+            
+
+initialReqs :: Core -> Scopes Formula
+initialReqs core = [Scope func reqs | (func,reqs,expr) <- collect core isError, not $ propIsTrue reqs]
+    where
+        isError (CoreApp (CorePrim "error") _) = True
+        isError _ = False
 
 
 beginLog :: String -> String -> IO Handle
