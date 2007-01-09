@@ -32,7 +32,7 @@ findFile file = do
 
 
 letElim :: Core -> Core
-letElim = letKill . letMove . letAdd . caseFix . coreReachable ["main"] . coreInline InlineForward
+letElim = letKill . letMove . letAdd . caseFix . uniqueBoundVarsCore . coreReachable ["main"] . coreInline InlineForward
 
 {-
 NOTES:
