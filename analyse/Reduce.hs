@@ -18,7 +18,7 @@ reduces reqs = propMap reduce reqs
 
 reduce :: Req -> Formula Req
 reduce req@(Req hill expr path ctors) = case expr of
-    CoreApp (CoreFun _) _ -> propLit req
+    CoreApp (CoreFun x) _ | not $ "." `isPrefixOf` x -> propLit req
     CoreVar x | '.' `notElem` x -> propLit req
     _ -> reduces $ reduceOne req
 reduce x = propLit x
@@ -28,8 +28,7 @@ reduce x = propLit x
 -- this function does the real work!
 reduceOne :: Req -> Formula Req
 reduceOne req@(Req hill expr path ctors) = case expr of
-    CoreVar x | '.' `elem` x -> newReqs hill (CoreVar x2) (foldl integrate path (reverse p)) ctors
-        where (x2, p) = splitVar x
+    CoreApp (CoreFun ('.':y)) [x] -> newReqs hill x (path `integrate` y) ctors
     
     CoreApp (CoreCon y) xs -> propAnds (p1:ps)
         where
@@ -42,7 +41,7 @@ reduceOne req@(Req hill expr path ctors) = case expr of
                            Nothing -> propTrue
                            Just path2 -> newReqs hill x path2 ctors
     
-    CoreCase (CoreVar on) alts -> propAnds $ map f alts
+    CoreCase on alts -> propAnds $ map f alts
         where
             allCtrs = ctorNames $ coreCtorData hill $ fromCoreCon $ fst $ head alts
             seenCtrs = [x | (CoreCon x, _) <- alts]
@@ -50,7 +49,7 @@ reduceOne req@(Req hill expr path ctors) = case expr of
             f (CoreCon ctr, rhs) = g (delete ctr allCtrs) rhs
             f (CoreVar _, rhs) = g seenCtrs rhs
             
-            g ctrs ex = newReqs hill (CoreVar on) (emptyPath hill) ctrs `propOr` newReqs hill ex path ctors
+            g ctrs ex = newReqs hill on (emptyPath hill) ctrs `propOr` newReqs hill ex path ctors
 
     CoreApp (CorePrim "error") _ -> propLit Angelic -- since will never return anything
     CoreApp (CorePrim x) ys -> propLit Demonic -- absolutely no idea what the result is

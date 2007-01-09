@@ -105,5 +105,5 @@ reachSet :: Core -> CoreFuncName -> [CoreFuncName]
 reachSet hill name = fixSet f [name]
     where
         f :: CoreFuncName -> [CoreFuncName]
-        f x = nub [y | CoreApp (CoreFun y) _ <- allCore body]
+        f x = nub [y | CoreApp (CoreFun y) _ <- allCore body, not $ "." `isPrefixOf` y]
             where CoreFunc _ _ body = coreFunc hill x
