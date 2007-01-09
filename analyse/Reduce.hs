@@ -1,13 +1,14 @@
 
 module Tram.Reduce(reduce, reduces, reduceWithM, reducesWithM, propMapReduceM, propMapReduce) where
 
-import Tram.Req
-import General.General
+import Req
+import General
 import Data.Proposition
 import Control.Monad
 import Control.Monad.Identity
-import Hill.All
+import Yhc.Core
 import Data.List
+import Data.Maybe
 
 
 -- | Should have no negate done first
@@ -17,8 +18,8 @@ reduces reqs = propMap reduce reqs
 
 reduce :: Req -> Formula Req
 reduce req@(Req hill expr path ctors) = case expr of
-    Call{} -> propLit req
-    Var{} -> propLit req
+    CoreApp (CoreFun _) _ -> propLit req
+    CoreVar x | '.' `notElem` x -> propLit req
     _ -> reduces $ reduceOne req
 reduce x = propLit x
 
@@ -27,11 +28,12 @@ reduce x = propLit x
 -- this function does the real work!
 reduceOne :: Req -> Formula Req
 reduceOne req@(Req hill expr path ctors) = case expr of
-    Star -> propFalse
-    Sel x y -> newReqs hill x (path `integrate` y) ctors
-    Make y xs -> propAnds (p1:ps)
+    CoreVar x | '.' `elem` x -> newReqs hill (CoreVar x2) (foldl integrate path (reverse p)) ctors
+        where (x2, p) = splitVar x
+    
+    CoreApp (CoreCon y) xs -> propAnds (p1:ps)
         where
-            cargs = ctorArgs $ getCtor hill y
+            cargs = map (fromJust . snd) $ coreCtorFields $ coreCtor hill y
 
             p1 = if ewpPath path then propBool (y `elem` ctors) else propTrue
             ps = zipWithEq f xs cargs
@@ -40,21 +42,20 @@ reduceOne req@(Req hill expr path ctors) = case expr of
                            Nothing -> propTrue
                            Just path2 -> newReqs hill x path2 ctors
     
-    Case on alts -> propAnds $ map f alts
+    CoreCase (CoreVar on) alts -> propAnds $ map f alts
         where
-            allCtrs = ctorNames $ getCtor hill $ altCtr $ head alts
-            seenCtrs = [x | AltCtr x _ <- alts]
+            allCtrs = ctorNames $ coreCtorData hill alt0
+            ((CoreApp (CoreCon alt0) _, _) : _) = alts
+            seenCtrs = [x | (CoreApp (CoreCon x) _, _) <- alts]
 
-            f (AltCtr ctr ex) = g (delete ctr allCtrs) ex
-            f (Default ex) = g seenCtrs ex
+            f (CoreApp (CoreCon ctr) xs, rhs) = g (delete ctr allCtrs) rhs
+            f (CoreVar _, rhs) = g seenCtrs rhs
             
-            g ctrs ex = newReqs hill on (emptyPath hill) ctrs `propOr` newReqs hill ex path ctors
+            g ctrs ex = newReqs hill (CoreVar on) (emptyPath hill) ctrs `propOr` newReqs hill ex path ctors
 
-    Let binds x -> newReqs hill x path ctors
-
-    Prim x ys -> propLit Demonic -- absolutely no idea what the result is
-    Const _ -> propLit Demonic -- if you care, abstract before here
-    Error _ -> propLit Angelic -- since will never return anything
+    CoreApp (CorePrim "error") _ -> propLit Angelic -- since will never return anything
+    CoreApp (CorePrim x) ys -> propLit Demonic -- absolutely no idea what the result is
+    c | isCoreConst c -> propLit Demonic -- if you care, abstract before here
 
     _ -> error $ "reduceOne: " ++ show req
     
@@ -68,8 +69,8 @@ reducesWithM f reqs = propMapReduceM (reduceWithM f) reqs
 
 reduceWithM :: (Req -> IO (Formula Req)) -> Req -> IO (Formula Req)
 reduceWithM f req@(Req hill expr path ctors) = case expr of
-    Call{} -> f req >>= reducesWithM f
-    Var{} -> return $ propLit req
+    CoreApp (CoreFun _) _ -> f req >>= reducesWithM f
+    CoreVar x | '.' `notElem` x -> return $ propLit req
     _ -> reducesWithM f $ reduceOne req
 reduceWithM f x = return $ propLit x
 
@@ -79,3 +80,9 @@ propMapReduceM f x = propMapM (liftM reduces . f) x
 
 propMapReduce :: (Req -> Formula Req) -> Formula Req -> Formula Req
 propMapReduce f x = runIdentity $ propMapReduceM (return . f) x
+
+
+
+splitVar :: String -> (String, [String])
+splitVar xs = (y, ys)
+    where (y:ys) = words [if x == '.' then ' ' else x | x <- xs]
