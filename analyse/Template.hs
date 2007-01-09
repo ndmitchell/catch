@@ -1,5 +1,5 @@
 
-module Tram.Template(Template, templateInit, templateGet) where
+module Template(Template, templateInit, templateGet) where
 
 import Req
 import Reduce
