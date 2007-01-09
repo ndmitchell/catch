@@ -6,6 +6,7 @@ module Tram.Path(Path, nullPath, newPath, ewpPath, pathCtorArgs, restrictPath,
 import General
 import Data.Char
 import Data.List
+import Data.Maybe
 import Yhc.Core
 import Control.Monad
 
@@ -76,18 +77,19 @@ differentiate (Path hite xs) ctor = liftM (Path hite) $ f xs
 						  | otherwise = f xs
 						  
 
-isStar hite x = TyCon (dataName obj) (map TyFree $ frees obj) == cargType obj
-	where obj = getCArg hite x
+-- Is a constructor something that should be made a star always?
+-- hardcode for now...
+isStar :: Core -> String -> Bool
+isStar core x = x `elem` ["tl"]
 
 
 integrate :: Path -> String -> Path
-integrate (Path hite x) ctor = Path hite (PathAtom ctor : x) -- -} (f x)
+integrate (Path hite x) ctor = Path hite (PathAtom ctor : x)
 	where
-		carg = getCArg hite ctor
-		star = TyCon (dataName carg) (map TyFree $ frees carg) == cargType carg
+		star = isStar hite ctor
 	
 		f (PathStar y:ys) 
-			| star && dataName (getCArg hite $ head y) == dataName carg
+			| star
 			= PathStar (sort $ nub $ ctor:y) : ys
 		f ys = (if star then PathStar [ctor] else PathAtom ctor) : ys
 
@@ -111,14 +113,26 @@ blurPath :: Core -> Path -> Path
 blurPath hill (Path hite x) = Path hite (combineSucc $ map useStar x)
     where
         useStar (PathAtom ctor)
-            | TyCon (dataName carg) (map TyFree $ frees carg) == cargType carg
+            | isStar hite ctor
             = PathStar [ctor]
-            where carg = getCArg hite ctor
         useStar x = x
     
     
         combineSucc (PathStar x1:PathStar x2:xs)
-            | dataName (getCArg hite $ head x1) == dataName (getCArg hite $ head x2)
+            | True -- dataName (getCArg hite $ head x1) == dataName (getCArg hite $ head x2)
             = combineSucc (PathStar (snub $ x1 ++ x2) : xs)
         combineSucc (x:xs) = x : combineSucc xs
         combineSucc [] = []
+
+
+
+-- Core Data traversal functions
+field2data :: Core -> String -> CoreData
+field2data core = ctor2data core . coreCtorName . field2ctor core
+
+ctor2data :: Core -> String -> CoreData
+ctor2data core name = head [dat | dat <- coreDatas core, name `elem` map coreCtorName (coreDataCtors dat)]
+
+field2ctor :: Core -> String -> CoreCtor
+field2ctor core name = head [ctr | dat <- coreDatas core, ctr <- coreDataCtors dat
+                                 , name `elem` mapMaybe snd (coreCtorFields ctr)]
