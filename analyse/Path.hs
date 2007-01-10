@@ -78,9 +78,12 @@ differentiate (Path hite xs) ctor = liftM (Path hite) $ f xs
 						  
 
 -- Is a constructor something that should be made a star always?
--- hardcode for now...
 isStar :: Core -> String -> Bool
-isStar core x = x `elem` ["tl"]
+isStar core x = rec == typ
+	where
+		rec = unwords $ coreDataName dat : coreDataTypes dat
+		typ = head [filter (`notElem` "()") a | (a,Just b) <- coreCtorFields $ coreFieldCtor core x, b == x]
+		dat = coreFieldData core x
 
 
 integrate :: Path -> String -> Path
