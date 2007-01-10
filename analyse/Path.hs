@@ -59,7 +59,7 @@ finitePath (Path _ x) = all (not . isPathStar) x
 makeFinitePath (Path hite x) = Path hite $ filter (not . isPathStar) x
 
 
-restrictPath :: Path -> [String] -> Path
+restrictPath :: Path -> [CoreFieldName] -> Path
 restrictPath (Path h x) allow = Path h (concatMap f x)
     where
         f (PathStar x) = if null x2 then [] else [PathStar x2]
@@ -67,7 +67,7 @@ restrictPath (Path h x) allow = Path h (concatMap f x)
         f x = [x]
 
 
-differentiate :: Path -> String -> Maybe Path
+differentiate :: Path -> CoreFieldName -> Maybe Path
 differentiate (Path hite xs) ctor = liftM (Path hite) $ f xs
 	where
 		f [] = Nothing
@@ -86,13 +86,13 @@ isStar core x = rec == typ
 		dat = coreFieldData core x
 
 
-integrate :: Path -> String -> Path
+integrate :: Path -> CoreFieldName -> Path
 integrate (Path hite x) ctor = Path hite (PathAtom ctor : x)
 	where
 		star = isStar hite ctor
 	
 		f (PathStar y:ys) 
-			| star
+			| star -- TODO: test for correct types
 			= PathStar (sort $ nub $ ctor:y) : ys
 		f ys = (if star then PathStar [ctor] else PathAtom ctor) : ys
 
