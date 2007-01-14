@@ -108,14 +108,13 @@ combineReqsAnd (Req hite on1 path1 ctors1) (Req _ on2 path2 ctors2)
     where
         ctrs = sort $ ctors2 `intersect` ctors1
 
-{-
 combineReqsAnd r1 r2
         | isJust s1 || isJust s2
         = fromMaybe (combineReqsAnd t1 t2) (reduceAndWithImp t1 t2)
     where
         (s1,s2) = (reduceAnd r2 r1, reduceAnd r1 r2)
         (t1,t2) = (fromMaybe r1 s1, fromMaybe r2 s2)
--}
+
 combineReqsAnd _ _ = None
 
 
