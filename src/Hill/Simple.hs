@@ -40,6 +40,7 @@ simplifyEx opts hill x = mapOverHill f x
     
         -- use error if you can
         f (Apply (Fun "error") [x]) = Error x
+        f (Prim "Prelude.error" [x]) = Error x
         f (Call "error" [x]) = Error x
         
         -- inline simple lets, @1 = @2
