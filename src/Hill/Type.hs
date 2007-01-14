@@ -1,6 +1,10 @@
 {-# OPTIONS_GHC -fglasgow-exts #-}
 
-{-! global: GhcBinary !-}
+{-! for Hill derive : GhcBinary !-}
+{-! for Func derive : GhcBinary !-}
+{-! for Expr derive : GhcBinary !-}
+{-! for Const derive : GhcBinary !-}
+{-! for Alt derive : GhcBinary !-}
 
 module Hill.Type(module Hill.Type, module Hite.DataType, module Hite.TypeType) where
 
