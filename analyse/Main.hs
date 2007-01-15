@@ -83,4 +83,6 @@ beginLog :: String -> String -> IO Handle
 beginLog file temp = do
     let dir = "../logs/" ++ dropExtensions (takeBaseName file)
     createDirectoryIfMissing True dir
-    openFile (dir </> temp <.> "log") WriteMode
+    hndl <- openFile (dir </> temp <.> "log") WriteMode
+    hSetBuffering hndl NoBuffering
+    return hndl
