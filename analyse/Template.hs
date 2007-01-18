@@ -36,7 +36,7 @@ templateGet template@(Template hill hndl cache) req = do
                    modifyIORef cache ((abstract,ans):)
                    hPutStrLn hndl $ "Add: " ++ show abstract ++ " = " ++ show ans
                    return ans
-    return $ propRebuild $ templateConcrete req ans
+    return $ templateConcrete req ans
 
 
 
