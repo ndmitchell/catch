@@ -28,7 +28,7 @@ data PathElem = PathAtom String
 
 
 instance Show Path where
-	show (Path _ xs) = concatMap (('.':) . map toUpper . show) xs
+	show (Path _ xs) = concatMap (('.':) . show) xs
 
 instance Show PathElem where
 	show (PathAtom x) = x
