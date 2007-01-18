@@ -1,35 +1,35 @@
 
-module FixpPred(FixpPred) where
+module FixpProp(FixpProp) where
 
 import Data.Proposition
 import Control.Monad
 
-data FixpPred a = FixpPred {fixpPred :: Formula a}
+data FixpProp a = FixpProp {fixpProp :: Formula a}
 
 
-instance Show a => Show (FixpPred a) where
-    show = show . fixpPred
+instance Show a => Show (FixpProp a) where
+    show = show . fixpProp
 
 
-instance PropLit a => Eq (FixpPred a) where
+instance PropLit a => Eq (FixpProp a) where
     a == b = f a == f b
-        where f = propSimplify . propRebuildBDD . propSimplify . fixpPred
+        where f = propSimplify . propRebuildBDD . propSimplify . fixpProp
 
 
-instance Prop FixpPred where
-    propTrue   = FixpPred propTrue
-    propFalse  = FixpPred propFalse
-    propIsTrue  = propIsTrue  . fixpPred
-    propIsFalse = propIsFalse . fixpPred
+instance Prop FixpProp where
+    propTrue   = FixpProp propTrue
+    propFalse  = FixpProp propFalse
+    propIsTrue  = propIsTrue  . fixpProp
+    propIsFalse = propIsFalse . fixpProp
     
-    propLit = FixpPred . propLit
-    propAnd (FixpPred a) (FixpPred b) = FixpPred (propAnd a b)
-    propOr  (FixpPred a) (FixpPred b) = FixpPred (propOr  a b)
-    propNot (FixpPred a) = FixpPred (propNot a)
+    propLit = FixpProp . propLit
+    propAnd (FixpProp a) (FixpProp b) = FixpProp (propAnd a b)
+    propOr  (FixpProp a) (FixpProp b) = FixpProp (propOr  a b)
+    propNot (FixpProp a) = FixpProp (propNot a)
 
-    propMapM f (FixpPred a) = liftM FixpPred $ propMapM (liftM fixpPred . f) a
+    propMapM f (FixpProp a) = liftM FixpProp $ propMapM (liftM fixpProp . f) a
     
-    propFold (PropFold foldOr foldAnd foldNot foldLit) (FixpPred x) = propFold fold2 x
+    propFold (PropFold foldOr foldAnd foldNot foldLit) (FixpProp x) = propFold fold2 x
         where fold2 = error "FixProp.propFold, todo"
     
-    propSimplify = FixpPred . propSimplify . propRebuildFormula . propSimplify . propRebuildBDD . propSimplify . fixpPred
+    propSimplify = FixpProp . propSimplify . propRebuildFormula . propSimplify . propRebuildBDD . propSimplify . fixpProp
