@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -fallow-undecidable-instances #-}
--- for the instance of Formula p
 
 module Req(module Req, module Path) where
 
@@ -10,13 +8,15 @@ import Data.Proposition
 import Data.List
 import Data.Maybe
 import Safe
+import FixpProp
 
 
 -- DATA DEFINITIONS
 
-type Scopes p = [Scope p]
-data Scope p = Scope CoreFuncName (p Req)
+type Scopes = [Scope]
+data Scope = Scope CoreFuncName Reqs
 
+type Reqs = FixpProp Req
 
 data Req = Req Core CoreExpr Path [CoreCtorName]
          | Demonic
@@ -24,6 +24,7 @@ data Req = Req Core CoreExpr Path [CoreCtorName]
 
 
 reqExpr (Req _ x _ _) = x
+
 
 
 -- Formula Req has no negation within in
@@ -41,7 +42,7 @@ instance Ord Req where
     compare _ (Req{}) = LT
     compare x y = compare (x==Demonic, x==Angelic) (y==Demonic, y==Angelic)
 
-instance Show (p Req) => Show (Scope p) where
+instance Show Scope where
     show (Scope name reqs) = "(\\forall " ++ name ++ ", " ++ show reqs ++ ")"
 
 instance Show Req where
@@ -50,11 +51,10 @@ instance Show Req where
     show Demonic = "?Demonic"
     show Angelic = "?Angelic"
 
-
 -- SMART CONSTRUCTORS
 
-scopesAnds :: Prop p => Scopes p -> Scopes p
-scopesAnds xs = filter (\(Scope a b) -> not (propIsTrue b)) $ map f $
+scopesAnds :: Scopes -> Scopes
+scopesAnds xs = filter (\(Scope a b) -> not $ propIsTrue b) $ map f $
                groupSetExtract (\(Scope a b) -> a) xs
     where
         f xs@(Scope a _:_) = Scope a $ propAnds [b | Scope a b <- xs]
@@ -77,7 +77,7 @@ x.p{c} | ewp(p), and x{c} => no items available in p
 
 
 
-newReqs :: Prop p => Core -> CoreExpr -> Path -> [CoreCtorName] -> p Req
+newReqs :: Core -> CoreExpr -> Path -> [CoreCtorName] -> Reqs
 newReqs hite zexpr path ctors | null ctors = propFalse
                               | ctors `setEq` baseSet = propTrue
                               | otherwise = propLit $ newReq hite zexpr path ctors
@@ -182,14 +182,14 @@ impliesReq _ _ = Nothing
 blurReq :: Req -> Req
 blurReq (Req hill expr path ctrs) = newReq hill expr (blurPath hill path) ctrs
 
-blurReqs :: Formula Req -> Formula Req
+blurReqs :: Reqs -> Reqs
 blurReqs = propMap f
     where
         f Demonic = propFalse
         f Angelic = propTrue
         f x = propLit $ blurReq x
 
-blurScope :: Scope Formula -> Scope Formula
+blurScope :: Scope -> Scope
 blurScope (Scope a b) = Scope a (blurReqs b)
 
 blurScopes = map blurScope

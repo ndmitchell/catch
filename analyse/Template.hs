@@ -15,7 +15,7 @@ import Control.Monad
 import Yhc.Core
 
 
-data Template = Template Core Handle (IORef [(Req, Formula Req)])
+data Template = Template Core Handle (IORef [(Req, Reqs)])
 
 
 templateInit :: Core -> Handle -> IO Template
@@ -25,7 +25,7 @@ templateInit hill hndl = do
 
 
 -- first element of Req must be a Call
-templateGet :: Template -> Req -> IO (Formula Req)
+templateGet :: Template -> Req -> IO Reqs
 templateGet template@(Template hill hndl cache) req = do
     let abstract = templateAbstract req
     res <- readIORef cache
@@ -46,7 +46,7 @@ templateAbstract (Req a (CoreApp (CoreFun name) xs) b c) = newReq a (CoreApp (Co
     where args = [CoreVar $ 'v':show i | i <- [0..length xs-1]]
 
 
-templateConcrete :: Req -> Formula Req -> Formula Req
+templateConcrete :: Req -> Reqs -> Reqs
 templateConcrete (Req _ (CoreApp (CoreFun name) args) _ _) y = propMapReduce (propLit . f) y
     where
         nargs = length args
@@ -56,7 +56,7 @@ templateConcrete (Req _ (CoreApp (CoreFun name) args) _ _) y = propMapReduce (pr
 
 
 -- expr is Call
-templateCalc :: Template -> Core -> Handle -> Req -> IO (Formula Req)
+templateCalc :: Template -> Core -> Handle -> Req -> IO Reqs
 templateCalc template hill hndl req = do
         hPutStrLn hndl $ "BEGIN: templateCalc, " ++ show req
         res <- liftM propSimplify $ fixpReqs propTrue f req
@@ -81,7 +81,7 @@ templateCalc template hill hndl req = do
             return res
 
 
-instantiate :: Core -> Req -> Formula Req
+instantiate :: Core -> Req -> Reqs
 instantiate core r1@(Req a (CoreApp (CoreFun name) args) b c) = res
     where
         res = propMapReduce rep $ newReqs a body b c

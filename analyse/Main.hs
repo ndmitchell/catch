@@ -72,7 +72,7 @@ exec fil = do
             return res
             
 
-initialReqs :: Core -> Scopes Formula
+initialReqs :: Core -> Scopes
 initialReqs core = [Scope func reqs | (func,reqs,expr) <- collect core isError, not $ propIsTrue reqs]
     where
         isError (CoreApp (CorePrim "error") _) = True

@@ -35,14 +35,13 @@ fixp def merge solve key = gen [] key
 
 -- work on Formula, but use BDD for the fixpoint value
 
-fixpReqs :: Formula Req -> (Req -> (Req -> IO (Formula Req)) -> IO (Formula Req)) -> Req -> IO (Formula Req)
-fixpReqs def solve key = liftM propRebuildFormula $ fixp (propRebuildBDD def) merge2 solve2 key
+fixpReqs :: Reqs -> (Req -> (Req -> IO Reqs) -> IO Reqs) -> Req -> IO Reqs
+fixpReqs def solve key = fixp def merge2 solve2 key
     where
-        merge2 a b = propAnd (propSimplify $ propRebuildBDD $ propRebuildFormula $ propAnd a b) b
+        merge2 a b = propSimplify $ propAnd a b
     
-        solve2 :: Req -> (Req -> IO (BDD Req)) -> IO (BDD Req)
+        solve2 :: Req -> (Req -> IO Reqs) -> IO Reqs
         solve2 key onestep = do
                 oldValue <- onestep key
-                newValue <- solve key onestep2
-                return $ propSimplify $ propRebuildBDD $ blurReqs $ propAnd (propRebuildFormula oldValue) newValue
-            where onestep2 x = liftM propRebuildFormula $ onestep x
+                newValue <- solve key onestep
+                return $ propSimplify $ blurReqs $ propAnd oldValue newValue

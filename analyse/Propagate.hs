@@ -14,7 +14,7 @@ import Safe
 -- NOTE: may produce lots of (f,a) (f,b) pairs
 -- can collapse some at the propagate stage if have same cond
 -- which would give a speed up
-propagate :: Core -> Scope Formula -> Scopes Formula
+propagate :: Core -> Scope -> Scopes
 propagate hill (Scope func reqs) 
         | null (vars \\ argList) = res -- standard propagate
         | otherwise = [Scope func $ reqs] -- propagate only to the lets
@@ -38,7 +38,7 @@ propagate hill (Scope func reqs)
         h args x = x
 
 
-collect :: Prop p => Core -> (CoreExpr -> Bool) -> [(CoreFuncName, p Req, CoreExpr)]
+collect :: Core -> (CoreExpr -> Bool) -> [(CoreFuncName, Reqs, CoreExpr)]
 collect hill test = [(name,reqs,expr) | CoreFunc name _ body <- coreFuncs hill, (reqs,expr) <- f propFalse body]
     where
         f prop expr =

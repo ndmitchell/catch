@@ -12,21 +12,21 @@ import Data.Maybe
 
 
 -- | Should have no negate done first
-reduces :: Formula Req -> Formula Req
+reduces :: Reqs -> Reqs
 reduces reqs = propMap reduce reqs
 
 
-reduce :: Req -> Formula Req
+reduce :: Req -> Reqs
 reduce req@(Req hill expr path ctors) = case expr of
     CoreApp (CoreFun x) _ | not $ "." `isPrefixOf` x -> propLit req
-    CoreVar x | '.' `notElem` x -> propLit req
+    CoreVar x -> propLit req
     _ -> reduces $ reduceOne req
 reduce x = propLit x
 
 
 -- apply 1 step reduction to a Sel or a Make
 -- this function does the real work!
-reduceOne :: Req -> Formula Req
+reduceOne :: Req -> Reqs
 reduceOne req@(Req hill expr path ctors) = case expr of
     CoreApp (CoreFun ('.':y)) [x] -> newReqs hill x (path `integrate` y) ctors
     
@@ -61,22 +61,22 @@ reduceOne req@(Req hill expr path ctors) = case expr of
 
 -- take a function that reduces a Call
 -- and reduce the entire thing
-reducesWithM :: (Req -> IO (Formula Req)) -> Formula Req -> IO (Formula Req)
+reducesWithM :: (Req -> IO Reqs) -> Reqs -> IO Reqs
 reducesWithM f reqs = propMapReduceM (reduceWithM f) reqs
 
 
-reduceWithM :: (Req -> IO (Formula Req)) -> Req -> IO (Formula Req)
+reduceWithM :: (Req -> IO Reqs) -> Req -> IO Reqs
 reduceWithM f req@(Req hill expr path ctors) = case expr of
     CoreApp (CoreFun _) _ -> f req >>= reducesWithM f
-    CoreVar x | '.' `notElem` x -> return $ propLit req
+    CoreVar x -> return $ propLit req
     _ -> reducesWithM f $ reduceOne req
 reduceWithM f x = return $ propLit x
 
 
-propMapReduceM :: Monad m => (Req -> m (Formula Req)) -> Formula Req -> m (Formula Req)
+propMapReduceM :: Monad m => (Req -> m Reqs) -> Reqs -> m Reqs
 propMapReduceM f x = propMapM (liftM reduces . f) x
 
-propMapReduce :: (Req -> Formula Req) -> Formula Req -> Formula Req
+propMapReduce :: (Req -> Reqs) -> Reqs -> Reqs
 propMapReduce f x = runIdentity $ propMapReduceM (return . f) x
 
 
