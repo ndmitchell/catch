@@ -173,6 +173,7 @@ equalPathCtor pc1@(PathCtor core p1 c1) pc2@(PathCtor _ p2 c2)
                 | c1 == pc1 && c2 == pc2 = True
                 | otherwise = equalPathCtor c1 c2
             where
+                -- if differentiate is Nothing, that corresponds to True (as below)
                 f (Nothing, b) = PathCtor core (Path []) (map coreCtorName $ coreDataCtors dat1)
                 f (Just a , b) = PathCtor core a b
                 
