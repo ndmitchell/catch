@@ -160,12 +160,13 @@ combinePathCtorOr _ _ = None
 
 combineReqsOr :: Req -> Req -> Reduce Req
 combineReqsOr (Req on1 pc1) (Req on2 pc2) =
-    if on1 /= on2 then None else
-    case pc1 ?\/ pc2 of
-        Value x -> Value (Req on1 x)
-        Literal x -> Literal x
-        None -> None
+    if on1 /= on2 then None else liftReduce (Req on1) (pc1 ?\/ pc2)
 
+
+liftReduce :: (a -> b) -> Reduce a -> Reduce b
+liftReduce f (Value x) = Value $ f x
+liftReduce f (Literal x) = Literal x
+liftReduce f None = None
 
 -- impliesPair a b, a => b
 impliesPair :: PathCtor -> PathCtor -> Bool
