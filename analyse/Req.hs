@@ -1,5 +1,9 @@
 
-module Req(module Req, module PathCtor) where
+module Req(module PathCtor,
+    Scopes(..), Scope(..), Reqs(..), Req(..),
+    scopesAnds, newReq, newReqs,
+    blurScopes, blurReqs
+    ) where
 
 import Yhc.Core
 import General
@@ -18,13 +22,10 @@ data Scope = Scope CoreFuncName Reqs
 
 type Reqs = FixpProp Req
 
-data Req = Req CoreExpr PathCtor
+data Req = Req {reqExpr :: CoreExpr, reqPath :: PathCtor}
          | Demonic
          | Angelic
          deriving (Ord, Eq)
-
-reqExpr (Req x _) = x
-
 
 
 -- Formula Req has no negation within in
