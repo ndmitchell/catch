@@ -49,9 +49,9 @@ pathCtorArgs (Path x) = snub $ concatMap f x
 
 nullPath (Path x) = null x
 
-emptyPath _ = Path []
+emptyPath = Path []
 
-newPath hite xs = foldl integrate (emptyPath hite) xs
+newPath xs = foldl integrate emptyPath xs
 
 
 ewpPath (Path x) = all isPathStar x

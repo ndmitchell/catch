@@ -54,6 +54,6 @@ collect hill test = [(name,reqs,expr) | CoreFunc name _ body <- coreFuncs hill, 
                         g (CoreVar _, rhs) = h seenCtrs rhs
 
                         h ctrs ex = f (propOr prop reqs) ex
-                            where reqs = newReqs hill (CoreVar on) (emptyPath hill) ctrs
+                            where reqs = newReqs hill (CoreVar on) emptyPath ctrs
 
                 _ -> concatMap (f prop) (getChildrenCore expr)

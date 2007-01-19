@@ -50,7 +50,7 @@ reduceOne req@(Req expr (PathCtor hill path ctors)) = case expr of
             f (CoreCon ctr, rhs) = g (delete ctr allCtrs) rhs
             f (CoreVar _, rhs) = g seenCtrs rhs
             
-            g ctrs ex = newReqs hill on (emptyPath hill) ctrs `propOr` newReqs hill ex path ctors
+            g ctrs ex = newReqs hill on emptyPath ctrs `propOr` newReqs hill ex path ctors
 
     CoreApp (CorePrim "error") _ -> propLit Angelic -- since will never return anything
     CoreApp (CorePrim x) ys -> propLit Demonic -- absolutely no idea what the result is
