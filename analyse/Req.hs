@@ -104,7 +104,7 @@ instance PropLit Req where
 instance PropLit PathCtor where
     (?=>) = impliesPathCtor
     (?/\) = undefined -- combinePathCtorAnd
-    (?\/) = undefined -- combinePathCtorOr
+    (?\/) = combinePathCtorOr
     litNot = Just . notPathCtor
 
 -- SIMPLIFIERS
@@ -144,15 +144,27 @@ reduceAnd (Req on1 (PathCtor hite path1 ctors1)) (Req on2 (PathCtor _ path2 ctor
 reduceAnd _ x = Nothing
 
 
-combineReqsOr :: Req -> Req -> Reduce Req
-combineReqsOr (Req on1 (PathCtor hite path1 ctors1)) (Req on2 (PathCtor _ path2 ctors2))
-        | on1 == on2 && path1 == path2 && finitePath path1
-        = if length ctrs == length baseSet then Literal True else Value (newReq hite on1 path1 ctrs)
+combinePathCtorOr :: PathCtor -> PathCtor -> Reduce PathCtor
+combinePathCtorOr (PathCtor hite path1 ctors1) (PathCtor _ path2 ctors2)
+        | path1 == path2 && finitePath path1
+        = if length ctrs == length baseSet then Literal True else
+          case newPathCtor hite path1 ctrs of
+              Left x -> Literal x
+              Right x -> Value x
     where
         ctrs = snub $ ctors2 ++ ctors1
         baseSet = ctorNames $ coreCtorData hite (head ctrs)
         
-combineReqsOr _ _ = None
+combinePathCtorOr _ _ = None
+
+
+combineReqsOr :: Req -> Req -> Reduce Req
+combineReqsOr (Req on1 pc1) (Req on2 pc2) =
+    if on1 /= on2 then None else
+    case pc1 ?\/ pc2 of
+        Value x -> Value (Req on1 x)
+        Literal x -> Literal x
+        None -> None
 
 
 -- impliesPair a b, a => b
