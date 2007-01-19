@@ -165,10 +165,13 @@ equalPathCtor pc1@(PathCtor core p1 c1) pc2@(PathCtor _ p2 c2)
     | dat1 /= dat2 = False
     | ewp1 && ewp2 && c1 /= c2 = False
     | ewp1 /= ewp2 = False
-    | otherwise = and [PathCtor core (integrate p1 x) c1 `equalPathCtor` PathCtor core (integrate p2 x) c2
+    | otherwise = and [(differentiate p1 x, c1) `eq` (differentiate p2 x, c2)
                       | x <- validPaths]
-
     where
+        eq (Nothing,_) (Nothing,_) = True
+        eq (Just a, b) (Just c, d) = equalPathCtor (PathCtor core a b) (PathCtor core c d)
+        eq _ _ = False
+    
         (ewp1, ewp2) = (ewpPath p1, ewpPath p2)
         (dat1, dat2) = (getDat pc1, getDat pc2)
         
