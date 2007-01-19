@@ -1,5 +1,5 @@
 
-module Path(Path, ewpPath, pathCtorArgs, restrictPath,
+module Path(Path, ewpPath, restrictPath,
 	emptyPath, finitePath, makeFinitePath, integrate, differentiate,
 	subsetPath, blurPath) where
 
@@ -39,12 +39,6 @@ instance Show PathElem where
 
 isPathStar (PathStar{}) = True ; isPathStar _ = False
 isPathAtom = not . isPathStar
-
-
-pathCtorArgs (Path x) = snub $ concatMap f x
-    where
-        f (PathAtom x) = [x]
-        f (PathStar xs) = xs
 
 
 emptyPath = Path []
