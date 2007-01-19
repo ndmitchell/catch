@@ -8,6 +8,7 @@ import Data.Char
 import Data.List
 import Data.Maybe
 import Yhc.Core
+import DataRep
 import Control.Monad
 
 
@@ -77,25 +78,10 @@ differentiate (Path hite xs) ctor = liftM (Path hite) $ f xs
 						  | otherwise = f xs
 						  
 
--- Is a constructor something that should be made a star always?
-isStar :: Core -> String -> Bool
-isStar core x = rec == typ
-	where
-		rec = unwords $ coreDataName dat : coreDataTypes dat
-		typ = head [filter (`notElem` "()") a | (a,Just b) <- coreCtorFields $ coreFieldCtor core x, b == x]
-		dat = coreFieldData core x
-
-
+-- Just integrate raw for now, blurPath will change to star's etc
+-- Do not expect simplification rules to be fired until AFTER blurPath
 integrate :: Path -> CoreFieldName -> Path
 integrate (Path hite x) ctor = Path hite (PathAtom ctor : x)
-	where
-		star = isStar hite ctor
-	
-		f (PathStar y:ys) 
-			| star -- TODO: test for correct types
-			= PathStar (sort $ nub $ ctor:y) : ys
-		f ys = (if star then PathStar [ctor] else PathAtom ctor) : ys
-
 
 
 
@@ -115,14 +101,9 @@ subsetPath (Path _ a) (Path _ b) = f a b
 blurPath :: Core -> Path -> Path
 blurPath hill (Path hite x) = Path hite (combineSucc $ map useStar x)
     where
-        useStar (PathAtom ctor)
-            | isStar hite ctor
-            = PathStar [ctor]
+        useStar (PathAtom ctor) | isFieldRecursive hite ctor = PathStar [ctor]
         useStar x = x
     
-    
-        combineSucc (PathStar x1:PathStar x2:xs)
-            | True -- dataName (getCArg hite $ head x1) == dataName (getCArg hite $ head x2)
-            = combineSucc (PathStar (snub $ x1 ++ x2) : xs)
+        combineSucc (PathStar x1:PathStar x2:xs) = combineSucc (PathStar (snub $ x1 ++ x2) : xs)
         combineSucc (x:xs) = x : combineSucc xs
         combineSucc [] = []
