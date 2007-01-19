@@ -101,13 +101,21 @@ instance PropLit Req where
     (?\/) = combineReqsOr
     litNot = Just . notReq
 
+instance PropLit PathCtor where
+    (?=>) = undefined -- impliesPathCtor
+    (?/\) = undefined -- combinePathCtorAnd
+    (?\/) = undefined -- combinePathCtorOr
+    litNot = Just . notPathCtor
 
 -- SIMPLIFIERS
 
 notReq Demonic = Demonic
 notReq Angelic = Angelic
-notReq (Req expr (PathCtor hill path ctrs)) = newReq hill expr path ctrs2
+notReq (Req expr x) = Req expr (fromJust $ litNot x)
+
+notPathCtor (PathCtor hill path ctrs) = newPathCtorAlways hill path ctrs2
     where ctrs2 = sort $ ctorNames (coreCtorData hill (head ctrs)) \\ ctrs
+
 
 combineReqsAnd :: Req -> Req -> Reduce Req
 combineReqsAnd (Req on1 (PathCtor hite path1 ctors1)) (Req on2 (PathCtor _ path2 ctors2))
