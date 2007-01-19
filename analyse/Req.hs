@@ -77,12 +77,14 @@ newPathCtor core path ctors
         sctors = snub ctors
         baseSet = ctorNames $ coreCtorData core (headNote "Tram.Type.impliesReq here" ctors)
 
+newPathCtorAlways :: Core -> Path -> [CoreCtorName] -> PathCtor
+newPathCtorAlways core path ctors =
+    case newPathCtor core path ctors of
+        Left _ -> PathCtor core path ctors
+        Right x -> x
 
 newReq :: Core -> CoreExpr -> Path -> [CoreCtorName] -> Req
-newReq core expr path ctors =
-    case newPathCtor core path ctors of
-        Left _ -> Req expr (PathCtor core path ctors)
-        Right x -> Req expr x
+newReq core expr path ctors = Req expr (newPathCtorAlways core path ctors)
 
 newReqs :: Core -> CoreExpr -> Path -> [CoreCtorName] -> Reqs
 newReqs core expr path ctors =
