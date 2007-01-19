@@ -4,6 +4,7 @@ module DataRep where
 import Yhc.Core
 
 
-ctorNames :: CoreData -> [CoreCtorName]
-ctorNames = map coreCtorName . coreDataCtors
+-- Given a constructor, get all the sibling constructors (including it)
+ctorNames :: Core -> CoreCtorName -> [CoreCtorName]
+ctorNames core = map coreCtorName . coreDataCtors . coreCtorData core
 

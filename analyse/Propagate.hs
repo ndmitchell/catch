@@ -47,7 +47,7 @@ collect hill test = [(name,reqs,expr) | CoreFunc name _ body <- coreFuncs hill, 
             case expr of
                 CoreCase (CoreVar on) alts -> concatMap g alts
                     where
-                        allCtrs = ctorNames $ coreCtorData hill $ fromCoreCon $ fst $ head alts
+                        allCtrs = ctorNames hill $ fromCoreCon $ fst $ head alts
                         seenCtrs = [x | (CoreCon x, _) <- alts]
 
                         g (CoreCon ctr, rhs) = h (delete ctr allCtrs) rhs

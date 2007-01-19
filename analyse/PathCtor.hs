@@ -42,7 +42,7 @@ newPathCtor core path ctors
     | otherwise = Right $ PathCtor core path sctors
     where
         sctors = snub ctors
-        baseSet = ctorNames $ coreCtorData core (headNote "Tram.Type.impliesReq here" ctors)
+        baseSet = ctorNames core (head ctors)
 
 newPathCtorAlways :: Core -> Path -> [CoreCtorName] -> PathCtor
 newPathCtorAlways core path ctors =
@@ -62,7 +62,7 @@ instance PropLit PathCtor where
 -- SIMPLIFIERS
 
 notPathCtor (PathCtor hill path ctrs) = newPathCtorAlways hill path ctrs2
-    where ctrs2 = sort $ ctorNames (coreCtorData hill (head ctrs)) \\ ctrs
+    where ctrs2 = sort (ctorNames hill (head ctrs) \\ ctrs)
 
 
 
@@ -106,7 +106,7 @@ combinePathCtorOr (PathCtor hite path1 ctors1) (PathCtor _ path2 ctors2)
               Right x -> Value x
     where
         ctrs = snub $ ctors2 ++ ctors1
-        baseSet = ctorNames $ coreCtorData hite (head ctrs)
+        baseSet = ctorNames hite (head ctrs)
         
 combinePathCtorOr _ _ = None
 
@@ -132,7 +132,7 @@ impliesPathCtor given req@(PathCtor hite path ctors) =
 
         -- calculate all possible constructors that might arise
         poss = foldr f baseSet given
-        baseSet = ctorNames $ coreCtorData hite (headNote "Tram.Type.impliesReq" ctors)
+        baseSet = ctorNames hite (head ctors)
         
         f (PathCtor _ path2 ctors2, False) poss
             | path2 == path && finitePath path

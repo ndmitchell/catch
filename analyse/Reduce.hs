@@ -44,7 +44,7 @@ reduceOne req@(Req expr (PathCtor hill path ctors)) = case expr of
     
     CoreCase on alts -> propAnds $ map f alts
         where
-            allCtrs = ctorNames $ coreCtorData hill $ fromCoreCon $ fst $ head alts
+            allCtrs = ctorNames hill $ fromCoreCon $ fst $ head alts
             seenCtrs = [x | (CoreCon x, _) <- alts]
 
             f (CoreCon ctr, rhs) = g (delete ctr allCtrs) rhs
