@@ -15,6 +15,7 @@ import DataRep
 
 import Yhc.Core
 import General
+import Control.Monad
 import Data.Proposition
 import Safe
 import Data.Maybe
@@ -173,7 +174,7 @@ equalPathCtor pc1@(PathCtor core p1 c1) pc2@(PathCtor _ p2 c2)
         eq _ _ = False
     
         (ewp1, ewp2) = (ewpPath p1, ewpPath p2)
-        (dat1, dat2) = (getDat pc1, getDat pc2)
+        (dat1, dat2) = (fromMaybe dat2 (getDat pc1), fromMaybe dat1 (getDat pc2))
         
         -- the paths you can now follow
         validPaths = [x | ctr <- coreDataCtors dat1, (_, Just x) <- coreCtorFields ctr
@@ -181,9 +182,9 @@ equalPathCtor pc1@(PathCtor core p1 c1) pc2@(PathCtor _ p2 c2)
         
         -- getData, CoreData
         -- the type that you are currently in
-        getDat (PathCtor _ (Path []) c) = coreCtorData core (head c)
-        getDat (PathCtor _ (Path (PathAtom x : _)) _) = coreFieldData core x
-        getDat (PathCtor _ (Path (PathStar x : _)) _) = coreFieldData core $ head x
+        getDat (PathCtor _ (Path []) c) = liftM (coreCtorData core) $ listToMaybe c
+        getDat (PathCtor _ (Path (PathAtom x : _)) _) = Just $ coreFieldData core x
+        getDat (PathCtor _ (Path (PathStar x : _)) _) = Just $ coreFieldData core $ head x
 
 
 
