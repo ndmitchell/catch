@@ -102,7 +102,7 @@ instance PropLit Req where
     litNot = Just . notReq
 
 instance PropLit PathCtor where
-    (?=>) = undefined -- impliesPathCtor
+    (?=>) = impliesPathCtor
     (?/\) = undefined -- combinePathCtorAnd
     (?\/) = undefined -- combinePathCtorOr
     litNot = Just . notPathCtor
@@ -156,41 +156,42 @@ combineReqsOr _ _ = None
 
 
 -- impliesPair a b, a => b
-impliesPair :: Req -> Req -> Bool
-impliesPair r1@(Req on (PathCtor hite path ctors)) r2@(Req on2 (PathCtor _ path2 ctors2))
-    | on == on2 && ctors2 `subset` ctors && newReq hite on path ctors2 == r2 = True
-    | on == on2 && ctors `subset` ctors2 && path2 `subsetPath` path = True
+impliesPair :: PathCtor -> PathCtor -> Bool
+impliesPair (PathCtor hite path ctors) r2@(PathCtor _ path2 ctors2)
+    | ctors `subset` ctors && newPathCtorAlways hite path ctors2 == r2 = True
+    | ctors `subset` ctors2 && path2 `subsetPath` path = True
 impliesPair _ _ = False
 
 
-
-
-impliesReq :: [(Req, Bool)] -> Req -> Maybe Bool
-impliesReq given req@(Req on (PathCtor hite path ctors)) =
+impliesPathCtor :: [(PathCtor, Bool)] -> PathCtor -> Maybe Bool
+impliesPathCtor given req@(PathCtor hite path ctors) =
         if null ctors then Just False
         else if any doesImply given then Just True
         else if poss `subset` ctors then Just True
         else if ctors `disjoint` poss then Just False
         else Nothing
     where
-        doesImply :: (Req,Bool) -> Bool
+        doesImply :: (PathCtor,Bool) -> Bool
         doesImply (r2,b) = b && impliesPair req r2
 
         -- calculate all possible constructors that might arise
         poss = foldr f baseSet given
         baseSet = ctorNames $ coreCtorData hite (headNote "Tram.Type.impliesReq" ctors)
         
-        f (Req on2 (PathCtor _ path2 ctors2), False) poss
-            | on2 == on && path2 == path && finitePath path
+        f (PathCtor _ path2 ctors2, False) poss
+            | path2 == path && finitePath path
             = poss \\ ctors2
         
-        f (Req on2 (PathCtor _ path2 ctors2),True) poss
-            | on2 == on && path `subsetPath` path2
+        f (PathCtor _ path2 ctors2, True) poss
+            | path `subsetPath` path2
             = poss `intersect` ctors2
 
         f _ poss = poss
         
-impliesReq _ _ = Nothing
+
+impliesReq :: [(Req, Bool)] -> Req -> Maybe Bool
+impliesReq given (Req on pc) =
+        [(b,c) | (Req a b, c) <- given, a == on] ?=> pc
 
 
 -- NEGATION AND BLURRING
