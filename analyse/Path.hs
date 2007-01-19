@@ -1,5 +1,5 @@
 
-module Path(Path, nullPath, newPath, ewpPath, pathCtorArgs, restrictPath,
+module Path(Path, nullPath, ewpPath, pathCtorArgs, restrictPath,
 	emptyPath, finitePath, makeFinitePath, integrate, differentiate,
 	subsetPath, blurPath) where
 
@@ -50,8 +50,6 @@ pathCtorArgs (Path x) = snub $ concatMap f x
 nullPath (Path x) = null x
 
 emptyPath = Path []
-
-newPath xs = foldl integrate emptyPath xs
 
 
 ewpPath (Path x) = all isPathStar x
