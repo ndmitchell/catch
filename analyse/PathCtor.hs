@@ -145,3 +145,27 @@ impliesPathCtor given req@(PathCtor hite path ctors) =
 
         f _ poss = poss
         
+
+-- OPERATIONS ON PATHS
+
+-- is the first a subset of the second
+subsetPath :: Path -> Path -> Bool
+subsetPath (Path a) (Path b) = f a b
+    where
+        f (PathAtom x:xs) (PathAtom y:ys) | x == y = f xs ys
+        f (PathStar x:xs) (PathStar y:ys) | x `subset` y = f xs ys
+        f xs              (PathStar y:ys) = f xs ys
+        f [] [] = True
+        f _ _ = False
+
+
+finitePath (Path x) = all (not . isPathStar) x
+
+
+restrictPath :: Path -> [CoreFieldName] -> Path
+restrictPath (Path x) allow = Path (concatMap f x)
+    where
+        f (PathStar x) = if null x2 then [] else [PathStar x2]
+            where x2 = filter (`elem` allow) x
+        f x = [x]
+
