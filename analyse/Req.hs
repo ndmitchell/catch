@@ -44,10 +44,12 @@ instance Show Scope where
     show (Scope name reqs) = "(\\forall " ++ name ++ ", " ++ show reqs ++ ")"
 
 instance Show Req where
-    show (Req expr (PathCtor _ path ctor)) =
-        showCoreExprGroup expr ++ show path ++ strSet ctor
+    show (Req expr x) = showCoreExprGroup expr ++ show x
     show Demonic = "?Demonic"
     show Angelic = "?Angelic"
+
+instance Show PathCtor where
+    show (PathCtor _ path ctor) = show path ++ strSet ctor
 
 -- SMART CONSTRUCTORS
 
