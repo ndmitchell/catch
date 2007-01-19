@@ -45,7 +45,6 @@ emptyPath = Path []
 ewpPath (Path x) = all isPathStar x
 
 finitePath (Path x) = all (not . isPathStar) x
-makeFinitePath (Path x) = Path $ filter (not . isPathStar) x
 
 
 restrictPath :: Path -> [CoreFieldName] -> Path
