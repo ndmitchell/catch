@@ -3,6 +3,7 @@ module PathCtor(
     -- from this module
     BoolPathCtor(..), PathCtor(..),
     newPathCtor, newPathCtorAlways,
+    equalPathCtor,
     
     -- reexported from Path
     Path, emptyPath, ewpPath, blurPath,
@@ -155,6 +156,33 @@ impliesPathCtor given req@(PathCtor hite path ctors) =
 
         f _ poss = poss
         
+
+-- SUPER STRONG EQUALITY
+
+equalPathCtor :: PathCtor -> PathCtor -> Bool
+equalPathCtor pc1@(PathCtor core p1 c1) pc2@(PathCtor _ p2 c2)
+    | pc1 == pc2 = True
+    | dat1 /= dat2 = False
+    | ewp1 && ewp2 && c1 /= c2 = False
+    | ewp1 /= ewp2 = False
+    | otherwise = and [PathCtor core (integrate p1 x) c1 `equalPathCtor` PathCtor core (integrate p2 x) c2
+                      | x <- validPaths]
+
+    where
+        (ewp1, ewp2) = (ewpPath p1, ewpPath p2)
+        (dat1, dat2) = (getDat pc1, getDat pc2)
+        
+        -- the paths you can now follow
+        validPaths = [x | ctr <- coreDataCtors dat1, (_, Just x) <- coreCtorFields ctr
+                        , not ewp1 || coreCtorName ctr `elem` c1]
+        
+        -- getData, CoreData
+        -- the type that you are currently in
+        getDat (PathCtor _ (Path []) c) = coreCtorData core (head c)
+        getDat (PathCtor _ (Path (PathAtom x : _)) _) = coreFieldData core x
+        getDat (PathCtor _ (Path (PathStar x : _)) _) = coreFieldData core $ head x
+
+
 
 -- OPERATIONS ON PATHS
 
