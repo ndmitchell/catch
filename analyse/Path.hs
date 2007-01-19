@@ -21,8 +21,8 @@ instance Ord Path where
 			f xs = (length atm, 0 - length str, 0 - length (concat [x | PathStar x <- xs]))
 				where (str,atm) = partition isPathStar xs
 
-data PathElem = PathAtom String
-              | PathStar [String]
+data PathElem = PathAtom {fromPathAtom :: String}
+              | PathStar {fromPathStar :: [String]}
 	          deriving (Eq, Ord)
 
 
