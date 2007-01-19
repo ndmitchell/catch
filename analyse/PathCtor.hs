@@ -169,9 +169,16 @@ equalPathCtor pc1@(PathCtor core p1 c1) pc2@(PathCtor _ p2 c2)
     | otherwise = and [(differentiate p1 x, c1) `eq` (differentiate p2 x, c2)
                       | x <- validPaths]
     where
-        eq (Nothing,_) (Nothing,_) = True
-        eq (Just a, b) (Just c, d) = equalPathCtor (PathCtor core a b) (PathCtor core c d)
-        eq _ _ = False
+        eq a1 a2
+                | c1 == pc1 && c2 == pc2 = True
+                | otherwise = equalPathCtor c1 c2
+            where
+                f (Nothing, b) = PathCtor core (Path []) (map coreCtorName $ coreDataCtors dat1)
+                f (Just a , b) = PathCtor core a b
+                
+                (c1, c2) = (f a1, f a2)
+
+        true = map coreCtorName $ coreDataCtors dat1
     
         (ewp1, ewp2) = (ewpPath p1, ewpPath p2)
         (dat1, dat2) = (fromMaybe dat2 (getDat pc1), fromMaybe dat1 (getDat pc2))
