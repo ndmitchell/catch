@@ -40,22 +40,59 @@ instance Show PathCtor where
 
 -- SMART CONSTRUCTORS
 
+-- RULES
+-- given a constructor set C
+-- CS is the complete set, valid because of C's type
+-- fs is the set of fields coming from C
+-- 0 is the empty set
+
+-- = Path Restriction =
+-- x.y*{C} => x.(y union fs)*{C}
+-- x.0*{C} => x{C}
+
+-- = Completion =
+-- x.y{C} | C == CS => True
+
+-- = Nothing =
+-- {0} => False
+-- x.y*{0} => x{0}
+-- x.y{0} => x{CS \\ y}
+
 
 newPathCtor :: Core -> Path -> [CoreCtorName] -> BoolPathCtor
-newPathCtor core path ctors
-    | null ctors = Left False -- NOTE: Not true! (conservative)
-    | ctors `setEq` baseSet = Left True
-
-    -- x.tl*{[]} => x{[]}
-    -- x.p{c} | ewp(p), and x{c} => no items available in p
-    | ewpPath path
-      = let newpath = restrictPath path $ concatMap (map (fromJust . snd) . coreCtorFields . coreCtor core) ctors
-        in Right $ PathCtor core newpath sctors
-
-    | otherwise = Right $ PathCtor core path sctors
+newPathCtor core (Path path) ctors =
+        if not (null ctors) && allCtors == sctors then Left True else f (concatMap goodPath path) sctors
     where
+        -- no empty stars, all must be sorted
+        goodPath (PathStar []) = []
+        goodPath (PathStar x) = [PathStar (snub x)]
+        goodPath x = [x]
+        
+        allCtors = sort $ ctorNames core $ head ctors
         sctors = snub ctors
-        baseSet = ctorNames core (head ctors)
+        
+
+        f path ctors
+            -- Nothing
+            | null ctors = if null path then Left False
+                           else if isPathStar lastpath then f initpath ctors
+                           else let badctor = coreCtorName $ coreFieldCtor core $ fromPathAtom lastpath
+                                in f initpath (badctor `delete` ctorNames core badctor)
+
+            -- Path Restriction
+            | not (null path) && isPathStar lastpath && ys /= ys2 =
+                    let path2 = initpath ++ [PathStar ys2 | not $ null ys2]
+                    in newPathCtor core (Path path2) ctors
+
+            -- Fallthrough    
+            | otherwise = Right $ PathCtor core (Path path) ctors
+          where
+            fields = concatMap (map (fromJust . snd) . coreCtorFields . coreCtor core) ctors
+            ys = fromPathStar lastpath
+            ys2 = filter (`elem` fields) ys
+
+            (initpath, lastpath) = (init path, last path)
+
 
 newPathCtorAlways :: Core -> Path -> [CoreCtorName] -> PathCtor
 newPathCtorAlways core path ctors =
