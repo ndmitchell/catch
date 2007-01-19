@@ -6,6 +6,7 @@ import Reduce
 import Data.List
 import Data.Maybe
 import General
+import DataRep
 import Data.Proposition
 import Yhc.Core
 import Safe

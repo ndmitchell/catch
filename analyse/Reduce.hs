@@ -3,6 +3,7 @@ module Reduce(reduce, reduces, reduceWithM, reducesWithM, propMapReduceM, propMa
 
 import Req
 import General
+import DataRep
 import Data.Proposition
 import Control.Monad
 import Control.Monad.Identity

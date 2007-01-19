@@ -3,6 +3,7 @@ module PathCtor where
 
 import Yhc.Core
 import Path
+import DataRep
 import General
 import Data.Proposition
 import Safe
