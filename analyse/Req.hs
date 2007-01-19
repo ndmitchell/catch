@@ -103,7 +103,7 @@ instance PropLit Req where
 
 instance PropLit PathCtor where
     (?=>) = impliesPathCtor
-    (?/\) = undefined -- combinePathCtorAnd
+    (?/\) = combinePathCtorAnd
     (?\/) = combinePathCtorOr
     litNot = Just . notPathCtor
 
@@ -118,28 +118,38 @@ notPathCtor (PathCtor hill path ctrs) = newPathCtorAlways hill path ctrs2
 
 
 combineReqsAnd :: Req -> Req -> Reduce Req
-combineReqsAnd (Req on1 (PathCtor hite path1 ctors1)) (Req on2 (PathCtor _ path2 ctors2))
-        | on1 == on2 && path1 == path2
-        = if null ctrs then Literal False else Value (newReq hite on1 path1 ctrs)
+combineReqsAnd (Req on1 pc1) (Req on2 pc2) =
+    if on1 /= on2 then None else liftReduce (Req on1) (pc1 ?/\ pc2)
+
+
+
+combinePathCtorAnd :: PathCtor -> PathCtor -> Reduce PathCtor
+combinePathCtorAnd (PathCtor hite path1 ctors1) (PathCtor _ path2 ctors2)
+        | path1 == path2
+        = if null ctrs then Literal False else
+          case newPathCtor hite path1 ctrs of
+              Left x -> Literal x
+              Right x -> Value x
     where
         ctrs = sort $ ctors2 `intersect` ctors1
 
-combineReqsAnd r1 r2
+combinePathCtorAnd pc1 pc2
         | isJust s1 || isJust s2
-        = fromMaybe (combineReqsAnd t1 t2) (reduceAndWithImp t1 t2)
+        = fromMaybe (combinePathCtorAnd t1 t2) (reduceAndWithImp t1 t2)
     where
-        (s1,s2) = (reduceAnd r2 r1, reduceAnd r1 r2)
-        (t1,t2) = (fromMaybe r1 s1, fromMaybe r2 s2)
+        (s1,s2) = (reduceAnd pc1 pc2, reduceAnd pc1 pc2)
+        (t1,t2) = (fromMaybe pc1 s1 , fromMaybe pc2 s2 )
 
-combineReqsAnd _ _ = None
+combinePathCtorAnd _ _ = None
+
 
 
 -- given that a predicate is anded, what must this one be
 -- must make things smaller, or returns Nothing
-reduceAnd :: Req -> Req -> Maybe Req
-reduceAnd (Req on1 (PathCtor hite path1 ctors1)) (Req on2 (PathCtor _ path2 ctors2))
-    | on1 == on2 && path2 `subsetPath` path1 && ctors2 /= ctrs
-    = Just $ Req on2 (PathCtor hite path2 ctrs)
+reduceAnd :: PathCtor -> PathCtor -> Maybe PathCtor
+reduceAnd (PathCtor hite path1 ctors1) (PathCtor _ path2 ctors2)
+    | path2 `subsetPath` path1 && ctors2 /= ctrs
+    = Just $ PathCtor hite path2 ctrs
     where ctrs = ctors1 `intersect` ctors2
 reduceAnd _ x = Nothing
 
