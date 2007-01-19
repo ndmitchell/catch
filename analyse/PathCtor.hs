@@ -3,7 +3,7 @@ module PathCtor(
     -- from this module
     BoolPathCtor(..), PathCtor(..),
     newPathCtor, newPathCtorAlways,
-    equalPathCtor,
+    equalPathCtor, falsePathCtor, truePathCtor,
     
     -- reexported from Path
     Path, emptyPath, ewpPath, blurPath,
@@ -212,6 +212,14 @@ restrictPath (Path x) allow = Path (concatMap f x)
 
 
 -- TESTING INSTANCES
+
+
+falsePathCtor :: PathCtor
+falsePathCtor = PathCtor testCore emptyPath []
+
+truePathCtor :: PathCtor
+truePathCtor = PathCtor testCore emptyPath ["A","B","C","D"]
+
 
 testCore :: Core
 testCore = Core [] [] [testData] []
