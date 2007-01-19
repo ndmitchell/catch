@@ -1,7 +1,5 @@
 
-module Path(Path, ewpPath, restrictPath,
-	emptyPath, finitePath, makeFinitePath, integrate, differentiate,
-	subsetPath, blurPath) where
+module Path where
 
 import General
 import Data.Char
