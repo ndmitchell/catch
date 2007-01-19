@@ -32,7 +32,7 @@ propagate hill (Scope func reqs)
         CoreFunc _ argList funcBody = coreFunc hill func
         
     
-        g args (Req hill expr path ctor) = newReqs hill (mapUnderCore (h args) expr) path ctor
+        g args (Req hill expr (PathCtor path ctor)) = newReqs hill (mapUnderCore (h args) expr) path ctor
         
         h args (CoreVar name) = lookupJustNote "Tram.Propagate.propagate"  name (zip argList args)
         h args x = x
