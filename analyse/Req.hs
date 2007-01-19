@@ -25,6 +25,8 @@ data Req = Req CoreExpr PathCtor
 
 data PathCtor = PathCtor Core Path [CoreCtorName]
 
+type BoolPathCtor = Either Bool PathCtor
+
 reqExpr (Req x _) = x
 
 
@@ -57,29 +59,34 @@ scopesAnds xs = filter (\(Scope a b) -> not $ propIsTrue b) $ map f $
 
 
 
+newPathCtor :: Core -> Path -> [CoreCtorName] -> BoolPathCtor
+newPathCtor core path ctors
+    | null ctors = Left False -- NOTE: Not true! (conservative)
+    | ctors `setEq` baseSet = Left True
+
+    -- x.tl*{[]} => x{[]}
+    -- x.p{c} | ewp(p), and x{c} => no items available in p
+    | ewpPath path
+      = let newpath = restrictPath path $ concatMap (map (fromJust . snd) . coreCtorFields . coreCtor core) ctors
+        in Right $ PathCtor core newpath sctors
+
+    | otherwise = Right $ PathCtor core path sctors
+    where
+        sctors = snub ctors
+        baseSet = ctorNames $ coreCtorData core (headNote "Tram.Type.impliesReq here" ctors)
+
 
 newReq :: Core -> CoreExpr -> Path -> [CoreCtorName] -> Req
-newReq core zexpr path ctors
-
-{-
-x.tl*{[]} => x{[]}
-x.p{c} | ewp(p), and x{c} => no items available in p
--}
-   | ewpPath path
-   = let newpath = restrictPath path $ concatMap (map (fromJust . snd) . coreCtorFields . coreCtor core) ctors
-     in Req zexpr (PathCtor core newpath (snub ctors))
-    
-    
-    | otherwise = Req zexpr (PathCtor core path (snub ctors))
-
-
+newReq core expr path ctors =
+    case newPathCtor core path ctors of
+        Left _ -> Req expr (PathCtor core path ctors)
+        Right x -> Req expr x
 
 newReqs :: Core -> CoreExpr -> Path -> [CoreCtorName] -> Reqs
-newReqs hite zexpr path ctors | null ctors = propFalse
-                              | ctors `setEq` baseSet = propTrue
-                              | otherwise = propLit $ newReq hite zexpr path ctors
-    where
-        baseSet = ctorNames $ coreCtorData hite (headNote "Tram.Type.impliesReq here" ctors)
+newReqs core expr path ctors =
+    case newPathCtor core path ctors of
+        Left b -> propBool b
+        Right x -> propLit $ Req expr x
 
 
 -- UTILITIES
