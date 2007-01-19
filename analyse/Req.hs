@@ -18,42 +18,31 @@ data Scope = Scope CoreFuncName Reqs
 
 type Reqs = FixpProp Req
 
-data Req = Req Core CoreExpr PathCtor
+data Req = Req CoreExpr PathCtor
          | Demonic
          | Angelic
+         deriving (Ord, Eq)
 
-data PathCtor = PathCtor Path [CoreCtorName]
+data PathCtor = PathCtor Core Path [CoreCtorName]
 
-reqExpr (Req _ x _) = x
+reqExpr (Req x _) = x
 
 
 
 -- Formula Req has no negation within in
 -- BDD Req may do
 
-instance Eq Req where
-    (Req _ a1 b1) == (Req _ a2 b2) = a1 == a2 && b1 == b2
-    Demonic == Demonic = True
-    Angelic == Angelic = True
-    _ == _ = False
-
 instance Eq PathCtor where
-    (PathCtor a1 b1) == (PathCtor a2 b2) = a1 == a2 && b1 == b2
-
-instance Ord Req where
-    compare (Req _ a1 b1) (Req _ a2 b2) = compare (a1,b1) (a2,b2)
-    compare (Req{}) _ = GT
-    compare _ (Req{}) = LT
-    compare x y = compare (x==Demonic, x==Angelic) (y==Demonic, y==Angelic)
+    (PathCtor _ a1 b1) == (PathCtor _ a2 b2) = a1 == a2 && b1 == b2
 
 instance Ord PathCtor where
-    compare (PathCtor a1 b1) (PathCtor a2 b2) = compare (a1,b1) (a2,b2)
+    compare (PathCtor _ a1 b1) (PathCtor _ a2 b2) = compare (a1,b1) (a2,b2)
 
 instance Show Scope where
     show (Scope name reqs) = "(\\forall " ++ name ++ ", " ++ show reqs ++ ")"
 
 instance Show Req where
-    show (Req _ expr (PathCtor path ctor)) =
+    show (Req expr (PathCtor _ path ctor)) =
         showCoreExprGroup expr ++ show path ++ strSet ctor
     show Demonic = "?Demonic"
     show Angelic = "?Angelic"
@@ -78,10 +67,10 @@ x.p{c} | ewp(p), and x{c} => no items available in p
 -}
    | ewpPath path
    = let newpath = restrictPath path $ concatMap (map (fromJust . snd) . coreCtorFields . coreCtor core) ctors
-     in Req core zexpr (PathCtor newpath (snub ctors))
+     in Req zexpr (PathCtor core newpath (snub ctors))
     
     
-    | otherwise = Req core zexpr (PathCtor path (snub ctors))
+    | otherwise = Req zexpr (PathCtor core path (snub ctors))
 
 
 
@@ -106,11 +95,11 @@ instance PropLit Req where
 
 notReq Demonic = Demonic
 notReq Angelic = Angelic
-notReq (Req hill expr (PathCtor path ctrs)) = newReq hill expr path ctrs2
+notReq (Req expr (PathCtor hill path ctrs)) = newReq hill expr path ctrs2
     where ctrs2 = sort $ ctorNames (coreCtorData hill (head ctrs)) \\ ctrs
 
 combineReqsAnd :: Req -> Req -> Reduce Req
-combineReqsAnd (Req hite on1 (PathCtor path1 ctors1)) (Req _ on2 (PathCtor path2 ctors2))
+combineReqsAnd (Req on1 (PathCtor hite path1 ctors1)) (Req on2 (PathCtor _ path2 ctors2))
         | on1 == on2 && path1 == path2
         = if null ctrs then Literal False else Value (newReq hite on1 path1 ctrs)
     where
@@ -129,15 +118,15 @@ combineReqsAnd _ _ = None
 -- given that a predicate is anded, what must this one be
 -- must make things smaller, or returns Nothing
 reduceAnd :: Req -> Req -> Maybe Req
-reduceAnd (Req hite on1 (PathCtor path1 ctors1)) (Req _ on2 (PathCtor path2 ctors2))
+reduceAnd (Req on1 (PathCtor hite path1 ctors1)) (Req on2 (PathCtor _ path2 ctors2))
     | on1 == on2 && path2 `subsetPath` path1 && ctors2 /= ctrs
-    = Just $ Req hite on2 (PathCtor path2 ctrs)
+    = Just $ Req on2 (PathCtor hite path2 ctrs)
     where ctrs = ctors1 `intersect` ctors2
 reduceAnd _ x = Nothing
 
 
 combineReqsOr :: Req -> Req -> Reduce Req
-combineReqsOr (Req hite on1 (PathCtor path1 ctors1)) (Req _ on2 (PathCtor path2 ctors2))
+combineReqsOr (Req on1 (PathCtor hite path1 ctors1)) (Req on2 (PathCtor _ path2 ctors2))
         | on1 == on2 && path1 == path2 && finitePath path1
         = if length ctrs == length baseSet then Literal True else Value (newReq hite on1 path1 ctrs)
     where
@@ -149,7 +138,7 @@ combineReqsOr _ _ = None
 
 -- impliesPair a b, a => b
 impliesPair :: Req -> Req -> Bool
-impliesPair r1@(Req hite on (PathCtor path ctors)) r2@(Req _ on2 (PathCtor path2 ctors2))
+impliesPair r1@(Req on (PathCtor hite path ctors)) r2@(Req on2 (PathCtor _ path2 ctors2))
     | on == on2 && ctors2 `subset` ctors && newReq hite on path ctors2 == r2 = True
     | on == on2 && ctors `subset` ctors2 && path2 `subsetPath` path = True
 impliesPair _ _ = False
@@ -158,7 +147,7 @@ impliesPair _ _ = False
 
 
 impliesReq :: [(Req, Bool)] -> Req -> Maybe Bool
-impliesReq given req@(Req hite on (PathCtor path ctors)) =
+impliesReq given req@(Req on (PathCtor hite path ctors)) =
         if null ctors then Just False
         else if any doesImply given then Just True
         else if poss `subset` ctors then Just True
@@ -172,11 +161,11 @@ impliesReq given req@(Req hite on (PathCtor path ctors)) =
         poss = foldr f baseSet given
         baseSet = ctorNames $ coreCtorData hite (headNote "Tram.Type.impliesReq" ctors)
         
-        f (Req _ on2 (PathCtor path2 ctors2), False) poss
+        f (Req on2 (PathCtor _ path2 ctors2), False) poss
             | on2 == on && path2 == path && finitePath path
             = poss \\ ctors2
         
-        f (Req _ on2 (PathCtor path2 ctors2),True) poss
+        f (Req on2 (PathCtor _ path2 ctors2),True) poss
             | on2 == on && path `subsetPath` path2
             = poss `intersect` ctors2
 
@@ -188,7 +177,7 @@ impliesReq _ _ = Nothing
 -- NEGATION AND BLURRING
 
 blurReq :: Req -> Req
-blurReq (Req hill expr (PathCtor path ctrs)) = newReq hill expr (blurPath hill path) ctrs
+blurReq (Req expr (PathCtor hill path ctrs)) = newReq hill expr (blurPath hill path) ctrs
 
 blurReqs :: Reqs -> Reqs
 blurReqs = propMap f

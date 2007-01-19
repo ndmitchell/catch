@@ -17,7 +17,7 @@ reduces reqs = propMap reduce reqs
 
 
 reduce :: Req -> Reqs
-reduce req@(Req hill expr (PathCtor path ctors)) = case expr of
+reduce req@(Req expr (PathCtor hill path ctors)) = case expr of
     CoreApp (CoreFun x) _ | not $ "." `isPrefixOf` x -> propLit req
     CoreVar x -> propLit req
     _ -> reduces $ reduceOne req
@@ -27,7 +27,7 @@ reduce x = propLit x
 -- apply 1 step reduction to a Sel or a Make
 -- this function does the real work!
 reduceOne :: Req -> Reqs
-reduceOne req@(Req hill expr (PathCtor path ctors)) = case expr of
+reduceOne req@(Req expr (PathCtor hill path ctors)) = case expr of
     CoreApp (CoreFun ('.':y)) [x] -> newReqs hill x (path `integrate` y) ctors
     
     CoreApp (CoreCon y) xs -> propAnds (p1:ps)
@@ -66,7 +66,7 @@ reducesWithM f reqs = propMapReduceM (reduceWithM f) reqs
 
 
 reduceWithM :: (Req -> IO Reqs) -> Req -> IO Reqs
-reduceWithM f req@(Req hill expr (PathCtor path ctors)) = case expr of
+reduceWithM f req@(Req expr (PathCtor hill path ctors)) = case expr of
     CoreApp (CoreFun _) _ -> f req >>= reducesWithM f
     CoreVar x -> return $ propLit req
     _ -> reducesWithM f $ reduceOne req

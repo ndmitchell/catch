@@ -42,15 +42,15 @@ templateGet template@(Template hill hndl cache) req = do
 
 -- need to make it more abstract, and then more concrete, to satisfy the cache
 templateAbstract :: Req -> Req
-templateAbstract (Req a (CoreApp (CoreFun name) xs) (PathCtor b c)) = newReq a (CoreApp (CoreFun name) args) b c
+templateAbstract (Req (CoreApp (CoreFun name) xs) (PathCtor a b c)) = newReq a (CoreApp (CoreFun name) args) b c
     where args = [CoreVar $ 'v':show i | i <- [0..length xs-1]]
 
 
 templateConcrete :: Req -> Reqs -> Reqs
-templateConcrete (Req _ (CoreApp (CoreFun name) args) _) y = propMapReduce (propLit . f) y
+templateConcrete (Req (CoreApp (CoreFun name) args) _) y = propMapReduce (propLit . f) y
     where
         nargs = length args
-        f (Req a b (PathCtor c d)) = newReq a (mapUnderCore g b) c d
+        f (Req b (PathCtor a c d)) = newReq a (mapUnderCore g b) c d
         g (CoreVar ('v':si)) | i < nargs = args !! i where i = readNote ("templateConcrete, " ++ si) si
         g x = x
 
@@ -82,13 +82,13 @@ templateCalc template hill hndl req = do
 
 
 instantiate :: Core -> Req -> Reqs
-instantiate core r1@(Req a (CoreApp (CoreFun name) args) (PathCtor b c)) = res
+instantiate core r1@(Req (CoreApp (CoreFun name) args) (PathCtor a b c)) = res
     where
         res = propMapReduce rep $ newReqs a body b c
     
         CoreFunc _ args2 body = coreFunc core name
         
-        rep (Req a b (PathCtor c d)) = newReqs a (mapUnderCore g b) c d
+        rep (Req b (PathCtor a c d)) = newReqs a (mapUnderCore g b) c d
         
         g (CoreVar x) = case lookup x (zip args2 args) of
                           Nothing -> CoreVar x -- a let bound var
@@ -98,7 +98,7 @@ instantiate core r1@(Req a (CoreApp (CoreFun name) args) (PathCtor b c)) = res
 
 
 getFuncName :: Req -> CoreFuncName
-getFuncName (Req _ (CoreApp (CoreFun nam) _) _) = nam
+getFuncName (Req (CoreApp (CoreFun nam) _) _) = nam
 
 
 reachSet :: Core -> CoreFuncName -> [CoreFuncName]
