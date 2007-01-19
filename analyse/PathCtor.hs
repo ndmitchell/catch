@@ -1,5 +1,13 @@
 
-module PathCtor(module PathCtor, module Path) where
+module PathCtor(
+    -- from this module
+    BoolPathCtor(..), PathCtor(..),
+    newPathCtor, newPathCtorAlways,
+    
+    -- reexported from Path
+    Path, emptyPath, ewpPath, blurPath,
+    integrate, differentiate
+    ) where
 
 import Path
 import DataRep
