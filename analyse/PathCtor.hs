@@ -1,5 +1,5 @@
 
-module PathCtor where
+module PathCtor(module PathCtor, module Path) where
 
 import Path
 import DataRep

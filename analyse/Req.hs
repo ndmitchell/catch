@@ -1,9 +1,8 @@
 
-module Req(module Req, module PathCtor, module Path) where
+module Req(module Req, module PathCtor) where
 
 import Yhc.Core
 import General
-import Path
 import PathCtor
 import Data.Proposition
 import Data.List
