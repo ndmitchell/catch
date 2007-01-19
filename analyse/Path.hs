@@ -1,5 +1,5 @@
 
-module Path(Path, nullPath, ewpPath, pathCtorArgs, restrictPath,
+module Path(Path, ewpPath, pathCtorArgs, restrictPath,
 	emptyPath, finitePath, makeFinitePath, integrate, differentiate,
 	subsetPath, blurPath) where
 
@@ -46,8 +46,6 @@ pathCtorArgs (Path x) = snub $ concatMap f x
         f (PathAtom x) = [x]
         f (PathStar xs) = xs
 
-
-nullPath (Path x) = null x
 
 emptyPath = Path []
 
