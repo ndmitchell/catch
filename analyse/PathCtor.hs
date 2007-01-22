@@ -286,17 +286,14 @@ newtype CtorSet = CtorSet {ctorSet :: [CoreCtorName]}
 -- SmallCheck
 
 instance Serial CtorSet where
-    -- return all sets with 0..n ctors in, above 4 it just returns everything
     -- currently returns all - they are two important to throw away the big ones
     series n = [CtorSet w | w <- whole] --, length w <= n]
         where whole = map (map (:[]) . filter (/= ' ')) $ sequence [" A"," B"," C"," D"]
 
 instance Serial Path where
     -- return all paths of n or below, so you get all the combinations properly
-    series n = concatMap f [0..n]
-        where
-            f n = map (blurPath testCore . Path . map PathAtom) path
-                where path = sequence (replicate n ["as","a","bs","c"])
+    series n = map (blurPath testCore . Path . map PathAtom) path
+        where path = sequence (replicate n ["as","a","bs","c"])
 
 instance Serial PathCtor where
     series = cons2 pathCtor
