@@ -10,7 +10,7 @@ import DataRep
 import Control.Monad
 
 
-data Path = Path [PathElem]
+data Path = Path {fromPath :: [PathElem]}
 
 instance Eq Path where
 	(Path a) == (Path b) = a == b
