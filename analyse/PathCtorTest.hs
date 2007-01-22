@@ -1,7 +1,8 @@
 
 module PathCtorTest where
 
-import PathCtor
+import PathCtor hiding (equalPathCtor)
+import PathCtorEq
 import SmallCheck
 import Data.Proposition
 
@@ -16,7 +17,7 @@ rePathCtor (PathCtor core path ctors) = newPathCtor core path ctors
 
 correct_newPathCtor :: PathCtor -> Bool
 correct_newPathCtor orig =
-        if eqPathCtor orig new then True else error $ show (orig, new)
+        if equalPathCtor orig new then True else error $ show (orig, new)
     where new = normalPath $ rePathCtor orig
 
 
