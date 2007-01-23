@@ -211,14 +211,6 @@ subsetPath (Path a) (Path b) = f a b
 finitePath (Path x) = all (not . isPathStar) x
 
 
-restrictPath :: Path -> [CoreFieldName] -> Path
-restrictPath (Path x) allow = Path (concatMap f x)
-    where
-        f (PathStar x) = if null x2 then [] else [PathStar x2]
-            where x2 = filter (`elem` allow) x
-        f x = [x]
-
-
 -- TESTING INSTANCES
 
 
