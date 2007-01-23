@@ -37,6 +37,17 @@ instance Ord PathCtor where
 
 instance Show PathCtor where
     show (PathCtor _ path ctor) = show path ++ strSet ctor
+    
+    
+-- Useful Core utilities
+getAllCtors :: Core -> [CoreCtorName] -> [CoreCtorName]
+getAllCtors core = snub . ctorNames core . head   
+
+
+getAllFields :: Core -> [CoreCtorName] -> [CoreFieldName]
+getAllFields core = snub . concatMap (map (fromJust . snd) . coreCtorFields . coreCtor core)
+
+
 
 -- SMART CONSTRUCTORS
 
@@ -71,7 +82,7 @@ newPathCtor core (Path path) ctors =
         goodPath (PathStar x) = [PathStar (snub x)]
         goodPath x = [x]
         
-        allCtors = sort $ ctorNames core $ head ctors
+        allCtors = getAllCtors core ctors
         sctors = snub ctors
         
 
@@ -90,7 +101,7 @@ newPathCtor core (Path path) ctors =
             -- Fallthrough    
             | otherwise = Right $ PathCtor core (Path path) ctors
           where
-            fields = concatMap (map (fromJust . snd) . coreCtorFields . coreCtor core) ctors
+            fields = getAllFields core ctors
             ys = fromPathStar lastpath
             ys2 = filter (`elem` fields) ys
 
@@ -169,7 +180,7 @@ combinePathCtorOr (PathCtor core (Path path1) ctors1) (PathCtor _ (Path path2) c
         f ([], a) ([], b) = if new == full then Literal True else Value (PathCtor core (Path []) new)
             where
                 new = snub $ a ++ b
-                full = snub $ ctorNames core (head a)
+                full = getAllCtors core a
 
         f (PathAtom a:as, a1) (PathAtom b:bs, b1) | a == b =
             case f (as,a1) (bs,b1) of
