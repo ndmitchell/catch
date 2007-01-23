@@ -99,24 +99,51 @@ tag (D{}) = 3
 tag (Star{}) = 4
 tag (Complete{}) = 5
 
-{-
+
 
 normalise2 :: [Value] -> [Value]
-normalise2 xs | Star `elem` xs = [Star]
-              | otherwise = all (`elem` res) allValue then [Star] else res
+normalise2 xs = if Star `elem` xs || all ((`elem` res) . snd) allValue then [Star] else res
     where
-        res = map (\x -> f (fst $ head x) (map snd x)) $ groupBy eqFst $ sortBy cmpFst $ map tag xs
+        res :: [Value]
+        res = snub $ concat $ map (\x -> f (fst $ head x) (map snd x)) $
+              groupSortBy cmpFst [(tagChar a,a) | a <- xs]
+
+        fromB (B x) = x
+        fromC (C x) = x
+        fromA (A a b) = (a,b)
+        swap (a,b) = (b,a)
         
         f :: Char -> [Value] -> [Value]
-        f 'A' (
+        f 'A' = map (uncurry A) . g . map fromA
+        f 'B' = map B . normalise2 . map fromB
+        f 'C' = map C . normalise2 . map fromC
+        f 'D' = id
+        
+        
+        g :: [(Value, Value)] -> [(Value, Value)]
+        g x = if x2 == x then x else g x2
+            where x2 = snub $ map swap $ h $ map swap $ h x
+        
+        h :: [(Value, Value)] -> [(Value,Value)]
+        h = concat . map (\x -> map ((,) (fst $ head x)) $ normalise2 $ map snd x) . groupSortBy cmpFst
 
--}
+
+groupSortBy :: (a -> a -> Ordering) -> [a] -> [[a]]
+groupSortBy f = groupBy (\a b -> f a b == EQ) . sortBy f
+
+
+cmpFst (a,_) (b,_) = compare a b
+
+tagChar (A{}) = 'A'
+tagChar (B{}) = 'B'
+tagChar (C{}) = 'C'
+tagChar (D{}) = 'D'
 
 
 
 equal :: [Value] -> [Value] -> Bool
 equal a b | a == b = True
-equal a b = normalise a == normalise b
+equal a b = normalise2 a == normalise2 b
 
 
 equalPathCtor :: PathCtor -> PathCtor -> Bool
