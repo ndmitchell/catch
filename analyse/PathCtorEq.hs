@@ -1,5 +1,8 @@
 
-module PathCtorEq(Value, enumerate, equal, equalPathCtor) where
+module PathCtorEq(
+    Value, equalValue,
+    enumeratePathCtor, equalPathCtor
+    ) where
 
 import PathCtor
 import Path
@@ -19,8 +22,8 @@ data Value = A Value Value
 allValue = [("A",A Star Star), ("B",B Star), ("C",C Star), ("D",D)]
 
 
-enumerate :: PathCtor -> [Value]
-enumerate (PathCtor core path ctor) = concatMap f base
+enumeratePathCtor :: PathCtor -> [Value]
+enumeratePathCtor (PathCtor core path ctor) = concatMap f base
     where
         f (A x y) = [A x2 y2 | x2 <- g "a", y2 <- g "as"]
         f (B x  ) = [B x2    | x2 <- g "bs"]
@@ -29,8 +32,8 @@ enumerate (PathCtor core path ctor) = concatMap f base
 
         g p = g2 p (fromPath path)
         
-        g2 p (PathAtom x:xs) | p == x = enumerate (PathCtor core (Path xs) ctor)
-        g2 p (PathStar x:xs) | p `elem` x = enumerate (PathCtor core (Path xs) ctor)
+        g2 p (PathAtom x:xs) | p == x = enumeratePathCtor (PathCtor core (Path xs) ctor)
+        g2 p (PathStar x:xs) | p `elem` x = enumeratePathCtor (PathCtor core (Path xs) ctor)
                              | otherwise = g2 p xs
         g2 p _ = [Star]
     
@@ -79,10 +82,10 @@ tagChar (D{}) = 'D'
 
 
 
-equal :: [Value] -> [Value] -> Bool
-equal a b | a == b = True
-equal a b = normalise a == normalise b
+equalValue :: [Value] -> [Value] -> Bool
+equalValue a b | a == b = True
+equalValue a b = normalise a == normalise b
 
 
 equalPathCtor :: PathCtor -> PathCtor -> Bool
-equalPathCtor a b = enumerate a `equal` enumerate b
+equalPathCtor a b = enumeratePathCtor a `equalValue` enumeratePathCtor b
