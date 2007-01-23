@@ -51,6 +51,7 @@ class Prop p where
 data Reduce a = Value a
               | Literal Bool
               | None
+              deriving (Show,Eq)
 
 
 class (Show a, Ord a) => PropLit a where
