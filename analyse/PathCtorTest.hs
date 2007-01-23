@@ -43,6 +43,18 @@ correct_or a b = isRight a2 && isRight b2 && res /= None ==>
         res = a3 ?\/ b3
 
 
+confluent_or :: PathCtor -> PathCtor -> PathCtor -> Property
+confluent_or a b c = isRight a2 && isRight b2 && equalPathCtorProp propBox lhs (box c) ==>
+                     res /= None && normalPath (rePathCtor c) == reducePath res
+    where
+        (a2,b2) = (rePathCtor a, rePathCtor b)
+        (Right a3,Right b3) = (a2,b2)
+    
+        lhs = propOr (box a3) (box b3) :: Formula (PropBox PathCtor)
+        
+        res = a3 ?\/ b3
+
+
 -- put the items in a box, so normal simplification rules do not fire
 box x = propLit (PropBox x)
 data PropBox a = PropBox {propBox :: a}
