@@ -1,7 +1,8 @@
 
 module PathCtorEq(
     Value, equalValue,
-    enumeratePathCtor, equalPathCtor
+    enumeratePathCtor, equalPathCtor,
+    enumeratePathCtorProp, equalPathCtorProp,
     ) where
 
 import PathCtor
@@ -9,6 +10,7 @@ import Path
 import General
 import Data.List
 import Data.Maybe
+import Data.Proposition
 
 
 data Value = A Value Value
@@ -40,6 +42,14 @@ enumeratePathCtor (PathCtor core path ctor) = concatMap f base
         base = if ewpPath path
                then if length ctor == 4 then [Star] else [b | (a,b) <- allValue, a `elem` ctor]
                else map snd allValue
+
+enumeratePathCtorProp :: (PropLit a, Prop p) => (a -> PathCtor) -> p a -> [Value]
+enumeratePathCtorProp get p = propFold fold p
+    where
+        fold = PropFold {foldOr = ors, foldAnd = ands, foldLit = enumeratePathCtor . get}
+        
+        ors x = snub $ concat x
+        ands x = error $ show ("ands",x)
 
 
 normalise :: [Value] -> [Value]
@@ -89,3 +99,8 @@ equalValue a b = normalise a == normalise b
 
 equalPathCtor :: PathCtor -> PathCtor -> Bool
 equalPathCtor a b = enumeratePathCtor a `equalValue` enumeratePathCtor b
+
+
+equalPathCtorProp :: (PropLit a, Prop p) => (a -> PathCtor) -> p a -> p a -> Bool
+equalPathCtorProp get a b = enumeratePathCtorProp get a `equalValue` enumeratePathCtorProp get b
+
