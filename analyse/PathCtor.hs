@@ -188,6 +188,11 @@ combinePathCtorOr (PathCtor core (Path path1) ctors1) (PathCtor _ (Path path2) c
                 Value (PathCtor core (Path p) c) -> Value $ PathCtor core (Path (PathAtom a:p)) c
                 None -> None
         
+        f (x:xs, a) ([], b) = f ([], b) (x:xs, a)
+        
+        f ([], a) (PathAtom x:xs, b) | x `elem` getAllFields core a = Literal True
+                                     | otherwise = Value $ PathCtor core (Path (PathAtom x:xs)) b
+
         f _ _ = None
         
 ---------------------------------------------------------------------
