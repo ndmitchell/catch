@@ -40,6 +40,9 @@ instance Show PathCtor where
 
 -- SMART CONSTRUCTORS
 
+---------------------------------------------------------------------
+-- SINGLE RULE SIMPLIFICATION
+
 -- RULES
 -- given a constructor set C
 -- CS is the complete set, valid because of C's type
@@ -100,6 +103,7 @@ newPathCtorAlways core path ctors =
         Left _ -> PathCtor core path ctors
         Right x -> x
 
+---------------------------------------------------------------------
 
 -- UTILITIES
 
@@ -147,6 +151,9 @@ reduceAnd (PathCtor hite path1 ctors1) (PathCtor _ path2 ctors2)
 reduceAnd _ x = Nothing
 
 
+---------------------------------------------------------------------
+-- OR SIMPLIFICATION
+
 combinePathCtorOr :: PathCtor -> PathCtor -> Reduce PathCtor
 combinePathCtorOr (PathCtor hite path1 ctors1) (PathCtor _ path2 ctors2)
         | path1 == path2 && finitePath path1
@@ -159,6 +166,8 @@ combinePathCtorOr (PathCtor hite path1 ctors1) (PathCtor _ path2 ctors2)
         baseSet = ctorNames hite (head ctrs)
         
 combinePathCtorOr _ _ = None
+
+---------------------------------------------------------------------
 
 
 -- impliesPair a b, a => b
