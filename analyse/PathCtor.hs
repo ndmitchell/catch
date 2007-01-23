@@ -3,7 +3,7 @@ module PathCtor(
     -- from this module
     BoolPathCtor(..), PathCtor(..),
     newPathCtor, newPathCtorAlways,
-    equalPathCtor, falsePathCtor, truePathCtor,
+    falsePathCtor, truePathCtor,
     
     -- reexported from Path
     Path, emptyPath, ewpPath, blurPath,
@@ -194,44 +194,6 @@ impliesPathCtor given req@(PathCtor hite path ctors) =
 
         f _ poss = poss
         
-
--- SUPER STRONG EQUALITY
-
-equalPathCtor :: PathCtor -> PathCtor -> Bool
-equalPathCtor pc1@(PathCtor core p1 c1) pc2@(PathCtor _ p2 c2)
-    | pc1 == pc2 = True
-    | dat1 /= dat2 = False
-    | ewp1 && ewp2 && c1 /= c2 = False
-    | ewp1 /= ewp2 = False
-    | otherwise = and [(differentiate p1 x, c1) `eq` (differentiate p2 x, c2)
-                      | x <- validPaths]
-    where
-        eq a1 a2
-                | c1 == pc1 && c2 == pc2 = True
-                | otherwise = equalPathCtor c1 c2
-            where
-                -- if differentiate is Nothing, that corresponds to True (as below)
-                f (Nothing, b) = PathCtor core (Path []) (map coreCtorName $ coreDataCtors dat1)
-                f (Just a , b) = PathCtor core a b
-                
-                (c1, c2) = (f a1, f a2)
-
-        true = map coreCtorName $ coreDataCtors dat1
-    
-        (ewp1, ewp2) = (ewpPath p1, ewpPath p2)
-        (dat1, dat2) = (fromMaybe dat2 (getDat pc1), fromMaybe dat1 (getDat pc2))
-        
-        -- the paths you can now follow
-        validPaths = [x | ctr <- coreDataCtors dat1, (_, Just x) <- coreCtorFields ctr
-                        , not ewp1 || coreCtorName ctr `elem` c1]
-        
-        -- getData, CoreData
-        -- the type that you are currently in
-        getDat (PathCtor _ (Path []) c) = liftM (coreCtorData core) $ listToMaybe c
-        getDat (PathCtor _ (Path (PathAtom x : _)) _) = Just $ coreFieldData core x
-        getDat (PathCtor _ (Path (PathStar x : _)) _) = Just $ coreFieldData core $ head x
-
-
 
 -- OPERATIONS ON PATHS
 

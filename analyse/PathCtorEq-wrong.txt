@@ -1,0 +1,154 @@
+
+Writing code for the PathCtor's to be equal is very hard. The observational approach is
+to differentiate and observe the predicates, I was unable to get this working in practice.
+
+For example: .a{} == {B,C,D}
+
+None of the following will return True for this.
+
+
+
+eqPathCtor :: PathCtor -> PathCtor -> Bool
+eqPathCtor a b = eq (propLit $ PropBox a) (propLit $ PropBox b)
+
+eq :: Formula (PropBox PathCtor) -> Formula (PropBox PathCtor) -> Bool
+eq p1 p2 = all test [("A",["as","a"]), ("B",["bs"]), ("C",["c"]), ("D",[])]
+    where
+        test (ctr,fields) = case (b1,b2) of
+                                 (Just a1, Just a2) | a1 /= a2 -> error $ show (p1, p2) -- False
+                                                    | otherwise -> if a1 then rest else True
+                                 _ -> rest
+            where
+                rest = all follow fields
+                (b1, b2) = (evaluate ctr p1, evaluate ctr p2)
+            
+        evaluate ctr p = if propIsTrue res then Just True
+                         else if propIsFalse res then Just False
+                         else Nothing
+            where
+                res = propMap f p
+            
+                f (PropBox (PathCtor core path ctors)) | ewpPath path && ctr `notElem` ctors = propFalse
+                f x = propLit x
+        
+        follow field = (d1 == p1 && d2 == p2) || eq d1 d2
+            where (d1, d2) = (diff field p1, diff field p2)
+        
+        diff field = propMap f
+            where
+                f (PropBox (PathCtor core path ctors)) =
+                    case differentiate path field of
+                        Nothing -> propTrue
+                        Just x -> propLit $ PropBox $ PathCtor core x ctors
+
+
+
+
+
+-- SUPER STRONG EQUALITY
+
+equalPathCtor :: PathCtor -> PathCtor -> Bool
+equalPathCtor pc1@(PathCtor core p1 c1) pc2@(PathCtor _ p2 c2)
+    | pc1 == pc2 = True
+    | dat1 /= dat2 = False
+    | ewp1 && ewp2 && c1 /= c2 = False
+    | ewp1 /= ewp2 = False
+    | otherwise = and [(differentiate p1 x, c1) `eq` (differentiate p2 x, c2)
+                      | x <- validPaths]
+    where
+        eq a1 a2
+                | c1 == pc1 && c2 == pc2 = True
+                | otherwise = equalPathCtor c1 c2
+            where
+                -- if differentiate is Nothing, that corresponds to True (as below)
+                f (Nothing, b) = PathCtor core (Path []) (map coreCtorName $ coreDataCtors dat1)
+                f (Just a , b) = PathCtor core a b
+                
+                (c1, c2) = (f a1, f a2)
+
+        true = map coreCtorName $ coreDataCtors dat1
+    
+        (ewp1, ewp2) = (ewpPath p1, ewpPath p2)
+        (dat1, dat2) = (fromMaybe dat2 (getDat pc1), fromMaybe dat1 (getDat pc2))
+        
+        -- the paths you can now follow
+        validPaths = [x | ctr <- coreDataCtors dat1, (_, Just x) <- coreCtorFields ctr
+                        , not ewp1 || coreCtorName ctr `elem` c1]
+        
+        -- getData, CoreData
+        -- the type that you are currently in
+        getDat (PathCtor _ (Path []) c) = liftM (coreCtorData core) $ listToMaybe c
+        getDat (PathCtor _ (Path (PathAtom x : _)) _) = Just $ coreFieldData core x
+        getDat (PathCtor _ (Path (PathStar x : _)) _) = Just $ coreFieldData core $ head x
+
+
+
+
+---------------------------------------------------------------------------------------------------
+
+And here is enumeration normalisation, correct, but ugly
+
+
+
+data Value = A Value Value
+           | B Value
+           | C Value
+           | D
+           | Star
+           | Complete String
+           deriving (Show, Eq, Ord)
+
+normalise :: [Value] -> [Value]
+normalise values = if values == subval then values else normalise subval
+    where
+        subval = filter (\x -> not $ any (\y -> x /= y && subset x y) newval) newval
+    
+        newval = snub $ map (mapUnder removeComplete) $ concat $ map mergeComplete $
+                 groupBy eqComplete $ sortBy cmpComplete $ map (mapUnder useComplete) values
+    
+        useComplete (A Star Star) = Complete "A"
+        useComplete (B Star) = Complete "B"
+        useComplete (C Star) = Complete "C"
+        useComplete D = Complete "D"
+        useComplete x = x
+        
+        mergeComplete (x:xs) = f (allOverContext x) : xs
+            where
+                f ((me,rebuild):rest)
+                    | all (`elem` (x:xs)) $ map (rebuild . Complete) ["A","B","C","D"] = rebuild Star
+                    | otherwise = f rest
+                f [] = x
+
+        removeComplete (Complete c) = fromJust $ lookup c allValue
+        removeComplete x = x
+        
+        -- is x a subset of y
+        subset x Star = True
+        subset (A a1 as1) (A a2 as2) = a1 `subset` a2 && as1 `subset` as2
+        subset (B bs1) (B bs2) = bs1 `subset` bs2
+        subset (C c1) (C c2) = c1 `subset` c2
+        subset x y = x == y
+
+
+eqComplete (A a1 as1) (A a2 as2) = eqComplete a1 a2 && eqComplete as1 as2
+eqComplete (B bs1) (B bs2) = eqComplete bs1 bs2
+eqComplete (C c1) (C c2) = eqComplete c1 c2
+eqComplete (Complete _) (Complete _) = True
+eqComplete x y = x == y
+
+cmpComplete a b | tag a /= tag b = compare (tag a) (tag b)
+cmpComplete (A a1 as1) (A a2 as2) = cmpComplete a1 a2 `next` cmpComplete as1 as2
+    where next a b = if a == EQ then b else a
+cmpComplete (B bs1) (B bs2) = cmpComplete bs1 bs2
+cmpComplete (C c1) (C c2) = cmpComplete c1 c2
+cmpComplete _ _ = EQ
+
+
+tag (A{}) = 0
+tag (B{}) = 1
+tag (C{}) = 2
+tag (D{}) = 3
+tag (Star{}) = 4
+tag (Complete{}) = 5
+
+
