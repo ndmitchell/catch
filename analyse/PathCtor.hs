@@ -154,6 +154,12 @@ reduceAnd _ x = Nothing
 ---------------------------------------------------------------------
 -- OR SIMPLIFICATION
 
+-- RULES (not yet implemented)
+-- a.b{C} v d.e{F} | a == d => a(b{C} v e{F})
+-- {A} v {B} => {A `union` B}
+-- {A} v b.c{D} | b `elem` A => True
+--              | otherwise  => b.c{D}
+
 combinePathCtorOr :: PathCtor -> PathCtor -> Reduce PathCtor
 combinePathCtorOr (PathCtor hite path1 ctors1) (PathCtor _ path2 ctors2)
         | path1 == path2 && finitePath path1
