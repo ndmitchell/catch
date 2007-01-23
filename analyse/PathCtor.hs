@@ -155,24 +155,30 @@ reduceAnd _ x = Nothing
 -- OR SIMPLIFICATION
 
 -- RULES (not yet implemented)
--- a.b{C} v d.e{F} | a == d => a(b{C} v e{F})
+-- a.b{C} v d.e{F} | a == d (not star) => a(b{C} v e{F})
 -- {A} v {B} => {A `union` B}
 -- {A} v b.c{D} | b `elem` A => True
 --              | otherwise  => b.c{D}
 
-combinePathCtorOr :: PathCtor -> PathCtor -> Reduce PathCtor
-combinePathCtorOr (PathCtor hite path1 ctors1) (PathCtor _ path2 ctors2)
-        | path1 == path2 && finitePath path1
-        = if length ctrs == length baseSet then Literal True else
-          case newPathCtor hite path1 ctrs of
-              Left x -> Literal x
-              Right x -> Value x
-    where
-        ctrs = snub $ ctors2 ++ ctors1
-        baseSet = ctorNames hite (head ctrs)
-        
-combinePathCtorOr _ _ = None
 
+combinePathCtorOr :: PathCtor -> PathCtor -> Reduce PathCtor
+combinePathCtorOr (PathCtor core (Path path1) ctors1) (PathCtor _ (Path path2) ctors2) =
+        f (path1, ctors1) (path2, ctors2)
+    where
+    
+        f ([], a) ([], b) = if new == full then Literal True else Value (PathCtor core (Path []) new)
+            where
+                new = snub $ a ++ b
+                full = snub $ ctorNames core (head a)
+
+        f (PathAtom a:as, a1) (PathAtom b:bs, b1) | a == b =
+            case f (as,a1) (bs,b1) of
+                Literal x -> Literal x
+                Value (PathCtor core (Path p) c) -> Value $ PathCtor core (Path (PathAtom a:p)) c
+                None -> None
+        
+        f _ _ = None
+        
 ---------------------------------------------------------------------
 
 
