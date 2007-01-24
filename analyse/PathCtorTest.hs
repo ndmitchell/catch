@@ -19,6 +19,7 @@ actions = [("correct_atom"  , go correct_atom  )
           ,("correct_or"    , go correct_or    )
           ,("confluent_or"  , go confluent_or  )
           ,("correct_and"   , go correct_and   )
+          ,("confluent_and" , go confluent_and )
           ]
 
 
@@ -116,3 +117,6 @@ confluent_pair msg reducer combiner a b c = isRight a2 && isRight b2 && equalPat
 
 confluent_or :: PathCtor -> PathCtor -> PathCtor -> Property
 confluent_or = confluent_pair "confluent_or" (?\/) propOr
+
+confluent_and :: PathCtor -> PathCtor -> PathCtor -> Property
+confluent_and = confluent_pair "confluent_and" (?/\) propAnd
