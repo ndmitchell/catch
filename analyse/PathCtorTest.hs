@@ -18,6 +18,7 @@ actions = [("correct_atom"  , go correct_atom  )
           ,("confluent_atom", go confluent_atom)
           ,("correct_or"    , go correct_or    )
           ,("confluent_or"  , go confluent_or  )
+          ,("correct_and"   , go correct_and   )
           ]
 
 
@@ -87,11 +88,11 @@ confluent_atom a b = equalPathCtor a b ==> simplify a == simplify b
 
 
 
-correct_pair :: (PathCtor -> PathCtor -> Reduce PathCtor) -> (PathCtors -> PathCtors -> PathCtors)
+correct_pair :: String -> (PathCtor -> PathCtor -> Reduce PathCtor) -> (PathCtors -> PathCtors -> PathCtors)
              -> PathCtor -> PathCtor -> Property
-correct_pair reducer combiner a b = isRight a2 && isRight b2 && res /= None ==>
+correct_pair msg reducer combiner a b = isRight a2 && isRight b2 && res /= None ==>
         if equalPathCtorProp lhs rhs then True
-        else error $ "correct_or failed with " ++ show lhs ++ ", which gets simplified to " ++ show rhs
+        else error $ msg ++ " failed with " ++ show lhs ++ ", which gets simplified to " ++ show rhs
     where
         (a2, b2) = (simplifyEither a, simplifyEither b)
         (Right a3, Right b3) = (a2, b2)
@@ -102,7 +103,10 @@ correct_pair reducer combiner a b = isRight a2 && isRight b2 && res /= None ==>
 
 
 correct_or :: PathCtor -> PathCtor -> Property
-correct_or = correct_pair (?\/) propOr
+correct_or = correct_pair "correct_or" (?\/) propOr
+
+correct_and :: PathCtor -> PathCtor -> Property
+correct_and = correct_pair "correct_and" (?/\) propAnd
 
 
 

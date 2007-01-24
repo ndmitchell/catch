@@ -51,7 +51,20 @@ enumeratePathCtorProp p = propFold fold p
         ors x = snub $ concat x
         
         ands [] = [Star]
+        ands [xs,ys] = [x | x <- xs2, any (x `subsetValue`) ys2] ++ [y | y <- ys2, any (y `subsetValue`) xs2]
+            where (xs2,ys2) = (normalise xs, normalise ys)
+            
         ands x = error $ show ("ands",x)
+
+
+-- is a `subset` b
+subsetValue :: Value -> Value -> Bool
+subsetValue _ Star = True
+subsetValue (A a1 as1) (A a2 as2) = a1 `subsetValue` a2 && as1 `subsetValue` as2
+subsetValue (B bs1) (B bs2) = bs1 `subsetValue` bs2
+subsetValue (C c1) (C c2) = c1 `subsetValue` c2
+subsetValue D D = True
+subsetValue _ _ = False
 
 
 normalise :: [Value] -> [Value]
