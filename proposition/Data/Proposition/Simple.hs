@@ -25,7 +25,9 @@ data PropSimple a = Lit a
 instance Show a => Show (PropSimple a) where
     show (Lit a ) = show a
     show (Not x ) = "~(" ++ show x ++ ")"
+    show (And []) = "True"
     show (And xs) = "(" ++ concat (intersperse " ^ " (map show xs)) ++ ")"
+    show (Or  []) = "False"
     show (Or  xs) = "(" ++ concat (intersperse " v " (map show xs)) ++ ")"
 
 
