@@ -19,14 +19,13 @@ rePathCtor (PathCtor core path ctors) = newPathCtor core path ctors
 
 
 
-correct_newPathCtor :: PathCtor -> Bool
-correct_newPathCtor orig =
-        if equalPathCtor orig new then True else error $ show (orig, new)
+correct_atom :: PathCtor -> Property
+correct_atom orig = new /= orig ==> if equalPathCtor orig new then True else error $ show (orig, new)
     where new = normalPath $ rePathCtor orig
 
 
-confluent_newPathCtor :: PathCtor -> PathCtor -> Property
-confluent_newPathCtor a b = equalPathCtor a b ==> rePathCtor a == rePathCtor b
+confluent_atom :: PathCtor -> PathCtor -> Property
+confluent_atom a b = equalPathCtor a b ==> rePathCtor a == rePathCtor b
 
 
 
