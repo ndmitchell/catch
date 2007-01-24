@@ -19,7 +19,7 @@ import Safe
 type Scopes = [Scope]
 data Scope = Scope CoreFuncName Reqs
 
-type Reqs = Fix Req
+type Reqs = PropFix Req
 
 data Req = Req {reqExpr :: CoreExpr, reqPath :: PathCtor}
          | Demonic
