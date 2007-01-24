@@ -52,7 +52,7 @@ confluent_atom a b = equalPathCtor a b ==> rePathCtor a == rePathCtor b
 
 correct_or :: PathCtor -> PathCtor -> Property
 correct_or a b = isRight a2 && isRight b2 && res /= None ==>
-                 if equalPathCtorProp id lhs rhs then True else error $ show (a3,b3,res)
+                 if equalPathCtorProp lhs rhs then True else error $ show (a3,b3,res)
     where
         (a2,b2) = (rePathCtor a, rePathCtor b)
         (Right a3,Right b3) = (a2,b2)
@@ -64,7 +64,7 @@ correct_or a b = isRight a2 && isRight b2 && res /= None ==>
 
 
 confluent_or :: PathCtor -> PathCtor -> PathCtor -> Property
-confluent_or a b c = isRight a2 && isRight b2 && equalPathCtorProp id lhs (propLit c) ==>
+confluent_or a b c = isRight a2 && isRight b2 && equalPathCtorProp lhs (propLit c) ==>
                      if ans then True else trace (show (a2,b2,rePathCtor c)) True
     where
         ans = res /= None && normalPath (rePathCtor c) == reducePath res

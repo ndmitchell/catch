@@ -43,10 +43,10 @@ enumeratePathCtor (PathCtor core path ctor) = concatMap f base
                then if length ctor == 4 then [Star] else [b | (a,b) <- allValue, a `elem` ctor]
                else map snd allValue
 
-enumeratePathCtorProp :: (PropLit a, Prop p) => (a -> PathCtor) -> p a -> [Value]
-enumeratePathCtorProp get p = propFold fold p
+enumeratePathCtorProp :: Prop p => p PathCtor -> [Value]
+enumeratePathCtorProp p = propFold fold p
     where
-        fold = PropFold {foldOr = ors, foldAnd = ands, foldLit = enumeratePathCtor . get}
+        fold = PropFold {foldOr = ors, foldAnd = ands, foldLit = enumeratePathCtor}
         
         ors x = snub $ concat x
         ands x = error $ show ("ands",x)
@@ -101,6 +101,6 @@ equalPathCtor :: PathCtor -> PathCtor -> Bool
 equalPathCtor a b = enumeratePathCtor a `equalValue` enumeratePathCtor b
 
 
-equalPathCtorProp :: (PropLit a, Prop p) => (a -> PathCtor) -> p a -> p a -> Bool
-equalPathCtorProp get a b = enumeratePathCtorProp get a `equalValue` enumeratePathCtorProp get b
+equalPathCtorProp :: Prop p => p PathCtor -> p PathCtor -> Bool
+equalPathCtorProp a b = enumeratePathCtorProp a `equalValue` enumeratePathCtorProp b
 
