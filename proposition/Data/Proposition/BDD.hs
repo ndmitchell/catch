@@ -1,8 +1,13 @@
 
-module Data.Proposition.BDD(BDD) where
+module Data.Proposition.BDD(BDD, propRebuildBDD) where
 
 import Data.Proposition.Internal
 import qualified Data.Map as Map
+
+
+propRebuildBDD :: (Prop p, PropLit a) => p a -> BDD a
+propRebuildBDD = propRebuild
+
 
 
 data BDD a = AtomTrue

@@ -4,11 +4,15 @@
     function
 -}
 
-module Data.Proposition.Simple(PropSimple) where
+module Data.Proposition.Simple(PropSimple, propRebuildSimple) where
 
 import Data.Proposition.Internal
 import Control.Monad
 import Data.List
+
+
+propRebuildSimple :: (Prop p, PropLit a) => p a -> PropSimple a
+propRebuildSimple = propRebuild
 
 
 data PropSimple a = Lit a

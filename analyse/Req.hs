@@ -12,7 +12,6 @@ import Data.Proposition
 import Data.List
 import Data.Maybe
 import Safe
-import FixpProp
 
 
 -- DATA DEFINITIONS
@@ -20,7 +19,7 @@ import FixpProp
 type Scopes = [Scope]
 data Scope = Scope CoreFuncName Reqs
 
-type Reqs = FixpProp Req
+type Reqs = Fix Req
 
 data Req = Req {reqExpr :: CoreExpr, reqPath :: PathCtor}
          | Demonic

@@ -1,10 +1,14 @@
 
-module Data.Proposition.Formula(Formula) where
+module Data.Proposition.Formula(Formula, propRebuildFormula) where
 
 import Data.Proposition.Internal
 import Data.List
 import Data.Maybe
 import Control.Monad
+
+
+propRebuildFormula :: (Prop p, PropLit a) => p a -> Formula a
+propRebuildFormula = propRebuild
 
 
 data Formula a = Lit a
