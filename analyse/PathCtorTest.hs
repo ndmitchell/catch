@@ -34,12 +34,19 @@ main = do args <- getArgs
 
 type PathCtors = PropSimple PathCtor
 
+simplifyEither :: PathCtor -> BoolPathCtor
+simplifyEither (PathCtor core path ctors) = newPathCtor core path ctors
 
 simplify :: PathCtor -> PathCtors
-simplify (PathCtor core path ctors) = fromEither $ newPathCtor core path ctors
+simplify = fromEither . simplifyEither
 
 fromBool :: Bool -> PathCtors
 fromBool x = if x then propTrue else propFalse
+
+toBool :: PathCtors -> Maybe Bool
+toBool x | propIsTrue  x = Just True
+         | propIsFalse x = Just False
+         | otherwise = Nothing
 
 fromReduce :: Reduce PathCtor -> PathCtors
 fromReduce (Value x) = propLit x
@@ -82,15 +89,16 @@ confluent_atom a b = equalPathCtor a b ==> simplify a == simplify b
 
 correct_or :: PathCtor -> PathCtor -> Property
 correct_or a b = isRight a2 && isRight b2 && res /= None ==>
-                 if equalPathCtorProp lhs rhs then True else error $ show (a3,b3,res)
+        if equalPathCtorProp lhs rhs then True
+        else error $ "correct_or failed with " ++ show lhs ++ ", which gets simplified to " ++ show rhs
     where
-        (a2,b2) = (rePathCtor a, rePathCtor b)
-        (Right a3,Right b3) = (a2,b2)
-    
+        (a2, b2) = (simplifyEither a, simplifyEither b)
+        (Right a3, Right b3) = (a2, b2)
+
         lhs = propOr (propLit a3) (propLit b3)
-        rhs = propLit (reducePath res) :: PropSimple PathCtor
-        
+        rhs = fromReduce res
         res = a3 ?\/ b3
+
 
 
 confluent_or :: PathCtor -> PathCtor -> PathCtor -> Property
