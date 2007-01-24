@@ -19,6 +19,7 @@ data PropSimple a = Lit a
                   | Not (PropSimple a)
                   | And [PropSimple a]
                   | Or  [PropSimple a]
+                  deriving Eq
 
 
 instance Show a => Show (PropSimple a) where
