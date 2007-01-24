@@ -10,6 +10,8 @@ import Debug.Trace
 import System.Environment
 
 
+-- COMMAND LINE HANDLER
+
 go x = smallCheck 10 x
 
 actions = [("correct_atom"  , go correct_atom  )
@@ -28,6 +30,8 @@ main = do args <- getArgs
                               "Found: " ++ show args
 
 
+-- UTILITY FUNCTIONS
+
 
 normalPath (Left x) = if x then truePathCtor else falsePathCtor
 normalPath (Right x) = x
@@ -39,6 +43,10 @@ reducePath (Literal x) = if x then truePathCtor else falsePathCtor
 rePathCtor (PathCtor core path ctors) = newPathCtor core path ctors
 
 
+isRight (Right{}) = True; isRight _ = False
+
+
+-- PROPERTIES
 
 correct_atom :: PathCtor -> Property
 correct_atom orig = new /= orig ==> if equalPathCtor orig new then True else error $ show (orig, new)
@@ -75,5 +83,3 @@ confluent_or a b c = isRight a2 && isRight b2 && equalPathCtorProp lhs (propLit 
         
         res = a3 ?\/ b3
 
-
-isRight (Right{}) = True; isRight _ = False
