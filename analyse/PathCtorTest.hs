@@ -37,7 +37,7 @@ correct_or a b = isRight a2 && isRight b2 && res /= None ==>
         (Right a3,Right b3) = (a2,b2)
     
         lhs = propOr (box a3) (box b3)
-        rhs = box (reducePath res) :: Formula (PropBox PathCtor)
+        rhs = box (reducePath res) :: PropSimple (PropBox PathCtor)
         
         res = a3 ?\/ b3
 
@@ -50,7 +50,7 @@ confluent_or a b c = isRight a2 && isRight b2 && equalPathCtorProp propBox lhs (
         (a2,b2) = (rePathCtor a, rePathCtor b)
         (Right a3,Right b3) = (a2,b2)
     
-        lhs = propOr (box a3) (box b3) :: Formula (PropBox PathCtor)
+        lhs = propOr (box a3) (box b3) :: PropSimple (PropBox PathCtor)
         
         res = a3 ?\/ b3
 
