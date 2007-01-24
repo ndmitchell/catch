@@ -115,7 +115,6 @@ confluent_or a b c = isRight a2 && isRight b2 && equalPathCtorProp lhs c2 ==>
         else trace ("confluent_or missed with " ++ show lhs ++ ", which equals " ++ show c2) True
     where
         c2 = simplify c
-        ans = res /= None && simplify c == fromReduce res
         (a2,b2) = (simplifyEither a, simplifyEither b)
         (Right a3,Right b3) = (a2,b2)
     
