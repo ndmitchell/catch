@@ -32,6 +32,24 @@ main = do args <- getArgs
 
 -- UTILITY FUNCTIONS
 
+type PathCtors = PropSimple PathCtor
+
+
+simplify :: PathCtor -> PathCtors
+simplify (PathCtor core path ctors) = fromEither $ newPathCtor core path ctors
+
+fromBool :: Bool -> PathCtors
+fromBool x = if x then propTrue else propFalse
+
+fromReduce :: Reduce PathCtor -> PathCtors
+fromReduce (Value x) = propLit x
+fromReduce (Literal x) = fromBool x
+
+fromEither :: BoolPathCtor -> PathCtors
+fromEither (Left x) = fromBool x
+fromEither (Right x) = propLit x
+
+
 
 normalPath (Left x) = if x then truePathCtor else falsePathCtor
 normalPath (Right x) = x
@@ -49,8 +67,12 @@ isRight (Right{}) = True; isRight _ = False
 -- PROPERTIES
 
 correct_atom :: PathCtor -> Property
-correct_atom orig = new /= orig ==> if equalPathCtor orig new then True else error $ show (orig, new)
-    where new = normalPath $ rePathCtor orig
+correct_atom orig = new /= orig2 ==>
+        if equalPathCtorProp orig2 new then True
+        else error $ "correct_atom failed with " ++ show orig ++ ", which gets simplified to " ++ show new
+    where
+        orig2 = propLit orig
+        new = simplify orig
 
 
 confluent_atom :: PathCtor -> PathCtor -> Property
