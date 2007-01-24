@@ -170,6 +170,7 @@ reduceAnd _ x = Nothing
 -- {A} v {B} => {A `union` B}
 -- {A} v b.c{D} | b `elem` A => True
 --              | otherwise  => b.c{D}
+-- {A} v x*{C} | C `superset` A ^ x `notin` A => x*{C}
 
 
 combinePathCtorOr :: PathCtor -> PathCtor -> Reduce PathCtor
@@ -192,6 +193,9 @@ combinePathCtorOr (PathCtor core (Path path1) ctors1) (PathCtor _ (Path path2) c
         
         f ([], a) (PathAtom x:xs, b) | x `elem` getAllFields core a = Literal True
                                      | otherwise = Value $ PathCtor core (Path (PathAtom x:xs)) b
+
+        f ([], a) ([PathStar x] , b) | x `disjoint` getAllFields core a && all (`elem` b) a
+                                     = Value $ PathCtor core (Path [PathStar x]) b
 
         f _ _ = None
         
