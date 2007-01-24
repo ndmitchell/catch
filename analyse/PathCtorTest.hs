@@ -57,18 +57,6 @@ fromEither :: BoolPathCtor -> PathCtors
 fromEither (Left x) = fromBool x
 fromEither (Right x) = propLit x
 
-
-
-normalPath (Left x) = if x then truePathCtor else falsePathCtor
-normalPath (Right x) = x
-
-reducePath (Value x) = x
-reducePath (Literal x) = if x then truePathCtor else falsePathCtor
-
-
-rePathCtor (PathCtor core path ctors) = newPathCtor core path ctors
-
-
 isRight (Right{}) = True; isRight _ = False
 
 
