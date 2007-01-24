@@ -76,7 +76,7 @@ correct_atom orig = new /= orig2 ==>
 
 
 confluent_atom :: PathCtor -> PathCtor -> Property
-confluent_atom a b = equalPathCtor a b ==> rePathCtor a == rePathCtor b
+confluent_atom a b = equalPathCtor a b ==> simplify a == simplify b
 
 
 
