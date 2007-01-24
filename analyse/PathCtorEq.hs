@@ -49,6 +49,8 @@ enumeratePathCtorProp p = propFold fold p
         fold = PropFold {foldOr = ors, foldAnd = ands, foldLit = enumeratePathCtor}
         
         ors x = snub $ concat x
+        
+        ands [] = [Star]
         ands x = error $ show ("ands",x)
 
 
