@@ -97,16 +97,22 @@ correct_and :: PathCtor -> PathCtor -> Property
 correct_and = correct_pair "correct_and" (?/\) propAnd
 
 
-confluent_or :: PathCtor -> PathCtor -> PathCtor -> Property
-confluent_or a b c = isRight a2 && isRight b2 && equalPathCtorProp lhs c2 ==>
+
+
+confluent_pair :: String -> (PathCtor -> PathCtor -> Reduce PathCtor) -> (PathCtors -> PathCtors -> PathCtors)
+               -> PathCtor -> PathCtor -> PathCtor -> Property
+confluent_pair msg reducer combiner a b c = isRight a2 && isRight b2 && equalPathCtorProp lhs c2 ==>
         if res /= None && c2 == rhs then True
-        else trace ("confluent_or missed with " ++ show lhs ++ ", which equals " ++ show c2) True
+        else trace (msg ++ " missed with " ++ show lhs ++ ", which equals " ++ show c2) True
     where
         c2 = simplify c
         (a2,b2) = (simplifyEither a, simplifyEither b)
         (Right a3,Right b3) = (a2,b2)
     
-        lhs = propOr (propLit a3) (propLit b3)
+        lhs = combiner (propLit a3) (propLit b3)
         rhs = fromReduce res
-        res = a3 ?\/ b3
+        res = reducer a3 b3
 
+
+confluent_or :: PathCtor -> PathCtor -> PathCtor -> Property
+confluent_or = confluent_pair "confluent_or" (?\/) propOr
