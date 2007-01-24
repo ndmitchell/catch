@@ -172,13 +172,13 @@ reduceAnd _ x = Nothing
 --              | otherwise  => b.c{D}
 -- {A} v x*{C} | C `superset` A ^ x `notin` A => x*{C}
 -- {A} v x*{C} | x `subset` A => {A `union` C}
+-- x{A} v x{B} | B `subset` A => x{A}
 
 
 combinePathCtorOr :: PathCtor -> PathCtor -> Reduce PathCtor
 combinePathCtorOr (PathCtor core (Path path1) ctors1) (PathCtor _ (Path path2) ctors2) =
         f (path1, ctors1) (path2, ctors2)
     where
-    
         f ([], a) ([], b) = if new == full then Literal True else Value (PathCtor core (Path []) new)
             where
                 new = snub $ a ++ b
@@ -190,6 +190,9 @@ combinePathCtorOr (PathCtor core (Path path1) ctors1) (PathCtor _ (Path path2) c
                 Value (PathCtor core (Path p) c) -> Value $ PathCtor core (Path (PathAtom a:p)) c
                 None -> None
         
+        f (x,a) (y,b) | x == y && b `subset` a = Value $ PathCtor core (Path x) a
+                      | x == y && a `subset` b = Value $ PathCtor core (Path x) b
+
         f (x:xs, a) ([], b) = f ([], b) (x:xs, a)
         
         f ([], a) (PathAtom x:xs, b) | x `elem` getAllFields core a = Literal True
