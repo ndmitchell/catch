@@ -87,17 +87,22 @@ confluent_atom a b = equalPathCtor a b ==> simplify a == simplify b
 
 
 
-correct_or :: PathCtor -> PathCtor -> Property
-correct_or a b = isRight a2 && isRight b2 && res /= None ==>
+correct_pair :: (PathCtor -> PathCtor -> Reduce PathCtor) -> (PathCtors -> PathCtors -> PathCtors)
+             -> PathCtor -> PathCtor -> Property
+correct_pair reducer combiner a b = isRight a2 && isRight b2 && res /= None ==>
         if equalPathCtorProp lhs rhs then True
         else error $ "correct_or failed with " ++ show lhs ++ ", which gets simplified to " ++ show rhs
     where
         (a2, b2) = (simplifyEither a, simplifyEither b)
         (Right a3, Right b3) = (a2, b2)
 
-        lhs = propOr (propLit a3) (propLit b3)
+        lhs = combiner (propLit a3) (propLit b3)
         rhs = fromReduce res
-        res = a3 ?\/ b3
+        res = reducer a3 b3
+
+
+correct_or :: PathCtor -> PathCtor -> Property
+correct_or = correct_pair (?\/) propOr
 
 
 
