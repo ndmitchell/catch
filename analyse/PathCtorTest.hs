@@ -1,11 +1,32 @@
 
-module PathCtorTest where
+module Main where
 
 import PathCtor
 import PathCtorEq
 import SmallCheck
 import Data.Proposition
+import Data.Maybe
 import Debug.Trace
+import System.Environment
+
+
+go x = smallCheck 10 x
+
+actions = [("correct_atom"  , go correct_atom  )
+          ,("confluent_atom", go confluent_atom)
+          ,("correct_or"    , go correct_or    )
+          ,("confluent_or"  , go confluent_or  )
+          ]
+
+
+main :: IO ()
+main = do args <- getArgs
+          let res = lookup (head args) actions
+          case args of
+              [x] | isJust res -> fromJust res
+              _ -> putStrLn $ "Expected one of: " ++ unwords (map fst actions) ++ "\n" ++
+                              "Found: " ++ show args
+
 
 
 normalPath (Left x) = if x then truePathCtor else falsePathCtor
