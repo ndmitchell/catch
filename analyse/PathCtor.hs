@@ -108,6 +108,13 @@ newPathCtor core (Path path) ctors =
             (initpath, lastpath) = (init path, last path)
 
 
+newPathCtorReduce :: Core -> Path -> [CoreCtorName] -> Reduce PathCtor
+newPathCtorReduce core path ctors =
+    case newPathCtor core path ctors of
+        Left x -> Literal x
+        Right x -> Value x
+
+
 newPathCtorAlways :: Core -> Path -> [CoreCtorName] -> PathCtor
 newPathCtorAlways core path ctors =
     case newPathCtor core path ctors of
@@ -179,10 +186,7 @@ combinePathCtorOr :: PathCtor -> PathCtor -> Reduce PathCtor
 combinePathCtorOr (PathCtor core (Path path1) ctors1) (PathCtor _ (Path path2) ctors2) =
         f (path1, ctors1) (path2, ctors2)
     where
-        result path ctors = case newPathCtor core (Path path) ctors of
-                                Left x -> Literal x
-                                Right x -> Value x
-
+        result path ctor = newPathCtorReduce core (Path path) ctor
 
         f ([], a) ([], b) = result [] (snub $ a ++ b) 
 
