@@ -137,6 +137,19 @@ notPathCtor (PathCtor hill path ctrs) = newPathCtorAtom hill path ctrs2
     where ctrs2 = sort (ctorNames hill (head ctrs) \\ ctrs)
 
 
+liftPathCtor :: Core -> Reduce ([PathElem], [CoreCtorName]) -> Reduce PathCtor
+liftPathCtor core x = case x of
+    Value (path,ctor) -> newPathCtorReduce core (Path path) ctor
+    Literal x -> Literal x
+    None -> None
+
+
+---------------------------------------------------------------------
+-- AND SIMPLIFICATION
+
+-- RULES
+-- {C} ^ {D} => {C `intersect` D}
+-- a.b{C} ^ d.e{F} | a == d => a(b{C} ^ e{F})
 
 combinePathCtorAnd :: PathCtor -> PathCtor -> Reduce PathCtor
 combinePathCtorAnd (PathCtor hite path1 ctors1) (PathCtor _ path2 ctors2)
@@ -184,30 +197,27 @@ reduceAnd _ x = Nothing
 
 combinePathCtorOr :: PathCtor -> PathCtor -> Reduce PathCtor
 combinePathCtorOr (PathCtor core (Path path1) ctors1) (PathCtor _ (Path path2) ctors2) =
-        f (path1, ctors1) (path2, ctors2)
+        liftPathCtor core $ f (path1, ctors1) (path2, ctors2)
     where
-        result path ctor = newPathCtorReduce core (Path path) ctor
-
-        f ([], a) ([], b) = result [] (snub $ a ++ b) 
+        f ([], a) ([], b) = Value ([], snub $ a ++ b) 
 
         f (PathAtom a:as, a1) (PathAtom b:bs, b1) | a == b =
             case f (as,a1) (bs,b1) of
-                Literal x -> Literal x
-                Value (PathCtor core (Path p) c) -> Value $ PathCtor core (Path (PathAtom a:p)) c
-                None -> None
+                Value (p, c) -> Value (PathAtom a:p, c)
+                x -> x
         
-        f (x,a) (y,b) | x == y && b `subset` a = Value $ PathCtor core (Path x) a
-                      | x == y && a `subset` b = Value $ PathCtor core (Path x) b
+        f (x,a) (y,b) | x == y && b `subset` a = Value (x,a)
+                      | x == y && a `subset` b = Value (x,b)
 
         f (x:xs, a) ([], b) = f ([], b) (x:xs, a)
         
         f ([], a) (PathAtom x:xs, b) | x `elem` getAllFields core a = Literal True
-                                     | otherwise = Value $ PathCtor core (Path (PathAtom x:xs)) b
+                                     | otherwise = Value (PathAtom x:xs, b)
 
         f ([], a) ([PathStar x] , b) | x `disjoint` fields && all (`elem` b) a
-                                     = Value $ PathCtor core (Path [PathStar x]) b
+                                     = Value ([PathStar x], b)
                                      | x `subset` fields
-                                     = result [] (snub $ a ++ b)
+                                     = Value ([], snub $ a ++ b)
             where fields = getAllFields core a
 
         f _ _ = None
