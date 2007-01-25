@@ -2,7 +2,7 @@
 module PathCtor(
     -- from this module
     BoolPathCtor(..), PathCtor(..),
-    newPathCtor, newPathCtorAlways,
+    newPathCtor, newPathCtorAtom,
     falsePathCtor, truePathCtor,
     
     -- reexported from Path
@@ -115,8 +115,8 @@ newPathCtorReduce core path ctors =
         Right x -> Value x
 
 
-newPathCtorAlways :: Core -> Path -> [CoreCtorName] -> PathCtor
-newPathCtorAlways core path ctors =
+newPathCtorAtom :: Core -> Path -> [CoreCtorName] -> PathCtor
+newPathCtorAtom core path ctors =
     case newPathCtor core path ctors of
         Left _ -> PathCtor core path ctors
         Right x -> x
@@ -133,7 +133,7 @@ instance PropLit PathCtor where
 
 -- SIMPLIFIERS
 
-notPathCtor (PathCtor hill path ctrs) = newPathCtorAlways hill path ctrs2
+notPathCtor (PathCtor hill path ctrs) = newPathCtorAtom hill path ctrs2
     where ctrs2 = sort (ctorNames hill (head ctrs) \\ ctrs)
 
 
@@ -218,7 +218,7 @@ combinePathCtorOr (PathCtor core (Path path1) ctors1) (PathCtor _ (Path path2) c
 -- impliesPair a b, a => b
 impliesPair :: PathCtor -> PathCtor -> Bool
 impliesPair (PathCtor hite path ctors) r2@(PathCtor _ path2 ctors2)
-    | ctors `subset` ctors && newPathCtorAlways hite path ctors2 == r2 = True
+    | ctors `subset` ctors && newPathCtorAtom hite path ctors2 == r2 = True
     | ctors `subset` ctors2 && path2 `subsetPath` path = True
 impliesPair _ _ = False
 

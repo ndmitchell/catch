@@ -48,7 +48,7 @@ scopesAnds xs = filter (\(Scope a b) -> not $ propIsTrue b) $ map f $
 
 
 newReq :: Core -> CoreExpr -> Path -> [CoreCtorName] -> Req
-newReq core expr path ctors = Req expr (newPathCtorAlways core path ctors)
+newReq core expr path ctors = Req expr (newPathCtorAtom core path ctors)
 
 newReqs :: Core -> CoreExpr -> Path -> [CoreCtorName] -> Reqs
 newReqs core expr path ctors =
