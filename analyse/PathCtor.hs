@@ -152,6 +152,18 @@ liftPathCtor core x = case x of
 -- a.b{C} ^ d.e{F} | a == d => a(b{C} ^ e{F})
 
 combinePathCtorAnd :: PathCtor -> PathCtor -> Reduce PathCtor
+combinePathCtorAnd (PathCtor core (Path path1) ctor1) (PathCtor _ (Path path2) ctor2) =
+        liftPathCtor core $ f (path1,ctor1) (path2,ctor2)
+    where
+        f ([],a) ([],b) = Value ([], a `intersect` b)
+        
+        f (x:xs,a) (y:ys,b) | x == y = case f (xs,a) (ys,b) of
+                                           Value (xs,a) -> Value (x:xs,a)
+                                           x -> x
+    
+        f _ _ = None
+
+{-
 combinePathCtorAnd (PathCtor hite path1 ctors1) (PathCtor _ path2 ctors2)
         | path1 == path2
         = if null ctrs then Literal False else
@@ -167,8 +179,8 @@ combinePathCtorAnd pc1 pc2
     where
         (s1,s2) = (reduceAnd pc1 pc2, reduceAnd pc1 pc2)
         (t1,t2) = (fromMaybe pc1 s1 , fromMaybe pc2 s2 )
-
 combinePathCtorAnd _ _ = None
+-}
 
 
 
