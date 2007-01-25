@@ -179,10 +179,12 @@ combinePathCtorOr :: PathCtor -> PathCtor -> Reduce PathCtor
 combinePathCtorOr (PathCtor core (Path path1) ctors1) (PathCtor _ (Path path2) ctors2) =
         f (path1, ctors1) (path2, ctors2)
     where
-        f ([], a) ([], b) = if new == full then Literal True else Value (PathCtor core (Path []) new)
-            where
-                new = snub $ a ++ b
-                full = getAllCtors core a
+        result path ctors = case newPathCtor core (Path path) ctors of
+                                Left x -> Literal x
+                                Right x -> Value x
+
+
+        f ([], a) ([], b) = result [] (snub $ a ++ b) 
 
         f (PathAtom a:as, a1) (PathAtom b:bs, b1) | a == b =
             case f (as,a1) (bs,b1) of
@@ -201,12 +203,8 @@ combinePathCtorOr (PathCtor core (Path path1) ctors1) (PathCtor _ (Path path2) c
         f ([], a) ([PathStar x] , b) | x `disjoint` fields && all (`elem` b) a
                                      = Value $ PathCtor core (Path [PathStar x]) b
                                      | x `subset` fields
-                                     = if new == full then Literal True else Value $ PathCtor core (Path []) new
-            where
-                new = snub $ a ++ b
-                full = getAllCtors core a
-                fields = getAllFields core a
-                                     
+                                     = result [] (snub $ a ++ b)
+            where fields = getAllFields core a
 
         f _ _ = None
         
