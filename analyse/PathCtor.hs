@@ -139,13 +139,6 @@ notPathCtor (PathCtor hill path ctrs) = newPathCtorAtom hill path ctrs2
     where ctrs2 = sort (ctorNames hill (head ctrs) \\ ctrs)
 
 
-liftPathCtor :: Core -> Reduce ([PathElem], [CoreCtorName]) -> Reduce PathCtor
-liftPathCtor core x = case x of
-    Value (path,ctor) -> newPathCtorReduce core (Path path) ctor
-    Literal x -> Literal x
-    None -> None
-
-
 type Combine = ([PathElem], [CoreCtorName]) -> ([PathElem], [CoreCtorName]) -> Reduce ([PathElem], [CoreCtorName])
 
 combinePair :: Combine -> Combine -> PathCtor -> PathCtor -> Reduce PathCtor
