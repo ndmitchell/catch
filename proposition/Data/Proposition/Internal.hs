@@ -53,6 +53,14 @@ data Reduce a = Value a
               | None
               deriving (Show,Eq)
 
+-- based on the instance for Maybe
+instance Monad Reduce where
+    Value x   >>= k = k x
+    None      >>= k = None
+    Literal x >>= k = Literal x
+    return        = Value
+    fail s        = None
+
 
 class (Show a, Ord a) => PropLit a where
     (?/\) :: a -> a -> Reduce a
