@@ -26,6 +26,8 @@ import SmallCheck
 
 data PathCtor = PathCtor Core Path [CoreCtorName]
 
+pathCtorCore (PathCtor core _ _) = core
+
 type BoolPathCtor = Either Bool PathCtor
 
 
@@ -144,6 +146,20 @@ liftPathCtor core x = case x of
     None -> None
 
 
+type Combine = ([PathElem], [CoreCtorName]) -> ([PathElem], [CoreCtorName]) -> Reduce ([PathElem], [CoreCtorName])
+
+combinePair :: Combine -> Combine -> PathCtor -> PathCtor -> Reduce PathCtor
+combinePair dual single (PathCtor core (Path path1) ctor1) (PathCtor _ (Path path2) ctor2) =
+    f [dual, single, flip single]
+    where
+        f [] = None
+        f (x:xs) = case x (path1,ctor1) (path2,ctor2) of
+                       None -> f xs
+                       Value (p,c) -> newPathCtorReduce core (Path p) c
+                       Literal i -> Literal i
+    
+
+
 ---------------------------------------------------------------------
 -- AND SIMPLIFICATION
 
@@ -152,36 +168,20 @@ liftPathCtor core x = case x of
 -- a.b{C} ^ d.e{F} | a == d => a(b{C} ^ e{F})
 
 combinePathCtorAnd :: PathCtor -> PathCtor -> Reduce PathCtor
-combinePathCtorAnd (PathCtor core (Path path1) ctor1) (PathCtor _ (Path path2) ctor2) =
-        liftPathCtor core $ f (path1,ctor1) (path2,ctor2)
+combinePathCtorAnd a b = combinePair dual single a b
     where
-        f ([],a) ([],b) = Value ([], a `intersect` b)
-        
-        f (x:xs,a) (y:ys,b) | x == y = case f (xs,a) (ys,b) of
-                                           Value (xs,a) -> Value (x:xs,a)
-                                           x -> x
+        core = pathCtorCore a
     
-        f _ _ = None
+        dual ([],a) ([],b) = Value ([], a `intersect` b)
+        
+        dual (x:xs,a) (y:ys,b) | x == y =
+            case dual (xs,a) (ys,b) of
+                Value (xs,a) -> Value (x:xs,a)
+                x -> x
 
-{-
-combinePathCtorAnd (PathCtor hite path1 ctors1) (PathCtor _ path2 ctors2)
-        | path1 == path2
-        = if null ctrs then Literal False else
-          case newPathCtor hite path1 ctrs of
-              Left x -> Literal x
-              Right x -> Value x
-    where
-        ctrs = sort $ ctors2 `intersect` ctors1
+        dual _ _ = None
 
-combinePathCtorAnd pc1 pc2
-        | isJust s1 || isJust s2
-        = fromMaybe (combinePathCtorAnd t1 t2) (reduceAndWithImp t1 t2)
-    where
-        (s1,s2) = (reduceAnd pc1 pc2, reduceAnd pc1 pc2)
-        (t1,t2) = (fromMaybe pc1 s1 , fromMaybe pc2 s2 )
-combinePathCtorAnd _ _ = None
--}
-
+        single _ _ = None
 
 
 -- given that a predicate is anded, what must this one be
