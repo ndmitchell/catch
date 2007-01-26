@@ -168,9 +168,7 @@ combinePathCtorAnd a b = combinePair dual single a b
         dual ([],a) ([],b) = Value ([], a `intersect` b)
         
         dual (x:xs,a) (y:ys,b) | x == y =
-            case dual (xs,a) (ys,b) of
-                Value (xs,a) -> Value (x:xs,a)
-                x -> x
+            dual (xs,a) (ys,b) >>= \(xs,a) -> return (x:xs,a)
 
         dual _ _ = None
 
@@ -208,22 +206,19 @@ combinePathCtorOr a b = combinePair dual single a b
         dual ([], a) ([], b) = Value ([], snub $ a ++ b) 
 
         dual (PathAtom a:as, a1) (PathAtom b:bs, b1) | a == b =
-            case dual (as,a1) (bs,b1) of
-                Value (p, c) -> Value (PathAtom a:p, c)
-                x -> x
+            dual (as,a1) (bs,b1) >>= \(p,c) -> return (PathAtom a:p, c)
 
         dual _ _ = None
         
         single (x,a) (y,b) | x == y && b `subset` a = Value (x,a)
-                         | x == y && a `subset` b = Value (x,b)
 
-        single ([], a) (PathAtom x:xs, b) | x `elem` getAllFields core a = Literal True
-                                     | otherwise = Value (PathAtom x:xs, b)
+        single ([], a) (PathAtom x:xs, b)
+            | x `elem` getAllFields core a = Literal True
+            | otherwise = Value (PathAtom x:xs, b)
 
-        single ([], a) ([PathStar x] , b) | x `disjoint` fields && all (`elem` b) a
-                                     = Value ([PathStar x], b)
-                                     | x `subset` fields
-                                     = Value ([], snub $ a ++ b)
+        single ([], a) ([PathStar x] , b)
+            | x `disjoint` fields && all (`elem` b) a = Value ([PathStar x], b)
+            | x `subset` fields = Value ([], snub $ a ++ b)
             where fields = getAllFields core a
 
         single _ _ = None
