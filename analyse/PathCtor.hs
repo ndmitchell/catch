@@ -208,31 +208,32 @@ reduceAnd _ x = Nothing
 
 
 combinePathCtorOr :: PathCtor -> PathCtor -> Reduce PathCtor
-combinePathCtorOr (PathCtor core (Path path1) ctors1) (PathCtor _ (Path path2) ctors2) =
-        liftPathCtor core $ f (path1, ctors1) (path2, ctors2)
+combinePathCtorOr a b = combinePair dual single a b
     where
-        f ([], a) ([], b) = Value ([], snub $ a ++ b) 
+        core = pathCtorCore a
+    
+        dual ([], a) ([], b) = Value ([], snub $ a ++ b) 
 
-        f (PathAtom a:as, a1) (PathAtom b:bs, b1) | a == b =
-            case f (as,a1) (bs,b1) of
+        dual (PathAtom a:as, a1) (PathAtom b:bs, b1) | a == b =
+            case dual (as,a1) (bs,b1) of
                 Value (p, c) -> Value (PathAtom a:p, c)
                 x -> x
-        
-        f (x,a) (y,b) | x == y && b `subset` a = Value (x,a)
-                      | x == y && a `subset` b = Value (x,b)
 
-        f (x:xs, a) ([], b) = f ([], b) (x:xs, a)
+        dual _ _ = None
         
-        f ([], a) (PathAtom x:xs, b) | x `elem` getAllFields core a = Literal True
+        single (x,a) (y,b) | x == y && b `subset` a = Value (x,a)
+                         | x == y && a `subset` b = Value (x,b)
+
+        single ([], a) (PathAtom x:xs, b) | x `elem` getAllFields core a = Literal True
                                      | otherwise = Value (PathAtom x:xs, b)
 
-        f ([], a) ([PathStar x] , b) | x `disjoint` fields && all (`elem` b) a
+        single ([], a) ([PathStar x] , b) | x `disjoint` fields && all (`elem` b) a
                                      = Value ([PathStar x], b)
                                      | x `subset` fields
                                      = Value ([], snub $ a ++ b)
             where fields = getAllFields core a
 
-        f _ _ = None
+        single _ _ = None
         
 ---------------------------------------------------------------------
 
