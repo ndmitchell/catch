@@ -159,6 +159,8 @@ combinePair dual single (PathCtor core (Path path1) ctor1) (PathCtor _ (Path pat
 -- RULES
 -- {C} ^ {D} => {C `intersect` D}
 -- a.b{C} ^ d.e{F} | a == d => a(b{C} ^ e{F})
+-- a*{B} ^ {C} | a `notElem` C ^ C `subset` B = {C}
+-- a*{B} ^ c*{D} | a `subset` c ^ B == D = c*{D}
 
 combinePathCtorAnd :: PathCtor -> PathCtor -> Reduce PathCtor
 combinePathCtorAnd a b = combinePair dual single a b
@@ -169,8 +171,22 @@ combinePathCtorAnd a b = combinePair dual single a b
         
         dual (x:xs,a) (y:ys,b) | x == y =
             dual (xs,a) (ys,b) >>= \(xs,a) -> return (x:xs,a)
+        
+        dual ([PathStar a],b) ([PathStar c],d) | b == d = Value ([PathStar (snub $ a ++ c)], b)
 
         dual _ _ = None
+
+        single ([PathStar a],b) ([],c) | all (`notElem` fields) a && c `subset` b = Value ([],c)
+            where fields = getAllFields core c
+
+        single (a,b) (c,d) | b == d && a `pathSubset` c = Value (c,d)
+            where
+                pathSubset [] [] = True
+                pathSubset (PathStar a:as) (PathStar b:bs) | a `subset` b = pathSubset as bs
+                pathSubset (PathAtom a:as) (PathAtom b:bs) | a == b = pathSubset as bs
+                pathSubset as (PathStar b:bs) = pathSubset as bs
+                pathSubset _ _ = False
+        
 
         single _ _ = None
 
