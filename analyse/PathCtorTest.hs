@@ -84,7 +84,9 @@ correct_pair msg reducer combiner a b = isRight a2 && isRight b2 && res /= None 
         if equalPathCtorProp lhs rhs then True
         else error $ msg ++ " failed with " ++ show lhs ++ ", which gets simplified to " ++ show rhs ++ "\n" ++
                      "#1: " ++ show (le \\ common) ++ "\n" ++
-                     "#2: " ++ show (re \\ common)
+                     "#2: " ++ show (re \\ common) ++ "\n" ++
+                     "$1: " ++ show le ++ "\n" ++
+                     "$2: " ++ show re
     where
         common = le `intersect` re
         (le,re) = (normalise $ enumeratePathCtorProp lhs, normalise $ enumeratePathCtorProp rhs)
