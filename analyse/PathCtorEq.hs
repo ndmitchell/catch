@@ -3,6 +3,7 @@ module PathCtorEq(
     Value, equalValue,
     enumeratePathCtor, equalPathCtor,
     enumeratePathCtorProp, equalPathCtorProp,
+    normalise
     ) where
 
 import PathCtor
