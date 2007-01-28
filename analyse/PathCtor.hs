@@ -179,13 +179,7 @@ combinePathCtorAnd a b = combinePair dual single a b
             where fields = getAllFields core c
 
         single (a,b) (c,d) | b == d && a `pathSubset` c = Value (c,d)
-            where
-                pathSubset [] [] = True
-                pathSubset (PathStar a:as) (PathStar b:bs) | a `subset` b = pathSubset as bs
-                pathSubset (PathAtom a:as) (PathAtom b:bs) | a == b = pathSubset as bs
-                pathSubset as (PathStar b:bs) = pathSubset as bs
-                pathSubset _ _ = False
-        
+
         single ([],a) (PathAtom b:bs,c) | b `notElem` getAllFields core a = Value ([],a)
         single ([],a) (PathStar b:bs,c) | b `disjoint` getAllFields core a = single ([],a) (bs,c)
 
@@ -280,6 +274,15 @@ impliesPathCtor given req@(PathCtor hite path ctors) =
 -- OPERATIONS ON PATHS
 
 -- is the first a subset of the second
+pathSubset [] [] = True
+pathSubset (PathStar a:as) (PathStar b:bs) | a `subset` b = pathSubset as bs
+pathSubset (PathAtom a:as) (PathAtom b:bs) | a == b = pathSubset as bs
+pathSubset as (PathStar b:bs) = pathSubset as bs
+pathSubset _ _ = False
+
+
+
+
 subsetPath :: Path -> Path -> Bool
 subsetPath (Path a) (Path b) = f a b
     where
