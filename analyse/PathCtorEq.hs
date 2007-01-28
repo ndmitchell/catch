@@ -95,6 +95,11 @@ normalise xs = if Star `elem` xs || all ((`elem` res) . snd) allValue then [Star
         h = concat . map (\x -> map ((,) (fst $ head x)) $ normalise $ map snd x) . groupSortBy cmpFst
 
 
+normaliseMore :: [Value] -> [Value]
+normaliseMore xs = filter (\y -> not $ any (y `strictSubset`) xs) xs
+    where strictSubset a b = a /= b && a `subsetValue` b
+
+
 groupSortBy :: (a -> a -> Ordering) -> [a] -> [[a]]
 groupSortBy f = groupBy (\a b -> f a b == EQ) . sortBy f
 
@@ -110,7 +115,11 @@ tagChar (D{}) = 'D'
 
 equalValue :: [Value] -> [Value] -> Bool
 equalValue a b | a == b = True
-equalValue a b = normalise a == normalise b
+               | na == nb = True
+               | otherwise = normaliseMore na == normaliseMore nb
+    where
+        na = normalise a
+        nb = normalise b
 
 
 equalPathCtor :: PathCtor -> PathCtor -> Bool
