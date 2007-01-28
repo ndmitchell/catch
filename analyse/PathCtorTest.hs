@@ -6,6 +6,7 @@ import PathCtorEq
 import SmallCheck
 import Data.Proposition
 import Data.Maybe
+import Data.List
 import Debug.Trace
 import System.Environment
 
@@ -81,8 +82,13 @@ correct_pair :: String -> (PathCtor -> PathCtor -> Reduce PathCtor) -> (PathCtor
              -> PathCtor -> PathCtor -> Property
 correct_pair msg reducer combiner a b = isRight a2 && isRight b2 && res /= None ==>
         if equalPathCtorProp lhs rhs then True
-        else error $ msg ++ " failed with " ++ show lhs ++ ", which gets simplified to " ++ show rhs
+        else error $ msg ++ " failed with " ++ show lhs ++ ", which gets simplified to " ++ show rhs ++ "\n" ++
+                     "#1: " ++ show (le \\ common) ++ "\n" ++
+                     "#2: " ++ show (re \\ common)
     where
+        common = le `intersect` re
+        (le,re) = (normalise $ enumeratePathCtorProp lhs, normalise $ enumeratePathCtorProp rhs)
+    
         (a2, b2) = (simplifyEither a, simplifyEither b)
         (Right a3, Right b3) = (a2, b2)
 
