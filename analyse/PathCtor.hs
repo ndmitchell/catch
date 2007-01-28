@@ -173,8 +173,6 @@ combinePathCtorAnd a b = combinePair dual single a b
         dual (x:xs,a) (y:ys,b) | x == y =
             dual (xs,a) (ys,b) >>= \(xs,a) -> return (x:xs,a)
         
-        dual ([PathStar a],b) ([PathStar c],d) | b == d = Value ([PathStar (snub $ a ++ c)], b)
-
         dual _ _ = None
 
         single ([PathStar a],b) ([],c) | all (`notElem` fields) a && c `subset` b = Value ([],c)
