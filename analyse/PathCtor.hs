@@ -207,6 +207,7 @@ reduceAnd _ x = Nothing
 -- {A} v x*{C} | C `superset` A ^ x `notin` A => x*{C}
 -- {A} v x*{C} | x `subset` A => {A `union` C}
 -- x{A} v x{B} | B `subset` A => x{A}
+-- a{B} v c{D} | B == D ^ a `subset` c = a{B}
 
 
 combinePathCtorOr :: PathCtor -> PathCtor -> Reduce PathCtor
@@ -222,6 +223,7 @@ combinePathCtorOr a b = combinePair dual single a b
         dual _ _ = None
         
         single (x,a) (y,b) | x == y && b `subset` a = Value (x,a)
+                           | a == b && x `pathSubset` y = Value (x,a)
 
         single ([], a) (PathAtom x:xs, b)
             | x `elem` getAllFields core a = Literal True
