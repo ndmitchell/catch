@@ -1,9 +1,9 @@
 
 module PathCtorEq(
-    --Val, equalValue,
-    --enumeratePathCtor, equalPathCtor,
-    --enumeratePathCtorProp, equalPathCtorProp,
-    --normalise
+    Val, equalValue,
+    enumeratePathCtor, equalPathCtor,
+    enumeratePathCtorProp, equalPathCtorProp,
+    normalise
     ) where
 
 import PathCtor
@@ -25,8 +25,6 @@ instance Show Val where
     show (Val x xs) = ['('|b] ++ unwords (x:map show xs) ++ [')'|b]
         where b = not $ null xs
 
-
--- allValue = [("A",A Star Star), ("B",B Star), ("C",C Star), ("D",D)]
 
 
 enumeratePathCtor :: PathCtor -> [Val]
@@ -60,25 +58,12 @@ enumeratePathCtor (PathCtor core (Path (PathStar x:xs)) ctor) = concatMap f base
                then map (coreCtor core) ctor
                else coreDataCtors $ coreFieldData core $ head x
 
-{-
-enumeratePathCtor (PathCtor core path ctor) = concatMap f base
-    where
-        f (A x y) = [A x2 y2 | x2 <- g "a", y2 <- g "as"]
-        f (B x  ) = [B x2    | x2 <- g "bs"]
-        f (C x  ) = [C x2    | x2 <- g "c"]
-        f x = [x]
 
-        g p = g2 p (fromPath path)
-        
-        g2 p (PathAtom x:xs) | p == x = enumeratePathCtor (PathCtor core (Path xs) ctor)
-        g2 p (PathStar x:xs) | p `elem` x = enumeratePathCtor (PathCtor core (Path xs) ctor)
-                             | otherwise = g2 p xs
-        g2 p _ = [Star]
-    
-        base = if ewpPath path
-               then if length ctor == 4 then [Star] else [b | (a,b) <- allValue, a `elem` ctor]
-               else map snd allValue
--}
+grabCore :: Prop p => [p PathCtor] -> Core
+grabCore ps = case concatMap propAll ps of
+                  (PathCtor core _ _:_) -> core
+                  _ -> error "PathCtorEq.grabCore, no core in the predicate but asked for"
+
 
 enumeratePathCtorProp :: Prop p => p PathCtor -> [Val]
 enumeratePathCtorProp p = propFold fold p
@@ -89,9 +74,11 @@ enumeratePathCtorProp p = propFold fold p
         
         ands [] = [Star]
         ands [xs,ys] = [x | x <- xs2, any (x `subsetValue`) ys2] ++ [y | y <- ys2, any (y `subsetValue`) xs2]
-            where (xs2,ys2) = (normalise xs, normalise ys)
-            
+            where (xs2,ys2) = (normalise core xs, normalise core ys)
+
         ands x = error $ show ("ands",x)
+
+        core = grabCore [p]
 
 
 -- is a `subset` b
@@ -105,62 +92,77 @@ subsetValue (Val a as) (Val b bs) = a == b && f as bs
 subsetValue _ _ = False
 
 
-normalise :: [Val] -> [Val]
-normalise = undefined
 
-{-
-normalise xs = if Star `elem` xs || all ((`elem` res) . snd) allValue then [Star] else res
+
+-- properties of normalise, with X as the result:
+--
+-- \forall x, y \in X, x \not-subset y
+-- if x is a member, it must not be a subset of any other members
+--
+-- \forall x \in X, y \in \Universe, x \subset y => y \not-subset-eq X
+-- if y is a superset of x and is valid in X, then x should not be present
+--
+normalise :: Core -> [Val] -> [Val]
+normalise core = rule1 . rule2
     where
-        res :: [Val]
-        res = snub $ concat $ map (\x -> f (fst $ head x) (map snd x)) $
-              groupSortBy cmpFst [(tagChar a,a) | a <- xs]
+        rule1 :: [Val] -> [Val]
+        rule1 xs = filter (\y -> not $ any (y `strictSubset`) xs) xs
+            where strictSubset a b = a /= b && a `subsetValue` b
+    
+        rule2 :: [Val] -> [Val]
+        rule2 [] = []
+        rule2 xs | Star `elem` xs = [Star]
+                 | all isValueStar groups && snub (map valCtor groups) == snub ctors = [Star]
+                 | otherwise = groups
+            where
+                ctors = map coreCtorName $ coreDataCtors $ coreCtorData core $ valCtor $ head xs
+                groups = concatMap regroup $ groupSortBy cmpValCtor xs
+                
+                isValueStar (Val _ xs) = all (== Star) xs
+                isValueStar _ = False
+                
 
-        fromB (B x) = x
-        fromC (C x) = x
-        fromA (A a b) = (a,b)
-        swap (a,b) = (b,a)
-        
-        f :: Char -> [Val] -> [Val]
-        f 'A' = map (uncurry A) . g . map fromA
-        f 'B' = map B . normalise . map fromB
-        f 'C' = map C . normalise . map fromC
-        f 'D' = id
-        
-        
-        g :: [(Val, Val)] -> [(Val, Val)]
-        g x = if x2 == x then x else g x2
-            where x2 = snub $ map swap $ h $ map swap $ h x
-        
-        h :: [(Val, Val)] -> [(Val,Val)]
-        h = concat . map (\x -> map ((,) (fst $ head x)) $ normalise $ map snd x) . groupSortBy cmpFst
-
-
-normaliseMore :: [Val] -> [Val]
-normaliseMore xs = filter (\y -> not $ any (y `strictSubset`) xs) xs
-    where strictSubset a b = a /= b && a `subsetValue` b
-
-
-groupSortBy :: (a -> a -> Ordering) -> [a] -> [[a]]
-groupSortBy f = groupBy (\a b -> f a b == EQ) . sortBy f
-
-
-cmpFst (a,_) (b,_) = compare a b
+        -- all the Val's have the same valCtor
+        regroup :: [Val] -> [Val]
+        regroup xs | arity == 0 = [Val name []]
+                   | arity == 1 = map (\x -> Val name [x]) $ rule2 $ map (head . valFields) xs
+                   | otherwise = map (Val name) $ fix operate $ map valFields xs
+            where
+                arity = length children
+                Val name children = head xs
+                
+                operate = snub . apply (map f [0..arity-1])
+                    where
+                        f n x = map (retract n) $ concat $ map g $ groupSortBy cmpSnd $ map (extract n) x
+                        g ys = map (\x -> (x, snd $ head ys)) $ rule2 $ map fst ys
 
 
-equalValue :: [Val] -> [Val] -> Bool
-equalValue a b | a == b = True
-               | na == nb = True
-               | otherwise = normaliseMore na == normaliseMore nb
-    where
-        na = normalise a
-        nb = normalise b
+        groupSortBy :: (a -> a -> Ordering) -> [a] -> [[a]]
+        groupSortBy f = groupBy (\a b -> f a b == EQ) . sortBy f
+
+        cmpFst a b = compare (fst a) (fst b)
+        cmpSnd a b = compare (snd a) (snd b)
+        cmpValCtor a b = compare (valCtor a) (valCtor b)
+
+        apply [] x = x
+        apply (f:fs) x = apply fs (f x)
+
+        fix f x = if x == x2 then x else fix f x2
+            where x2 = f x
+
+        extract n xs = (xs !! n, take n xs ++ drop (n+1) xs)
+        retract n (x,xs) = take n xs ++ [x] ++ drop n xs
 
 
-equalPathCtor :: PathCtor -> PathCtor -> Bool
-equalPathCtor a b = enumeratePathCtor a `equalValue` enumeratePathCtor b
+equalValue :: Core -> [Val] -> [Val] -> Bool
+equalValue core a b | a == b = True
+                    | otherwise = normalise core a == normalise core b
+
+
+equalPathCtor :: Core -> PathCtor -> PathCtor -> Bool
+equalPathCtor core a b = equalValue core (enumeratePathCtor a) (enumeratePathCtor b)
 
 
 equalPathCtorProp :: Prop p => p PathCtor -> p PathCtor -> Bool
-equalPathCtorProp a b = enumeratePathCtorProp a `equalValue` enumeratePathCtorProp b
-
--}
+equalPathCtorProp a b = equalValue core (enumeratePathCtorProp a) (enumeratePathCtorProp b)
+    where core = grabCore [a,b]
