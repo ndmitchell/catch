@@ -29,7 +29,7 @@ reduce x = propLit x
 -- this function does the real work!
 reduceOne :: Req -> Reqs
 reduceOne req@(Req expr (PathCtor hill path ctors)) = case expr of
-    CoreApp (CoreFun ('.':y)) [x] -> newReqs hill x (path `integrate` y) ctors
+    CoreApp (CoreFun ('.':y)) [x] -> newReqs hill x (integrate hill path y) ctors
     
     CoreApp (CoreCon y) xs -> propAnds (p1:ps)
         where

@@ -57,8 +57,8 @@ differentiate (Path xs) ctor = liftM Path $ f xs
 
 -- Just integrate raw for now, blurPath will change to star's etc
 -- Do not expect simplification rules to be fired until AFTER blurPath
-integrate :: Path -> CoreFieldName -> Path
-integrate (Path x) ctor = Path (PathAtom ctor : x)
+integrate :: Core -> Path -> CoreFieldName -> Path
+integrate core (Path x) ctor = blurPath core $ Path (PathAtom ctor : x)
 
 
 -- blur paths are required
