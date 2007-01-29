@@ -2,7 +2,7 @@
 module Main where
 
 import PathCtor
-import PathCtorEqABCD
+import PathCtorEq
 import SmallCheck
 import Data.Proposition
 import Data.Maybe
@@ -74,7 +74,7 @@ correct_atom orig = new /= orig2 ==>
 
 
 confluent_atom :: PathCtor -> PathCtor -> Property
-confluent_atom a b = equalPathCtor a b ==> simplify a == simplify b
+confluent_atom a b = equalPathCtor testCore a b ==> simplify a == simplify b
 
 
 
@@ -89,7 +89,7 @@ correct_pair msg reducer combiner a b = isRight a2 && isRight b2 && res /= None 
                      "$2: " ++ show re
     where
         common = le `intersect` re
-        (le,re) = (normalise $ enumeratePathCtorProp lhs, normalise $ enumeratePathCtorProp rhs)
+        (le,re) = (normalise testCore $ enumeratePathCtorProp lhs, normalise testCore $ enumeratePathCtorProp rhs)
     
         (a2, b2) = (simplifyEither a, simplifyEither b)
         (Right a3, Right b3) = (a2, b2)
