@@ -2,6 +2,7 @@
 module Backward(backward) where
 
 import Req
+import ReqEq
 import Template
 import Propagate
 import Reduce
@@ -55,7 +56,7 @@ backward hill template hndl x = do
 
         g :: Scope -> ([CoreFuncName], FixpMap) -> ([CoreFuncName], FixpMap)
         g (Scope func x) (todo,mp)
-                | ans == ans2 = (todo,mp)
+                | ans `equalReqs` ans2 = (todo,mp)
                 | otherwise = (func:todo,Map.insert func ans2 mp)
             where
                 ans = Map.findWithDefault propTrue func mp
