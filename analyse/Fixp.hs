@@ -2,6 +2,7 @@
 module Fixp(fixp, fixpReqs) where
 
 import Req
+import ReqEq
 import Data.Proposition
 import Control.Monad
 
@@ -35,13 +36,23 @@ fixp def merge solve key = gen [] key
 
 -- work on Formula, but use BDD for the fixpoint value
 
+data Wrap = Wrap {unwrap :: Reqs}
+
+
+instance Eq Wrap where
+    (Wrap a) == (Wrap b) = equalReqs a b
+
+instance Show Wrap where
+    show (Wrap a) = show a
+
+
 fixpReqs :: Reqs -> (Req -> (Req -> IO Reqs) -> IO Reqs) -> Req -> IO Reqs
-fixpReqs def solve key = fixp def merge2 solve2 key
+fixpReqs def solve key = liftM unwrap $ fixp (Wrap def) merge2 solve2 key
     where
-        merge2 a b = propSimplify $ propAnd a b
+        merge2 (Wrap a) (Wrap b) = Wrap $ propSimplify $ propAnd a b
     
-        solve2 :: Req -> (Req -> IO Reqs) -> IO Reqs
+        solve2 :: Req -> (Req -> IO Wrap) -> IO Wrap
         solve2 key onestep = do
-                oldValue <- onestep key
-                newValue <- solve key onestep
-                return $ propSimplify $ blurReqs $ propAnd oldValue newValue
+                oldValue <- liftM unwrap $ onestep key
+                newValue <- solve key (liftM unwrap . onestep)
+                return $ Wrap $ propSimplify $ blurReqs $ propAnd oldValue newValue
