@@ -49,8 +49,9 @@ enumeratePathCtor (PathCtor core (Path (PathStar x:xs)) ctor) = concatMap f base
         
         g p = g2 p (PathStar x:xs)
         
-        g2 p (PathAtom x:xs) | p == x = enumeratePathCtor (PathCtor core (Path xs) ctor)
-        g2 p (PathStar x:xs) | p `elem` x = enumeratePathCtor (PathCtor core (Path xs) ctor)
+        g2 p (PathAtom x:xs) | p == x = enumeratePathCtor $ PathCtor core (Path xs) ctor
+        g2 p (PathStar x:xs) | [p] == x = enumeratePathCtor $ PathCtor core (Path xs) ctor
+                             | p `elem` x = enumeratePathCtor $ PathCtor core (Path (PathStar (delete p x):xs)) ctor
                              | otherwise = g2 p xs
         g2 p _ = [Star]
         
