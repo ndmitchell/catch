@@ -39,4 +39,4 @@ instance Prop PropFix where
     propFold (PropFold foldOr foldAnd foldNot foldLit) (PropFix x) = propFold fold2 x
         where fold2 = error "FixProp.propFold, todo"
     
-    propSimplify = PropFix . propSimplify . propRebuildFormula . propSimplify . propRebuildBDD . propSimplify . fix
+    propSimplify = PropFix . {-propSimplify . propRebuildFormula . propSimplify . propRebuildBDD . -} propSimplify . fix
