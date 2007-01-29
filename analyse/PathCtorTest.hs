@@ -2,7 +2,7 @@
 module Main where
 
 import PathCtor
-import PathCtorEq
+import PathCtorEqABCD
 import SmallCheck
 import Data.Proposition
 import Data.Maybe
