@@ -3,7 +3,10 @@ module PathCtor(
     -- from this module
     BoolPathCtor(..), PathCtor(..),
     newPathCtor, newPathCtorAtom,
+    
+    -- testing stuff only
     falsePathCtor, truePathCtor,
+    testCore,
     
     -- reexported from Path
     Path, emptyPath, ewpPath, blurPath,
