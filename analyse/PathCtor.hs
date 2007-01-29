@@ -251,6 +251,8 @@ impliesPair _ _ = False
 
 
 impliesPathCtor :: [(PathCtor, Bool)] -> PathCtor -> Maybe Bool
+impliesPathCtor _ _ = Nothing
+
 impliesPathCtor given req@(PathCtor hite path ctors) =
         if null ctors then Just False
         else if any doesImply given then Just True
