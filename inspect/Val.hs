@@ -3,6 +3,7 @@ module Val(
     Val(..), Vals,
     normalise, blur,
     valsAnd, valsOr,
+    valsTrue, valsFalse,
     anyCtor,
     checkRoot, integrate, differentiate
     ) where
@@ -31,6 +32,10 @@ type Vals = [Val]
 
 consCore = Core [] [] [CoreData "[]" [] [CoreCtor ":" [("",Just "hd"), ("",Just "tl")], CoreCtor "[]" []]] []
 
+
+
+valsTrue = [Any]
+valsFalse = []
 
 
 valsOr :: Core -> Vals -> Vals -> Vals
