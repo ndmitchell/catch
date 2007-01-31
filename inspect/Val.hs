@@ -1,13 +1,16 @@
 
 module Val(
-    Val(..), Vals, normalise, blur,
-    valsAnd, valsOr
+    Val(..), Vals,
+    normalise, blur,
+    valsAnd, valsOr,
+    checkRoot, integrate, differentiate
     ) where
 
 
 import Yhc.Core
 import General
 import Data.List
+import Data.Maybe
 
 
 data Val = Val {valCtor :: String, valFields :: [Val]}
@@ -120,3 +123,27 @@ normalise core = rule1 . rule2
         extract n xs = (xs !! n, take n xs ++ drop (n+1) xs)
         retract n (x,xs) = take n xs ++ [x] ++ drop n xs
 
+
+
+-- is the root allowed
+checkRoot :: Core -> Vals -> CoreCtorName -> Bool
+checkRoot core vals name = Star `elem` vals || any (== name) (map valCtor vals)
+
+
+integrate :: Core -> Vals -> CoreFieldName -> Vals
+integrate core vals field = [f c | c <- coreDataCtors dat, coreCtorName c /= name] ++ map g vals
+    where
+        dat = coreCtorData core name
+        ctr@(CoreCtor name fields) = coreFieldCtor core field
+        
+        f (CoreCtor name fields) = Val name (replicate (length fields) Any)
+        g x = Val name [if i == field then x else Any | (_, Just i) <- fields]
+
+
+differentiate :: Core -> Vals -> CoreFieldName -> Vals
+differentiate core vals field
+        | Star `elem` vals = [Star]
+        | otherwise = [cs !! ind | Val n cs <- vals, n == name]
+    where
+        ind = fromJust $ findIndex (==field) (map (fromJust . snd) fields)
+        ctr@(CoreCtor name fields) = coreFieldCtor core field
