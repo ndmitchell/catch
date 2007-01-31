@@ -1,5 +1,5 @@
 
-module Req(module Val, Scopes, Scope(..)) where
+module Req(module Req, module Val) where
 
 import Val
 import Yhc.Core
@@ -27,3 +27,6 @@ instance Show Req where
     show Demonic = "?Demonic"
     show Angelic = "?Angelic"
 
+
+instance PropLit Req where
+    -- do not define anything, its a pretty bad PropLit!
