@@ -3,6 +3,7 @@ module Val(
     Val(..), Vals,
     normalise, blur,
     valsAnd, valsOr,
+    anyCtor,
     checkRoot, integrate, differentiate
     ) where
 
@@ -147,3 +148,11 @@ differentiate core vals field
     where
         ind = fromJust $ findIndex (==field) (map (fromJust . snd) fields)
         ctr@(CoreCtor name fields) = coreFieldCtor core field
+
+
+-- some simple constructors
+anyCtor :: Core -> [CoreCtorName] -> Vals
+anyCtor core = map f
+    where
+        f name = Val name (replicate (length fields) Any)
+            where fields = coreCtorFields $ coreCtor core name
