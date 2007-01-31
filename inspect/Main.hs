@@ -2,7 +2,7 @@
 module Main where
 
 import Yhc.Core
-import System.FilePath
+import System.FilePath hiding (normalise)
 import System.Environment
 import System.Directory
 import System.IO
@@ -10,12 +10,11 @@ import Data.Proposition
 import Control.Monad
 
 import Prepare
-{-
 import Propagate
 import Req
 import Backward
 import Template
--}
+
 
 main = do
     xs <- getArgs
@@ -35,9 +34,6 @@ exec fil = do
         file <- findFile fil
         core <- liftM prepare $ loadCore file
         
-        print core
-{-        
-
         hCore <- beginLog file "core"
         hPutStrLn hCore (show core)
         hBack <- beginLog file "back"
@@ -46,7 +42,7 @@ exec fil = do
         template <- templateInit core hFore
         let conds = initialReqs core
         res <- mapM (f hFore hBack core template) conds
-        let ress = propAnds res
+        let ress = foldr (valsAnd core) valsTrue res
 
         when (null conds) $
             putStrLn "No pattern match errors, trivially safe"
@@ -77,8 +73,10 @@ exec fil = do
             
 
 initialReqs :: Core -> Scopes
-initialReqs core = [Scope func reqs | (func,reqs,expr) <- collect core isError, not $ propIsTrue reqs]
+initialReqs core = [Scope func (f reqs) | (func,reqs,expr) <- collect core isError, not $ propIsTrue reqs]
     where
+        f = normalise core . blur core . collapse core
+    
         isError (CoreApp (CorePrim "error") _) = True
         isError _ = False
 
@@ -90,4 +88,3 @@ beginLog file temp = do
     hndl <- openFile (dir </> temp <.> "log") WriteMode
     hSetBuffering hndl NoBuffering
     return hndl
--}
