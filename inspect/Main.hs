@@ -42,7 +42,7 @@ exec fil = do
         template <- templateInit core hFore
         let conds = initialReqs core
         res <- mapM (f hFore hBack core template) conds
-        let ress = foldr (valsAnd core) valsTrue res
+        let ress = valsAnds core res
 
         when (null conds) $
             putStrLn "No pattern match errors, trivially safe"

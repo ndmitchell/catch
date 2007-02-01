@@ -3,6 +3,7 @@ module Val(
     Val(..), Vals,
     normalise, blur,
     valsAnd, valsOr,
+    valsAnds, valsOrs,
     valsTrue, valsFalse,
     anyCtor,
     checkRoot, integrate, differentiate
@@ -42,6 +43,10 @@ valsOr :: Core -> Vals -> Vals -> Vals
 valsOr core a b = a ++ b
 
 
+valsOrs :: Core -> [Vals] -> Vals
+valsOrs core xs = concat xs
+
+
 -- not correct yet, doesn't deal with Star/Any properly
 -- and doesn't consider Pair T _ ^ Pair _ T == Pair T T
 valsAnd :: Core -> Vals -> Vals -> Vals
@@ -49,9 +54,13 @@ valsAnd core xs ys = [x | x <- xs2, any (x `subsetValue`) ys2] ++ [y | y <- ys2,
     where (xs2,ys2) = (normalise core xs, normalise core ys)
 
 
+valsAnds :: Core -> [Vals] -> Vals
+valsAnds core = foldr (valsAnd core) valsTrue
+
+
 
 blur :: Core -> Vals -> Vals
-blur = undefined
+blur core vals = vals
 
 
 
