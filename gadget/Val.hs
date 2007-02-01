@@ -32,7 +32,7 @@ data Val = Val {valCore :: Core, valType :: String, valHead :: ValPart, valTail 
          | Any
 
 data ValPart = ValPart {valCtors :: [Bool], valFields :: [Val]}
-               deriving (Eq, Show)
+               deriving (Eq, Ord, Show)
 
 type Vals = [Val]
 
@@ -41,6 +41,13 @@ instance Eq Val where
     (Val _ a2 a3 a4) == (Val _ b2 b3 b4) = (a2,a3,a4) == (b2,b3,b4)
     Any == Any = True
     _ == _ = False
+
+
+instance Ord Val where
+    compare (Val _ a2 a3 a4) (Val _ b2 b3 b4) = compare (a2,a3,a4) (b2,b3,b4)
+    compare Any Any = EQ
+    compare Any _ = LT
+    compare _ Any = GT
 
 
 instance Show Val where
