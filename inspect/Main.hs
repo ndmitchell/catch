@@ -75,7 +75,7 @@ exec fil = do
 initialReqs :: Core -> Scopes
 initialReqs core = [Scope func (f reqs) | (func,reqs,expr) <- collect core isError, not $ propIsTrue reqs]
     where
-        f = normalise core . blur core . collapse core
+        f = blur core . collapse core
     
         isError (CoreApp (CorePrim "error") _) = True
         isError _ = False

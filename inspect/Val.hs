@@ -1,7 +1,7 @@
 
 module Val(
     Val(..), Vals,
-    normalise, blur,
+    blur,
     valsAnd, valsOr,
     valsAnds, valsOrs,
     valsTrue, valsFalse,
@@ -45,18 +45,17 @@ valsFalse = []
 
 
 valsOr :: Core -> Vals -> Vals -> Vals
-valsOr core a b = a ++ b
+valsOr core a b = normalise core $ a ++ b
 
 
 valsOrs :: Core -> [Vals] -> Vals
-valsOrs core xs = concat xs
+valsOrs core xs = normalise core $ concat xs
 
 
 -- not correct yet, doesn't deal with Star/Any properly
 -- and doesn't consider Pair T _ ^ Pair _ T == Pair T T
 valsAnd :: Core -> Vals -> Vals -> Vals
-valsAnd core xs ys = [x | x <- xs2, any (x `subsetValue`) ys2] ++ [y | y <- ys2, any (y `subsetValue`) xs2]
-    where (xs2,ys2) = (normalise core xs, normalise core ys)
+valsAnd core xs ys = normalise core $ [x | x <- xs, any (x `subsetValue`) ys] ++ [y | y <- ys, any (y `subsetValue`) xs]
 
 
 valsAnds :: Core -> [Vals] -> Vals
@@ -65,7 +64,7 @@ valsAnds core = foldr (valsAnd core) valsTrue
 
 
 blur :: Core -> Vals -> Vals
-blur core vals = vals
+blur core vals = normalise core $ vals
 
 
 
@@ -151,7 +150,7 @@ checkRoot core vals name = Star `elem` vals || any (== name) (map valCtor vals)
 
 
 integrate :: Core -> Vals -> CoreFieldName -> Vals
-integrate core vals field = [f c | c <- coreDataCtors dat, coreCtorName c /= name] ++ map g vals
+integrate core vals field = normalise core $ [f c | c <- coreDataCtors dat, coreCtorName c /= name] ++ map g vals
     where
         dat = coreCtorData core name
         ctr@(CoreCtor name fields) = coreFieldCtor core field
@@ -163,7 +162,7 @@ integrate core vals field = [f c | c <- coreDataCtors dat, coreCtorName c /= nam
 differentiate :: Core -> Vals -> CoreFieldName -> Vals
 differentiate core vals field
         | Star `elem` vals = [Star]
-        | otherwise = [cs !! ind | Val n cs <- vals, n == name]
+        | otherwise = normalise core $ [cs !! ind | Val n cs <- vals, n == name]
     where
         ind = fromJust $ findIndex (==field) (map (fromJust . snd) fields)
         ctr@(CoreCtor name fields) = coreFieldCtor core field
@@ -171,7 +170,7 @@ differentiate core vals field
 
 -- some simple constructors
 anyCtor :: Core -> [CoreCtorName] -> Vals
-anyCtor core = map f
+anyCtor core = normalise core . map f
     where
         f name = Val name (replicate (length fields) Any)
             where fields = coreCtorFields $ coreCtor core name

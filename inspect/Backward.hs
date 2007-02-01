@@ -58,7 +58,7 @@ backward core template hndl x = do
                 | otherwise = (func:todo,Map.insert func ans2 mp)
             where
                 ans = Map.findWithDefault valsTrue func mp
-                ans2 = normalise core $ blur core $ valsAnd core x ans
+                ans2 = blur core $ valsAnd core x ans
 
         oneStep :: Scope -> IO Scopes
         oneStep = mapM simple . propagate core
@@ -66,6 +66,6 @@ backward core template hndl x = do
         simple :: (CoreFuncName, Reqs) -> IO Scope
         simple (name,x) = do
             x2 <- reducesWithM core (liftM propLit . templateGet template) x
-            let x3 = normalise core $ blur core $ collapse core x2
+            let x3 = blur core $ collapse core x2
             return $ Scope name x3
 

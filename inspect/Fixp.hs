@@ -34,9 +34,9 @@ fixp def merge solve key = gen [] key
 fixpVals :: Core -> Vals -> (ReqCall -> (ReqCall -> IO Vals) -> IO Vals) -> ReqCall -> IO Vals
 fixpVals core def solve key = fixp def merge2 solve2 key
     where
-        merge2 a b = normalise core $ blur core $ valsAnd core a b
+        merge2 a b = blur core $ valsAnd core a b
 
         solve2 :: ReqCall -> (ReqCall -> IO Vals) -> IO Vals
         solve2 key onestep = do
             val <- solve key onestep
-            return $ normalise core $ blur core val
+            return $ blur core val
