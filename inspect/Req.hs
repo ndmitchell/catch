@@ -3,6 +3,7 @@ module Req(module Req, module Val) where
 
 import Val
 import Yhc.Core
+import General
 import Data.Proposition
 
 
@@ -42,5 +43,6 @@ collapse core reqs
         | any (head lits /=) lits = error "Collapse, precondition violated"
         | otherwise = propFold fold reqs
     where
-        fold = error "collapse.fold, todo"
+        fold = PropFold {foldOr = valsOrs core, foldAnd = valsAnds core
+                        ,foldNot = error "collapse.foldNot", foldLit = reqVals}
         lits = map reqExpr $ propAll reqs
