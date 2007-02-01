@@ -230,7 +230,10 @@ differentiate core vals field = undefined {-
 
 -- some simple constructors
 anyCtor :: Core -> [CoreCtorName] -> Vals
-anyCtor core = undefined {- normalise core . map f
+anyCtor core [] = []
+anyCtor core rest = normalise core
+        [Val core typ (ValPart (map (`elem` rest) ctrs) fields) (ValPart (replicate (length ctrs) True) fields)]
     where
-        f name = Val name (replicate (length fields) Any)
-            where fields = coreCtorFields $ coreCtor core name -}
+        typ = coreDataName $ coreCtorData core (head rest)
+        ctrs = getCtors core typ
+        fields = replicate (length $ getFields core typ) Any
