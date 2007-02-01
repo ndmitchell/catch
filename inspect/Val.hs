@@ -68,7 +68,7 @@ blur core vals = vals
 
 -- is a `subset` b
 subsetValue :: Val -> Val -> Bool
-subsetValue _ Star = True
+subsetValue _ Any = True
 subsetValue (Val a as) (Val b bs) = a == b && f as bs
     where
         f [] [] = True
@@ -96,14 +96,14 @@ normalise core = rule1 . rule2
     
         rule2 :: [Val] -> [Val]
         rule2 [] = []
-        rule2 xs | Star `elem` xs = [Star]
-                 | all isValueStar groups && snub (map valCtor groups) == snub ctors = [Star]
+        rule2 xs | Any `elem` xs = [Any]
+                 | all isValueStar groups && snub (map valCtor groups) == snub ctors = [Any]
                  | otherwise = groups
             where
                 ctors = map coreCtorName $ coreDataCtors $ coreCtorData core $ valCtor $ head xs
                 groups = concatMap regroup $ groupSortBy cmpValCtor xs
                 
-                isValueStar (Val _ xs) = all (== Star) xs
+                isValueStar (Val _ xs) = all (== Any) xs
                 isValueStar _ = False
                 
 
