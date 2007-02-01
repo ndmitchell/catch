@@ -22,6 +22,11 @@ data Val = Val {valCtor :: String, valFields :: [Val]}
            deriving (Eq, Ord)
 
 instance Show Val where
+    showList xs = showString $ "[" ++ concat (intersperse "," $ map f xs) ++ "]"
+        where
+            f (Val x xs) = unwords (x:map show xs)
+            f x = show x
+
     show Star = "*"
     show Any = "_"
     show (Val x xs) = ['('|b] ++ unwords (x:map show xs) ++ [')'|b]
