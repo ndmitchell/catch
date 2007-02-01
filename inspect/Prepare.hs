@@ -21,7 +21,7 @@ import Data.List
 
 prepare :: Core -> Core
 prepare core = singleArg $ applyBodyCore (rename . dottedVar core2) core2
-    where core2 = applyCtorCore prepareCtor core
+    where core2 = applyCtorCore prepareCtor $ shorterData core
 
 
 
@@ -56,8 +56,8 @@ singleArg core = mapOverCore useTuples $ applyFuncCore mkTuples $ core{coreDatas
 
 
 
-altCtors = [("Prelude.:", ["hd","tl"])
-           ,("Prelude.(,)",["fst","snd"])
+altCtors = [(":", ["hd","tl"])
+           ,("(,)",["fst","snd"])
            ]
 
 
@@ -68,6 +68,19 @@ prepareCtor (CoreCtor name fields) = CoreCtor name (zipWith f [0..] fields)
                                 Just y -> (typ, Just $ y !! n)
                                 Nothing -> (typ, Just $ name ++ "_" ++ show n)
         f n x = x
+
+
+shorterData :: Core -> Core
+shorterData = applyCtorCore f . mapOverCore g
+    where
+        f x = x{coreCtorName = ren $ coreCtorName x}
+        
+        g (CoreCon x) = CoreCon $ ren x
+        g x = x
+        
+        ren xs = if null b then xs else tail b
+            where (a,b) = break (== '.') xs
+
 
 
 dottedVar :: Core -> CoreExpr -> CoreExpr
