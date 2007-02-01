@@ -25,8 +25,8 @@ fixp def merge solve key = gen [] key
                     let value3 = merge value2 value
                     --putStrLn $ "1: " ++ show value
                     --putStrLn $ "2: " ++ show value2
-                    putStrLn $ "3: " ++ show value3
-                    if value == value3 then putStrLn "*** FIXEDPOINT REACHED!" >> return value else f value3
+                    --putStrLn $ "3: " ++ show value3
+                    if value == value3 then {- putStrLn "*** FIXEDPOINT REACHED!" >> -} return value else f value3
 
 
 -- REQ SPECIFIC PART
