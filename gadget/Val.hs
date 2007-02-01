@@ -14,26 +14,52 @@ import Yhc.Core
 import General
 import Data.List
 import Data.Maybe
+import DataRep
 
 
-data Val = Val {valCtor :: String, valFields :: [Val]}
+
+getCtors :: Core -> CoreDataName -> [CoreCtorName]
+getCtors core = map coreCtorName . coreDataCtors . coreData core
+
+
+getFields :: Core -> CoreDataName -> [CoreFieldName]
+getFields core = concatMap (map (fromJust . snd) . coreCtorFields) . coreDataCtors . coreData core
+
+
+
+
+data Val = Val {valCore :: Core, valType :: String, valHead :: ValPart, valTail :: ValPart}
          | Any
-         | Star
-           deriving (Eq, Ord)
 
-instance Show Val where
-    showList xs = showString $ "[" ++ concat (intersperse "," $ map f xs) ++ "]"
-        where
-            f (Val x xs) = unwords (x:map show xs)
-            f x = show x
-
-    show Star = "*"
-    show Any = "_"
-    show (Val x xs) = ['('|b] ++ unwords (x:map show xs) ++ [')'|b]
-        where b = not $ null xs
-
+data ValPart = ValPart {valCtors :: [Bool], valFields :: [Val]}
+               deriving (Eq, Show)
 
 type Vals = [Val]
+
+
+instance Eq Val where
+    (Val _ a2 a3 a4) == (Val _ b2 b3 b4) = (a2,a3,a4) == (b2,b3,b4)
+    Any == Any = True
+    _ == _ = False
+
+
+instance Show Val where
+    show Any = "_"
+    
+    show (Val core typ hd tl) = "(" ++ typ ++ " :: " ++ showPart hd ++ " * " ++ showPart tl ++ ")"
+        where
+            showPart (ValPart ctrs fields) = showCtrs ctrs ++ showFields fields
+
+            showCtrs xs
+                    | null res = "0"
+                    | length res == 1 = head res
+                    | otherwise = "(" ++ concat (intersperse " " res) ++ ")"
+                where
+                    res = [c | (True,c) <- zip xs (getCtors core typ)]
+    
+            showFields [] = ""
+            showFields xs = " {" ++ concat (intersperse ", " $ zipWith f xs (getFields core typ)) ++ "}"
+                where f x name = name ++ "=" ++ show x
 
 
 consCore = Core [] [] [CoreData "[]" [] [CoreCtor ":" [("",Just "hd"), ("",Just "tl")], CoreCtor "[]" []]] []
@@ -73,14 +99,18 @@ blur core vals = normalise core $ vals
 -- is a `subset` b
 subsetValue :: Val -> Val -> Bool
 subsetValue _ Any = True
+{-
 subsetValue (Val a as) (Val b bs) = a == b && f as bs
     where
         f [] [] = True
         f (x:xs) (y:ys) = x `subsetValue` y && f xs ys
         f _ _ = False
+-}
 subsetValue _ _ = False
 
 
+mergeVal :: Val -> Val -> Val
+mergeVal x y = undefined
 
 
 -- properties of normalise, with X as the result:
@@ -92,7 +122,7 @@ subsetValue _ _ = False
 -- if y is a superset of x and is valid in X, then x should not be present
 --
 normalise :: Core -> Vals -> Vals
-normalise core = rule1 . rule2
+normalise core = id {- rule1 . rule2
     where
         rule1 :: [Val] -> [Val]
         rule1 xs = filter (\y -> not $ any (y `strictSubset`) xs) xs
@@ -141,36 +171,59 @@ normalise core = rule1 . rule2
 
         extract n xs = (xs !! n, take n xs ++ drop (n+1) xs)
         retract n (x,xs) = take n xs ++ [x] ++ drop n xs
-
+-}
 
 
 -- is the root allowed
 checkRoot :: Core -> Vals -> CoreCtorName -> Bool
-checkRoot core vals name = Star `elem` vals || any (== name) (map valCtor vals)
+checkRoot core vals name = Any `elem` vals || any f vals
+    where
+        typ = valType $ head vals
+        ind = fromJust $ findIndex (== name) $ getCtors core typ
+        f val = valCtors (valHead val) !! ind
 
 
 integrate :: Core -> Vals -> CoreFieldName -> Vals
-integrate core vals field = normalise core $ [f c | c <- coreDataCtors dat, coreCtorName c /= name] ++ map g vals
+integrate core vals field
+        | Any `elem` vals = [Any]
+        | otherwise = normalise core $ anyCtor core (delete name $ getCtors core typ) ++ map f vals
     where
+        typ = coreDataName dat
         dat = coreCtorData core name
         ctr@(CoreCtor name fields) = coreFieldCtor core field
+        rec = isFieldRecursive core field
         
-        f (CoreCtor name fields) = Val name (replicate (length fields) Any)
-        g x = Val name [if i == field then x else Any | (_, Just i) <- fields]
+        ctrs = coreDataCtors dat
+        flds = getFields core typ
+        
+        (nctrs,nflds) = (length ctrs, length flds)
+        
+        ictr = fromJust $ findIndex ((== name) . coreCtorName) ctrs
+        ifld = fromJust $ findIndex (== field) flds
+        
+        f v | rec = Val core typ
+                               (ValPart (replicate nctrs False !!! (ictr,True)) (replicate nflds Any))
+                               (ValPart (zipWith (&&) (valCtors $ valHead v) (valCtors $ valTail v))
+                                        (zipWith mergeVal (valFields $ valHead v) (valFields $ valTail v)))
+
+            | otherwise = Val core typ
+                               (ValPart (replicate nctrs False !!! (ictr,True)) (replicate nflds Any !!! (ifld,v)))
+                               (ValPart (replicate nctrs True) (replicate nflds Any))
+
 
 
 differentiate :: Core -> Vals -> CoreFieldName -> Vals
-differentiate core vals field
+differentiate core vals field = undefined {-
         | Star `elem` vals = [Star]
         | otherwise = normalise core $ [cs !! ind | Val n cs <- vals, n == name]
     where
         ind = fromJust $ findIndex (==field) (map (fromJust . snd) fields)
-        ctr@(CoreCtor name fields) = coreFieldCtor core field
+        ctr@(CoreCtor name fields) = coreFieldCtor core field -}
 
 
 -- some simple constructors
 anyCtor :: Core -> [CoreCtorName] -> Vals
-anyCtor core = normalise core . map f
+anyCtor core = undefined {- normalise core . map f
     where
         f name = Val name (replicate (length fields) Any)
-            where fields = coreCtorFields $ coreCtor core name
+            where fields = coreCtorFields $ coreCtor core name -}
