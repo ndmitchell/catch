@@ -33,7 +33,7 @@ reducesWithM core f reqs = propMapReduceM core (reduceWithM core f) reqs
 
 reduceWithM :: Core -> (Req -> IO Reqs) -> Req -> IO Reqs
 reduceWithM core f req@(Req expr _) = case expr of
-    CoreApp (CoreFun _) _ -> f req >>= reducesWithM core f
+    CoreApp (CoreFun x) _ | not $ "." `isPrefixOf` x -> f req >>= reducesWithM core f
     CoreVar x -> return $ propLit req
     _ -> reducesWithM core f $ reduceOne core req
 reduceWithM core f x = return $ propLit x
