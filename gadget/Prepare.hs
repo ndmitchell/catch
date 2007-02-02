@@ -71,10 +71,9 @@ prepareCtor (CoreCtor name fields) = CoreCtor name (zipWith f [0..] fields)
 
 
 shorterData :: Core -> Core
-shorterData = applyDataCore fData . applyCtorCore fCtor . mapOverCore g
+shorterData = applyCtorCore f . mapOverCore g
     where
-        fData x = x{coreDataName = ren $ coreDataName x}
-        fCtor x = x{coreCtorName = ren $ coreCtorName x}
+        f x = x{coreCtorName = ren $ coreCtorName x}
         
         g (CoreCon x) = CoreCon $ ren x
         g x = x
