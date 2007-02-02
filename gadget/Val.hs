@@ -23,9 +23,9 @@ getCtors core = map coreCtorName . coreDataCtors . coreData core
 
 
 getFields :: Core -> CoreDataName -> [CoreFieldName]
-getFields core = concatMap (map (fromJust . snd) . coreCtorFields) . coreDataCtors . coreData core
-
-
+getFields core = filter (not . isFieldRecursive core) .
+                 concatMap (map (fromJust . snd) . coreCtorFields) .
+                 coreDataCtors . coreData core
 
 
 data Val = Val {valCore :: Core, valType :: String, valHead :: ValPart, valTail :: ValPart}
@@ -106,14 +106,14 @@ blur core vals = normalise core $ vals
 -- is a `subset` b
 subsetValue :: Val -> Val -> Bool
 subsetValue _ Any = True
-{-
-subsetValue (Val a as) (Val b bs) = a == b && f as bs
+subsetValue Any _ = False
+subsetValue (Val _ _ a1 b1) (Val _ _ a2 b2) = f a1 a2 && f b1 b2
     where
-        f [] [] = True
-        f (x:xs) (y:ys) = x `subsetValue` y && f xs ys
-        f _ _ = False
--}
-subsetValue _ _ = False
+        f (ValPart a1 b1) (ValPart a2 b2) =
+            all (uncurry f1) (zip a1 a2) &&
+            all (uncurry subsetValue) (zip b1 b2)
+        
+        f1 x y = x == y || y == True
 
 
 mergeVal :: Val -> Val -> Val
@@ -129,13 +129,13 @@ mergeVal x y = undefined
 -- if y is a superset of x and is valid in X, then x should not be present
 --
 normalise :: Core -> Vals -> Vals
-normalise core = id {- rule1 . rule2
+normalise core = snub . rule1 -- . rule2
     where
         rule1 :: [Val] -> [Val]
         rule1 xs = filter (\y -> not $ any (y `strictSubset`) xs) xs
             where strictSubset a b = a /= b && a `subsetValue` b
     
-        rule2 :: [Val] -> [Val]
+    {-     rule2 :: [Val] -> [Val]
         rule2 [] = []
         rule2 xs | Any `elem` xs = [Any]
                  | all isValueStar groups && snub (map valCtor groups) == snub ctors = [Any]
@@ -219,13 +219,23 @@ integrate core vals field
 
 
 
-differentiate :: Core -> Vals -> CoreFieldName -> Vals
-differentiate core vals field = undefined {-
-        | Star `elem` vals = [Star]
-        | otherwise = normalise core $ [cs !! ind | Val n cs <- vals, n == name]
+differentiate :: Core -> CoreCtorName -> Vals -> [[Val]]
+differentiate core name vals
+        | null vals = []
+        | Any `elem` vals = [replicate (length $ coreCtorFields ctor) Any]
+        | otherwise = [map (f (v,part) . fromJust . snd) $ coreCtorFields ctor 
+                      | Val _ _ (ValPart c v) part <- vals, c !! ictr]
     where
-        ind = fromJust $ findIndex (==field) (map (fromJust . snd) fields)
-        ctr@(CoreCtor name fields) = coreFieldCtor core field -}
+        typ = valType $ head vals
+        ctrs = getCtors core typ
+        flds = getFields core typ
+        ctor = coreCtor core name
+        ictr = fromJust $ findIndex (==name) ctrs
+        
+        f (vals,cont) fld
+            | isFieldRecursive core fld = Val core typ cont cont
+            | otherwise = vals !! fromJust (findIndex (== fld) flds)
+
 
 
 -- some simple constructors

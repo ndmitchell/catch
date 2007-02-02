@@ -56,14 +56,9 @@ reduceOne :: Core -> Req -> Reqs
 reduceOne core req@(Req expr vals) = case expr of
     CoreApp (CoreFun ('.':y)) [x] -> propLit $ Req x (integrate core vals y)
 
-    CoreApp (CoreCon y) xs -> propAnds (p1:ps)
+    CoreApp (CoreCon y) xs -> propOrs $ map f $ differentiate core y vals
         where
-            cargs = map (fromJust . snd) $ coreCtorFields $ coreCtor core y
-
-            p1 = propBool $ checkRoot core vals y
-            ps = zipWithEq f xs cargs
-            
-            f x carg = propLit $ Req x (differentiate core vals carg)
+            f vs = propAnds $ map (\(x,v) -> propLit $ Req x [v]) $ zip xs vs
 
     CoreCase on alts -> propAnds $ map f alts
         where
