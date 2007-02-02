@@ -53,9 +53,11 @@ instance Ord Val where
 instance Show Val where
     show Any = "_"
     
-    show (Val core typ hd tl) = "(" ++ typ ++ " :: " ++ showPart hd ++ " * " ++ showPart tl ++ ")"
+    show (Val core typ hd tl) = "(" ++ showPart hd ++ (if complete tl then "" else " * " ++ showPart tl) ++ ")"
         where
             showPart (ValPart ctrs fields) = showCtrs ctrs ++ showFields fields
+            
+            complete (ValPart ctrs fields) = and ctrs && all (== Any) fields
 
             showCtrs xs
                     | null res = "0"
