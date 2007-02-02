@@ -142,11 +142,18 @@ mergeAnd (Val core typ a1 a2) (Val _ _ b1 b2) = Val core typ (f a1 b1) (f a2 b2)
 -- if y is a superset of x and is valid in X, then x should not be present
 --
 normalise :: Core -> Vals -> Vals
-normalise core = snub . rule1 -- . rule2
+normalise core = snub . rule1 . rule0 -- . rule2
     where
         rule1 :: [Val] -> [Val]
         rule1 xs = filter (\y -> not $ any (y `strictSubset`) xs) xs
             where strictSubset a b = a /= b && a `subsetValue` b
+    
+    
+        rule0 :: [Val] -> [Val]
+        rule0 = filter (not . isBlank)
+            where
+                isBlank (Val _ _ (ValPart a b) _) = all (== False) a || any isBlank b
+                isBlank _ = False
     
     {-     rule2 :: [Val] -> [Val]
         rule2 [] = []
