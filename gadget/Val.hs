@@ -60,7 +60,9 @@ instance Show Val where
             complete (ValPart ctrs fields) = and ctrs && all (== Any) fields
             
             showPart (ValPart ctrs fields) = showCtrs ctrs ++
-                if length ctrs == 1 || length fields <= 1 then showFields fields else showFieldsRec fields
+                if all (== Any) fields then ""
+                else if length ctrs == 1 || length fields <= 1 then showFields fields
+                else showFieldsRec fields
         
             showCtrs xs | null res = "0"
                         | otherwise = concat $ intersperse "+" res
