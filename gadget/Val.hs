@@ -90,10 +90,8 @@ valsOrs :: Core -> [Vals] -> Vals
 valsOrs core xs = normalise core $ concat xs
 
 
--- not correct yet, doesn't deal with Star/Any properly
--- and doesn't consider Pair T _ ^ Pair _ T == Pair T T
 valsAnd :: Core -> Vals -> Vals -> Vals
-valsAnd core xs ys = normalise core $ [x | x <- xs, any (x `subsetValue`) ys] ++ [y | y <- ys, any (y `subsetValue`) xs]
+valsAnd core xs ys = normalise core [mergeAnd x y | x <- xs, y <- ys]
 
 
 valsAnds :: Core -> [Vals] -> Vals
@@ -121,8 +119,18 @@ subsetValue (Val _ _ a1 b1) (Val _ _ a2 b2) = f a1 a2 && f b1 b2
         f1 x y = x == y || y == True
 
 
+-- SHOULD THIS BE MERGE_AND OR MERGE_OR ?
 mergeVal :: Val -> Val -> Val
 mergeVal x y = undefined
+
+
+-- a `mergeAnd` b = c
+-- c `subsetValue` a && c `subsetValue` b
+mergeAnd :: Val -> Val -> Val
+mergeAnd Any x = x
+mergeAnd x Any = x
+mergeAnd (Val core typ a1 a2) (Val _ _ b1 b2) = Val core typ (f a1 b1) (f a2 b2)
+    where f (ValPart a1 a2) (ValPart b1 b2) = ValPart (zipWith (&&) a1 b1) (zipWith mergeAnd a2 b2)
 
 
 -- properties of normalise, with X as the result:
