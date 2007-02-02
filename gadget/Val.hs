@@ -51,23 +51,24 @@ instance Ord Val where
 
 
 instance Show Val where
+    showList xs = showString $ "[" ++ concat (intersperse " | " $ map show xs) ++ "]"
+
     show Any = "_"
     
-    show (Val core typ hd tl) = "(" ++ showPart hd ++ (if complete tl then "" else " * " ++ showPart tl) ++ ")"
+    show (Val core typ hd tl) = showPart hd ++ if complete tl then "" else " * " ++ showPart tl
         where
-            showPart (ValPart ctrs fields) = showCtrs ctrs ++ showFields fields
-            
             complete (ValPart ctrs fields) = and ctrs && all (== Any) fields
-
-            showCtrs xs
-                    | null res = "0"
-                    | length res == 1 = head res
-                    | otherwise = "(" ++ concat (intersperse " " res) ++ ")"
-                where
-                    res = [c | (True,c) <- zip xs (getCtors core typ)]
+            
+            showPart (ValPart ctrs fields) = showCtrs ctrs ++
+                if length ctrs == 1 || length fields <= 1 then showFields fields else showFieldsRec fields
+        
+            showCtrs xs | null res = "0"
+                        | otherwise = concat $ intersperse "+" res
+                where res = [c | (True,c) <- zip xs (getCtors core typ)]
     
-            showFields [] = ""
-            showFields xs = " {" ++ concat (intersperse ", " $ zipWith f xs (getFields core typ)) ++ "}"
+            showFields xs = concatMap ((' ':) . show) xs
+    
+            showFieldsRec xs = " {" ++ concat (intersperse ", " $ zipWith f xs (getFields core typ)) ++ "}"
                 where f x name = name ++ "=" ++ show x
 
 
