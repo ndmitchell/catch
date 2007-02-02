@@ -121,7 +121,7 @@ subsetValue (Val _ _ a1 b1) (Val _ _ a2 b2) = f a1 a2 && f b1 b2
 
 -- SHOULD THIS BE MERGE_AND OR MERGE_OR ?
 mergeVal :: Val -> Val -> Val
-mergeVal x y = undefined
+mergeVal x y = error "Todo, Val.mergeVal"
 
 
 -- a `mergeAnd` b = c
@@ -142,63 +142,77 @@ mergeAnd (Val core typ a1 a2) (Val _ _ b1 b2) = Val core typ (f a1 b1) (f a2 b2)
 -- if y is a superset of x and is valid in X, then x should not be present
 --
 normalise :: Core -> Vals -> Vals
-normalise core = snub . rule1 . rule0 -- . rule2
+normalise core = snub . ruleSubset . ruleCombine . ruleIndividual
     where
-        rule1 :: [Val] -> [Val]
-        rule1 xs = filter (\y -> not $ any (y `strictSubset`) xs) xs
+        -- combine pairs into one
+        ruleCombine :: [Val] -> [Val]
+        ruleCombine vals = f [] vals
+            where
+                f done [] = done
+                f done (t:odo) = case g t odo of
+                                    Nothing -> f (t:done) odo
+                                    Just new -> f [] (done ++ new)
+                
+                g y xs = do
+                        ind <- findIndex isJust res
+                        return $ fromJust (res !! ind) : (xs \!! ind)
+                    where
+                        item = fromJust $ findIndex isJust res
+                        res = map (joinOr y) xs
+
+
+        -- joinOr a b = Just c, a v b == c
+        joinOr :: Val -> Val -> Maybe Val
+        joinOr Any _ = Just Any
+        joinOr _ Any = Just Any
+        joinOr (Val core typ a1 a2) (Val _ _ b1 b2) | a2 == b2 =
+            do c1 <- joinPartOr a1 b1; return $ Val core typ c1 a2
+        joinOr _ _ = Nothing
+        
+        joinPartOr (ValPart a1 a2) (ValPart b1 b2)
+            | a2 == b2 = Just $ ValPart (zipWith (||) a1 b1) a2
+            | a1 == b1 = listToMaybe [ValPart a1 (pre1++[x]++post2)
+                                     | ((pre1,x1,post1),(pre2,x2,post2)) <- zip (allItems a2) (allItems b2)
+                                     , pre1 == pre2, post1 == post2, Just x <- [joinOr x1 x2]]
+            | otherwise = Nothing
+
+
+        -- do not allow two where one is a subset of the other
+        ruleSubset :: [Val] -> [Val]
+        ruleSubset xs = filter (\y -> not $ any (y `strictSubset`) xs) xs
             where strictSubset a b = a /= b && a `subsetValue` b
     
     
-        rule0 :: [Val] -> [Val]
-        rule0 = filter (not . isBlank)
+        -- reduce each rule in isolation
+        ruleIndividual :: [Val] -> [Val]
+        ruleIndividual = concatMap f
             where
-                isBlank (Val _ _ (ValPart a b) _) = all (== False) a || any isBlank b
-                isBlank _ = False
-    
-    {-     rule2 :: [Val] -> [Val]
-        rule2 [] = []
-        rule2 xs | Any `elem` xs = [Any]
-                 | all isValueStar groups && snub (map valCtor groups) == snub ctors = [Any]
-                 | otherwise = groups
-            where
-                ctors = map coreCtorName $ coreDataCtors $ coreCtorData core $ valCtor $ head xs
-                groups = concatMap regroup $ groupSortBy cmpValCtor xs
-                
-                isValueStar (Val _ xs) = all (== Any) xs
-                isValueStar _ = False
-                
+                f x | isBlank x2 = []
+                    | isComplete x2 = [Any]
+                    | otherwise = [x2]
+                    where x2 = g x
 
-        -- all the Val's have the same valCtor
-        regroup :: [Val] -> [Val]
-        regroup xs | arity == 0 = [Val name []]
-                   | arity == 1 = map (\x -> Val name [x]) $ rule2 $ map (head . valFields) xs
-                   | otherwise = map (Val name) $ fix operate $ map valFields xs
-            where
-                arity = length children
-                Val name children = head xs
-                
-                operate = snub . apply (map f [0..arity-1])
+                g Any = Any
+                g (Val core typ a b) = Val core typ (h a) (if rec then h b else full)
                     where
-                        f n x = map (retract n) $ concat $ map g $ groupSortBy cmpSnd $ map (extract n) x
-                        g ys = map (\x -> (x, snd $ head ys)) $ rule2 $ map fst ys
+                        rec = any (isFieldRecursive core) $ getFields core typ
+                        full = let ValPart c d = b in ValPart (replicate (length c) True) (replicate (length d) Any)
+                        
+                        dat = coreData core typ
+                        flds = getFields core typ
+                        
+                        h (ValPart a b) = ValPart a [if c `elem` valid then d else Any | (c,d) <- zip flds b]
+                            where
+                                valid = concat [map (fromJust . snd) $ coreCtorFields c
+                                               | (True,c) <- zip a (coreDataCtors dat)]
+            
+                isBlank (Val _ _ (ValPart a b) _) = all (== False) a || any isBlank b
+                isBlank Any = False
+                
+                isComplete (Val _ _ a b) = comp a && comp b
+                    where comp (ValPart a b) = all (== True) a && all isComplete b
+                isComplete Any = True
 
-
-        groupSortBy :: (a -> a -> Ordering) -> [a] -> [[a]]
-        groupSortBy f = groupBy (\a b -> f a b == EQ) . sortBy f
-
-        cmpFst a b = compare (fst a) (fst b)
-        cmpSnd a b = compare (snd a) (snd b)
-        cmpValCtor a b = compare (valCtor a) (valCtor b)
-
-        apply [] x = x
-        apply (f:fs) x = apply fs (f x)
-
-        fix f x = if x == x2 then x else fix f x2
-            where x2 = f x
-
-        extract n xs = (xs !! n, take n xs ++ drop (n+1) xs)
-        retract n (x,xs) = take n xs ++ [x] ++ drop n xs
--}
 
 
 -- is the root allowed
