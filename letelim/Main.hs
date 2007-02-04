@@ -50,9 +50,16 @@ Algorithm:
 caseFix :: Core -> Core
 caseFix core = coreSimplify $ applyBodyCore (mapOverCore f) core
     where
-        f (CoreCase (CoreVar on) alts) = CoreCase (CoreVar on) [(a, replaceFreeVars [(on, a)] b) | (a,b) <- complete alts]
+        f (CoreCase (CoreVar on) alts) =
+            CoreCase (CoreVar on)
+                [(lhs, case lhs of
+                            CoreVar i -> replaceFreeVars [(i,CoreVar on)] rhs
+                            _ -> replaceFreeVars [(on, lhs)] rhs
+                 ) | (lhs,rhs) <- complete alts]
+        
         f o@(CoreCase on alts) = CoreLet [(newvar,on)] (CoreCase (CoreVar newvar) alts)
             where newvar = head $ variableSupply 'v' \\ collectAllVars o
+
         f x = x
         
         -- if there is a default (last one)
