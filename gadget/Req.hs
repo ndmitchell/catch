@@ -36,7 +36,7 @@ instance PropLit Req where
 -- precondition: all the Req's must be the same
 collapse :: Core -> Reqs -> Vals
 collapse core reqs
-        | any (head lits /=) lits = error "Collapse, precondition violated"
+        | any (head lits /=) lits = error $ "Collapse, precondition violated: " ++ show reqs
         | otherwise = propFold fold reqs
     where
         fold = PropFold {foldOr = valsOrs core, foldAnd = valsAnds core
