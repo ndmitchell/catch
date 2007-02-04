@@ -46,10 +46,12 @@ instance Prop PropSimple where
     propIsFalse (Or  xs) = all propIsFalse xs
     
     propLit = Lit
-    propNot a = Not a
     propAnd a b = propAnds [a,b]
     propOr  a b = propOrs  [a,b]
     
+    propNot (Not a) = a
+    propNot a = Not a
+
     propAnds xs | any propIsFalse xs = propFalse
                 | otherwise = case filter (not . propIsTrue ) xs of
                                    [x] -> x
