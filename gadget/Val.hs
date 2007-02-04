@@ -142,7 +142,7 @@ mergeAnd (Val core typ a1 a2) (Val _ _ b1 b2) = Val core typ (f a1 b1) (f a2 b2)
 -- if y is a superset of x and is valid in X, then x should not be present
 --
 normalise :: Core -> Vals -> Vals
-normalise core = snub . ruleSubset . ruleCombine . ruleIndividual
+normalise core = snub . ruleSubset . ruleCombine . ruleIntroduce . ruleIndividual
     where
         -- combine pairs into one
         ruleCombine :: [Val] -> [Val]
@@ -152,7 +152,7 @@ normalise core = snub . ruleSubset . ruleCombine . ruleIndividual
                 f done (t:odo) = case g t odo of
                                     Nothing -> f (t:done) odo
                                     Just new -> f [] (done ++ new)
-                
+
                 g y xs = do
                         ind <- findIndex isJust res
                         return $ fromJust (res !! ind) : (xs \!! ind)
@@ -168,7 +168,7 @@ normalise core = snub . ruleSubset . ruleCombine . ruleIndividual
         joinOr (Val core typ a1 a2) (Val _ _ b1 b2) | a2 == b2 =
             do c1 <- joinPartOr a1 b1; return $ Val core typ c1 a2
         joinOr _ _ = Nothing
-        
+
         joinPartOr (ValPart a1 a2) (ValPart b1 b2)
             | a2 == b2 = Just $ ValPart (zipWith (||) a1 b1) a2
             | a1 == b1 = listToMaybe [ValPart a1 (pre1++[x]++post2)
@@ -181,8 +181,18 @@ normalise core = snub . ruleSubset . ruleCombine . ruleIndividual
         ruleSubset :: [Val] -> [Val]
         ruleSubset xs = filter (\y -> not $ any (y `strictSubset`) xs) xs
             where strictSubset a b = a /= b && a `subsetValue` b
-    
-    
+
+
+        -- introduce new terms which may be supersets
+        ruleIntroduce :: [Val] -> [Val]
+        ruleIntroduce xs = xs ++ [f a b | a <- xs, b <- xs]
+            where
+                f (Val core typ (ValPart a1 b1) (ValPart c1 d1))
+                  (Val _    _   (ValPart a2 b2) (ValPart c2 d2)) =
+                  Val core typ (ValPart (zipWith (||) a1 a2) (zipWith mergeAnd b1 b2))
+                               (ValPart (zipWith (&&) c1 c2) (zipWith mergeAnd d1 d2))
+
+
         -- reduce each rule in isolation
         ruleIndividual :: [Val] -> [Val]
         ruleIndividual = concatMap f
@@ -195,20 +205,23 @@ normalise core = snub . ruleSubset . ruleCombine . ruleIndividual
                 g Any = Any
                 g (Val core typ a b) = Val core typ (h a) (if rec then h b else full)
                     where
-                        rec = any (isFieldRecursive core) $ getFields core typ
+                        rec = any (isFieldRecursive core) $ concat
+                                [map (fromJust . snd) $ coreCtorFields $ coreCtor core c | (True,c) <- zip (valCtors a) ctrs]
+
                         full = let ValPart c d = b in ValPart (replicate (length c) True) (replicate (length d) Any)
-                        
+
                         dat = coreData core typ
                         flds = getFields core typ
-                        
+                        ctrs = getCtors core typ
+
                         h (ValPart a b) = ValPart a [if c `elem` valid then d else Any | (c,d) <- zip flds b]
                             where
                                 valid = concat [map (fromJust . snd) $ coreCtorFields c
                                                | (True,c) <- zip a (coreDataCtors dat)]
-            
+
                 isBlank (Val _ _ (ValPart a b) _) = all (== False) a || any isBlank b
                 isBlank Any = False
-                
+
                 isComplete (Val _ _ a b) = comp a && comp b
                     where comp (ValPart a b) = all (== True) a && all isComplete b
                 isComplete Any = True
@@ -245,7 +258,7 @@ integrate core vals field
         f v | rec = Val core typ
                                (ValPart (replicate nctrs False !!! (ictr,True)) (replicate nflds Any))
                                (ValPart (zipWith (&&) (valCtors $ valHead v) (valCtors $ valTail v))
-                                        (zipWith mergeVal (valFields $ valHead v) (valFields $ valTail v)))
+                                        (zipWith mergeAnd (valFields $ valHead v) (valFields $ valTail v)))
 
             | otherwise = Val core typ
                                (ValPart (replicate nctrs False !!! (ictr,True)) (replicate nflds Any !!! (ifld,v)))
