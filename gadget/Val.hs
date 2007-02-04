@@ -142,7 +142,7 @@ mergeAnd (Val core typ a1 a2) (Val _ _ b1 b2) = Val core typ (f a1 b1) (f a2 b2)
 -- if y is a superset of x and is valid in X, then x should not be present
 --
 normalise :: Core -> Vals -> Vals
-normalise core = snub . ruleSubset . ruleCombine . ruleIntroduce . ruleIndividual
+normalise core = snub . ruleSubset . ruleCombine . ruleIntroduce . ruleIndividual . snub
     where
         -- combine pairs into one
         ruleCombine :: [Val] -> [Val]
