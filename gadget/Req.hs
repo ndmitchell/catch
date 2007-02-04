@@ -15,8 +15,6 @@ data Scope = Scope CoreFuncName Vals
 type Reqs = PropSimple Req
 
 data Req = Req {reqExpr :: CoreExpr, reqVals :: Vals}
-         | Demonic
-         | Angelic
          deriving (Ord, Eq)
 
 
@@ -29,8 +27,6 @@ instance Show Scope where
 
 instance Show Req where
     show (Req expr x) = showCoreExprGroup expr ++ show x
-    show Demonic = "?Demonic"
-    show Angelic = "?Angelic"
 
 
 instance PropLit Req where
