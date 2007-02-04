@@ -47,8 +47,18 @@ instance Prop PropSimple where
     
     propLit = Lit
     propNot a = Not a
-    propAnd a b = And [a,b]
-    propOr  a b = Or  [a,b]
+    propAnd a b = propAnds [a,b]
+    propOr  a b = propOrs  [a,b]
+    
+    propAnds xs | any propIsFalse xs = propFalse
+                | otherwise = case filter (not . propIsTrue ) xs of
+                                   [x] -> x
+                                   xs -> And xs
+    
+    propOrs  xs | any propIsTrue  xs = propTrue
+                | otherwise = case filter (not . propIsFalse) xs of
+                                   [x] -> x
+                                   xs -> Or xs
 
     propMapM f (Lit a ) = f a
     propMapM f (Not a ) = liftM Not $ propMapM f a
