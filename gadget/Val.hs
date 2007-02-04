@@ -68,7 +68,7 @@ instance Show Val where
                         | otherwise = concat $ intersperse "+" res
                 where res = [c | (True,c) <- zip xs (getCtors core typ)]
     
-            showFields xs = concatMap ((' ':) . show) xs
+            showFields xs = concatMap (\x -> " {" ++ show x ++ "}") xs
     
             showFieldsRec xs = " {" ++ concat (intersperse ", " $ zipWith f xs (getFields core typ)) ++ "}"
                 where f x name = name ++ "=" ++ show x
