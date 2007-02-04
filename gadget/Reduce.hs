@@ -70,9 +70,9 @@ reduceOne core req@(Req expr vals) = case expr of
             
             g ctrs ex = propLit (Req on $ anyCtor core ctrs) `propOr` propLit (Req ex vals)
 
-    CoreApp (CorePrim "error") _ -> propLit Angelic -- since will never return anything
-    CoreApp (CorePrim x) ys -> propLit Demonic -- absolutely no idea what the result is
-    c | isCoreConst c -> propLit Demonic -- if you care, abstract before here
+    CoreApp (CorePrim "error") _ -> propTrue -- since will never return anything
+    CoreApp (CorePrim x) ys -> propFalse -- absolutely no idea what the result is
+    c | isCoreConst c -> propFalse -- if you care, abstract before here
 
     _ -> error $ "reduceOne: " ++ show req
 
