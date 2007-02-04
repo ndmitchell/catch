@@ -63,9 +63,9 @@ instance Prop PropSimple where
                                    xs -> Or xs
 
     propMapM f (Lit a ) = f a
-    propMapM f (Not a ) = liftM Not $ propMapM f a
-    propMapM f (And xs) = liftM And $ mapM (propMapM f) xs
-    propMapM f (Or  xs) = liftM Or  $ mapM (propMapM f) xs
+    propMapM f (Not a ) = liftM propNot  $ propMapM f a
+    propMapM f (And xs) = liftM propAnds $ mapM (propMapM f) xs
+    propMapM f (Or  xs) = liftM propOrs  $ mapM (propMapM f) xs
     
     propFold fs (Lit a ) = foldLit fs a
     propFold fs (Not a ) = foldNot fs (propFold fs a)
