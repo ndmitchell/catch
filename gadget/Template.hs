@@ -50,7 +50,7 @@ templateCalc template@(Template core hndl _) req@(parent,_) = do
         hPutStrLn hndl $ "END  : templateCalc, " ++ show res
         return res
     where
-        one = blur core . collapse core
+        one = collapse core
     
         f :: ReqCall -> (ReqCall -> IO Vals) -> IO Vals
         f req gen = liftM one $ reduceWithM core (liftM propLit . g gen) $ instantiate core req

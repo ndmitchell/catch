@@ -1,7 +1,6 @@
 
 module Val(
     Val(..), Vals,
-    blur,
     valsAnd, valsOr,
     valsAnds, valsOrs,
     valsTrue, valsFalse,
@@ -96,12 +95,6 @@ valsAnd core xs ys = normalise core [mergeAnd x y | x <- xs, y <- ys]
 
 valsAnds :: Core -> [Vals] -> Vals
 valsAnds core = foldr (valsAnd core) valsTrue
-
-
-
-blur :: Core -> Vals -> Vals
-blur core vals = normalise core $ vals
-
 
 
 
