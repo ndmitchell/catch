@@ -149,13 +149,14 @@ normalise core = snub . ruleSubset . ruleCombine . ruleIntroduce . ruleIndividua
         ruleCombine vals = f [] vals
             where
                 f done [] = done
-                f done (t:odo) = case g t odo of
+                f done (t:odo) = case g t done of
                                     Nothing -> f (t:done) odo
-                                    Just new -> f [] (done ++ new)
+                                    Just (new,done2) -> f done2 (new:odo)
 
+                g :: Val -> [Val] -> Maybe (Val, [Val])
                 g y xs = do
                         ind <- findIndex isJust res
-                        return $ fromJust (res !! ind) : (xs \!! ind)
+                        return (fromJust (res !! ind), (xs \!! ind))
                     where
                         item = fromJust $ findIndex isJust res
                         res = map (joinOr y) xs
