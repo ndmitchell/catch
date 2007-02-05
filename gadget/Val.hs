@@ -186,6 +186,7 @@ normalise core = snub . ruleSubset . ruleCombine . ruleIntroduce . ruleIndividua
 
         -- introduce new terms which may be supersets
         ruleIntroduce :: [Val] -> [Val]
+        ruleIntroduce xs | Any `elem` xs = [Any]
         ruleIntroduce xs = xs ++ [f a b | a <- xs, b <- xs]
             where
                 f (Val core typ (ValPart a1 b1) (ValPart c1 d1))
