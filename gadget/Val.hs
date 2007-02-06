@@ -16,19 +16,37 @@ import Data.Maybe
 import DataRep
 
 
+---------------------------------------------------------------------
+-- UTILITIES FOR EXTRACTING INFORMATION
 
-getCtors :: Core -> CoreDataName -> [CoreCtorName]
-getCtors core = map coreCtorName . coreDataCtors . coreData core
-
-
-getFields :: Core -> CoreDataName -> [CoreFieldName]
-getFields core = filter (not . isFieldRecursive core) .
-                 concatMap (map (fromJust . snd) . coreCtorFields) .
-                 coreDataCtors . coreData core
+getCtors :: CoreData -> [CoreCtorName]
+getCtors = map coreCtorName . coreDataCtors . coreData core
 
 
-data Val = Val {valCore :: Core, valType :: String, valHead :: ValPart, valTail :: ValPart}
+getFields :: CoreData -> [CoreFieldName]
+getFields = filter (not . isFieldRecursive core) .
+            concatMap (map (fromJust . snd) . coreCtorFields) .
+            coreDataCtors
+
+
+
+
+-- debugging information
+listCoreData = CoreData "[]" [] [CoreCtor ":" [("",Just "hd"), ("",Just "tl")], CoreCtor "[]" []]
+listCore = Core [] [] [listCoreData] []
+
+
+
+---------------------------------------------------------------------
+-- DATA VALUES
+
+-- If a valTail is Nothing then no recursive constructors are present
+-- If a value is Void then the constructor for the field is not allowed
+
+
+data Val = Val {valType :: CoreData, valHead :: ValPart, valTail :: Maybe ValPart}
          | Any
+         | Void
 
 data ValPart = ValPart {valCtors :: [Bool], valFields :: [Val]}
                deriving (Eq, Ord, Show)
@@ -73,8 +91,35 @@ instance Show Val where
                 where f x name = name ++ "=" ++ show x
 
 
-consCore = Core [] [] [CoreData "[]" [] [CoreCtor ":" [("",Just "hd"), ("",Just "tl")], CoreCtor "[]" []]] []
 
+---------------------------------------------------------------------
+-- LOW LEVEL UTILITIES FOR COMBINING VAL'S
+
+-- is a `subset` b
+subsetValue :: Val -> Val -> Bool
+subsetValue _ Any = True
+subsetValue Any _ = False
+subsetValue (Val _ _ a1 b1) (Val _ _ a2 b2) = f a1 a2 && f b1 b2
+    where
+        f (ValPart a1 b1) (ValPart a2 b2) =
+            all (uncurry f1) (zip a1 a2) &&
+            all (uncurry subsetValue) (zip b1 b2)
+        
+        f1 x y = x == y || y == True
+
+
+-- a `mergeAnd` b = c
+-- c `subsetValue` a && c `subsetValue` b
+mergeAnd :: Val -> Val -> Val
+mergeAnd Any x = x
+mergeAnd x Any = x
+mergeAnd (Val core typ a1 a2) (Val _ _ b1 b2) = Val core typ (f a1 b1) (f a2 b2)
+    where f (ValPart a1 a2) (ValPart b1 b2) = ValPart (zipWith (&&) a1 b1) (zipWith mergeAnd a2 b2)
+
+
+
+---------------------------------------------------------------------
+-- PROPOSITIONAL COMBINATIONS FOR VAL'S
 
 
 valsTrue = [Any]
@@ -98,35 +143,9 @@ valsAnds core = foldr (valsAnd core) valsTrue
 
 
 
-
--- is a `subset` b
-subsetValue :: Val -> Val -> Bool
-subsetValue _ Any = True
-subsetValue Any _ = False
-subsetValue (Val _ _ a1 b1) (Val _ _ a2 b2) = f a1 a2 && f b1 b2
-    where
-        f (ValPart a1 b1) (ValPart a2 b2) =
-            all (uncurry f1) (zip a1 a2) &&
-            all (uncurry subsetValue) (zip b1 b2)
-        
-        f1 x y = x == y || y == True
-
-
--- SHOULD THIS BE MERGE_AND OR MERGE_OR ?
-mergeVal :: Val -> Val -> Val
-mergeVal x y = error "Todo, Val.mergeVal"
-
-
--- a `mergeAnd` b = c
--- c `subsetValue` a && c `subsetValue` b
-mergeAnd :: Val -> Val -> Val
-mergeAnd Any x = x
-mergeAnd x Any = x
-mergeAnd (Val core typ a1 a2) (Val _ _ b1 b2) = Val core typ (f a1 b1) (f a2 b2)
-    where f (ValPart a1 a2) (ValPart b1 b2) = ValPart (zipWith (&&) a1 b1) (zipWith mergeAnd a2 b2)
-
-
 ---------------------------------------------------------------------
+-- NORMALISE
+
 -- properties of normalise, with X as the result:
 --
 -- \forall x, y \in X, x \not-subset y
@@ -227,7 +246,11 @@ ruleIndividual = concatMap f
 
 
 -- END NORMALISE
+
+
+
 ---------------------------------------------------------------------
+-- UTILITIES FOR REDUCE
 
 
 -- is the root allowed
