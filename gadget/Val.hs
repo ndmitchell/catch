@@ -1,12 +1,12 @@
 
 module Val(
-    Val(..), Vals,
+{-    Val(..), Vals,
     valsAnd, valsOr,
     valsAnds, valsOrs,
     valsTrue, valsFalse,
     anyCtor,
     checkRoot, integrate, differentiate
-    ) where
+-}    ) where
 
 
 import Yhc.Core
@@ -17,23 +17,28 @@ import DataRep
 
 
 ---------------------------------------------------------------------
+-- DEBUGGING DATA STRUCTURES
+
+listCoreData = CoreData "[]" [] [CoreCtor ":" [("",Just "hd"), ("",Just "tl")], CoreCtor "[]" []]
+
+listCore = Core [] [] [listCoreData] []
+
+
+---------------------------------------------------------------------
 -- UTILITIES FOR EXTRACTING INFORMATION
 
 getCtors :: CoreData -> [CoreCtorName]
-getCtors = map coreCtorName . coreDataCtors . coreData core
+getCtors = map coreCtorName . coreDataCtors
 
 
 getFields :: CoreData -> [CoreFieldName]
-getFields = filter (not . isFieldRecursive core) .
-            concatMap (map (fromJust . snd) . coreCtorFields) .
-            coreDataCtors
+getFields dat = [field | (typ, Just field) <- concatMap coreCtorFields $ coreDataCtors dat
+                       , let typ2 = filter (`notElem` "()") typ
+                       , rec /= typ]
+    where
+        rec = unwords $ coreDataName dat : coreDataTypes dat
 
 
-
-
--- debugging information
-listCoreData = CoreData "[]" [] [CoreCtor ":" [("",Just "hd"), ("",Just "tl")], CoreCtor "[]" []]
-listCore = Core [] [] [listCoreData] []
 
 
 
@@ -54,26 +59,31 @@ data ValPart = ValPart {valCtors :: [Bool], valFields :: [Val]}
 type Vals = [Val]
 
 
-instance Eq Val where
-    (Val _ a2 a3 a4) == (Val _ b2 b3 b4) = (a2,a3,a4) == (b2,b3,b4)
-    Any == Any = True
-    _ == _ = False
+representVal Any = (0, Nothing)
+representVal Void = (1, Nothing)
+representVal (Val _ a b) = (2, Just (a,b))
 
+
+instance Eq Val where
+    a == b = representVal a == representVal b
 
 instance Ord Val where
-    compare (Val _ a2 a3 a4) (Val _ b2 b3 b4) = compare (a2,a3,a4) (b2,b3,b4)
-    compare Any Any = EQ
-    compare Any _ = LT
-    compare _ Any = GT
+    compare x y = compare (representVal x) (representVal y)
 
 
 instance Show Val where
     showList xs = showString $ "[" ++ concat (intersperse " | " $ map show xs) ++ "]"
 
     show Any = "_"
+    show Void = "0"
     
-    show (Val core typ hd tl) = showPart hd ++ if complete tl then "" else " * " ++ showPart tl
+    show (Val dat hd tl) =
+            showPart hd ++
+            case tl of {Just x | not $ complete x -> " * " ++ showPart x; _ -> ""}
         where
+            ctrs = getCtors dat
+            flds = getFields dat
+        
             complete (ValPart ctrs fields) = and ctrs && all (== Any) fields
             
             showPart (ValPart ctrs fields) = showCtrs ctrs ++
@@ -83,14 +93,15 @@ instance Show Val where
         
             showCtrs xs | null res = "0"
                         | otherwise = concat $ intersperse "+" res
-                where res = [c | (True,c) <- zip xs (getCtors core typ)]
+                where res = [c | (True,c) <- zip xs ctrs]
     
             showFields xs = concatMap (\x -> " {" ++ show x ++ "}") xs
     
-            showFieldsRec xs = " {" ++ concat (intersperse ", " $ zipWith f xs (getFields core typ)) ++ "}"
+            showFieldsRec xs = " {" ++ concat (intersperse ", " $ zipWith f xs flds) ++ "}"
                 where f x name = name ++ "=" ++ show x
 
 
+{-
 
 ---------------------------------------------------------------------
 -- LOW LEVEL UTILITIES FOR COMBINING VAL'S
@@ -319,3 +330,4 @@ anyCtor core rest = normalise core
         typ = coreDataName $ coreCtorData core (head rest)
         ctrs = getCtors core typ
         fields = replicate (length $ getFields core typ) Any
+-}
