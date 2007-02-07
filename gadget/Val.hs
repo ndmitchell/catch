@@ -28,16 +28,18 @@ listCore = Core [] [] [listCoreData] []
 -- UTILITIES FOR EXTRACTING INFORMATION
 
 getCtors :: CoreData -> [CoreCtorName]
-getCtors = map coreCtorName . coreDataCtors
+getCtors = map fst . getCtorsFields
 
 
 getFields :: CoreData -> [CoreFieldName]
-getFields dat = [field | (typ, Just field) <- concatMap coreCtorFields $ coreDataCtors dat
-                       , let typ2 = filter (`notElem` "()") typ
-                       , rec /= typ]
-    where
-        rec = unwords $ coreDataName dat : coreDataTypes dat
+getFields = concatMap snd . getCtorsFields
 
+
+getCtorsFields :: CoreData -> [(CoreCtorName, [CoreFieldName])]
+getCtorsFields dat = [(coreCtorName ctr, concatMap f $ coreCtorFields ctr) | ctr <- coreDataCtors dat]
+    where
+        f (typ, Just field) = [field | filter (`notElem` "()") typ /= rec]
+        rec = unwords $ coreDataName dat : coreDataTypes dat
 
 
 
