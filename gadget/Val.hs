@@ -101,37 +101,48 @@ instance Show Val where
                 where f x name = name ++ "=" ++ show x
 
 
-{-
-
 ---------------------------------------------------------------------
 -- LOW LEVEL UTILITIES FOR COMBINING VAL'S
 
--- is a `subset` b
+-- is a `subset` b || a == b
 subsetValue :: Val -> Val -> Bool
+subsetValue Void _ = True
+subsetValue _ Void = True
 subsetValue _ Any = True
 subsetValue Any _ = False
-subsetValue (Val _ _ a1 b1) (Val _ _ a2 b2) = f a1 a2 && f b1 b2
-    where
-        f (ValPart a1 b1) (ValPart a2 b2) =
-            all (uncurry f1) (zip a1 a2) &&
-            all (uncurry subsetValue) (zip b1 b2)
-        
-        f1 x y = x == y || y == True
 
+subsetValue (Val _ a1 b1) (Val _ a2 b2) = f a1 a2 && fMaybe b1 b2
+    where
+        fMaybe (Just x) (Just y) = f x y
+        fMaybe _ _ = True
+    
+        f (ValPart a1 b1) (ValPart a2 b2) =
+            and (zipWith (<=) a1 a2) &&
+            and (zipWith subsetValue b1 b2)
+        
 
 -- a `mergeAnd` b = c
 -- c `subsetValue` a && c `subsetValue` b
 mergeAnd :: Val -> Val -> Val
+mergeAnd Void x = x
+mergeAnd x Void = x
 mergeAnd Any x = x
 mergeAnd x Any = x
-mergeAnd (Val core typ a1 a2) (Val _ _ b1 b2) = Val core typ (f a1 b1) (f a2 b2)
-    where f (ValPart a1 a2) (ValPart b1 b2) = ValPart (zipWith (&&) a1 b1) (zipWith mergeAnd a2 b2)
+mergeAnd (Val dat a1 a2) (Val _ b1 b2) = Val dat (f a1 b1) (fMaybe a2 b2)
+    where
+        fMaybe (Just x) (Just y) = Just $ f x y
+        fMaybe Nothing x = x
+        fMaybe x Nothing = x
+        fMaybe _ _ = Nothing
+    
+        f (ValPart a1 a2) (ValPart b1 b2) = ValPart (zipWith (&&) a1 b1) (zipWith mergeAnd a2 b2)
 
 
 
 ---------------------------------------------------------------------
 -- PROPOSITIONAL COMBINATIONS FOR VAL'S
 
+{-
 
 valsTrue = [Any]
 valsFalse = []
