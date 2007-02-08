@@ -371,6 +371,7 @@ ruleIndividual = concatMap f
 
 -- END NORMALISE
 
+-}
 
 ---------------------------------------------------------------------
 -- PROPOSITIONAL COMBINATIONS FOR VAL'S
@@ -397,7 +398,7 @@ valsAnds core = foldr (valsAnd core) valsTrue
 
 
 
-
+{-
 ---------------------------------------------------------------------
 -- UTILITIES FOR REDUCE
 
