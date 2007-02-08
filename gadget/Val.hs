@@ -123,14 +123,16 @@ subsetVal _ Void = True
 subsetVal _ Any = True
 subsetVal Any _ = False
 
-subsetVal (Val _ a1 b1) (Val _ a2 b2) = f a1 a2 && fMaybe b1 b2
+subsetVal (Val _ a1 b1) (Val _ a2 b2) = subsetValPart a1 a2 && fMaybe b1 b2
     where
-        fMaybe (Just x) (Just y) = f x y
+        fMaybe (Just x) (Just y) = subsetValPart x y
         fMaybe _ _ = True
-    
-        f (ValPart a1 b1) (ValPart a2 b2) =
-            and (zipWith (<=) a1 a2) &&
-            and (zipWith subsetVal b1 b2)
+
+
+subsetValPart :: ValPart -> ValPart -> Bool
+subsetValPart (ValPart a1 b1) (ValPart a2 b2)
+    = and (zipWith (<=) a1 a2) &&
+      and (zipWith subsetVal b1 b2)
 
 
 equalVal :: Val -> Val -> Bool
