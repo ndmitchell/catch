@@ -398,7 +398,6 @@ valsAnds core = foldr (valsAnd core) valsTrue
 
 
 
-{-
 ---------------------------------------------------------------------
 -- UTILITIES FOR REDUCE
 
@@ -408,10 +407,11 @@ checkRoot :: Core -> Vals -> CoreCtorName -> Bool
 checkRoot core vals name = Any `elem` vals || any f vals
     where
         typ = valType $ head vals
-        ind = fromJust $ findIndex (== name) $ getCtors core typ
+        ind = fromJust $ findIndex (== name) $ getCtors typ
         f val = valCtors (valHead val) !! ind
 
 
+{-
 integrate :: Core -> Vals -> CoreFieldName -> Vals
 integrate core vals field
         | Any `elem` vals = [Any]
