@@ -411,6 +411,17 @@ checkRoot core vals name = Any `elem` vals || any f vals
         f val = valCtors (valHead val) !! ind
 
 
+-- some simple constructors
+anyCtor :: Core -> [CoreCtorName] -> Vals
+anyCtor core [] = []
+anyCtor core rest = normalise core
+        [Val typ (ValPart (map (`elem` rest) ctrs) fields) (Just $ ValPart (replicate (length ctrs) True) fields)]
+    where
+        typ = coreCtorData core (head rest)
+        ctrs = getCtors typ
+        fields = replicate (length $ getFields typ) Any
+
+
 {-
 integrate :: Core -> Vals -> CoreFieldName -> Vals
 integrate core vals field
@@ -459,14 +470,4 @@ differentiate core name vals
             | otherwise = vals !! fromJust (findIndex (== fld) flds)
 
 
-
--- some simple constructors
-anyCtor :: Core -> [CoreCtorName] -> Vals
-anyCtor core [] = []
-anyCtor core rest = normalise core
-        [Val core typ (ValPart (map (`elem` rest) ctrs) fields) (ValPart (replicate (length ctrs) True) fields)]
-    where
-        typ = coreDataName $ coreCtorData core (head rest)
-        ctrs = getCtors core typ
-        fields = replicate (length $ getFields core typ) Any
 -}
