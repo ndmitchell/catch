@@ -167,13 +167,22 @@ mergeAnd (Val dat a1 a2) (Val _ b1 b2) = Val dat (f a1 b1) (fMaybe a2 b2)
 
 
 -- a `strengthenVal` b = c
--- b `subset` c, with knowledge from a
+-- b `subset` c, c `subset` (a `union` b)
 strengthenVal :: Val -> Val -> Val
-strengthenVal given x = x
-    -- TODO
-    -- if given accepts more constructors, strengthen the fields in x
-    -- if given accepts more fields, strengthen the constructors in x
+strengthenVal Void x = x
+strengthenVal x Void = x
+strengthenVal Any x = Any
+strengthenVal x Any = Any
+strengthenVal (Val _ (ValPart ac af) ar) (Val dat (ValPart bc bf) br) = Val dat (ValPart bc2 bf2) br2
+    where
+        -- a `superset` b
+        ac_bc = and $ zipWith (<=) bc ac
+        af_bf = and $ zipWith subsetVal bf af
+        ar_br = isNothing br || isNothing ar || subsetValPart (fromJust br) (fromJust ar)
 
+        bc2 = if af_bf && ar_br then zipWith (||) ac bc else bc
+        bf2 = if ac_bc && ar_br then zipWith strengthenVal af bf else bf
+        br2 = if ac_bc && af_bf then br else br
 
 
 -- normalise a value
