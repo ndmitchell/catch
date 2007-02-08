@@ -241,33 +241,7 @@ normaliseVal (Val dat a b) =
 
 
 
-
----------------------------------------------------------------------
--- PROPOSITIONAL COMBINATIONS FOR VAL'S
-
 {-
-
-valsTrue = [Any]
-valsFalse = []
-
-
-valsOr :: Core -> Vals -> Vals -> Vals
-valsOr core a b = normalise core $ a ++ b
-
-
-valsOrs :: Core -> [Vals] -> Vals
-valsOrs core xs = normalise core $ concat xs
-
-
-valsAnd :: Core -> Vals -> Vals -> Vals
-valsAnd core xs ys = normalise core [mergeAnd x y | x <- xs, y <- ys]
-
-
-valsAnds :: Core -> [Vals] -> Vals
-valsAnds core = foldr (valsAnd core) valsTrue
-
-
-
 ---------------------------------------------------------------------
 -- NORMALISE
 
@@ -371,6 +345,31 @@ ruleIndividual = concatMap f
 
 
 -- END NORMALISE
+
+
+---------------------------------------------------------------------
+-- PROPOSITIONAL COMBINATIONS FOR VAL'S
+
+
+valsTrue = [Any]
+valsFalse = []
+
+
+valsOr :: Core -> Vals -> Vals -> Vals
+valsOr core a b = normalise core $ a ++ b
+
+
+valsOrs :: Core -> [Vals] -> Vals
+valsOrs core xs = normalise core $ concat xs
+
+
+valsAnd :: Core -> Vals -> Vals -> Vals
+valsAnd core xs ys = normalise core [mergeAnd x y | x <- xs, y <- ys]
+
+
+valsAnds :: Core -> [Vals] -> Vals
+valsAnds core = foldr (valsAnd core) valsTrue
+
 
 
 
