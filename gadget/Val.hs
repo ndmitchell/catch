@@ -151,6 +151,63 @@ mergeAnd (Val dat a1 a2) (Val _ b1 b2) = Val dat (f a1 b1) (fMaybe a2 b2)
 
 
 
+-- normalise a value
+-- if all values are possible, return Any
+-- if no valid values are possible, return Void
+-- if a child is unimportant, return Void
+-- reduce each rule in isolation
+normaliseVal :: Val -> Val
+normaliseVal Any = Any
+normaliseVal Void = Void
+normaliseVal (Val dat a b) =
+        case b >>= normalisePart of
+            Nothing ->
+                let ValPart a1 a2 = a
+                    aNew = ValPart (zipWith (\x1 x2 -> x2 && not x2) a1 recc) a2
+                in case normalisePart aNew of
+                    Nothing -> Void
+                    Just a2 -> Val dat a2 Nothing
+
+            Just b2 -> case normalisePart a of
+                Nothing -> Void
+                Just an@(ValPart a1 a2)
+                    | or (zipWith (&&) a1 recc) -> Val dat an (Just b2)
+                    | otherwise -> Val dat an Nothing
+    where
+        ctrr = getCtorsRec dat
+        ctfd = getCtorsFields dat
+        ctrs = map fst ctfd
+        flds = concatMap snd ctfd
+        
+        -- those constructors which have a recursive element
+        recc = map (`elem` ctrr) ctrs
+
+    
+        -- void out all the fields which can't exist
+        -- if any field is void, void out the constructor
+        -- if whole thing ends up as void, return Nothing
+        normalisePart (ValPart a b) = if or a2 then Just (ValPart a2 b3) else Nothing
+            where
+                b3 = voidFields a2 b2 ctfd
+                a2 = voidCtors a b2 ctfd
+                b2 = map normaliseVal b
+                
+                -- if a constructor is marked as valid, but has a void field
+                -- set it to invalid
+                voidCtors _ _ [] = []
+                voidCtors (a:as) bs ((c,f):cf) = (a && all (/= Void) bsNow) : voidCtors as bsRest cf
+                    where (bsNow, bsRest) = splitAt (length f) bs
+
+                voidFields _ _ [] = []
+                voidFields (a:as) bs ((c,f):cf) = bsNew ++ voidFields as bs cf
+                    where
+                        bsNew = if a then bsNow else replicate (length bsNow) Void
+                        (bsNow, bsRest) = splitAt (length f) bs
+
+
+
+
+
 ---------------------------------------------------------------------
 -- PROPOSITIONAL COMBINATIONS FOR VAL'S
 
