@@ -197,7 +197,7 @@ normaliseVal (Val dat a b) =
         case b >>= normalisePart of
             Nothing ->
                 let ValPart a1 a2 = a
-                    aNew = ValPart (zipWith (\x1 x2 -> x2 && not x2) a1 recc) a2
+                    aNew = ValPart (zipWith (\x1 x2 -> x1 && not x2) a1 recc) a2
                 in case normalisePart aNew of
                     Nothing -> Void
                     Just a2 -> Val dat a2 Nothing
