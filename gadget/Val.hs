@@ -164,6 +164,16 @@ mergeAnd (Val dat a1 a2) (Val _ b1 b2) = Val dat (f a1 b1) (fMaybe a2 b2)
 
 
 
+-- a `strengthenVal` b = c
+-- b `subset` c, with knowledge from a
+strengthenVal :: Val -> Val -> Val
+strengthenVal given x = x
+    -- TODO
+    -- if given accepts more constructors, strengthen the fields in x
+    -- if given accepts more fields, strengthen the constructors in x
+
+
+
 -- normalise a value
 -- if all values are possible, return Any
 -- if no valid values are possible, return Void
