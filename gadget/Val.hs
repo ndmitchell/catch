@@ -35,12 +35,22 @@ getFields :: CoreData -> [CoreFieldName]
 getFields = concatMap snd . getCtorsFields
 
 
+prepType :: String -> String
+prepType = filter (`notElem` "()")
+
+
 getCtorsFields :: CoreData -> [(CoreCtorName, [CoreFieldName])]
 getCtorsFields dat = [(coreCtorName ctr, concatMap f $ coreCtorFields ctr) | ctr <- coreDataCtors dat]
     where
-        f (typ, Just field) = [field | filter (`notElem` "()") typ /= rec]
+        f (typ, Just field) = [field | prepType typ /= rec]
         rec = unwords $ coreDataName dat : coreDataTypes dat
 
+
+
+-- those constructors which have a field which is recursive
+getCtorsRec :: CoreData -> [CoreCtorName]
+getCtorsRec dat = [coreCtorName ctr | ctr <- coreDataCtors dat, any ((== rec) . prepType . fst) (coreCtorFields ctr)]
+    where rec = unwords $ coreDataName dat : coreDataTypes dat
 
 
 
