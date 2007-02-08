@@ -241,6 +241,31 @@ normaliseVal (Val dat a b) =
 
 
 
+normalise :: Core -> Vals -> Vals
+normalise _ = snub . ruleCombine . snub . map normaliseVal . snub
+
+
+ruleCombine :: [Val] -> [Val]
+ruleCombine xs = f [] xs
+    where
+        f done [] = done
+        f done (t:odo) = f done2 (todo2++odo)
+            where (done2,todo2) = g t done
+
+        
+        -- given a comparison element
+        -- and a list of things which have been done
+        -- give back a list of things still done, and things to do
+        g :: Val -> [Val] -> ([Val],[Val])
+        g t [] = ([t],[])
+        g t (x:xs) | t `subsetVal` v = (xs, [v])
+                   | v == x = (v:a, b)
+                   | otherwise = (a, v:b)
+            where
+                v = strengthenVal t x
+                (a,b) = g t xs
+
+
 {-
 ---------------------------------------------------------------------
 -- NORMALISE
