@@ -1,12 +1,12 @@
 
 module Val(
-{-    Val(..), Vals,
+    Val(..), Vals,
     valsAnd, valsOr,
     valsAnds, valsOrs,
     valsTrue, valsFalse,
     anyCtor,
     checkRoot, integrate, differentiate
--}    ) where
+    ) where
 
 
 import Yhc.Core
