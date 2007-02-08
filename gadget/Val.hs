@@ -422,36 +422,35 @@ anyCtor core rest = normalise core
         fields = replicate (length $ getFields typ) Any
 
 
-{-
 integrate :: Core -> Vals -> CoreFieldName -> Vals
 integrate core vals field
         | Any `elem` vals = [Any]
-        | otherwise = normalise core $ anyCtor core (delete name $ getCtors core typ) ++ map f vals
+        | otherwise = normalise core $ anyCtor core (delete name $ getCtors dat) ++ map f vals
     where
-        typ = coreDataName dat
         dat = coreCtorData core name
         ctr@(CoreCtor name fields) = coreFieldCtor core field
         rec = isFieldRecursive core field
         
         ctrs = coreDataCtors dat
-        flds = getFields core typ
+        flds = getFields dat
         
         (nctrs,nflds) = (length ctrs, length flds)
         
         ictr = fromJust $ findIndex ((== name) . coreCtorName) ctrs
         ifld = fromJust $ findIndex (== field) flds
         
-        f v | rec = Val core typ
-                               (ValPart (replicate nctrs False !!! (ictr,True)) (replicate nflds Any))
-                               (ValPart (zipWith (&&) (valCtors $ valHead v) (valCtors $ valTail v))
-                                        (zipWith mergeAnd (valFields $ valHead v) (valFields $ valTail v)))
+        f v | rec = Val dat
+                       (ValPart (replicate nctrs False !!! (ictr,True)) (replicate nflds Any))
+                       (Just $ ValPart (zipWith (&&) (valCtors $ valHead v) (valCtors $ fromJust $ valTail v))
+                                       (zipWith mergeAnd (valFields $ valHead v) (valFields $ fromJust $ valTail v)))
 
-            | otherwise = Val core typ
-                               (ValPart (replicate nctrs False !!! (ictr,True)) (replicate nflds Any !!! (ifld,v)))
-                               (ValPart (replicate nctrs True) (replicate nflds Any))
+            | otherwise = Val dat
+                       (ValPart (replicate nctrs False !!! (ictr,True)) (replicate nflds Any !!! (ifld,v)))
+                       (Just $ ValPart (replicate nctrs True) (replicate nflds Any))
 
 
 
+{-
 differentiate :: Core -> CoreCtorName -> Vals -> [[Val]]
 differentiate core name vals
         | null vals = []
