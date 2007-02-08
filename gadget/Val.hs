@@ -117,20 +117,20 @@ instance Show Val where
 -- LOW LEVEL UTILITIES FOR COMBINING VAL'S
 
 -- is a `subset` b || a == b
-subsetValue :: Val -> Val -> Bool
-subsetValue Void _ = True
-subsetValue _ Void = True
-subsetValue _ Any = True
-subsetValue Any _ = False
+subsetVal :: Val -> Val -> Bool
+subsetVal Void _ = True
+subsetVal _ Void = True
+subsetVal _ Any = True
+subsetVal Any _ = False
 
-subsetValue (Val _ a1 b1) (Val _ a2 b2) = f a1 a2 && fMaybe b1 b2
+subsetVal (Val _ a1 b1) (Val _ a2 b2) = f a1 a2 && fMaybe b1 b2
     where
         fMaybe (Just x) (Just y) = f x y
         fMaybe _ _ = True
     
         f (ValPart a1 b1) (ValPart a2 b2) =
             and (zipWith (<=) a1 a2) &&
-            and (zipWith subsetValue b1 b2)
+            and (zipWith subsetVal b1 b2)
         
 
 -- a `mergeAnd` b = c
