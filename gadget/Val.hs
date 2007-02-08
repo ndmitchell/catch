@@ -176,9 +176,9 @@ strengthenVal x Any = Any
 strengthenVal (Val _ (ValPart ac af) ar) (Val dat (ValPart bc bf) br) = Val dat (ValPart bc2 bf2) br2
     where
         -- a `superset` b
-        ac_bc = and $ zipWith (<=) bc ac
-        af_bf = and $ zipWith subsetVal bf af
-        ar_br = isNothing br || isNothing ar || subsetValPart (fromJust br) (fromJust ar)
+        ac_bc = False -- and $ zipWith (<=) bc ac
+        af_bf = False -- and $ zipWith subsetVal bf af
+        ar_br = False -- isNothing br || isNothing ar || subsetValPart (fromJust br) (fromJust ar)
 
         bc2 = if af_bf && ar_br then zipWith (||) ac bc else bc
         bf2 = if ac_bc && ar_br then zipWith strengthenVal af bf else bf
