@@ -131,7 +131,20 @@ subsetVal (Val _ a1 b1) (Val _ a2 b2) = f a1 a2 && fMaybe b1 b2
         f (ValPart a1 b1) (ValPart a2 b2) =
             and (zipWith (<=) a1 a2) &&
             and (zipWith subsetVal b1 b2)
-        
+
+
+equalVal :: Val -> Val -> Bool
+equalVal Void _ = True
+equalVal _ Void = True
+equalVal (Val _ a1 b1) (Val _ a2 b2) = equalValPart a1 a2 && rest
+    where rest = isNothing b1 || isNothing b2 || equalValPart (fromJust b1) (fromJust b2)
+equalVal x y = x == y
+
+
+equalValPart :: ValPart -> ValPart -> Bool
+equalValPart (ValPart a1 b1) (ValPart a2 b2) = a1 == a2 && and (zipWith equalVal b1 b2)
+
+
 
 -- a `mergeAnd` b = c
 -- c `subsetValue` a && c `subsetValue` b
