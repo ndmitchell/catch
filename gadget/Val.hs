@@ -450,23 +450,20 @@ integrate core vals field
 
 
 
-{-
+
 differentiate :: Core -> CoreCtorName -> Vals -> [[Val]]
 differentiate core name vals
         | null vals = []
         | Any `elem` vals = [replicate (length $ coreCtorFields ctor) Any]
         | otherwise = [map (f (v,part) . fromJust . snd) $ coreCtorFields ctor 
-                      | Val _ _ (ValPart c v) part <- vals, c !! ictr]
+                      | Val _ (ValPart c v) part <- vals, c !! ictr]
     where
         typ = valType $ head vals
-        ctrs = getCtors core typ
-        flds = getFields core typ
+        ctrs = getCtors typ
+        flds = getFields typ
         ctor = coreCtor core name
         ictr = fromJust $ findIndex (==name) ctrs
         
-        f (vals,cont) fld
-            | isFieldRecursive core fld = Val core typ cont cont
+        f (vals,Just cont) fld
+            | isFieldRecursive core fld = Val typ cont (Just cont)
             | otherwise = vals !! fromJust (findIndex (== fld) flds)
-
-
--}
