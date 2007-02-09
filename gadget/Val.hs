@@ -147,6 +147,14 @@ equalValPart :: ValPart -> ValPart -> Bool
 equalValPart (ValPart a1 b1) (ValPart a2 b2) = a1 == a2 && and (zipWith equalVal b1 b2)
 
 
+completeVal :: Val -> Bool
+completeVal Any = True
+completeVal Void = False
+completeVal (Val _ a b) = completeValPart a && maybe True completeValPart b
+
+completeValPart :: ValPart -> Bool
+completeValPart (ValPart a b) = and a && all (\x -> x == Void || completeVal x) b
+
 
 -- a `mergeAnd` b = c
 -- c `subsetValue` a && c `subsetValue` b
@@ -200,14 +208,17 @@ normaliseVal (Val dat a b) =
                     aNew = ValPart (zipWith (\x1 x2 -> x1 && not x2) a1 recc) a2
                 in case normalisePart aNew of
                     Nothing -> Void
-                    Just a2 -> Val dat a2 Nothing
+                    Just a2 | completeValPart a2 -> Any
+                            | otherwise -> Val dat a2 Nothing
 
             Just b2 -> case normalisePart a of
                 Nothing -> Void
                 Just an@(ValPart a1 a2)
-                    | or (zipWith (&&) a1 recc) -> Val dat an (Just b2)
-                    | otherwise -> Val dat an Nothing
+                    | or (zipWith (&&) a1 recc) -> checkComplete $ Val dat an (Just b2)
+                    | otherwise -> checkComplete $ Val dat an Nothing
     where
+        checkComplete x = if completeVal x then Any else x
+    
         ctrr = getCtorsRec dat
         ctfd = getCtorsFields dat
         ctrs = map fst ctfd
