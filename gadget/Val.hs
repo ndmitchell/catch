@@ -242,7 +242,10 @@ normaliseVal (Val dat a b) =
 
 
 normalise :: Core -> Vals -> Vals
-normalise _ = snub . ruleCombine . snub . map normaliseVal . snub
+normalise _ input = output
+    where
+        ouput = process input
+        process = snub . ruleCombine . snub . map normaliseVal . snub
 
 
 ruleCombine :: [Val] -> [Val]
