@@ -465,5 +465,5 @@ differentiate core name vals
         ictr = fromJust $ findIndex (==name) ctrs
         
         f (vals,cont) fld
-            | isFieldRecursive core fld = let Just jcont = cont in Val typ jcont cont
+            | isFieldRecursive core fld = Val typ (fromJust cont) cont
             | otherwise = vals !! fromJust (findIndex (== fld) flds)
