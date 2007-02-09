@@ -439,14 +439,17 @@ integrate core vals field
         ictr = fromJust $ findIndex ((== name) . coreCtorName) ctrs
         ifld = fromJust $ findIndex (== field) flds
         
-        f v | rec = Val dat
+        f v | rec = let part = fromMaybe anyPart (valTail v) in
+                    Val dat
                        (ValPart (replicate nctrs False !!! (ictr,True)) (replicate nflds Any))
-                       (Just $ ValPart (zipWith (&&) (valCtors $ valHead v) (valCtors $ fromJust $ valTail v))
-                                       (zipWith mergeAnd (valFields $ valHead v) (valFields $ fromJust $ valTail v)))
+                       (Just $ ValPart (zipWith (&&) (valCtors $ valHead v) (valCtors part))
+                                       (zipWith mergeAnd (valFields $ valHead v) (valFields part)))
 
             | otherwise = Val dat
                        (ValPart (replicate nctrs False !!! (ictr,True)) (replicate nflds Any !!! (ifld,v)))
-                       (Just $ ValPart (replicate nctrs True) (replicate nflds Any))
+                       (Just anyPart)
+
+        anyPart = ValPart (replicate nctrs True) (replicate nflds Any)
 
 
 
