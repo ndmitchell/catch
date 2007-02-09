@@ -61,9 +61,8 @@ getCtorsRec dat = [coreCtorName ctr | ctr <- coreDataCtors dat, any ((== rec) . 
 -- If a value is Void then the constructor for the field is not allowed
 
 
-data Val = Val {valType :: CoreData, valHead :: ValPart, valTail :: Maybe ValPart}
+data Val = Val {valType :: CoreData, valHead :: ValPart, valTail :: ValPart}
          | Any
-         | Void
 
 data ValPart = ValPart {valCtors :: [Bool], valFields :: [Val]}
                deriving (Eq, Ord, Show)
@@ -72,8 +71,7 @@ type Vals = [Val]
 
 
 representVal Any = (0, Nothing)
-representVal Void = (1, Nothing)
-representVal (Val _ a b) = (2, Just (a,b))
+representVal (Val _ a b) = (1, Just (a,b))
 
 
 instance Eq Val where
@@ -87,17 +85,12 @@ instance Show Val where
     showList xs = showString $ "[" ++ concat (intersperse " | " $ map show xs) ++ "]"
 
     show Any = "_"
-    show Void = "0"
-    
-    show (Val dat hd tl) =
-            showPart hd ++
-            case tl of {Just x | not $ complete x -> " * " ++ showPart x; _ -> ""}
+
+    show (Val dat hd tl) = showPart hd ++ (if completeValPart tl then "" else " * " ++ showPart tl)
         where
             ctrs = getCtors dat
             flds = getFields dat
         
-            complete (ValPart ctrs fields) = and ctrs && all (== Any) fields
-            
             showPart (ValPart ctrs fields) = showCtrs ctrs ++
                 if all (== Any) fields then ""
                 else if length ctrs == 1 || length fields <= 1 then showFields fields
@@ -118,15 +111,10 @@ instance Show Val where
 
 -- is a `subset` b || a == b
 subsetVal :: Val -> Val -> Bool
-subsetVal Void _ = True
-subsetVal _ Void = True
 subsetVal _ Any = True
 subsetVal Any _ = False
 
-subsetVal (Val _ a1 b1) (Val _ a2 b2) = subsetValPart a1 a2 && fMaybe b1 b2
-    where
-        fMaybe (Just x) (Just y) = subsetValPart x y
-        fMaybe _ _ = True
+subsetVal (Val _ a1 b1) (Val _ a2 b2) = subsetValPart a1 a2 && subsetValPart b1 b2
 
 
 subsetValPart :: ValPart -> ValPart -> Bool
@@ -135,41 +123,22 @@ subsetValPart (ValPart a1 b1) (ValPart a2 b2)
       and (zipWith subsetVal b1 b2)
 
 
-equalVal :: Val -> Val -> Bool
-equalVal Void _ = True
-equalVal _ Void = True
-equalVal (Val _ a1 b1) (Val _ a2 b2) = equalValPart a1 a2 && rest
-    where rest = isNothing b1 || isNothing b2 || equalValPart (fromJust b1) (fromJust b2)
-equalVal x y = x == y
-
-
-equalValPart :: ValPart -> ValPart -> Bool
-equalValPart (ValPart a1 b1) (ValPart a2 b2) = a1 == a2 && and (zipWith equalVal b1 b2)
-
 
 completeVal :: Val -> Bool
 completeVal Any = True
-completeVal Void = False
-completeVal (Val _ a b) = completeValPart a && maybe True completeValPart b
+completeVal (Val _ a b) = completeValPart a && completeValPart b
 
 completeValPart :: ValPart -> Bool
-completeValPart (ValPart a b) = and a && all (\x -> x == Void || completeVal x) b
+completeValPart (ValPart a b) = and a && all completeVal b
 
 
 -- a `mergeAnd` b = c
 -- c `subsetValue` a && c `subsetValue` b
 mergeAnd :: Val -> Val -> Val
-mergeAnd Void x = x
-mergeAnd x Void = x
 mergeAnd Any x = x
 mergeAnd x Any = x
-mergeAnd (Val dat a1 a2) (Val _ b1 b2) = Val dat (f a1 b1) (fMaybe a2 b2)
+mergeAnd (Val dat a1 a2) (Val _ b1 b2) = Val dat (f a1 b1) (f a2 b2)
     where
-        fMaybe (Just x) (Just y) = Just $ f x y
-        fMaybe Nothing x = x
-        fMaybe x Nothing = x
-        fMaybe _ _ = Nothing
-    
         f (ValPart a1 a2) (ValPart b1 b2) = ValPart (zipWith (&&) a1 b1) (zipWith mergeAnd a2 b2)
 
 
@@ -177,8 +146,6 @@ mergeAnd (Val dat a1 a2) (Val _ b1 b2) = Val dat (f a1 b1) (fMaybe a2 b2)
 -- a `strengthenVal` b = c
 -- b `subset` c, c `subset` (a `union` b)
 strengthenVal :: Val -> Val -> Val
-strengthenVal Void x = x
-strengthenVal x Void = x
 strengthenVal Any x = Any
 strengthenVal x Any = Any
 strengthenVal (Val _ (ValPart ac af) ar) (Val dat (ValPart bc bf) br) = Val dat (ValPart bc2 bf2) br2
@@ -186,7 +153,7 @@ strengthenVal (Val _ (ValPart ac af) ar) (Val dat (ValPart bc bf) br) = Val dat 
         -- a `superset` b
         ac_bc = False -- and $ zipWith (<=) bc ac
         af_bf = and $ zipWith subsetVal bf af
-        ar_br = isNothing br || isNothing ar || subsetValPart (fromJust br) (fromJust ar)
+        ar_br = False -- isNothing br || isNothing ar || subsetValPart (fromJust br) (fromJust ar)
 
         bc2 = if af_bf && ar_br then zipWith (||) ac bc else bc
         bf2 = if ac_bc && ar_br then zipWith strengthenVal af bf else bf
@@ -200,8 +167,8 @@ strengthenVal (Val _ (ValPart ac af) ar) (Val dat (ValPart bc bf) br) = Val dat 
 -- reduce each rule in isolation
 normaliseVal :: Val -> Val
 normaliseVal Any = Any
-normaliseVal Void = Void
-normaliseVal (Val dat a b) =
+normaliseVal (Val dat a b) = Val dat a b
+{-
         case b >>= normalisePart of
             Nothing ->
                 let ValPart a1 a2 = a
@@ -248,7 +215,7 @@ normaliseVal (Val dat a b) =
                     where
                         bsNew = if a then bsNow else replicate (length bsNow) Void
                         (bsNow, bsRest) = splitAt (length f) bs
-
+-}
 
 
 
@@ -324,7 +291,7 @@ checkRoot core vals name = Any `elem` vals || any f vals
 anyCtor :: Core -> [CoreCtorName] -> Vals
 anyCtor core [] = []
 anyCtor core rest = normalise core
-        [Val typ (ValPart (map (`elem` rest) ctrs) fields) (Just $ ValPart (replicate (length ctrs) True) fields)]
+        [Val typ (ValPart (map (`elem` rest) ctrs) fields) (ValPart (replicate (length ctrs) True) fields)]
     where
         typ = coreCtorData core (head rest)
         ctrs = getCtors typ
@@ -348,18 +315,14 @@ integrate core vals field
         ictr = fromJust $ findIndex ((== name) . coreCtorName) ctrs
         ifld = fromJust $ findIndex (== field) flds
         
-        f v | rec = let part = fromMaybe anyPart (valTail v) in
-                    Val dat
+        f v | rec = Val dat
                        (ValPart (replicate nctrs False !!! (ictr,True)) (replicate nflds Any))
-                       (Just $ ValPart (zipWith (&&) (valCtors $ valHead v) (valCtors part))
-                                       (zipWith mergeAnd (valFields $ valHead v) (valFields part)))
+                       (ValPart (zipWith (&&) (valCtors $ valHead v) (valCtors $ valTail v))
+                                (zipWith mergeAnd (valFields $ valHead v) (valFields $ valTail v)))
 
             | otherwise = Val dat
                        (ValPart (replicate nctrs False !!! (ictr,True)) (replicate nflds Any !!! (ifld,v)))
-                       (Just anyPart)
-
-        anyPart = ValPart (replicate nctrs True) (replicate nflds Any)
-
+                       (ValPart (replicate nctrs True) (replicate nflds Any))
 
 
 
@@ -377,5 +340,5 @@ differentiate core name vals
         ictr = fromJust $ findIndex (==name) ctrs
         
         f (vals,cont) fld
-            | isFieldRecursive core fld = Val typ (fromJust cont) cont
+            | isFieldRecursive core fld = Val typ cont cont
             | otherwise = vals !! fromJust (findIndex (== fld) flds)
