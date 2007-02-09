@@ -259,6 +259,9 @@ traceNone :: Show a => String -> a -> a
 traceNone args res = res
 
 
+traceStrict :: String -> a -> a
+traceStrict msg res = length msg `seq` trace msg res
+
 
 ---------------------------------------------------------------------
 -- MISC STUFF
