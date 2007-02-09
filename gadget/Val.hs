@@ -262,10 +262,11 @@ ruleCombine xs = f [] xs
         g :: Val -> [Val] -> ([Val],[Val])
         g t [] = ([t],[])
         g t (x:xs) | t `subsetVal` v = (xs, [v])
+                   | v `subsetVal` t = (xs, [t])
                    | v == x = (v:a, b)
                    | otherwise = (a, v:b)
             where
-                v = strengthenVal t x
+                v = normaliseVal $ strengthenVal t x
                 (a,b) = g t xs
 
 
