@@ -4,12 +4,27 @@
 -- Tautology testing by partial evaluation and case analysis.
 -- Colin Runciman, 2003.
 
+{-
+THE DELIBERATE MISTAKE INTRODUCED LEADS TO A PATTERN MATCH ERROR!
+
+> taut (Imp (Imp (Lit True) (Var 'a')) (Var 'a'))
+Program error: pattern match failure: varOf (Lit True)
+
+Catch says:
+\forall main, [Lit+Var+Not * Lit+Var+Not | Lit+Var+Not+Imp * Lit+Not+Imp]
+-}
+
+
 module Taut where
+
+--import SmallCheck
+--import Debug.Trace
 
 data Prop = Lit Bool
           | Var Char
           | Not Prop
-  | Imp Prop Prop
+          | Imp Prop Prop
+            deriving Show
 
 eval :: Prop -> Prop
 eval (Lit b)   = Lit b
@@ -23,6 +38,7 @@ eval (Imp p q) = case (eval p, eval q) of
                     (p',    q') -> Imp p q
                                      --             XXXXXXX
                                      -- deliberate mistake: should be Imp p' q'
+
 
 varOf :: Prop -> Char
 varOf (Var v)   = v
@@ -45,3 +61,11 @@ taut p = case eval p of
 -- main :: Bool
 main x = taut x
 
+
+
+{-
+instance Serial Prop where
+    series = cons1 Lit \/ cons1 Var \/ cons1 Not \/ cons2 Imp
+
+prop x = trace (show x) $ taut x ==> True
+-}
