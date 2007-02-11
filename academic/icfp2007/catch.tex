@@ -3,6 +3,7 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{alltt}
+\usepackage{url}
 \usepackage{natbib}
 
 % general stuff
@@ -157,7 +158,7 @@ This section details all the stages that are executed in order to generate a pro
 
 \subsection{Modifying Risers for analysis}
 
-There is one restriction on the functions that Catch can analyse -- they must be first order. In Haskell, because of the way type classes are implemented, this additionally means that they must not have type classes. The reason for this restriction is simple - with no knowledge about the input function the only conservative approximation is that all calls will give $\bot$.
+There is one restriction on the functions that Catch can analyse -- they must be first order. In Haskell \citep{haskell}, because of the way type classes are implemented, this additionally means that they must not have type classes. The reason for this restriction is simple - with no knowledge about the input function the only conservative approximation is that all calls will give $\bot$.
 
 Initially the type of risers is \T{risers :: Ord a => [a] -> [[a]]} - this can be easily fixed with.
 
@@ -190,7 +191,8 @@ After converting to Core Haskell, and renaming to be more human readable, the re
      True -> (z : snd x) : (fst x)
      False -> (z : []) : (snd x : fst x)
 \end{code}
----------------------------------------
+\caption{Risers in the Core language}
+\label{fig:risers_core}
 \end{figure}
 
 \subsection{Analysis}
@@ -200,6 +202,173 @@ The analysis first starts by finding calls to \T{error}, then trying to prove th
 Looking further back, this shows that risers3 calls risers4, passing (risers (x:y)) as the argument. In this particular case it is possible to see that risers of a : always results in a : - requiring in part the knowledge that risers2 is always a :. With these axioms it can be shown that the entire program is safe.
 
 Unfortunately the analysis is not blessed with the foresight to know the answer. The analysis proceeds by searching for likely axioms, transforming constraints and otherwise manipulating program fragments until a fixed point is found. The exact transformation rules, along with the constraints that can be expressed by the system are the main substance of the analysis.
+
+
+\section{The Data}
+
+This section explains the underlying constraint system in Catch, focusing on how the constraints are put together to express properties of expressions and the data structures they evaluate to.
+
+\subsection{Reduced expression language}
+
+\begin{figure}
+\begin{code}
+data Expr = Var String
+          | Sel Expr String
+          | Make CtorName [Expr]
+          | Call FuncName [Expr]
+          | Case Expr [Alt]
+
+data Alt = Alt CtorName Expr
+         | AltDefault Expr
+\end{code}
+\caption{Core Data Type}
+\label{fig:core}
+\end{figure}
+
+The abstract syntax tree for the reduced expression language is given in figure n.
+The Core language chosen for this purpose is like most others, with the
+exception of paths. The language is first order, has only simple case
+statements, and only algebraic data types. The evaluation strategy is lazy. All
+case statements are defined to be complete, with error being introduced where a
+pattern match error would occur. This means that the challenge is checking for
+calls to \textit{error}.
+
+The one thing present in our Core language, but not in other languages, is the
+\textit{path}. A path is represented as $e\D{}p$, where $e$ is the expression,
+and $p$ is a \textit{selector}. Some examples of selectors include \T{hd} and
+\T{tl}. A selector asserts that a data value has a given constructor, and then
+follows its appropriate field. For example \T(1:2:[]\D{}hd) is \T{1}. It is
+forbidden to write \T{[]\D{}hd}, or to ever require the evaluation of a
+variables selector which has the wrong constructor.
+
+Our use of paths contrasts with a traditional Core language's use of \T{case}
+statements with bindings, however our choice has a number of merits:
+
+\begin{enumerate}
+\item Variables are only introduced at the function level, and have a scope of the entire function.
+\item The rules to transform constraints are simplified.
+\end{enumerate}
+
+While the concept of Path's is different from normal, the benefits they provide are useful, allowing a simpler formulation of the rules.
+
+\subsection{Constraints}
+
+An expression ultimately evaluates to a (potentially infinite) data structure, or to $\bot{}$ caused by either non-termination of pattern match error. If an expression does evaluate to a data structure, then a constraint states the possible forms of data value it may take. A constraint $C$ is a set of data structures, potentially infinite.
+
+Given a mechanism of expressing some set of constructors, $E(x) \in C$ states that the expression $x$ must, when evaluated be a member of the set defined by $C$. Since the Core language is typed, the constraint $C$ will only refer to a well typed term. These atomic constraints can be built up into a predicate of constraints, each possibly on different variables.
+
+Since free variables are bound by function calls, it is possible to scope a constraint by making it a predicate. These can then be placed into a proposition. For example, $\forall f, i \in C$ states that for the function $f$, the argument $i$ must be in the set $C$. To take a concrete example, one particular example is $\forall risers4, x \in {:}$ - where ${:}$ is the set of values which start with a cons.
+
+These constraints are sufficient to express many useful properties. Several underlying models of $C$ are possible, and will be discussed later.
+
+\subsection{Manipulating constraints}
+
+Constraints on free variables can be propagated by moving them from the callee to the caller. Constraints on function calls have to be treated specially. All other constraints can be reduced using the process denoted by a function $\varphi$, which takes a constraint and returns a predicate over constraints.
+This function is detailed in Figure~\ref{fig:backward}.
+
+In this figure, $C$ denotes a constructor, $c$ is a set of
+constructors, $f$ is a function, $e$ is an expression, $r$ is a
+regular expression over selectors and $s$ is a selector.
+
+\begin{figure}
+
+\renewcommand\theequation{sel}
+\begin{equation}
+    \tup{e\D{}s \in c} \rightarrow
+    \tup{e,s\D{}r,c}
+\end{equation}
+
+\renewcommand\theequation{con}
+\begin{equation}
+\frac
+    {
+        P =
+        \bigwedge_{i=1}^{\#\vecto{e}}
+        \tup{e_i,\frac{\partial r}{\partial \mathcal{S}(C,i)},c}
+    }
+    {
+        \tup{C \gap \vecto{e},r,c}
+        \rightarrow (\lambda \in L(r) \Rightarrow C \in c) \wedge P
+    }
+\end{equation}
+
+\renewcommand\theequation{cas}
+\begin{equation}
+\frac
+    {
+        P =
+        \bigwedge_{i=1}^{\#\vecto{e}}
+        (
+            \tup{e_0,\lambda,C_i}
+            \Rightarrow
+            \tup{e_i,r,c}
+        )
+    }
+    {
+        \tup{\T{case } e_0 \T{ of \{}C_1 \T{->} e_1\T{;} \cdots
+        \T{;} C_n \T{->} e_n \},r,c} \rightarrow P
+    }
+\end{equation}
+
+\caption{Specification of backward analysis, $\varphi$} %
+\label{fig:backward}
+\end{figure}
+
+\begin{description}
+
+\item[The (sel) rule] moves the composition from the expression
+to the path.
+
+\item[The (con) rule] deals with an application of a constructor $C$.
+If $\lambda$ is in the path language the $C$ must be permitted by
+the condition. This depends on the \textit{empty word property}
+(ewp) \cite{conway}, which can be calculated structurally on the
+regular expression.
+
+For each of the arguments to $C$, a new constraint is obtained from
+the derivative of the regular expression with respect to that
+argument's selector. This is denoted by $\partial r / \partial
+\mathcal{S}(C,i)$, where $\mathcal{S}(C,i)$ gives the selector for
+the $i$th argument of the constructor $C$. The differentiation
+method is based on that described by Conway \cite{conway}. It can be
+used to test for membership in the following way:
+
+\[
+\begin{array}{rcl}
+\lambda \in L(r) & = & \text{ewp}(r) \\
+s\D{}r' \in L(r) & = & r' \in L(\partial r / \partial s)
+\end{array}
+\]
+
+Two particular cases of note are $\partial \lambda / \partial a =
+\phi$ and $\partial \phi / \partial a = \phi$.
+
+\item[The (app) rule] uses the notation $\mathcal{D}(f,\vecto{e})$ to
+express the result of substituting each of the arguments in
+$\vecto{e}$ into the body of the function $f$. The naive application
+of this rule to any function with a recursive call will loop
+forever. To combat this, if a function is already in the process of
+being evaluated with the same constraint, its result is given as
+true, and the recursive arguments are put into a special pile to be
+examined later on, see \S\ref{sec:fixed_point} for details.
+
+\item[The (cas) rule] generates a conjunct for each alternative.
+The function $\mathcal{C}(C)$ returns the set of all other
+constructors with the same result type as $C$, i.e.
+$\mathcal{C}(\T{[]}) = \g{:}$. The generated condition says either
+the subject of the case analysis has a different constructor (so
+this particular alternative is not executed in this circumstance),
+or the right hand side of the alternative is safe given the
+conditions for this expression.
+\end{description}
+
+
+After these rules have been applied, the only remaining constraints will be
+either on free variables, or function application. Function application is
+dealt with by templating, to reduce the problem to one on only free variables.
+Once a constraint is on free variables, it is propagated to all the callers of
+the given function, and the process is repeated.
+
 
 
 \section{Overview of Constraints}
@@ -275,23 +444,6 @@ checking, must all be of the same result type.
 
 \section{A Small Core Language}
 
-The Core language chosen for this purpose is like most others, with the
-exception of paths. The language is first order, has only simple case
-statements, and only algebraic data types. The evaluation strategy is lazy. All
-case statements are defined to be complete, with error being introduced where a
-pattern match error would occur. This means that the challenge is checking for
-calls to \textit{error}.
-
-The one thing present in our Core language, but not in other languages, is the
-\textit{path}. A path is represented as $e\D{}p$, where $e$ is the expression,
-and $p$ is a \textit{selector}. Some examples of selectors include \T{hd} and
-\T{tl}. A selector asserts that a data value has a given constructor, and then
-follows its appropriate field. For example \T(1:2:[]\D{}hd) is \T{1}. It is
-forbidden to write \T{[]\D{}hd}, or to ever require the evaluation of a
-variables selector which has the wrong constructor.
-
-Our use of paths contrasts with a traditional Core language's use of \T{case}
-statements with bindings, however our choice has a number of merits:
 
 
 \section{Manipulating Constraints}
@@ -1089,14 +1241,9 @@ This is the text of the appendix, if you need one.
 
 Acknowledgments, if needed.
 
-% plainnat bibliography style
+\bibliographystyle{plainnat}
+\bibliography{catch}
 
-\begin{thebibliography}{}
 
-\bibitem{smith02}
-Smith, P. Q. reference text
-
-\end{thebibliography}
 
 \end{document}
-1-59593-090-6/05/0007
