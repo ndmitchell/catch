@@ -39,7 +39,9 @@ int (S x) = 1 + int x
 x ^^^ Z   = S Z
 x ^^^ S y = x * (x ^^^ y)
 
-main = print (int (3 ^^^ 8))
+main = do
+    [power] <- getArgs
+    print $ int (3 ^^^ (fromInteger $ read power))
 
 --
 -- Timing for hbc version 0.997.2
