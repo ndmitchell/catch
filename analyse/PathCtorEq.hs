@@ -77,7 +77,7 @@ enumeratePathCtorProp p = propFold fold p
         ands [xs,ys] = [x | x <- xs2, any (x `subsetValue`) ys2] ++ [y | y <- ys2, any (y `subsetValue`) xs2]
             where (xs2,ys2) = (normalise core xs, normalise core ys)
 
-        ands x = error $ show ("ands",x)
+        ands (x:xs) = ands [x,ands xs]
 
         core = grabCore [p]
 
