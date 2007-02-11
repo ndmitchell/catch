@@ -3,6 +3,7 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{alltt}
+\usepackage{natbib}
 
 % general stuff
 \newcommand{\T}[1]{\texttt{#1}}
@@ -41,8 +42,8 @@
 \copyrightyear{2007} %
 \copyrightdata{[to be supplied]}
 
-\titlebanner{banner above paper title}        % These are ignored unless
-\preprintfooter{short description of paper}   % 'preprint' option specified.
+\titlebanner{}        % These are ignored unless
+\preprintfooter{Catch: A Technical Overview}   % 'preprint' option specified.
 
 \title{Catch}
 \subtitle{A Technical Overview}
@@ -66,17 +67,72 @@ matches, along with mechanisms to propagate these constraints between program
 components.
 \end{abstract}
 
-\category{CR-number}{subcategory}{third-level}
+% \category{CR-number}{subcategory}{third-level}
 
-\terms
-term1, term2
+% \terms
+% term1, term2
 
-\keywords
-keyword1, keyword2
+% \keywords
+% keyword1, keyword2
 
 \section{Introduction}
+\label{sec:introduction}
 
-\todo{}
+Often it is useful to define pattern matches which are incomplete,
+for example \T{head} fails on the empty list. Unfortunately programs
+with incomplete pattern matches may fail at runtime.
+
+Consider the following example:
+
+\begin{code}
+risers :: Ord a => [a] -> [[a]]
+risers [] = []
+risers [x] = [[x]]
+risers (x:y:etc) = if x <= y then (x:s):ss else [x]:(s:ss)
+    where (s:ss) = risers (y:etc)
+\end{code}
+
+A sample execution of this function would be:
+
+\begin{code}
+> risers [1,2,3,1,2]
+[[1,2,3],[1,2]]
+\end{code}
+
+In the last line of the definition, \T{(s:ss)} is matched against
+the output of \T{risers}. If \T{risers (y:etc)} returns an empty
+list this would cause a pattern match error. It takes a few
+moments to check this program manually -- and a few more to be
+sure one has not made a mistake!
+
+GHC \cite{ghc_manual} 6.4 has a warning flag to detect incomplete
+patterns, which is named \T{-fwarn-incomplete-patterns}. Adding
+this flag at compile time reports:\footnote{The additional flag
+\T{-fwarn-simple-patterns} is needed, but this is due to GHC bug
+number 1075259}
+
+\begin{code}
+Warning: Pattern match(es) are non-exhaustive
+\end{code}
+
+The Bugs (12.2.1) section of the manual notes that the checks are
+sometimes wrong, particularly with string patterns or guards, and
+that this part of the compiler ``needs an overhaul really''
+\cite{ghc_manual}.
+
+But the GHC checks are only local. If the function \T{head} is
+defined, then it raises a warning. No effort is made to check the
+\textit{callers} of \T{head} -- this is an obligation left to the
+programmer.
+
+Turning the \T{risers} function over to the checker developed in
+this paper, the output is:
+
+\begin{code}
+> Safe
+\end{code}
+
+In addition the checker produces a set of axioms it has proved about Risers, along with an outline of the proof. Fuller details of how the checking is performed follow in Section 2.
 
 \subsection{Road map}
 
@@ -94,6 +150,57 @@ semantics \S\ref{chap:defunc}. Third, a constraint language
 \S\ref{chap:constraints} is used to analyse the program \S\ref{chap:backward}.
 Results are presented \S\ref{chap:results} along with concluding remarks
 \S\ref{chap:conc}.
+
+\section{Walkthrough of Risers}
+
+This section details all the stages that are executed in order to generate a proof that the \T{risers} function in the Introduction does not crash with a pattern match error. No one area is examined in detail, but an overall flavor is given.
+
+\subsection{Modifying Risers for analysis}
+
+There is one restriction on the functions that Catch can analyse -- they must be first order. In Haskell, because of the way type classes are implemented, this additionally means that they must not have type classes. The reason for this restriction is simple - with no knowledge about the input function the only conservative approximation is that all calls will give $\bot$.
+
+Initially the type of risers is \T{risers :: Ord a => [a] -> [[a]]} - this can be easily fixed with.
+
+\begin{code}
+ main :: [Int] -> [[Int]]
+ main x = risers x
+\end{code}
+
+\subsection{Conversion to a Core Language}
+
+Rather than analyse full Haskell, the Catch tool analyses a first-order Core language, without lambda's (other than at the top level), partial application or let bindings. While this at first seems like a substantial restriction, a convertor is provided from the full Haskell 98 language to this very restricted language. Full details are provided in section n.
+
+After converting to Core Haskell, and renaming to be more human readable, the resulting Core is as shown in Figure n. The function \T{risers4} and \T{risers2} correspond to the lazy pattern match in the \T{where}. The function \T{<=\#} is simply less than or equal, but specialised to the Int data type, unlike the standard one which is any type in the Num class.
+
+\begin{figure}
+\begin{code}
+ risers3 x y = risers4 (risers (x : y))
+
+ risers4 x = case x of
+     (y:ys) -> (ys, y)
+     [] -> error "Pattern Match Failure, 11:12."
+
+ risers x = case x of
+     [] -> []
+     (y:ys) ->  case ys of
+          [] -> (y : []) : []
+          (z:zs) -> risers2 (risers3 z zs) (y <=# z) y
+
+ risers2 x y z =  case y of
+     True -> (z : snd x) : (fst x)
+     False -> (z : []) : (snd x : fst x)
+\end{code}
+---------------------------------------
+\end{figure}
+
+\subsection{Analysis}
+
+The analysis first starts by finding calls to \T{error}, then trying to prove that these calls will not be reached. In the above example it is easy to see there is only one error call, which corresponds to a pattern match error which has been desugared. From here the analysis determines that if risers4 is called, the argument must always be a : for the code to be safe.
+
+Looking further back, this shows that risers3 calls risers4, passing (risers (x:y)) as the argument. In this particular case it is possible to see that risers of a : always results in a : - requiring in part the knowledge that risers2 is always a :. With these axioms it can be shown that the entire program is safe.
+
+Unfortunately the analysis is not blessed with the foresight to know the answer. The analysis proceeds by searching for likely axioms, transforming constraints and otherwise manipulating program fragments until a fixed point is found. The exact transformation rules, along with the constraints that can be expressed by the system are the main substance of the analysis.
+
 
 \section{Overview of Constraints}
 
@@ -981,6 +1088,8 @@ This is the text of the appendix, if you need one.
 \acks
 
 Acknowledgments, if needed.
+
+% plainnat bibliography style
 
 \begin{thebibliography}{}
 
