@@ -219,8 +219,8 @@ normaliseVal (Val dat a b) = Val dat a b
 
 
 
-normalise :: Core -> Vals -> Vals
-normalise _ input = traceNone (show ("normalise",input,output)) output
+normalise2 :: Core -> Vals -> Vals
+normalise2 _ input = traceNone (show ("normalise",input,output)) output
     where
         output = process input
         process = snub . ruleCombine . snub . map normaliseVal . snub
@@ -246,6 +246,67 @@ ruleCombine xs = f [] xs
             where
                 v = normaliseVal $ strengthenVal t x
                 (a,b) = g t xs
+
+
+
+normalise :: Core -> Vals -> Vals
+normalise _ input | null input = []
+                  | Any `elem` input = [Any]
+                  | any completeVal output = [Any]
+                  | otherwise = output
+    where
+        output = snub $ execute $ snub input
+    
+        dat = valType $ head input
+        typ = getCtorsFields dat
+        info = annotateSize 0 typ
+        
+        annotateSize n [] = []
+        annotateSize n ((c,f):cf) = (n,fn) : annotateSize fn cf
+            where fn = length f
+        
+        
+        execute = concat . map executeTail . groupSortBy (compare `on` thd3) . expandItems
+        
+        expandItems :: [Val] -> [(Int, [Val], ValPart)]
+        expandItems = concatMap f
+            where
+                f (Val _ (ValPart a b) c) = map (g b c) [i | (True,i) <- zip a [0..]]
+                
+                g b c i = (i, take count (drop start b), c)
+                    where (start,count) = info !! i
+
+
+        executeTail :: [(Int, [Val], ValPart)] -> [Val]
+        executeTail = map merge . sequence . map executeMid . groupSortBy (compare `on` fst3)
+        
+        
+        merge :: [Val] -> Val
+        merge xs = foldr1 f xs
+            where
+                f (Val dat (ValPart a1 b1) c) (Val _ (ValPart a2 b2) _) =
+                    Val dat (ValPart (zipWith (||) a1 a2) (zipWith g b1 b2)) c
+                
+                g Any x = x
+                g x Any = x
+        
+        
+        -- by this stage all fst3 and thd3 are the same
+        executeMid :: [(Int, [Val], ValPart)] -> [Val]
+        executeMid xs = concatMap (f . snd3) xs
+            where
+                (i,_,tl) = head xs
+                (start,count) = info !! i
+                ctr = replicate (length typ) False !!! (i, True)
+                pre = replicate start Any
+                post = replicate (length (concatMap snd typ) - start - count) Any
+                
+                f v | any isBlank v = []
+                    | otherwise = [Val dat (ValPart ctr (pre ++ v ++ post)) tl]
+
+
+        isBlank Any = False
+        isBlank (Val _ (ValPart a _) _) = not $ or a
 
 
 
