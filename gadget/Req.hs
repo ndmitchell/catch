@@ -11,6 +11,7 @@ import Data.Proposition
 
 type Scopes = [Scope]
 data Scope = Scope CoreFuncName Vals
+             deriving (Ord, Eq)
 
 type Reqs = PropSimple Req
 
