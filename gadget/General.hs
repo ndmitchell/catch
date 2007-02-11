@@ -16,6 +16,10 @@ import Debug.Trace
 errorS a = error (show a)
 traceS a b = trace (show a) b
 
+fst3 (a,_,_) = a
+snd3 (_,a,_) = a
+thd3 (_,_,a) = a
+
 box = (:[])
 
 fsts = map fst
@@ -121,6 +125,15 @@ groupSetBy :: (a -> a -> Bool) -> [a] -> [[a]]
 groupSetBy f [] = []
 groupSetBy f (x:xs) = (x:match) : groupSetBy f rest
     where (match,rest) = partition (f x) xs
+
+
+test `on` f = \x y -> f x `test` f y
+
+
+groupSortBy :: (a -> a -> Ordering) -> [a] -> [[a]]
+groupSortBy cmp xs = groupBy eq $ sortBy cmp xs
+    where eq a b = cmp a b == EQ
+
 
 
 subset :: Eq a => [a] -> [a] -> Bool
