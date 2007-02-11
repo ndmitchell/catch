@@ -34,12 +34,12 @@ David
 -- an excellent benchmark is: (a = a = a) = (a = a = a) = (a = a = a)
 -- batch mode version David Wakeling, February 1992
 
-module Clausify(main) where
+module Clausify2(main) where
 
 -- import Ix -- 1.3
 -- import System
 
-main = clauses undefined {- do
+main x = clauses x {- do
   -- (n:_) <- getArgs
   putStr (res 3)
 
