@@ -33,6 +33,7 @@
 
 \newcommand{\s}[1]{\ensuremath{_{\tt #1}}} % subscript, in tt font
 \newcommand{\g}[1]{\{#1\}} % group, put { } round it
+\newcommand{\U}{\textunderscore}
 \newcommand{\vecto}[1]{\overrightarrow{#1\;}}
 \newcommand{\gap}{\;\;}
 
@@ -253,18 +254,17 @@ While the concept of Path's is different from normal, the benefits they provide 
 
 \subsection{Constraints}
 
-An expression ultimately evaluates to a (potentially infinite) data structure, or to $\bot{}$ caused by either non-termination of pattern match error. If an expression does evaluate to a data structure, then a constraint states the possible forms of data value it may take. A constraint $C$ is a set of data structures, potentially infinite.
+An expression evaluates to a (potentially infinite) data structure, or to $\bot{}$ caused by either non-termination of pattern match error. If an expression does evaluate to a data structure, then a constraint states the possible forms of data value it may take. A constraint $C$ is a set of data structures that a value may match. In order to practically represent a constraint, there are several different concrete representations -- these will be discussed in Section n. For the moment, a set of Haskell style pattern matches is sufficient to illustrate the concepts. For example, the constraint \T{\g{\_ : \_}} asserts that an expression evaluates to a cons.
 
 Given a mechanism of expressing some set of constructors, $E(x) \in C$ states that the expression $x$ must, when evaluated be a member of the set defined by $C$. Since the Core language is typed, the constraint $C$ will only refer to a well typed term. These atomic constraints can be built up into a predicate of constraints, each possibly on different variables.
 
-Since free variables are bound by function calls, it is possible to scope a constraint by making it a predicate. These can then be placed into a proposition. For example, $\forall f, i \in C$ states that for the function $f$, the argument $i$ must be in the set $C$. To take a concrete example, one particular example is $\forall risers4, x \in {:}$ - where ${:}$ is the set of values which start with a cons.
+Since free variables are bound by function calls, it is possible to scope a constraint by making it a predicate. These can then be placed into a proposition. For example, $\forall f, i \in C$ states that for the function $f$, the argument $i$ must be in the set $C$. To take a concrete example, one particular example is $\forall risers4, x \in \g{\_ : \_}$.
 
 These constraints are sufficient to express many useful properties. Several underlying models of $C$ are possible, and will be discussed later.
 
 \subsection{Manipulating constraints}
 
-Constraints on free variables can be propagated by moving them from the callee to the caller. Constraints on function calls have to be treated specially. All other constraints can be reduced using the process denoted by a function $\varphi$, which takes a constraint and returns a predicate over constraints.
-This function is detailed in Figure~\ref{fig:backward}.
+Constraints on free variables can be propagated by moving them from the callee to the caller. Constraints on function calls have to be treated specially. All other constraints can be reduced using the process denoted by a function $\varphi$, which takes a constraint and returns a predicate over constraints. This function is detailed in Figure~\ref{fig:backward}.
 
 In this figure, $C$ denotes a constructor, $c$ is a set of
 constructors, $f$ is a function, $e$ is an expression, $r$ is a
@@ -274,22 +274,14 @@ regular expression over selectors and $s$ is a selector.
 
 \renewcommand\theequation{sel}
 \begin{equation}
-    \tup{e\D{}s \in c} \rightarrow
-    \tup{e,s\D{}r,c}
+    (e\D{}s) \in c \rightarrow
+    e \in (s \triangleleft c)
 \end{equation}
 
 \renewcommand\theequation{con}
 \begin{equation}
-\frac
-    {
-        P =
-        \bigwedge_{i=1}^{\#\vecto{e}}
-        \tup{e_i,\frac{\partial r}{\partial \mathcal{S}(C,i)},c}
-    }
-    {
-        \tup{C \gap \vecto{e},r,c}
-        \rightarrow (\lambda \in L(r) \Rightarrow C \in c) \wedge P
-    }
+    (C \gap \vecto{e}) \in c \rightarrow
+    (C \gap \vecto{e}) \triangleright c
 \end{equation}
 
 \renewcommand\theequation{cas}
@@ -299,14 +291,14 @@ regular expression over selectors and $s$ is a selector.
         P =
         \bigwedge_{i=1}^{\#\vecto{e}}
         (
-            \tup{e_0,\lambda,C_i}
-            \Rightarrow
-            \tup{e_i,r,c}
+            (e_0 \in \g{C \backslash C_i})
+            \vee
+            (e_i \in C)
         )
     }
     {
-        \tup{\T{case } e_0 \T{ of \{}C_1 \T{->} e_1\T{;} \cdots
-        \T{;} C_n \T{->} e_n \},r,c} \rightarrow P
+        (\T{case } e_0 \T{ of \{}C_1 \T{->} e_1\T{;} \cdots
+        \T{;} C_n \T{->} e_n \}) \in C \rightarrow P
     }
 \end{equation}
 
