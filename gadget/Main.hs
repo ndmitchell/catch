@@ -11,6 +11,7 @@ import Control.Monad
 
 import Prepare
 import Propagate
+import Reduce
 import Req
 import Backward
 import Template
@@ -75,7 +76,7 @@ exec fil = do
 initialReqs :: Core -> Scopes
 initialReqs core = [Scope func (f reqs) | (func,reqs,expr) <- collect core isError, not $ propIsTrue reqs]
     where
-        f = collapse core
+        f = collapse core . reduces core
     
         isError (CoreApp (CorePrim "error") _) = True
         isError _ = False

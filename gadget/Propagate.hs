@@ -31,10 +31,11 @@ propagate core (Scope func vals) = res
 collect :: Core -> (CoreExpr -> Bool) -> [(CoreFuncName, Reqs, CoreExpr)]
 collect core test = [(name,reqs,expr) | CoreFunc name _ body <- coreFuncs core, (reqs,expr) <- f propFalse body]
     where
+        f :: Reqs -> CoreExpr -> [(Reqs, CoreExpr)]
         f prop expr =
             [(prop, expr) | test expr] ++
             case expr of
-                CoreCase (CoreVar on) alts -> concatMap g alts
+                CoreCase on alts -> concatMap g alts
                     where
                         allCtrs = ctorNames core $ fromCoreCon $ fst $ head alts
                         seenCtrs = [x | (CoreCon x, _) <- alts]
@@ -43,6 +44,6 @@ collect core test = [(name,reqs,expr) | CoreFunc name _ body <- coreFuncs core, 
                         g (CoreVar _, rhs) = h seenCtrs rhs
 
                         h ctrs ex = f (propOr prop reqs) ex
-                            where reqs = propLit $ Req (CoreVar on) (anyCtor core ctrs)
+                            where reqs = propLit $ Req on (anyCtor core ctrs)
 
                 _ -> concatMap (f prop) (getChildrenCore expr)
