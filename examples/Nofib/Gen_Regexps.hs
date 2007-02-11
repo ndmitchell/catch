@@ -7,7 +7,10 @@ module Gen_Regexps where
 -- CHANGE: was import Char (needs fixing, but later)
 import Data.Char
 
-main = interact (("Enter a generator: " ++).show.expand.head.lines)
+main = interact (("Enter a generator: " ++).show.numchars.expand.head.lines)
+
+numchars :: [String] -> Int
+numchars l = sum $ map length l
 
 expand []	= [""]
 expand ('<':x)	= numericRule x
