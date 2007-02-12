@@ -195,140 +195,101 @@ data Expr = Var String
           | Case Expr [Alt]
 
 type Alt = (CtorName, Expr)]
+
+arity :: CtorName -> Int
+pathCtor :: PathName -> CtorName
+pathPosn :: PathName -> Int
 \end{code}
 \caption{Core Data Type}
 \label{fig:core}
 \end{figure}
 
-The abstract syntax tree for the reduced expression language is given in figure \ref{fig:core}. The Core language chosen for this purpose is like most others, with the
-exception of paths. The language is first order, has only simple case statements, and only algebraic data types. The evaluation strategy is lazy. All case statements are defined to be complete, with error being introduced where a pattern match error would occur. This means that the challenge is checking for calls to \textit{error}.
+The abstract syntax tree for the reduced expression language is given in figure \ref{fig:core}. The Core language chosen for this purpose is like most others, with the exception of paths. The language is first order, has only simple case statements, and only algebraic data types. The evaluation strategy is lazy. All case statements are defined to be complete, with error being introduced where a pattern match error would occur. Every constructor has an arity, which can be obtained with the \T{arity} function.
+ 
+For analysis purposes we can ignore the default construction for alternatives - in practice this can always be expressed by a set of alternatives with bound constructors. In practice the default alternative is present in Catch, which results in a performance gain.
 
-The one thing present in our Core language, but not in other languages, is the
-\textit{path}. A path is represented as $e\D{}p$, where $e$ is the expression,
-and $p$ is a \textit{selector}. Some examples of selectors include \T{hd} and
-\T{tl}. A selector asserts that a data value has a given constructor, and then
-follows its appropriate field. For example \T(1:2:[]\D{}hd) is \T{1}. It is
-forbidden to write \T{[]\D{}hd}, or to ever require the evaluation of a
-variables selector which has the wrong constructor.
+\subsubsection{Paths}
 
-Our use of paths contrasts with a traditional Core language's use of \T{case}
-statements with bindings, however our choice has a number of merits:
-
-\begin{enumerate}
-\item Variables are only introduced at the function level, and have a scope of the entire function.
-\item The rules to transform constraints are simplified.
-\end{enumerate}
-
-While the concept of Path's is different from normal, the benefits they provide are useful, allowing a simpler formulation of the rules.
-
-For analysis purposes we can ignore the default construction for alternatives - in practice this can always be expressed by a set of alternatives with bound constructors. In practice the default alternative is present in Catch.
-
-
-\subsection{Case and Paths}
-
-The Catch internal language has one significant difference from Yhc's Core
-language, the use of \i{paths}. First we introduce a motivation for the path
-construct, then we formalize its meaning. The full use of paths will only
-become apparent later on, in the constraint section.
-
-\yesexample
-
-Let us take the function \T{head}, translated to the Core language of Yhc:
+The one thing present in our Core language, but not in other languages, is the \textit{path}. Some examples of paths include \T{hd} and \T{tl}. A path asserts that a data value has a given constructor, and then follows its appropriate field. The concrete syntax for paths is \T{x$\multimap$tl}. Some examples of paths:
 
 \begin{code}
- head x = case x of
-              (a:as) -> a
-              [] -> error "[] passed to head"
+(1:2:[])-*hd == 1
+(1:2:[])-*tl == (2:[])
+[]-*hd -- this is statically impossible
 \end{code}
 
-In this example, before the \T{case} statement is executed there is no
-additional information about the value contained in \T{x}. Let us consider the
-situation where it is known statically that \T{x} is a \T{(:)} constructor
-before executing \T{head}. We can rewrite this code as:
+A path has a given constructor, and returns a given field member from that constructor -- this information is available using the functions \T{pathCtor} and \T{pathPosn}.
+
+Constructions such as \T{[]-*hd} are statically disallowed. The original input language to Catch is Haskell, which does not have a path expression, meaning that all path's are introduced by the transformation process. It is the responsibility of the transformations to ensure that invalid paths are not introduced.
+
+To take a simple example, here is the function \T{risers4} from the introductory example, using path's instead of constructors. In general functions are given without the use of paths -- they are an underlying implementation concern which does not change the meaning or understanding of the algorithms.
 
 \begin{code}
- headNonEmpty x = case x of
-                      (a:as) -> a
+risers4 x = case x of
+    (:) -> (x-#tl, x-#hd)
+    [] -> error "Pattern Match Failure, 11:12."
 \end{code}
 
-We are now using the case expression for two different purposes: to select the
-elements in a known data structure, and to test the type of a data structure at
-runtime. Perhaps it would be convenient to have an alternative mechanism for
-extracting fields from a value, as opposed to runtime flow of control choices.
+Our use of paths contrasts with other functional Core language's (for example \citet{ghc_core}). Our choice has a number of merits, in particular they simplify a number of issues. By using path statements, the alternatives in a \T{case} expression do not need to bind variables. This then means that all free variables are declared at the top of a function, and have a scope consisting of the entire function -- since let's expressions are not permitted. The simplification of free variable handling allows a corresponding simplification of the entire analysis. The rules for variables are also simplified -- there are no special cases for variables bound in a case expression.
 
-The extra construct we introduce is the \i{path}. Informally we write
-\T{x\D{}hd} to mean the first component of the \T{(:)}-constructed \T{x} value.
-Now we can rewrite \T{headNonEmpty} as:
+The name of paths can be automatically generated from a constructor and an index, however if a Haskell program defines a data type with uniquely named fields, then these field names are used. The definition for lists in Catch is:
 
 \begin{code}
- headNonEmpty x = x\(\D\)hd
+data [a] = [] | {hd :: a, tl :: [a]}
 \end{code}
 
-With the addition of paths, we can now rewrite the standard \T{head} as:
+\subsubsection{Abstraction}
+
+\begin{figure}
+\begin{code}
+data Int = Neg | Zero | Pos
+
+any0 = primitive
+any2 x y = if any0 then x else y
+any3 x y z = any2 x (any2 y z)
+
+x + Zero = x
+Zero + x = x
+x + y | x == y = x
+_ + _ = any3 Neg Zero Pos
+
+x - Zero = x
+Zero - Zero = Zero
+Zero - Neg = Pos
+Zero - Pos = Neg
+Neg - Pos = Neg
+Pos - Neg = Pos
+_ - _ = any3 Neg Zero Pos
+\end{code}
+\caption{Abstract implementation of integers}
+\label{fig:abstract_int}
+\end{figure}
+
+The Core language only has algebraic data types, specifically the types missing from a general purpose functional programming language are text characters, integers (bounded and unbounded) and floating point numbers. Catch allows for these programs by abstracting them into algebraic data constructors. Different programs may require different abstractions for the various pattern matches.
+
+Natural numbers are often encoded by Peano numerals, and this idea can easily be extended to integers:
 
 \begin{code}
- head x = case x of
-            (:) -> x\(\D\)hd
-            [] -> error "[] passed to head"
+data Nat = Zero | Succ Nat
+data Int = Zero | Minus Nat | Plus Nat
 \end{code}
 
-\noexample
+While this abstraction captures all the underlying detail of the number system, it is not detail that can be used during the analysis -- due to the underlying constraint systems discussed in \S\ref{sec:constraints}. A more practically motivated example is given in Figure \ref{fig:abstract_int}, and this is the abstraction that is used in practice. The \T{any0} method is an internally implemented method of Catch, assumed to be any demonic value.
 
-Now we have introduced paths, there is no need to specify names for each of the
-fields given in a case alternative. If the \T{let} construct is removed as
-well, then there is no possibility to introduce fresh variables within a
-function -- only the initial arguments and top-level functions are in scope.
-
-\subsubsection{Syntax and Semantics of Paths}
-
-It is instructive to compare the differences and guarantees between Yhc's Core
-language and that of Catch, especially in the area of \T{case} and paths. For
-the \T{case} expressions, GHC's Core language can be considered the same as
-Yhc's Core language.
-
-In Yhc's Core there is only one construct that can demand evaluation, namely
-the \T{case} statement. All \T{case} expressions must be complete, possibly
-including a default alternative, but never leaving a possible value
-unspecified. There is no way to extract a field out of a created value other
-than by a \T{case} statement.
-
-Within Catch there are now two different mechanisms for demanding the
-evaluation of an expression, both path's and \T{case} expressions. A \T{case}
-expression may still include a default alternative, but no longer has to be
-complete. Only paths extract fields from values.
-
-Formally, a path is defined as $\mtxt{path}(x,c,i)$, where $c$ is a constructor
-and $n$ is an integer. If $n$ is the arity of constructor $c$ then $0 \leq i <
-n$. The expression selects the $i$th field from the $c$ constructed value $x$.
-The semantics in Haskell would be:
+The abstraction of characters is often more practically interesting. The Haskell language standard calls for Unicode character literals -- and depending on the compiler the number of distinct characters varies between 256 and 1114111. There are several possible abstractions of characters:
 
 \begin{code}
- case \(x\) of
-     \(c\) \(a\s{\textrm{1}}\ldots{}a\s{\textit{n}}\) -> \(a\s{\textit{i}}\)
-     _ -> error "Ill formed path"
+data Char = Char
+data Char = Alpha | Digit | White | Other
+data Char = A .. Z | a .. z | 0 .. 9 | ! .. # | Other
+data Char = 00 | 01 | 02 ..
 \end{code}
 
-A sugared notation is commonly used instead of the $\textsf{path}$, where
-\T{x\D{}hd} is equivalent to $\textsf{path}(\T{x},\T{:},0)$, \T{tl} is
-equivalent to selecting the 1 index field. In a similar way, when a record with
-uniquely named field selectors is given, these are used as the names. For the
-purposes of this tool, a list is defined as:
+The simplest abstraction is that all characters are the same. A slightly more refined abstraction is to partition the characters based on the character testing functions provided in the \T{Char} module of Haskell. Refining the model further can give special status to characters that commonly occur, giving all uncommon characters the \T{Other} value. Finally, given that \T{Char} is a finite enumeration, the entire range of characters could each be represented distinctly.
 
-\begin{code}
- data [] a = [] | (:) \{hd :: a, tl :: [] a\}
-\end{code}
+In practice, programs often require different levels of abstraction for characters. Many will accept the most basic abstraction, some require certain literals to be represented precisely - for example a noughts and crosses program (tic-tac-toe, for US readers) matches on 'X' and 'O'.
 
-In much the same way as an object orientated language such as Java, the \D{}
-operator associates to the left, so \T{x\D{}tl\D{}hd} is equivalent to
-\T{(x\D{}tl)\D{}hd}.
-
-There are no runtime semantics for an ill-formed path, they are statically
-disallowed. Consider \T{[]\D{}hd}, this expression does not evaluate to
-$\bot{}$ at runtime (as such a construct would in Haskell), but instead is
-forbidden from being introduced. When transforming a \T{case} statement to use
-paths instead, it is easy to see that the generated paths are well-formed --
-the subject of the \T{case} is checked first. Any other transformation which
-introduces a path must meet the proof obligation that this path is safe.
+The final issue of abstraction relates to primitive functions, for example the \T{getArgs} function which returns the command line arguments, or the \T{readFile} which reads from the underlying filesystem. In most cases the most appropriate model is to return \T{any0}. In some special cases, for example the CPU tick count, a slightly more precise answer can be given -- namely a positive integer.
 
 
 \subsection{Constraints}
