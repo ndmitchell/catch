@@ -5,6 +5,7 @@
 \usepackage{alltt}
 \usepackage{url}
 \usepackage{natbib}
+\usepackage{datetime}
 
 %include lhs2TeX.fmt
 
@@ -47,7 +48,7 @@
 \copyrightyear{2007} %
 \copyrightdata{[to be supplied]}
 
-\titlebanner{}        % These are ignored unless
+\titlebanner{\today{} - \currenttime{}}        % These are ignored unless
 \preprintfooter{Catch: A Technical Overview}   % 'preprint' option specified.
 
 \title{Catch}
