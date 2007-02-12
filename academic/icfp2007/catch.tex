@@ -205,7 +205,7 @@ Looking further back, this shows that risers3 calls risers4, passing (risers (x:
 Unfortunately the analysis is not blessed with the foresight to know the answer. The analysis proceeds by searching for likely axioms, transforming constraints and otherwise manipulating program fragments until a fixed point is found. The exact transformation rules, along with the constraints that can be expressed by the system are the main substance of the analysis.
 
 
-\section{The Data}
+\section{The Constraints}
 
 This section explains the underlying constraint system in Catch, focusing on how the constraints are put together to express properties of expressions and the data structures they evaluate to.
 
@@ -254,13 +254,31 @@ While the concept of Path's is different from normal, the benefits they provide 
 
 \subsection{Constraints}
 
-An expression evaluates to a (potentially infinite) data structure, or to $\bot{}$ caused by either non-termination of pattern match error. If an expression does evaluate to a data structure, then a constraint states the possible forms of data value it may take. A constraint $C$ is a set of data structures that a value may match. In order to practically represent a constraint, there are several different concrete representations -- these will be discussed in Section n. For the moment, a set of Haskell style pattern matches is sufficient to illustrate the concepts. For example, the constraint \T{\g{\_ : \_}} asserts that an expression evaluates to a cons.
+An expression evaluates to a (potentially infinite) data structure, or to $\bot{}$ caused by either non-termination of pattern match error. If an expression does evaluate to a data structure, then a constraint states the possible forms of data value it may take. A constraint $\kappa$ is a set of data structures that a value may match. In order to practically represent a constraint, there are several different concrete representations -- these will be discussed in Section n. For the moment, a set of Haskell style pattern matches is sufficient to illustrate the concepts. For example, the constraint \T{\g{\_ : \_}} asserts that an expression evaluates to a cons.
 
-Given a mechanism of expressing some set of constructors, $E(x) \in C$ states that the expression $x$ must, when evaluated be a member of the set defined by $C$. Since the Core language is typed, the constraint $C$ will only refer to a well typed term. These atomic constraints can be built up into a predicate of constraints, each possibly on different variables.
+Given a mechanism of expressing some set of constructors, $E(x) \in \kappa$ states that the expression $x$ must, when evaluated be a member of the set defined by $\kappa$. Since the Core language is typed, the constraint $\kappa$ will only refer to a well typed term. These atomic constraints can be built up into a predicate of constraints, each possibly on different variables.
 
-Since free variables are bound by function calls, it is possible to scope a constraint by making it a predicate. These can then be placed into a proposition. For example, $\forall f, i \in C$ states that for the function $f$, the argument $i$ must be in the set $C$. To take a concrete example, one particular example is $\forall risers4, x \in \g{\_ : \_}$.
+Since free variables are bound by function calls, it is possible to scope a constraint by making it a predicate. These can then be placed into a proposition. For example, $\forall f, i \in \kappa$ states that for the function $f$, the argument $i$ must be in the set $\kappa$. To take a concrete example, one particular example is $\forall risers4, x \in \g{\_ : \_}$.
 
-These constraints are sufficient to express many useful properties. Several underlying models of $C$ are possible, and will be discussed later.
+These constraints are sufficient to express many useful properties. Several underlying models of $\kappa$ are possible, and will be discussed later.
+
+\subsection{Constraints - Pattern Matching}
+
+\begin{figure}
+\begin{code}
+data Constraint = Constraint [Match]
+
+data Match = Match CtorName [Match]
+           | Any
+\end{code}
+\caption{Constraint language}
+\end{figure}
+
+The simplest constraint language can be seen as that which is Haskell pattern matching. A constraint $\kappa$ is a set of pattern matches, roughly following the data structure given in figure n. A given data structure can be said to be a member of this constraint if there exists a match which would allow the data structure.
+
+This given Constraint language is not very powerful - for example this is impossible to stating in a finite space that all the elements of a list are the literal True. However, with this limited constraint language the Risers example can be proven safe.
+
+The analysis framework will be introduced using these constraints as a suitable example - but in  reality these constraints are not used.
 
 \subsection{Manipulating constraints}
 
@@ -268,20 +286,28 @@ Constraints on free variables can be propagated by moving them from the callee t
 
 In this figure, $C$ denotes a constructor, $c$ is a set of
 constructors, $f$ is a function, $e$ is an expression, $r$ is a
-regular expression over selectors and $s$ is a selector.
+regular expression over selectors and $s$ is a selector. Several operations are required to be supported by the underlying constraint model -- these are $\triangleleft$, $\triangleright$, $C^* \in \kappa$ and $\kappa(C)$. The meaning of these operators are described as they are used in the program.
 
 \begin{figure}
 
 \renewcommand\theequation{sel}
 \begin{equation}
-    (e\D{}s) \in c \rightarrow
-    e \in (s \triangleleft c)
+    (e\D{}s) \in \kappa \rightarrow
+    e \in (s \triangleright \kappa)
 \end{equation}
 
 \renewcommand\theequation{con}
 \begin{equation}
-    (C \gap \vecto{e}) \in c \rightarrow
-    (C \gap \vecto{e}) \triangleright c
+\frac
+    {
+        P =
+        \bigwedge_{i=1}^{\#\vecto{e}}
+        e_i \in (C_i \triangleleft \kappa)
+    }
+    {
+        C \gap \vecto{e} \in \kappa
+        \rightarrow (C^* \in \kappa) \wedge P
+    }
 \end{equation}
 
 \renewcommand\theequation{cas}
@@ -291,14 +317,14 @@ regular expression over selectors and $s$ is a selector.
         P =
         \bigwedge_{i=1}^{\#\vecto{e}}
         (
-            (e_0 \in \g{C \backslash C_i})
+            (e_0 \in \kappa(C \backslash C_i))
             \vee
-            (e_i \in C)
+            (e_i \in \kappa)
         )
     }
     {
         (\T{case } e_0 \T{ of \{}C_1 \T{->} e_1\T{;} \cdots
-        \T{;} C_n \T{->} e_n \}) \in C \rightarrow P
+        \T{;} C_n \T{->} e_n \}) \in \kappa \rightarrow P
     }
 \end{equation}
 
@@ -308,10 +334,23 @@ regular expression over selectors and $s$ is a selector.
 
 \begin{description}
 
-\item[The (sel) rule] moves the composition from the expression
-to the path.
+\item[The (sel) rule] moves the composition from the expression to the path. The $\triangleright$ operation can be seen as extending a constraint from being on one small part of the data structure, to being on the entire data structure. If the selector in question is for constructor C, an n arity constructor, and field i is the path in question, then:
+
+\[
+s \triangleright \kappa = C Any_0 Any_1 ... \kappa_i .. Any_n
+\]
+
 
 \item[The (con) rule] deals with an application of a constructor $C$.
+
+The statement $C^* \in \kappa$ means that the constructor $C$ must be allowable under the given constraint system. This is easy to express in the simple constraint system:
+
+\[
+C^* \in \kappa = any (C^* \in) matches
+C^* \in Any = True
+C^* \in Ctor c xs = c == c
+\]
+
 If $\lambda$ is in the path language the $C$ must be permitted by
 the condition. This depends on the \textit{empty word property}
 (ewp) \cite{conway}, which can be calculated structurally on the
@@ -1215,6 +1254,41 @@ adjoxo, soda, clausify
 \subsection{Nofib}
 
 The whole nofib benchmark, in detail
+
+Most of the benchmarks use [x] <- getArgs, this will always fail as getArgs is a primitive whose implementation is opaque to the system. As a result the system will always return False as the precondition to main.
+
+The next step where many fail is that read is applied to an argument extracted from getArgs. Firstly this argument is entirely unknown. Secondly read is a sufficiently complicated function that while it can be modeled by Catch, there is no possibility for getting an appropriate abstraction which models the failure case. As a result, any program which calls read is unsafe, according to Catch. Using reads is perfectly sufficient, if the failure condition is appropriately handled.
+
+Imaginery:
+
+bernouilli - blows up going through firstify
+
+digits-of-e1
+
+digits-of-e2
+
+exp3-8
+
+gen-regexps
+
+integrate
+
+paraffins
+
+primes
+
+queens - fails in let elim (need to write abstract before let-elim)
+
+rfib
+
+tak
+
+wheel-sieve1
+
+wheel-sieve2
+
+x2n1
+
 
 \section{Conclusion}
 \label{chap:conc}
