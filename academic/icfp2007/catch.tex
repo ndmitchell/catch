@@ -516,15 +516,29 @@ ewp x = all isStar x
    where isStar (Star _) = True
          isStar (Atom _) = False
 
-integrate :: ...
+integrate :: PathName -> RegExp -> RegExp
+integrate p r | not (isRec p) = Atom p : r
+integrate p (Star ps:r) | p `elem` ps = Star ps : r
+                        | otherwise = Star (p:ps) : r
+integrate p r = Star [p] : r
 
-differentiate :: ...
+differentiate :: PathName -> Path -> Maybe Path
+differentiate p [] = Nothing
+differentiate p (Atom r:rs)
+    | p == r = Just rs
+    | otherwise = Nothing
+differentiate p (Star r:rs)
+    | if p `elem` r = Just (Star r:rs)
+    | otherwise = differentiate p rs
 \end{code}
 \caption{Regular expression based constraints}
 \label{fig:regexp}
 \end{figure}
 
-The original Catch tool used regular expression based constraints. A data type for the constraint, along with the essential operations upon it is given in Figure \ref{fig:regexp}. Give a constraint \T{(r :! c)}, \T{r} is referred to as the regular expression, and \T{c} is referred to as the set of constraint. Such a constraint matches those data values such that any well-defined application of a path of selectors described by $r$ must reach a constructor in the set $c$.
+The original Catch tool used regular expression based constraints. A data type for the constraint, along with the essential operations upon it is given in Figure \ref{fig:regexp}. Give a constraint \T{(r :! c)}, \T{r} is referred to as the regular expression, and \T{c} is referred to as the set of constructors. Such a constraint matches those data values such that any well-defined application of a path of selectors described by $r$ must reach a constructor in the set $c$.
+
+In the original version of Catch regular expressions were based on the full regular expression language -- namely concatenation, kleene star and union. This reduced language allows kleene star of union, and concatentation of atoms only. This language is closed under integration and differentiation, apart from the empty regular expression. The empty regular expression :! anything is True, so this is encoded at the proposition level.
+
 
 \yesexample
 
