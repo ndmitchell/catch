@@ -535,136 +535,7 @@ differentiate p (Star r:rs)
 \label{fig:regexp}
 \end{figure}
 
-The original Catch tool used regular expression based constraints. A data type for the constraint, along with the essential operations upon it is given in Figure \ref{fig:regexp}. Give a constraint \T{(r :! c)}, \T{r} is referred to as the regular expression, and \T{c} is referred to as the set of constructors. Such a constraint matches those data values such that any well-defined application of a path of selectors described by $r$ must reach a constructor in the set $c$.
-
-In the original version of Catch regular expressions were based on the full regular expression language -- namely concatenation, kleene star and union. This reduced language allows kleene star of union, and concatentation of atoms only. This language is closed under integration and differentiation, apart from the empty regular expression. The empty regular expression :! anything is True, so this is encoded at the proposition level.
-
-
-\yesexample
-
-Consider the function \T{minimum}, defined as:
-
-\begin{code}
-minimum [x] = x
-minimum (a:b:xs) = minimum (min a b : xs)
-
-min a b = if a < b then a else b
-\end{code}
-
-Now consider the expression \T{minimum $e$}. The constraint that
-must hold for this expression to be safe is \cc{$e$}{:}. This says
-that the expression $e$ must reduce to an application of \T{:}, i.e.
-a non-empty list. In this example the path was $\lambda$ -- the
-empty path.\noexample
-
-\yesexample
-
-Consider the expression \T{map minimum $e$}. In this case the
-constraint generated is \c{$e$}{tl\K\D hd}{:}. If we apply any
-number (possibly zero) of \T{tl}s to $e$, then apply \T{hd}, we
-reach a \T{:} construction. Values satisfying this constraint
-include \T{[]} and \T{[[1],[2],[3]]}, but not \T{[[1],[]]}. The
-value \T{[]} satisfies this constraint because it is impossible to
-apply either \T{tl} or \T{hd}, and therefore the constraint does not
-assert anything about the possible constructors.
-
-\noexample
-
-Constraints divide up into three parts -- the \textit{subject}, the
-\textit{path} and the \textit{condition}.
-
-\begin{description}
-\item[The subject] in the above two examples was just $e$,
-representing any expression -- including a call, a construction or
-even a \T{case}.
-
-\item[The path] is a regular expression over selectors.
-
-A regular expression is defined as:\\ \\
-\begin{tabular}{ll}
-$s+t$ & union of regular expressions $s$ and $t$ \\
-$s\D t$ & concatenation of regular expressions $s$ then $t$ \\
-$s\K$  & any number (possibly zero) occurrences of $s$ \\
-\T{x} & a selector, such as \T{hd} or \T{tl} \\
-$\lambda$ & the language is the set containing the empty string \\
-$\phi$ & the language is the empty set
-\end{tabular}
-
-\item[The condition] is a set of constructors which, due to static type
-checking, must all be of the same result type.
-\end{description}
-
-
-In order to implement a checker that can ensure unfailing patterns,
-it is useful to have some way of expressing properties of data
-values. A constraint is written as $\tup{e,r,c}$ , where $e$ is an
-expression, $r$ is a regular expression over selectors and $c$ is a
-set of constructors. Such a constraint asserts that any well-defined
-application to $e$ of a path of selectors described by $r$ must
-reach a constructor in the set $c$.
-
-These constraints are used as atoms in a predicate language with
-conjunction and disjunction, so constraints can be about several
-expressions and relations between them. The checker does not require
-a negation operator. We also use the term constraint to refer to
-logical formulae with constraints as atoms.
-
-\yesexample
-
-Consider the function \T{minimum}, defined as:
-
-\begin{code}
-minimum xs = case xs of
-                  [x]      -> x
-                  (a:b:xs) -> minimum (min a b : xs)
-
-min a b = case a < b of
-               True  -> a
-               False -> b
-\end{code}
-
-Now consider the expression \T{minimum $e$}. The constraint that
-must hold for this expression to be safe is \cc{$e$}{:}. This says
-that the expression $e$ must reduce to an application of \T{:}, i.e.
-a non-empty list. In this example the path was $\lambda$ -- the
-empty path.\noexample
-
-\yesexample
-
-Consider the expression \T{map minimum $e$}. In this case the
-constraint generated is \c{$e$}{tl\K\D hd}{:}. If we apply any
-number (possibly zero) of \T{tl}s to $e$, then apply \T{hd}, we
-reach a \T{:} construction. Values satisfying this constraint
-include \T{[]} and \T{[[1],[2],[3]]}, but not \T{[[1],[]]}. The
-value \T{[]} satisfies this constraint because it is impossible to
-apply either \T{tl} or \T{hd}, and therefore the constraint does not
-assert anything about the possible constructors.
-
-\noexample
-
-Constraints divide up into three parts -- the \textit{subject}, the
-\textit{path} and the \textit{condition}.
-
-\begin{description}
-\item[The subject] in the above two examples was just $e$,
-representing any expression -- including a call, a construction or
-even a \T{case}.
-
-\item[The path] is a regular expression over selectors.
-
-A regular expression is defined as:\\ \\
-\begin{tabular}{ll}
-$s+t$ & union of regular expressions $s$ and $t$ \\
-$s\D t$ & concatenation of regular expressions $s$ then $t$ \\
-$s\K$  & any number (possibly zero) occurrences of $s$ \\
-\T{x} & a selector, such as \T{hd} or \T{tl} \\
-$\lambda$ & the language is the set containing the empty string \\
-$\phi$ & the language is the empty set
-\end{tabular}
-
-\item[The condition] is a set of constructors which, due to static type
-checking, must all be of the same result type.
-\end{description}
+The original Catch tool used regular expression based constraints. A data type for the constraint, along with the essential operations upon it is given in Figure \ref{fig:regexp}. Given a constraint \T{(r :! c)}, \T{r} is referred to as the regular expression, and \T{c} is referred to as the set of constructors. Such a constraint matches those data values such that any well-defined application of a path of selectors described by $r$ must reach a constructor in the set $c$.
 
 The meaning of a constraint is defined by:
 
@@ -673,36 +544,41 @@ The meaning of a constraint is defined by:
 \text{\textit{constructor}}(e\D{}l) \in c )
 \]
 
-\noindent Here $L(r)$ is the language represented by the regular
-expression $r$; \textit{defined} returns true if a path selection is
-well-defined; and \textit{constructor} gives the constructor used to
-create the data. Of course, since $L(r)$ is potentially infinite,
-this cannot be checked by enumeration.
+Here $L(r)$ is the language represented by the regular expression $r$; \textit{defined} returns true if a path selection is well-defined; and \textit{constructor} gives the constructor used to create the data. Of course, since $L(r)$ is potentially infinite, this cannot be checked by enumeration.
 
-If no path selection is well-defined then the constraint is
-vacuously true.
+If no path selection is well-defined then the constraint is vacuously true.
 
+A regular expression is defined as:\\ \\
+\begin{tabular}{ll}
+$s+t$ & union of regular expressions $s$ and $t$ \\
+$s\D t$ & concatenation of regular expressions $s$ then $t$ \\
+$s\K$  & any number (possibly zero) occurrences of $s$ \\
+\T{x} & a path, such as \T{hd} or \T{tl} \\
+$\lambda$ & the language is the set containing the empty string \\
+$\phi$ & the language is the empty set
+\end{tabular}
 
-From the definition of the constraints it is possible to construct a
-number of identities which can be used for simplification.
+The differentiation operation is that as defined by \citet{conway}, and called quotient in some text books. The empty word property (ewp) is equivalent to $\lambda \in L(r)$, and can be calculated simply from a regular expression. Integration is merely the inverse of differentiation -- not usually treated as a separate operation in most regular expression systems.
+
+In the original version of Catch regular expressions were based on the full regular expression language. However the implementation above is limited to concatenation of atoms, or stars of unions. This restricted regular expression language, combined with $\phi$, is closed under integration and differentiation, making it particularly attractive as a reduced form. The $\phi$ alternative is catered for by the \T{Maybe} return type in the differentiation. The constraint \T{$\phi$ :! c} always evaluates to True, so in the |(<||)| Nothing is replaced by True.
+
+The constructors, because of static typing and the restricted form of regular expression, must all by of the same type. There are some addition restrictions on regular expressions: all paths which are recursive must be under \T{Star} and all which are not must be \T{Atom}. Two Star's are not allowed in a row. With this restriction, and a finite type, this restriction is enough to ensure that there are only a finite number of regular expressions. Combined with the finite number of constructors, this is enough to guarantee finiteness, which satisfies the termination properties listed before.
+
+\subsection{Predicates on constraints}
+
+The expressions in constraints have five separate types, case statements, constructor applications, function applications, path expressions and variables. The variables are not actually free, but are quantified over the function in which they occur, who they are arguments to. As a result a complete constraint is expressed as $\forall f \bullet P(x)$, where $f$ is the function which provides scope for the free variables in $x$, and $P$ is a proposition with literal terms described as above.
+
+From the definition of the constraints it is possible to construct a number of identities which can be used for simplification.
 
 \begin{description}
 
-\item[Path does not exist:] in the constraint \c{[]}{hd}{:} the expression
-\T{[]} does not have a \T{hd} path, so this constraint simplifies to
-true.
+\item[Path does not exist:] in the constraint \c{[]}{hd}{:} the expression \T{[]} does not have a \T{hd} path, so this constraint simplifies to true.
 
-\item[Detecting failure:] the constraint \cc{[]}{:} simplifies to false
-because the \T{[]} value is not the constructor \T{:}.
+\item[Detecting failure:] the constraint \cc{[]}{:} simplifies to false because the \T{[]} value is not the constructor \T{:}.
 
-\item[Empty path:] in the constraint $\tup{e,\phi,c}$, the
-regular expression is $\phi$, the empty language, so the constraint
-is always true.
+\item[Empty path:] in the constraint $\tup{e,\phi,c}$, the regular expression is $\phi$, the empty language, so the constraint is always true.
 
-\item[Exhaustive conditions:] in the constraint \cc{$e$}{:,[]}
-the condition lists all the possible constructors, if $e$ reaches
-weak head normal form then because of static typing $e$ must be one
-of these constructors, therefore this constraint simplifies to true.
+\item[Exhaustive conditions:] in the constraint \cc{$e$}{:,[]} the condition lists all the possible constructors, if $e$ reaches weak head normal form then because of static typing $e$ must be one of these constructors, therefore this constraint simplifies to true.
 
 \item[Algebraic conditions:] finally a couple of algebraic equivalences:
 
@@ -715,22 +591,6 @@ of these constructors, therefore this constraint simplifies to true.
 \end{array}
 \]
 \end{description}
-
-\subsection{Predicates on constraints}
-
-The expressions in constraints have five separate types, case statements,
-constructor applications, function applications, path expressions and
-variables. The variables are not actually free, but are quantified over the
-function in which they occur, who they are arguments to. As a result a complete
-constraint is expressed as $\forall f \bullet P(x)$, where $f$ is the function
-which provides scope for the free variables in $x$, and $P$ is a proposition
-with literal terms described as above.
-
-\subsection{Restricted Regular Expressions}
-
-Restricted according to type.
-
-\subsection{Simplifying Regular Expression Constraints}
 
 \subsection{Binary Decision Diagrams}
 
@@ -751,8 +611,6 @@ This is an extension over the enumeration based predicates.
 \subsection{Comparison of Constraints}
 
 Both constraint systems are capable of expressing a wide range of values. There are some areas where one is capabale of expressing different things.
-
-
 
 
 
