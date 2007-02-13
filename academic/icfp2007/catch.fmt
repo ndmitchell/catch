@@ -1,0 +1,5 @@
+%format forall  = "\forall "
+%format <| = "\lhd"
+%format |> = "\rhd"
+%format -* = "\multimap"
+%format :< = "\Subset"

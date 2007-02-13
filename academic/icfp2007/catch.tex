@@ -7,7 +7,8 @@
 \usepackage{natbib}
 \usepackage{datetime}
 
-%include lhs2TeX.fmt
+%include polycode.fmt
+%include catch.fmt
 
 % general stuff
 \newcommand{\T}[1]{\texttt{#1}}
@@ -265,18 +266,18 @@ any0 = primitive
 any2 x y = if any0 then x else y
 any3 x y z = any2 x (any2 y z)
 
-x + Zero = x
-Zero + x = x
-x + y | x == y = x
-_ + _ = any3 Neg Zero Pos
+x     + Zero  = x
+Zero  + x     = x
+x     + y     | x == y = x
+_     + _     = any3 Neg Zero Pos
 
-x - Zero = x
-Zero - Zero = Zero
-Zero - Neg = Pos
-Zero - Pos = Neg
-Neg - Pos = Neg
-Pos - Neg = Pos
-_ - _ = any3 Neg Zero Pos
+x     - Zero  = x
+Zero  - Zero  = Zero
+Zero  - Neg   = Pos
+Zero  - Pos   = Neg
+Neg   - Pos   = Neg
+Pos   - Neg   = Pos
+_     - _     = any3 Neg Zero Pos
 \end{code}
 \caption{Abstract implementation of integers}
 \label{fig:abstract_int}
