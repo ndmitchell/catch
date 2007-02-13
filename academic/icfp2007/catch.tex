@@ -198,14 +198,21 @@ data Expr = Var String
           | Case Expr [Alt]
 
 type Alt = (CtorName, Expr)]
-
-ctors :: CtorName -> [CtorName]
-arity :: CtorName -> Int
-pathCtor :: PathName -> CtorName
-pathPosn :: PathName -> Int
 \end{code}
 \caption{Core Data Type}
 \label{fig:core}
+\end{figure}
+
+\begin{figure}
+\begin{code}
+ctors :: CtorName -> [CtorName]
+arity :: CtorName -> Int
+paths :: CtorName -> [PathName]
+pathCtor :: PathName -> CtorName
+pathPosn :: PathName -> Int
+isRec :: PathName -> Bool
+\end{code}
+\caption{Miscellaneous functions to manipulate Core}
 \end{figure}
 
 The abstract syntax tree for the reduced expression language is given in figure \ref{fig:core}. The Core language chosen for this purpose is like most others, with the exception of paths. The language is first order, has only simple case statements, and only algebraic data types. The evaluation strategy is lazy. All case statements are defined to be complete, with error being introduced where a pattern match error would occur. Every constructor has an arity, which can be obtained with the \T{arity} function. To determine all constructors in a set the \T{ctors} function can be used, for example \T{ctors "True" = ["False", "True"]} and \T{ctors "[]" = ["[]", ":"]}.
@@ -241,6 +248,12 @@ The name of paths can be automatically generated from a constructor and an index
 \begin{code}
 data [a] = [] | {hd :: a, tl :: [a]}
 \end{code}
+
+\subsubsection{\T{isRec} function}
+
+Detail the purpose of the isRec function, what it does, and why. Also mention that co-recursive types are disallowed.
+
+Invariant, given a finite typed structure, there must be no chain of fields which are not isRec one after another.
 
 \subsubsection{Abstraction}
 
@@ -414,7 +427,7 @@ p |> k = map extend k
 \item[The \T{Make} rule] deals with an application of a constructor. The |(<||)| operator changes to the constraint from one on the entire structure, to one on each of the parts of the constructor.
 
 \begin{code}
-(Make c xs) |> k = or (map f k)
+(Make c xs) <| k = or (map f k)
     where
     f Any = Any
     f (Match c2 xs2) = c2 == c &&
@@ -455,26 +468,63 @@ Given that there are a finite number of constraints, there are only a finite num
 \section{Real Constraints}
 \label{sec:constraint}
 
-There are various interpretations of constraints, here I outline two that have been used in various systems of Catch.
+There are various interpretations of constraints, here I outline two that have been used in various versions of Catch. Neither is strictly more powerful than the other, both are capable of expressing constraints that the other system cannot.
+
+\subsection{Semantics of Constraints}
+
+The semantics of a constraint can be obtained by using the |(||>)| operator:
+
+\begin{code}
+data Value = Value CtorName [Value]
+
+accept :: Value -> Constraint -> Bool
+accept v k = backs (f v :< k)
+    where f (Value c xs) = Make c (map f xs)
+\end{code}
+
+This assumes that the |(||>)| reduces a constraint to one only in terms of its inputs, which in all cases is true. This means that operator alone is responsible for determining the semantics of the constraint system.
+
 
 \subsection{Regular Expression Based}
 
-The original Catch tool used regular expression based constraints. These constraints consist of a regular expression, and a set of constructors.
+\begin{figure}
+\begin{code}
+data Constraint = RegExp :! [CtorName]
 
+data RegExp = [Atom]
 
-In order to implement a checker that can ensure unfailing patterns,
-it is useful to have some way of expressing properties of data
-values. A constraint is written as $\tup{e,r,c}$ , where $e$ is an
-expression, $r$ is a regular expression over selectors and $c$ is a
-set of constructors. Such a constraint asserts that any well-defined
-application to $e$ of a path of selectors described by $r$ must
-reach a constructor in the set $c$.
+data Atom = Atom PathName
+          | Star [PathName]
 
-These constraints are used as atoms in a predicate language with
-conjunction and disjunction, so constraints can be about several
-expressions and relations between them. The checker does not require
-a negation operator. We also use the term constraint to refer to
-logical formulae with constraints as atoms.
+notin :: CtorName -> Constraint
+notin c = [] :! delete c (ctors c)
+
+(|>) :: PathName -> Constraint -> Constraint
+p |> (r :! c) = integrate p r :! c
+
+(<|) :: Expr -> Constraint -> Prop Req
+(Make c xs) <| (r :! cs) =
+    ewp r => c `elem` cs &&
+    and (zipWith f (paths c) xs)
+    where
+    f p x = case differentiate p r of
+                Nothing -> True
+                Just r2 -> x :< (r2 :! cs)
+
+ewp :: RegExp -> Bool
+ewp x = all isStar x
+   where isStar (Star _) = True
+         isStar (Atom _) = False
+
+integrate :: ...
+
+differentiate :: ...
+\end{code}
+\caption{Regular expression based constraints}
+\label{fig:regexp}
+\end{figure}
+
+The original Catch tool used regular expression based constraints. A data type for the constraint, along with the essential operations upon it is given in Figure \ref{fig:regexp}. Give a constraint \T{(r :! c)}, \T{r} is referred to as the regular expression, and \T{c} is referred to as the set of constraint. Such a constraint matches those data values such that any well-defined application of a path of selectors described by $r$ must reach a constructor in the set $c$.
 
 \yesexample
 
