@@ -1,5 +1,5 @@
 lhs2tex catch.tex -o final.tex
-pdflatex final.tex
 bibtex final
-pdflatex final.tex
-start final.pdf
+texify final.tex
+del catch.dvi
+copy final.dvi catch.dvi
