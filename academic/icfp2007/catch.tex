@@ -6,6 +6,7 @@
 \usepackage{url}
 \usepackage{natbib}
 \usepackage{datetime}
+\usepackage{comment}
 
 %include polycode.fmt
 %include catch.fmt
@@ -626,6 +627,28 @@ p |> vs = notin c ++ map f vs
 (<|) :: Expr -> Constraint -> Prop Req
 (Make c xs) <| vs = ...
 \end{code}
+\begin{comment}
+CoreApp (CoreCon y) xs -> propOrs $ map f $ differentiate core y vals
+    where
+        f vs = propAnds $ map (\(x,v) -> propLit $ Req x [v]) $ zip xs vs
+
+differentiate :: Core -> CoreCtorName -> Vals -> [[Val]]
+differentiate core name vals
+        | null vals = []
+        | Any `elem` vals = [replicate (length $ coreCtorFields ctor) Any]
+        | otherwise = [map (f (v,part) . fromJust . snd) $ coreCtorFields ctor
+                      | Val _ _ (ValPart c v) part <- vals, c !! ictr]
+    where
+        typ = valType $ head vals
+        ctrs = getCtors core typ
+        flds = getFields core typ
+        ctor = coreCtor core name
+        ictr = fromJust $ findIndex (==name) ctrs
+
+        f (vals,cont) fld
+            | isFieldRecursive core fld = Val core typ cont cont
+            | otherwise = vals !! fromJust (findIndex (== fld) flds)
+\end{comment}
 \caption{Enumeration Based Constraints}
 \label{fig:enumeration}
 \end{figure}
