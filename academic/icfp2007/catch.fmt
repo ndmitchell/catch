@@ -1,5 +1,21 @@
-%format forall  = "\forall "
+%format forall  = "\forall"
+%format alpha  = "\alpha"
 %format <| = "\lhd"
 %format |> = "\rhd"
 %format -* = "\multimap"
-%format :< = "\Subset"
+%format :< = "\mbox{\ensuremath{<\hspace{-1em}-}}"
+%format :! = "\rightsquigarrow"
+
+%subst conid a = "\mathsf{" a "}"
+%subst varid a = "\mathsf{" a "}"
+%subst varsym a = "\mathsf{" a "}"
+%subst keyword a = "\hspace{-1mm}\text{\textsf{\textbf{ " a "}}}"
+
+%format x = "x"
+%format y = "y"
+%format s = "s"
+%format ss = "ss"
+%format etc = "etc"
+
+\setlength\blanklineskip{3mm}
+\setlength\mathindent{0mm}

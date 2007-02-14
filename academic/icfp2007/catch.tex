@@ -12,6 +12,7 @@
 
 % general stuff
 \newcommand{\T}[1]{\texttt{#1}}
+\newcommand{\C}[1]{\textsf{#1}}
 \newcommand{\tup}[1]{\ensuremath{\langle #1 \rangle}}
 \newcommand{\mtxt}[1]{\textsf{#1}}
 
@@ -84,7 +85,7 @@ Often it is useful to define pattern matches which are incomplete, for example \
 Consider the following example:
 
 \begin{code}
-risers :: Ord a => [a] -> [[a]]
+risers :: Ord alpha => [alpha] -> [[alpha]]
 risers [] = []
 risers [x] = [[x]]
 risers (x:y:etc) = if x <= y then (x:s):ss else [x]:(s:ss)
@@ -98,19 +99,19 @@ A sample execution of this function would be:
 [[1,2,3],[1,2]]
 \end{code}
 
-In the last line of the definition, \T{(s:ss)} is matched against the output of \T{risers}. If \T{risers (y:etc)} returns an empty list this would cause a pattern match error. It takes a few moments to check this program manually -- and a few more to be sure one has not made a mistake!
+In the last line of the definition, |(s:ss)| is matched against the output of \C{risers}. If |risers (y:etc)| returns an empty list this would cause a pattern match error. It takes a few moments to check this program manually -- and a few more to be sure one has not made a mistake!
 
-GHC \cite{ghc_manual} 6.6 has a warning flag to detect incomplete patterns, which is named \T{-fwarn-incomplete-patterns}. Adding this flag at compile time reports:
+GHC \citep{ghc_manual} 6.6 has a warning flag to detect incomplete patterns, which is named \T{-fwarn-incomplete-patterns}. Adding this flag at compile time reports:
 
 \begin{code}
 Warning: Pattern match(es) are non-exhaustive
 \end{code}
 
-The Bugs (12.2.1) section of the manual notes that the checks are sometimes wrong, particularly with string patterns or guards, and that this part of the compiler ``needs an overhaul really'' \cite{ghc_manual}.
+The Bugs (12.2.1) section of the manual notes that the checks are sometimes wrong, particularly with string patterns or guards, and that this part of the compiler ``needs an overhaul really'' \citep{ghc_manual}.
 
-But the GHC checks are only local. If the function \T{head} is defined, then it raises a warning. No effort is made to check the \textit{callers} of \T{head} -- this is an obligation left to the programmer.
+But the GHC checks are only local. If the function \C{head} is defined, then it raises a warning. No effort is made to check the \textit{callers} of \C{head} -- this is an obligation left to the programmer.
 
-Turning the \T{risers} function over to the checker developed in this paper, the output is:
+Turning the \C{risers} function over to the checker developed in this paper, the output is:
 
 \begin{code}
 > Safe
@@ -120,14 +121,14 @@ In addition the checker produces a set of axioms it has proved about Risers, alo
 
 \subsection{Road map}
 
-This paper first takes the reader on an overview walkthrough of checking the \T{risers} function \S\ref{sec:walkthrough}. Next we introduce a small core functional language, along with a mechanism for reasoning about this language \S\ref{sec:manipulate}, and a constraint language \S\ref{sec:constraint}. Next we discuss how to transform Haskell to this core language \S\ref{sec:transform}.
+This paper first takes the reader on an overview walkthrough of checking the \C{risers} function \S\ref{sec:walkthrough}. Next we introduce a small core functional language, along with a mechanism for reasoning about this language \S\ref{sec:manipulate}, and a constraint language \S\ref{sec:constraint}. Next we discuss how to transform Haskell to this core language \S\ref{sec:transform}.
 
 Having described the underlying system, we move on to an evaluation on various sample programs -- including the \textsf{nofib} benchmark suite \S\ref{sec:results}. We compare our work to other work \S\ref{sec:related} before presenting some concluding remarks \S\ref{sec:conclusion}.
 
 \section{Walkthrough of Risers}
 \label{sec:walkthrough}
 
-This section details all the stages that are executed in order to generate a proof that the \T{risers} function in the Introduction does not crash with a pattern match error. No one area is examined in detail, but an overall flavor is given.
+This section details all the stages that are executed in order to generate a proof that the \C{risers} function in the Introduction does not crash with a pattern match error. No one area is examined in detail, but an overall flavor is given.
 
 \subsection{Modifying Risers for analysis}
 
@@ -135,7 +136,7 @@ There is one restriction on the functions that Catch can analyse -- they must no
 
 In Haskell \citep{haskell},type classes are typically implemented \citep{type_classes} as dictionaries, meaning that all functions with a type class have a dictionary of higher order functions passed. This means that the function to analyse must not have any outstanding context.
 
-The type of the \T{risers} function is \T{risers :: Ord a => [a] -> [[a]]} -- this can easily be made first-order by making a new function \T{main} the root of the analysis, and providing a concrete type:
+The type of the \C{risers} function is |risers :: Ord alpha => [alpha] -> [[alpha]]| -- this can easily be made first-order by making a new function \C{main} the root of the analysis, and providing a concrete type:
 
 \begin{code}
 main :: [Int] -> [[Int]]
@@ -146,7 +147,7 @@ main x = risers x
 
 Rather than analyse full Haskell, the Catch tool analyses a first-order Core language, without lambda's (other than at the top level), partial application or let bindings. While this at first seems like a substantial restriction, a convertor is provided from the full Haskell 98 language to this very restricted language. Full details are provided in section \S\ref{sec:transform}.
 
-After converting to Core Haskell, and renaming the identifiers for ease of human reading, the resulting Core is as shown in Figure \ref{fig:risers_core}. The function \T{risers4} and \T{risers2} correspond to the pattern match in the \T{where}. The function \T{<=} in this example has been specialised to the Int data type, unlike the standard (<=) operator which is a member of the Num class.
+After converting to Core Haskell, and renaming the identifiers for ease of human reading, the resulting Core is as shown in Figure \ref{fig:risers_core}. The function \C{risers4} and \C{risers2} correspond to the pattern match in the |where|. The function |<=| in this example has been specialised to the Int data type, unlike the standard |(<=)| operator which is a member of the \C{Num} class.
 
 \begin{figure}
 \begin{code}
@@ -166,15 +167,15 @@ risers2 x y z =  case y of
     True -> (z : snd x) : (fst x)
     False -> (z : []) : (snd x : fst x)
 \end{code}
-\caption{\T{risers} in the Core language}
+\caption{\C{risers} in the Core language}
 \label{fig:risers_core}
 \end{figure}
 
 \subsection{Analysis}
 
-Within the Core language every pattern match covers all possible constructors of the appropriate type -- any patterns which were not originally complete have calls to \T{error} inserted. The analysis first starts by finding calls to \T{error}, then trying to prove that these calls will not be reached. In the above example it is easy to see there is only one \T{error} call, which corresponds to a pattern match error which has been desugared.
+Within the Core language every pattern match covers all possible constructors of the appropriate type -- any patterns which were not originally complete have calls to \C{error} inserted. The analysis first starts by finding calls to \C{error}, then trying to prove that these calls will not be reached. In the above example it is easy to see there is only one \C{error} call, which corresponds to a pattern match error which has been desugared.
 
-The analysis determines that if \T{risers4} is called, the argument must always be a \T{(:)}-constructed value for the code to be safe. Following the call chain backwards shows that \T{risers3} calls \T{risers4}, passing \T{(risers (x:y))} as the argument. In this particular case it is possible to see that risers of a \T{(:)} always results in a \T{(:)} - requiring in part the knowledge that \T{risers2} always evaluates to a \T{(:)}. With these axioms it can be shown that the entire program is safe.
+The analysis determines that if \C{risers4} is called, the argument must always be a |(:)|-constructed value for the code to be safe. Following the call chain backwards shows that \C{risers3} calls \C{risers4}, passing |(risers (x:y))| as the argument. In this particular case it is possible to see that risers of a |(:)| always results in a |(:)| - requiring in part the knowledge that \C{risers2} always evaluates to a |(:)|. With these axioms it can be shown that the entire program is safe.
 
 Unfortunately the analysis is not blessed with the foresight to know which axioms are required and the direction in which the proof must proceed. The analysis manipulates constraints on expressions until a fixed point is found -- speculatively attempting to discharge constraints as they arise. The exact transformation rules, along with the constraints that can be expressed by the system are the main substance of the analysis.
 
@@ -188,15 +189,15 @@ This section explains the underlying constraint system in Catch, focusing on how
 
 \begin{figure}
 \begin{code}
-type CtorName = String
-type FuncName = String
-type PathName = String
+type CtorName  =  String
+type FuncName  =  String
+type PathName  =  String
 
-data Expr = Var String
-          | Path Expr PathName
-          | Make CtorName [Expr]
-          | Call FuncName [Expr]
-          | Case Expr [Alt]
+data Expr  =  Var String
+           |  Path Expr PathName
+           |  Make CtorName [Expr]
+           |  Call FuncName [Expr]
+           |  Case Expr [Alt]
 
 type Alt = (CtorName, Expr)]
 \end{code}
@@ -216,13 +217,13 @@ isRec :: PathName -> Bool
 \caption{Miscellaneous functions to manipulate Core}
 \end{figure}
 
-The abstract syntax tree for the reduced expression language is given in figure \ref{fig:core}. The Core language chosen for this purpose is like most others, with the exception of paths. The language is first order, has only simple case statements, and only algebraic data types. The evaluation strategy is lazy. All case statements are defined to be complete, with error being introduced where a pattern match error would occur. Every constructor has an arity, which can be obtained with the \T{arity} function. To determine all constructors in a set the \T{ctors} function can be used, for example \T{ctors "True" = ["False", "True"]} and \T{ctors "[]" = ["[]", ":"]}.
+The abstract syntax tree for the reduced expression language is given in figure \ref{fig:core}. The Core language chosen for this purpose is like most others, with the exception of paths. The language is first order, has only simple case statements, and only algebraic data types. The evaluation strategy is lazy. All case statements are defined to be complete, with error being introduced where a pattern match error would occur. Every constructor has an arity, which can be obtained with the \C{arity} function. To determine all constructors in a set the \C{ctors} function can be used, for example |ctors "True" = ["False", "True"]| and |ctors "[]" = ["[]", ":"]|.
 
 For analysis purposes we can ignore the default construction for alternatives - in practice this can always be expressed by a set of alternatives with bound constructors. In practice the default alternative is present in Catch, which results in a performance gain.
 
 \subsubsection{Paths}
 
-The one thing present in our Core language, but not in other languages, is the \textit{path}. Some examples of paths include \T{hd} and \T{tl}. A path asserts that a data value has a given constructor, and then follows its appropriate field. The concrete syntax for paths is \T{x$\multimap$tl}. Some examples of paths:
+The one thing present in our Core language, but not in other languages, is the \textit{path}. Some examples of paths include \C{hd} and \C{tl}. A path asserts that a data value has a given constructor, and then follows its appropriate field. The concrete syntax for paths is |x-*tl|. Some examples of paths:
 
 \begin{code}
 (1:2:[])-*hd == 1
@@ -230,11 +231,11 @@ The one thing present in our Core language, but not in other languages, is the \
 []-*hd -- this is statically impossible
 \end{code}
 
-A path has a given constructor, and returns a given field member from that constructor -- this information is available using the functions \T{pathCtor} and \T{pathPosn}.
+A path has a given constructor, and returns a given field member from that constructor -- this information is available using the functions \C{pathCtor} and \C{pathPosn}.
 
-Constructions such as \T{[]-*hd} are statically disallowed. The original input language to Catch is Haskell, which does not have a path expression, meaning that all path's are introduced by the transformation process. It is the responsibility of the transformations to ensure that invalid paths are not introduced.
+Constructions such as |[]-*hd| are statically disallowed. The original input language to Catch is Haskell, which does not have a path expression, meaning that all path's are introduced by the transformation process. It is the responsibility of the transformations to ensure that invalid paths are not introduced.
 
-To take a simple example, here is the function \T{risers4} from the introductory example, using path's instead of constructors. In general functions are given without the use of paths -- they are an underlying implementation concern which does not change the meaning or understanding of the algorithms.
+To take a simple example, here is the function \C{risers4} from the introductory example, using path's instead of constructors. In general functions are given without the use of paths -- they are an underlying implementation concern which does not change the meaning or understanding of the algorithms.
 
 \begin{code}
 risers4 x = case x of
@@ -242,19 +243,19 @@ risers4 x = case x of
     [] -> error "Pattern Match Failure, 11:12."
 \end{code}
 
-Our use of paths contrasts with other functional Core language's (for example \citet{ghc_core}). Our choice has a number of merits, in particular they simplify a number of issues. By using path statements, the alternatives in a \T{case} expression do not need to bind variables. This then means that all free variables are declared at the top of a function, and have a scope consisting of the entire function -- since let's expressions are not permitted. The simplification of free variable handling allows a corresponding simplification of the entire analysis. The rules for variables are also simplified -- there are no special cases for variables bound in a case expression.
+Our use of paths contrasts with other functional Core language's (for example \citet{ghc_core}). Our choice has a number of merits, in particular they simplify a number of issues. By using path statements, the alternatives in a \C{case} expression do not need to bind variables. This then means that all free variables are declared at the top of a function, and have a scope consisting of the entire function -- since let's expressions are not permitted. The simplification of free variable handling allows a corresponding simplification of the entire analysis. The rules for variables are also simplified -- there are no special cases for variables bound in a case expression.
 
 The name of paths can be automatically generated from a constructor and an index, however if a Haskell program defines a data type with uniquely named fields, then these field names are used. The definition for lists in Catch is:
 
 \begin{code}
-data [a] = [] | {hd :: a, tl :: [a]}
+data [alpha] = [] | {hd :: alpha, tl :: [alpha]}
 \end{code}
 
-\subsubsection{\T{isRec} function}
+\subsubsection{\C{isRec} function}
 
-Detail the purpose of the isRec function, what it does, and why. Also mention that co-recursive types are disallowed.
+Detail the purpose of the \C{isRec} function, what it does, and why. Also mention that co-recursive types are disallowed.
 
-Invariant, given a finite typed structure, there must be no chain of fields which are not isRec one after another.
+Invariant, given a finite typed structure, there must be no chain of fields which are not \C{isRec} one after another.
 
 \subsubsection{Abstraction}
 
@@ -288,8 +289,8 @@ The Core language only has algebraic data types, specifically the types missing 
 Natural numbers are often encoded by Peano numerals, and this idea can easily be extended to integers:
 
 \begin{code}
-data Nat = Zero | Succ Nat
-data Int = Zero | Minus Nat | Plus Nat
+data Nat  =  Zero  | Succ Nat
+data Int  =  Zero  | Minus Nat | Plus Nat
 \end{code}
 
 While this abstraction captures all the underlying detail of the number system, it is not detail that can be used during the analysis -- due to the underlying constraint systems discussed in \S\ref{sec:constraints}. A more practically motivated example is given in Figure \ref{fig:abstract_int}, and this is the abstraction that is used in practice. The \T{any0} method is an internally implemented method of Catch, assumed to be any demonic value.
@@ -303,11 +304,11 @@ data Char = A .. Z | a .. z | 0 .. 9 | ! .. # | Other
 data Char = 00 | 01 | 02 ..
 \end{code}
 
-The simplest abstraction is that all characters are the same. A slightly more refined abstraction is to partition the characters based on the character testing functions provided in the \T{Char} module of Haskell. Refining the model further can give special status to characters that commonly occur, giving all uncommon characters the \T{Other} value. Finally, given that \T{Char} is a finite enumeration, the entire range of characters could each be represented distinctly.
+The simplest abstraction is that all characters are the same. A slightly more refined abstraction is to partition the characters based on the character testing functions provided in the \C{Char} module of Haskell. Refining the model further can give special status to characters that commonly occur, giving all uncommon characters the \C{Other} value. Finally, given that \C{Char} is a finite enumeration, the entire range of characters could each be represented distinctly.
 
 In practice, programs often require different levels of abstraction for characters. Many will accept the most basic abstraction, some require certain literals to be represented precisely - for example a noughts and crosses\footnote{Tic-tac-toe, for US readers.} program matches on 'X' and 'O'.
 
-The final issue of abstraction relates to primitive functions, for example the \T{getArgs} function which returns the command line arguments, or the \T{readFile} which reads from the underlying filesystem. In most cases the most appropriate model is to return \T{any0}. In some special cases, for example the CPU tick count, a slightly more precise answer can be given -- namely a positive integer.
+The final issue of abstraction relates to primitive functions, for example the \C{getArgs} function which returns the command line arguments, or the \C{readFile} which reads from the underlying filesystem. In most cases the most appropriate model is to return \T{any0}. In some special cases, for example the CPU tick count, a slightly more precise answer can be given -- namely a positive integer.
 
 
 \subsection{Constraints}
@@ -316,7 +317,7 @@ An expression evaluates to a (potentially infinite) data structure, or to $\bot{
 
 Given a mechanism of expressing some set of constructors, $E(x) \in C$ states that the expression $x$ must, when evaluated be a member of the set defined by $C$. Since the Core language is typed, the constraint $C$ will only refer to a well typed term. These atomic constraints can be built up into a proposition of constraints, each possibly on different variables.
 
-Since free variables are bound by function calls, it is possible to scope a constraint by making it a proposition. These can then be placed into a proposition. For example, $\forall f, i \in C$ states that for the function $f$, the argument $i$ must be in the set $C$. To take a concrete example, one particular example is $\forall \T{risers4}, x \in \g{\_ : \_}$.
+Since free variables are bound by function calls, it is possible to scope a constraint by making it a proposition. These can then be placed into a proposition. For example, $\forall f, i \in C$ states that for the function $f$, the argument $i$ must be in the set $C$. To take a concrete example, one particular example is $\forall \C{risers4}, x \in \g{\_ : \_}$.
 
 These constraints are sufficient to express many useful properties. Several underlying models are possible, and will be discussed later.
 
@@ -326,8 +327,8 @@ These constraints are sufficient to express many useful properties. Several unde
 \begin{code}
 type Constraint = [Match]
 
-data Match = Match CtorName [Match]
-           | Any
+data Match  =  Match CtorName [Match]
+            |  Any
 
 data Req = Expr :< Constraint
 
@@ -519,18 +520,16 @@ ewp x = all isStar x
 
 integrate :: PathName -> RegExp -> RegExp
 integrate p r | not (isRec p) = Atom p : r
-integrate p (Star ps:r) | p `elem` ps = Star ps : r
-                        | otherwise = Star (p:ps) : r
+integrate p (Star ps:r)  | p `elem` ps  = Star ps : r
+                         | otherwise    = Star (p:ps) : r
 integrate p r = Star [p] : r
 
 differentiate :: PathName -> Path -> Maybe Path
 differentiate p [] = Nothing
-differentiate p (Atom r:rs)
-    | p == r = Just rs
-    | otherwise = Nothing
-differentiate p (Star r:rs)
-    | if p `elem` r = Just (Star r:rs)
-    | otherwise = differentiate p rs
+differentiate p (Atom  r:rs)  | p == r     = Just rs
+                              | otherwise  = Nothing
+differentiate p (Star  r:rs)  | p `elem` r  = Just (Star r:rs)
+                              | otherwise   = differentiate p rs
 \end{code}
 \caption{Regular expression based constraints}
 \label{fig:regexp}
