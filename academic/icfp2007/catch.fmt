@@ -7,9 +7,15 @@
 %format -* = "\multimap{}"
 %format :< = "\mbox{\ensuremath{<\hspace{-1em}-}}"
 %format :! = "\rightsquigarrow{}"
+%format :* = "\star{}"
+%format :| = "\ddagger{}"
 %format `dot` = "\bullet{}"
 %format <=> = "\Leftrightarrow{}"
 %format `union` = "\cup{}"
+%format `intersect` = "\cap{}"
+%format `and` = "\wedge{}"
+%format length = "\sharp{}"
+%format not = "\mathsf{not}"
 
 %subst conid a = "\mathsf{" a "}"
 %subst varid a = "\mathsf{" a "}"
@@ -18,6 +24,8 @@
 
 %format c1  = "c_1"
 %format c2  = "c_2"
+%format v1  = "v_1"
+%format v2  = "v_2"
 
 
 %format a  = "a"

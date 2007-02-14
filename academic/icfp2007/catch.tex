@@ -207,12 +207,12 @@ type Alt = (CtorName, Expr)]
 
 \begin{figure}
 \begin{code}
-ctors :: CtorName -> [CtorName]
-arity :: CtorName -> Int
-paths :: CtorName -> [PathName]
-pathCtor :: PathName -> CtorName
-pathPosn :: PathName -> Int
-isRec :: PathName -> Bool
+ctors     :: CtorName  -> [CtorName]
+arity     :: CtorName  -> Int
+paths     :: CtorName  -> [PathName]
+pathCtor  :: PathName  -> CtorName
+pathPosn  :: PathName  -> Int
+isRec     :: PathName  -> Bool
 \end{code}
 \caption{Miscellaneous functions to manipulate Core}
 \end{figure}
@@ -581,7 +581,7 @@ From the definition of the constraints it is possible to construct a number of i
 \begin{description}
 \item[Exhaustive conditions:] in the constraint |e :< (r :! [":","[]"])| the condition lists all the possible constructors, if |e| reaches weak head normal form then because of static typing |e| must be one of these constructors, therefore this constraint simplifies to True.
 
-\item[Constraint merging:] given |e :< (r :! c1) && e :< (r :! c2)|, this can be replaced by |e :< (r :! (c1 `union` c2))|.
+\item[Constraint merging:] given |e :< (r :! c1) `and` e :< (r :! c2)|, this can be replaced by |e :< (r :! (c1 `union` c2))|.
 
 \item[More] more constraints are in the source code, move a few of the better ones to this document.
 \end{description}
@@ -591,6 +591,46 @@ In addition to having useful simplification rules, by having a more accurate equ
 The Catch system operates primarily on algebraic propositions, using the simplification rules where possible. Operations like factorisation and expansion of propositions are not performed -- while they can lead to additional simplification, they can also lead to an increase in the proposition size. Before equality is performed, the proposition is first turned into a BDD and normalised -- this helps to obtain a fixed point quicker.
 
 \subsection{Enumeration Based}
+
+\begin{figure}
+\begin{code}
+type Constraint = [Val]
+
+data Val   =  Part :* Part
+           |  Any
+data Part  =  [Bool] :| [Val]
+
+-- useful auxiliary, the non-recursive paths
+fields :: [CtorName] -> [PathName]
+fields = filter (not . isRec) . concatMap paths
+
+notin :: CtorName -> Constraint
+notin c = (map (/= c) cs :| as) :* (replicate (length cs) True :| as)
+    where
+    cs = ctors c; xs = fields cs
+    as = replicate (length xs) Any
+
+(|>) :: PathName -> Constraint -> Constraint
+p |> vs = notin c ++ map f vs
+    where
+    c = pathCtor p; cs = ctors c
+    r = isRec p; xs = fields cs
+    
+    f Any = Any
+    f (v1 :* v2) | r =  (map (== c) cs :| replicate (length xs) Any) :*
+                        (v1 `intersect` v2)
+    f v =  (map (== c) cs :| fs) :*
+           (replicate (length cs) True :| replicate (length xs) Any)
+        where fs = map (\x -> if x == p then v else Any) xs
+
+(<|) :: Expr -> Constraint -> Prop Req
+(Make c xs) <| vs = ...
+\end{code}
+\caption{Enumeration Based Constraints}
+\label{fig:enumeration}
+\end{figure}
+
+
 
 These constraints are similar to those given in the example, but with infiniteness built in.
 
