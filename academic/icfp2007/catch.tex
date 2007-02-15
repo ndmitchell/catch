@@ -573,6 +573,20 @@ This restricted regular expression language, combined with $\phi$, is closed und
 
 The constructors, because of static typing and the restricted form of regular expression, must all by of the same type.  Given a finite type, these restrictions are enough to ensure that there are only a finite number of regular expressions. Combined with the finite number of constructors, this is enough to guarantee finiteness, which satisfies the termination properties assumed on constraints.
 
+Two examples of constrains are:
+
+\begin{code}
+e :< ([] :! [":"])
+\end{code}
+
+This constraint says that the expression must be a cons.
+
+\begin{code}
+e :< ([Star ["tl"], Atom "hd"] :! [":"])
+\end{code}
+
+This constraint says that a list must consist of |(:)| constructed elements. If the list is empty, this still satisfies the constraint. If the list is infinite then the condition applies to all elements, constraining an infinite number. Note that this was not possible with the simple constraint framework introduced earlier.
+
 \subsection{Propositions on Regular Expression Constraints}
 
 The underlying type that is manipulated by Catch is not a constraint, but a proposition of constraints. These propositions are compared for equality to obtain a fixed point, and are variously manipulated by the system. Since the complexity of performing an operation is often proportional to the number of constraints in the proposition, having simplification rules can lead to a big win.
@@ -593,6 +607,7 @@ The Catch system operates primarily on algebraic propositions, using the simplif
 
 \subsection{Enumeration Based}
 
+
 \begin{figure}
 \begin{code}
 type Constraint = [Val]
@@ -600,6 +615,9 @@ type Constraint = [Val]
 data Val   =  Part :* Part
            |  Any
 data Part  =  [Bool] :| [Val]
+
+-- TODO: redo Part as:
+data Part = [CtorName] :| [(PathName, Val)]
 
 -- useful auxiliary, the non-recursive paths
 fields :: [CtorName] -> [PathName]
@@ -616,13 +634,13 @@ p |> vs = notin c ++ map f vs
     where
     c = pathCtor p; cs = ctors c
     r = isRec p; xs = fields cs
-    
+
     f Any = Any
     f (v1 :* v2) | r =  (map (== c) cs :| replicate (length xs) Any) :*
                         (v1 `intersect` v2)
     f v =  (map (== c) cs :| fs) :*
            (replicate (length cs) True :| replicate (length xs) Any)
-        where fs = map (\x -> if x == p then v else Any) xs
+        where fs = map (lambda x -> if x == p then v else Any) xs
 
 (<|) :: Expr -> Constraint -> Prop Req
 (Make c xs) <| vs = ...
@@ -653,9 +671,24 @@ differentiate core name vals
 \label{fig:enumeration}
 \end{figure}
 
+The enumeration based constraints are implemented as in figure \ref{fig:enumeration}. These constraints are similar to those given as the basic example model of constraints, but can constraint an infinite number of items, and can be represented in a finite space.
 
 
-These constraints are similar to those given in the example, but with infiniteness built in.
+Each constraint has two parts, the first part (before the |:*|) represents the constructor and the non-recursive fields. The second part represents all recursive fields. Given a constraint |((c_1 :* v_1) :|| (c_2 :* v_2))|, each |c| is a set of constructors, and each |v| is a mapping from non-recursive field names to values. In this example, |c_1| is the set of constructors allowed in the value, and |c_2| is the set allowed after following \textit{any number} of recursive fields. Similarly, |v_1| represents the fields allowed following non-recursive field names from the root, while |v_2| lists the field names from the recursive values.
+
+To take the examples from the regular expression based constraints:
+
+\begin{code}
+cons = ([":"] :| [("hd",Any)]) :* (["[]",":"] :| [("hd",Any)])
+\end{code}
+
+This constraint states that the first constructor is a |(:)|, note that it is a lot more verbose than the regular expression based one.
+
+\begin{code}
+(["[]",":"] :| [("hd",cons)]) :* (["[]",":"] :| [("hd",cons)])
+\end{code}
+
+Here I have used the constraint from the previous time to abbreviate the \C{cons} requirement.
 
 \subsection{Enumeration Based Propositions}
 
