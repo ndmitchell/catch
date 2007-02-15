@@ -26,7 +26,7 @@ of all the other programs I thought I'd contribute at least one :-)
 module X2n1 ( main ) where
 import Data.Complex
 
-main = print (round (realPart (sum [f n | n <- [1..10000]])))
+main n = print (round (realPart (sum [f n | n <- [1..n]])))
 
 f :: Int -> Complex Double
 f n = mkPolar 1 ((2*pi)/fromIntegral n) ^ n
