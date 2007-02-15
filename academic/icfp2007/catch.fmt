@@ -16,14 +16,21 @@
 %format `and` = "\wedge{}"
 %format length = "\sharp{}"
 %format not = "\mathsf{not}"
+%format `mergeVal` = "\sqcap{}"
 
 %subst conid a = "\mathsf{" a "}"
 %subst varid a = "\mathsf{" a "}"
 %subst varsym a = "\mathsf{" a "}"
 %subst keyword a = "\hspace{-1mm}\text{\textsf{\textbf{ " a "}}}"
 
+%format a1  = "a_1"
+%format a2  = "a_2"
+%format b1  = "b_1"
+%format b2  = "b_2"
 %format c1  = "c_1"
 %format c2  = "c_2"
+%format p1  = "p_1"
+%format p2  = "p_2"
 %format v1  = "v_1"
 %format v2  = "v_2"
 

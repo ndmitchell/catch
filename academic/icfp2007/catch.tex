@@ -122,7 +122,11 @@ Turning the \C{risers} function over to the checker developed in this paper, the
 
 In addition the checker produces a set of axioms it has proved about Risers, along with an outline of the proof. Fuller details of how the checking is performed follow in Section \ref{sec:walkthrough}.
 
-The contributions beyond the original pattern match checker paper are many and varied. List them here.
+\subsection{Contributions}
+
+This is not the first paper on pattern match checking, indeed this system owes a lot of its heritage to \citet{catch_tfp}. A quick glance at the future work section of that original paper shows that all the issues listed are addressed in this paper. The original version of Catch followed a similar motivation, but was unable to handle full Haskell, and had a particularly unsatisfactory story when it came to type classes and higher order functions -- both things now dealt with convincingly. In terms of the underlying analysis, the constraint language has been changed, the fixed pointing method is entirely different and the success on moderately complex examples is massively increased.
+
+While the original version of Catch shared motivation with this paper, the underlying mechanism have changed entirely, leading to a much more powerful tool.
 
 \subsection{Road map}
 
@@ -191,6 +195,7 @@ Unfortunately the analysis is not blessed with the foresight to know which axiom
 This section explains the underlying constraint system in Catch, focusing on how the constraints are put together to express properties of expressions and the data structures they evaluate to. All data structures and equations are presented in Haskell, although should be accessible to all readers.
 
 \subsection{Reduced expression language}
+\label{sec:core}
 
 \begin{figure}
 \begin{code}
@@ -618,67 +623,50 @@ type Constraint = [Val]
 
 data Val   =  Part :* Part
            |  Any
-data Part  =  [Bool] :| [Val]
-
--- TODO: redo Part as:
-data Part = [CtorName] :| [(PathName, Val)]
+data Part  =  [CtorName] :| [(PathName,Val)]
 
 -- useful auxiliary, the non-recursive paths
 fields :: [CtorName] -> [PathName]
 fields = filter (not . isRec) . concatMap paths
 
 notin :: CtorName -> Constraint
-notin c = (map (/= c) cs :| as) :* (replicate (length cs) True :| as)
+notin c = (delete c cs :| as) :* (cs :| as)
     where
-    cs = ctors c; xs = fields cs
-    as = replicate (length xs) Any
+    cs = ctors c
+    as = zip (fields cs) (repeat True)
 
 (|>) :: PathName -> Constraint -> Constraint
 p |> vs = notin c ++ map f vs
     where
-    c = pathCtor p; cs = ctors c
-    r = isRec p; xs = fields cs
+    c = pathCtor p; cs = ctors c; xs = fields cs
+    as = zip xs (repeat True)
 
     f Any = Any
-    f (v1 :* v2) | r =  (map (== c) cs :| replicate (length xs) Any) :*
-                        (v1 `intersect` v2)
-    f v =  (map (== c) cs :| fs) :*
-           (replicate (length cs) True :| replicate (length xs) Any)
-        where fs = map (lambda x -> if x == p then v else Any) xs
+    f (v1 :* v2) | isRec p = ([c] :| as) :* (v1 `mergePart` v2)
+    f v = ([c] :| fs) :* (cs :| as)
+        where fs = [(x, if x == p then v else Any) |  x <- xs]
 
 (<|) :: Expr -> Constraint -> Prop Req
-(Make c xs) <| vs = ...
+(Make c xs) <| vs = or (map f vs)
+    where
+    f Any = Any
+    f ((c1 :* v1) :| r) = c `elem` c1 && and (zipWith g (paths c) xs)
+        where g p x = if isRec p then r :| r else lookup p v1
+
+(`mergeVal`) :: Val -> Val -> Val
+(a1 :* b1) `mergeVal` (a2 :* b2) = (mergePart a1 a2) :* (mergePart b1 b2)
+
+mergePart :: Part -> Part -> Part
+mergePart (c1 :| v1) (c2 :| v2) = (c1 `intersect` c2) :| zipWith f v1 v2
+    where f (p1,v1) (p2,v2) = assert (p1 == p2) (v1 `mergeVal` v2)
 \end{code}
-\begin{comment}
-CoreApp (CoreCon y) xs -> propOrs $ map f $ differentiate core y vals
-    where
-        f vs = propAnds $ map (\(x,v) -> propLit $ Req x [v]) $ zip xs vs
-
-differentiate :: Core -> CoreCtorName -> Vals -> [[Val]]
-differentiate core name vals
-        | null vals = []
-        | Any `elem` vals = [replicate (length $ coreCtorFields ctor) Any]
-        | otherwise = [map (f (v,part) . fromJust . snd) $ coreCtorFields ctor
-                      | Val _ _ (ValPart c v) part <- vals, c !! ictr]
-    where
-        typ = valType $ head vals
-        ctrs = getCtors core typ
-        flds = getFields core typ
-        ctor = coreCtor core name
-        ictr = fromJust $ findIndex (==name) ctrs
-
-        f (vals,cont) fld
-            | isFieldRecursive core fld = Val core typ cont cont
-            | otherwise = vals !! fromJust (findIndex (== fld) flds)
-\end{comment}
 \caption{Enumeration Based Constraints}
 \label{fig:enumeration}
 \end{figure}
 
 The enumeration based constraints are implemented as in figure \ref{fig:enumeration}. These constraints are similar to those given as the basic example model of constraints, but can constraint an infinite number of items, and can be represented in a finite space.
 
-
-Each constraint has two parts, the first part (before the |:*|) represents the constructor and the non-recursive fields. The second part represents all recursive fields. Given a constraint |((c_1 :* v_1) :|| (c_2 :* v_2))|, each |c| is a set of constructors, and each |v| is a mapping from non-recursive field names to values. In this example, |c_1| is the set of constructors allowed in the value, and |c_2| is the set allowed after following \textit{any number} of recursive fields. Similarly, |v_1| represents the fields allowed following non-recursive field names from the root, while |v_2| lists the field names from the recursive values.
+Each constraint has two parts, the first part (before the |:*|) represents the constructor and the non-recursive fields. The second part represents all recursive fields. Given a constraint |((c1 :* v1) :|| (c2 :* v2))|, each |c| is a set of constructors, and each |v| is a mapping from non-recursive field names to values. In this example, |c1| is the set of constructors allowed in the value, and |c2| is the set allowed after following \textit{any number} of recursive fields. Similarly, |v1| represents the fields allowed following non-recursive field names from the root, while |v2| lists the field names from the recursive values.
 
 To take the examples from the regular expression based constraints:
 
@@ -686,66 +674,75 @@ To take the examples from the regular expression based constraints:
 cons = ([":"] :| [("hd",Any)]) :* (["[]",":"] :| [("hd",Any)])
 \end{code}
 
-This constraint states that the first constructor is a |(:)|, note that it is a lot more verbose than the regular expression based one.
+This constraint states that the first constructor is a |(:)|. Note that it is a lot more verbose than the regular expression one. Part of this is due to the explicit nature -- even though no conditions are introduced on \C{hd}, the mapping from \C{hd} to \C{Any} is given explicitly.
+
+Taking the next example from regular expressions:
 
 \begin{code}
 (["[]",":"] :| [("hd",cons)]) :* (["[]",":"] :| [("hd",cons)])
 \end{code}
 
-Here I have used the constraint from the previous time to abbreviate the \C{cons} requirement.
+This example reuses the \C{cons} constraint introduced before, in the interest of brevity. Again this constraint is much larger than the regular expression, partly because it fills out all the details.
+
+The proof of finiteness for these constraints is relatively easy, given a finite type.
+
+One operation on enumeration constraints that is not given here is normalisation. One way to optimise a constraint would be to remove duplicates. Using the relationship between constraints there are additional reductions that are possible. The normalisation operation is complex, but not difficult. The use of normalisation allows for a fixed point to be found more rapidly.
 
 \subsection{Enumeration Based Propositions}
 
-This is an extension over the enumeration based predicates.
+The enumeration constraints have different power to the regular expression constraints, but their primary advantage comes when they are combined into propositions. The massive advantage is that if a given two constraints on the same expression, combined at the proposition level, this can be reduced into one constraint:
+
+\begin{code}
+(e :< v1) || (e :< v2) = e :< (v1 ++ v2)
+(e :< v1) && (e :< v2) = e :< [a `mergeAnd` b | a <- v1, b <- v2]
+\end{code}
+
+Here the list comprehension in the |(&&)| rule is being used to generate the cross-product of the two lists.
+
+This power to reduce constraints on equal expressions can be exploited further by translation of the program at the beginning. If every function takes exactly one argument, this guarantees that all expressions will result in being reduced to the same expression, as they will all be reduced to variables, and only one variable is present in each function. The easy way to perform this translation is to introduce tuples where a function would have more than one argument.
+
+Combining these two things, this allows a \C{Prop Req} to be equivalent to \C{Req} in power. This limits the number of possible terms, and ensures that a fixed point is found faster.
+
+While the introduction of tuples would not harm the regular expression constraint system, due to the simplification rules present, they would not eliminate propositions. None of the simplification rules are unable to optimise between discrete components in a tuple, leading to no benefit at the cost of a slightly obfusticated program.
 
 \subsection{Comparison of Constraints}
 
-Both constraint systems are capable of expressing a wide range of values. There are some areas where one is capable of expressing different things.
+Both constraint systems are capable of expressing a wide range of values. There are some areas where one is capable of expressing different things. To give an example of the power, here I give examples of two concrete values where one constraint language can differentiate between them, and the other cannot.
 
+Take the following two values: |(T:[])| and |(T:T:[])|, using the enumeration based constraint of |(([":"] :| [("hd",Any)]) :* (["[]"] :| [("hd",Any)]))| the first matches but the second does not. Using propositions over regular expression constraints there is no way to differentiate between these two values.
 
+Taking a tree like data structure:
 
+\begin{code}
+data Tree a  =  Branch {left :: Tree a, right :: Tree a}
+             |  Leaf a
 
+v1 = Branch (Leaf True   ) (Leaf False  )
+v2 = Branch (Leaf False  ) (Leaf True   )
+\end{code}
 
-\section{Haskell: Sugarless and Typeless}
+Taking the values |v1| and |v2|, the regular expression constraint |([Star ["left"]] :! ["True"])| matches |v1| but not |v2|. Using enumeration based constraints, there is no way to differentiate between these two values.
+
+The final Catch system uses enumeration based constraints, for their propositional simplification rules, which is critical in obtaining a fixed point quickly.
+
+\section{Converting Haskell to Core}
 \label{sec:transform}
 
-The full Haskell language is a bit unwieldy for analysis. In particular the
-syntactic sugar complicates analysis by introducing more types of expression to
-consider. The checker works instead on a simplified language, a core to which
-other Haskell programs can be reduced. This core language is a functional
-language, making use of case expressions, function applications and algebraic
-data types.
+The full Haskell language is a bit unwieldy for analysis. In particular the syntactic sugar complicates analysis by introducing more types of expression to consider. The checker works instead on a simplified language, a core to which other Haskell programs can be reduced. This core language is a functional language, making use of case expressions, function applications and algebraic data types. The abstract syntax tree of expressions is discussed in \S\ref{sec:core}.
 
 \subsection{Yhc Core}
 
-In order to generate a simplified language, it is natural to start with a full
-Haskell compiler, and we chose Yhc, a fork of nhc. The internal language of Yhc
-is called PosLambda -- a simple variant of lambda calculus without types, but
-with source position information. Yhc works by applying basic desugaring
-transformations, without optimization transformations. This simplicity ensures
-the generated PosLambda is close to the original Haskell in its structure. Each
-top level function in a source file maps to a top level function in the
-generated PosLambda, retaining the same name.
+In order to generate a simplified language, it is natural to start with a full Haskell compiler, and we chose Yhc, a fork of nhc. The internal language of Yhc is called PosLambda -- a simple variant of lambda calculus without types, but with source position information. Yhc works by applying basic desugaring transformations, without optimization transformations. This simplicity ensures the generated PosLambda is close to the original Haskell in its structure. Each top level function in a source file maps to a top level function in the generated PosLambda, retaining the same name.
 
-PosLambda does have some constructs that have no direct representation in
-Haskell, for example there is a FatBar construct, which is used for compiling
-pattern matches which require fall through behaviour. The PosLambda language
-was always intended as an internal representation, and exposes certain details
-that are specific to the compiler. We have introduced a new Core language to
-Yhc, intended as a simple subset of Haskell where possible, on to which
-PosLambda can easily be mapped. This Core language is not explicitly typed, and
-has very few constructs. We have also written a library, Yhc.Core, which is
-used by Yhc to generate these Core files, and by external programs to load and
+PosLambda does have some constructs that have no direct representation in Haskell, for example there is a FatBar construct, which is used for compiling pattern matches which require fall through behaviour. The PosLambda language was always intended as an internal representation, and exposes certain details that are specific to the compiler. We have introduced a new Core language to Yhc, intended as a simple subset of Haskell where possible, on to which PosLambda can easily be mapped. This Core language is not explicitly typed, and has very few constructs. We have also written a library, Yhc.Core, which is used by Yhc to generate these Core files, and by external programs to load and
 manipulate the generated Core.
 
-The importance of this Core language is not what remains, but what has been
-removed.
+The importance of this Core language is not what remains, but what has been removed.
 
 \begin{itemize}
 \item No syntactic sugar such as list comprehensions, \T{do} notation etc.
 \item Only simple \T{case} statements, matching only the top level constructor
-\item All \T{case} statements are complete, including an \T{error} call if
-necessary
+\item All \T{case} statements are complete, including an \T{error} call if necessary
 \item All names are fully qualified
 \item Haskell's type classes have been removed (see \ref{sec:dict})
 \item Only top level functions remain, all local functions have been lambda lifted
@@ -754,180 +751,180 @@ necessary
 
 \subsection{The Dictionary Transformation}
 
-Most of the transformations in Yhc operate at a very local level, either on a
-single function at a time or on a small expression within a function. The only
-analysis/transformation phases which require information about more than one
-function are type checking and the dictionary transformation, used to implement
-type classes.
+Most of the transformations in Yhc operate at a very local level, either on a single function at a time or on a small expression within a function. The only analysis/transformation phases which require information about more than one function are type checking and the dictionary transformation, used to implement type classes.
 
 \yesexample
 
 Take the following code:
 
 \begin{code}
- f :: Eq a => a -> a -> Bool
- f x y = x == y || x /= y
+f :: Eq alpha => alpha -> alpha -> Bool
+f x y = x == y || x /= y
 \end{code}
 
 is translated by Yhc into
 
 \begin{code}
- f :: (a -> a -> Bool, a -> a -> Bool) -> a -> a -> Bool
- f dict x y = (||) (((==) dict) x y) (((/=) dict) x y)
+f :: (alpha -> alpha -> Bool, alpha -> alpha -> Bool) -> alpha -> alpha -> Bool
+f dict x y = (||) (((==) dict) x y) (((/=) dict) x y)
 
- (==) (a,b) = a
- (/=) (a,b) = b
+(==) (a,b) = a
+(/=) (a,b) = b
 \end{code}
 
-The \T{Eq} class consists of two functions, \T{(==)} and \T{(/=)}. Depending on
-the type of the \T{a} variable in the function \T{f}, different code will be
-executed for the two functions.
+The \C{Eq} class consists of two functions, |(==)| and |(/=)|. Depending on the type of the |alpha| variable in the function \C{f}, different code will be executed for the two functions.
 
 \noexample
 
+The dictionary transformation generates a tuple, containing the functions to use for the type class, and passes this structure into the \C{f} function as an additional argument. The additional argument can be seen as the dictionary, with functions being looked up in the dictionary to obtain the correct behaviour at runtime.
 
+The dictionary transformation is a global transformation. The \C{Eq} context in \C{f} requires a dictionary to be accepted by \C{f}, and requires all the callers of \C{f} to pass a dictionary as well.
 
-The dictionary transformation generates a tuple, containing the functions to
-use for the type class, and passes this structure into the \T{f} function as an
-additional argument. The additional argument can be seen as the dictionary,
-with functions being looked up in the dictionary to obtain the correct
-behaviour at runtime.
-
-The dictionary transformation is a global transformation. The \T{Eq} context in
-\T{f} requires a dictionary to be accepted by \T{f}, and requires all the
-callers of \T{f} to pass a dictionary as well.
-
-The type class mechanism in Haskell allows certain classes to require other
-classes, for example a definition of \T{Ord} requires a definition of \T{Eq}
-for the same type. In response the dictionary transformation generates a nested
-tuple, where the \T{Eq} dictionary is given as a member of the \T{Ord}
-dictionary.
+The type class mechanism in Haskell allows certain classes to require other classes, for example a definition of \C{Ord} requires a definition of \C{Eq} for the same type. In response the dictionary transformation generates a nested tuple, where the \C{Eq} dictionary is given as a member of the \C{Ord} dictionary.
 
 \subsection{First Order Haskell}
 
-Having a simple Haskell-like language, there are essentially 2 features that
-Haskell has that can be lived without, laziness and higher-order functions. It
-is possible to convert Haskell to be a first order language by using
-defunctionalization, and it is possible to convert Haskell to be a lazy
-language by continuation passing. For the purposes of this checker, laziness is
-a nice property, as it allows the code to be treated much like a set of maths
-equations, without worrying about evaluation order etc. Higher order functions
-are less helpful, and in fact obscure the flow of control within a program --
-their removal is beneficial.
+Having a simple Haskell-like language, there are essentially 2 features that Haskell has that can be lived without, laziness and higher-order functions. It is possible to convert Haskell to be a first order language by using defunctionalization, and it is possible to convert Haskell to be a lazy language by continuation passing. For the purposes of this checker, laziness is a nice property, as it allows the code to be treated much like a set of maths equations, without worrying about evaluation order etc. Higher order functions are less helpful, and in fact obscure the flow of control within a program -- their removal is beneficial.
 
 \subsection{Reynold's style defunctionalization}
 
-Reynold's style defunctionalization is a simple method of generating a first
-order program from a higher order one. Taking the following example:
+Reynold's style defunctionalization is a simple method of generating a first order program from a higher order one. Taking the following example:
 
 \begin{code}
- map f x = case x of
-                [] -> []
-                (a:as) -> f a : map f as
+map f x = case x of
+               [] -> []
+               (a:as) -> f a : map f as
 \end{code}
 
-Here f is a higher order input, of type \T{(a -> b)}. Defunctionalisation works
-by creating a data type to represent all possible f's, and using that. For
-example:
+Here \C{f} is a higher order input, of type |(a -> b)|. Defunctionalisation works by creating a data type to represent all possible f's, and using that. For example:
 
 \begin{code}
- data Functions = Head | Tail
+data Functions = Head | Tail
 
- apply Head x = head x
- apply Tail x = tail x
+apply Head x = head x
+apply Tail x = tail x
 
- map f x = case x of
-     [] -> []
-     (a:as) -> apply f a : map f as
+map f x = case x of
+    [] -> []
+    (a:as) -> apply f a : map f as
 \end{code}
 
-Now all calls to map head would be replaced with map Head, and Head is a first
-order value. This scheme can easily be extended to currying, let us take the
-\T{add} function, which adds two \T{Int}'s:
+Now all calls to map head would be replaced with |map Head|, and \C{Head} is a first order value. This scheme can easily be extended to currying, let us take the \C{add} function, which adds two \C{Int}'s:
 
 \begin{code}
- data Functions = Head | Tail | Add0 | Add1 Int
+data Functions = Head | Tail | Add0 | Add1 Int
 
- apply Add0 n = Add1 n
- apply (Add1 a) b = add a b
+apply Add0 n = Add1 n
+apply (Add1 a) b = add a b
 \end{code}
 
-There are a couple of things to note about this approach. One is that while
-this is still type safe, to do type checking would require a dependently typed
-language. This is unfortunate, but for our checker (which does not use type
-information), this is acceptable. The unacceptable aspect is the creation of an
-apply function, whose semantics are very general. This essentially introduces a
-bottleneck through which various properties must be proven. Asking questions,
-such as is the result of apply a Cons or a Nil, are confusing.
+There are a couple of things to note about this approach. One is that while this is still type safe, to do type checking would require a dependently typed language. This is unfortunate, but for our checker (which does not use type information), this is acceptable. The unacceptable aspect is the creation of an apply function, whose semantics are very general. This essentially introduces a bottleneck through which various properties must be proven. Asking questions, such as is the result of \C{apply} a \C{Cons} or a \C{Nil}, are confusing.
 
-As such, while Reynold's style defunctionalization is acceptable, it is not the
-ideal method for removing higher order functions.
+As such, while Reynold's style defunctionalization is acceptable, it is not the ideal method for removing higher order functions.
 
 \subsection{Specialisation}
 
-Often when a function is called, there is some information known about the
-arguments -- for example one may be a constant. The way that the GHC program
-makes use of this information is by inlining heavily, unfortunately sometimes
-there is a good amount of information available, but the function is unsuitable
-for inlining. Specialisation solves this problem neatly.
+One technique that can be used to remove higher order functions, and indeed was employed in the original version of Catch, is specialisation. A mutually recursive group of functions can be specialised in their $n$th argument if in all recursive calls this
+argument is invariant.
 
-Let us consider for a minute the function \T{map}, defined as above. Now let us
-consider the application \T{map f []}. Here it is not a great idea to inline
-map, and GHC is unable to simplify this definition\footnote{GHC is able to
-simplify the \T{map} provided in the standard Prelude using rewrite rules,
-however by defining \T{map'} with the above definition, no simplification is
-made}.
+Examples of common functions whose applications can be specialised in this way include \T{map}, \T{filter}, \T{foldr} and \T{foldl}.
 
-However, using specialisation, it is easy to generate \T{map} specialised with
-\T{[]} as:
+When a function can be specialised, the expression passed as the $n$th argument has all its free variables passed as extra arguments, and is expanded in the specialised version. All recursive calls within the new function are then renamed.
+
+\yesexample
 
 \begin{code}
- map f = []
+map f xs = case xs of
+                []     -> []
+                (a:as) -> f a : map f as
+
+adds x n = map (add n) x
 \end{code}
 
-Of course, now even a very conservative inline pass will succeed with this,
-resulting in \T{[]} as the end result.
-
-The notation used for specialisation is given as follows. The original version
-of map takes two arguments, and is given as \T{map<?,?>} -- i.e. \T{map} with
-two arguments, and no additional information. The version specialised on \T{[]}
-is given as \T{map<?,[]>}. Note that here there is no second argument, the
-specialised version wraps this up.
-
-Now let us consider \T{map f (x:xs)}, this specialised in the same manner to
-use the function:
+\noindent is transformed into:
 
 \begin{code}
- map<?,?:?> f x xs = f x : map<?,?> xs
+map_adds n xs = case xs of
+                     []     -> []
+                     (a:as) -> add n a : map_adds n as
+
+adds x n = map_adds n x\noexample
 \end{code}
 
-Note that the recursive case calls the standard map, as it cannot deduce any
-information about xs. Obviously this has the potential for non-termination, say
-the function \T{map<?,?:(?:(?: $\ldots$} was required. The way to make this
-system terminating is to demand that the type must be new, for example it is
-impossible to specialise the tail of a \T{(:)}, since the type of the tail is
-the same as the initial list. This simple mechanism ensures termination, and at
-the same time promotes good simplification of complex argument structures.
+Although this firstification approach is not complete by any means, it is sufficient for a large range of examples. This approach has the unfortunate effect of specialising more than just higher order functions, which can lead to obscured code. It also has complications with dictionaries and point-free style code.
 
-However, coming back to the original point, removing higher order functions.
-These can be specialised in exactly the same way, for example \T{map head x}
-can use the specialised version \T{map<head,?>}. Curried functions can be used
-in the specialisation as well, \T{map<add ?,?>} is an example.
+\subsection{Higher Order Removal}
 
-One particular usage of this specialisation treatment is the removal of the
-dictionary transformation. For example, a function requiring Int's might be
-specialised to \T{f<(intEq,intNeq),?,?>}. GHC and hbc both support a
-specialisation annotation which achieves this effect, however full
-specialisation performs this automatically.
+A new technique of higher order function removal has been developed. Although this technique is not complete, in practice it is very powerful. The algorithm combines specialisation with inlining, and only removes higher order functions.
 
-There are of course disadvantages to specialisation, this is essentially a
-whole program analysis transformation, and the performance is not stunning.
-However, in practice it seems that the generated code corresponds much more
-closely to what the original author had meant, and is significantly shorter --
-which is not a massive surprise, Jones has shown this result in the specific
-context of type classes before.
+The algorithm proceeds as follows. First two additional constructions are introduced into the expression data type:
 
+\begin{code}
+data Expr  =  ...
+           |  Part Int FuncName [Expr]
+           |  Apply Expr [Expr]
 
+Part 0 fn xs == Call fn xs
+Apply (Part n fn xs) ys == Part (n - length ys) fn (xs ++ ys)
+\end{code}
+
+The \C{Apply} constructor is simply application, which allows an unsaturated function call, or a variable to be used as the function. The \C{Part} constructor is used to represent unsaturated function calls, leaving the normal \C{Call} constructor to represent saturated calls. The \C{Part} keeps track of how many missing arguments it has. To express a higher-order program requires \C{Apply}. Annotating a higher order program with \C{Part} as appropriate is a simple operation. This algorithm assumes that \C{Make} is always fully saturated -- which is easy to achieve with the introduction of new functions as necessary.
+
+\begin{figure}
+\begin{code}
+isHO :: Expr -> Bool
+isHO (Part n _ _)    = n > 0
+isHO (Make _ xs)     = any isHO xs
+isHO (Case on alts)  = any (isHO . snd) alts
+isHO _               = False
+\end{code}
+\caption{Tests for the firstifier}
+\label{fig:firstify}
+\end{figure}
+
+The algorithm has two separate stages, specialisation and inlining. The algorithm applies the specialise rule until a fixed point is reached, then applies the inline rule once. The algorithm repeats these two steps until a fixed point is reached. Given an appropriate \C{fix} function, this can be specified as:
+
+\begin{code}
+firstify = fix (inline . fix specialise)
+\end{code}
+
+\paragraph{Inline:} The \C{inline} stage of the algorithm is much simpler than the specialisation aspect, and hence is treated first. A function is inlined once if the body passes the \C{isHO} test. If this causes a function to no longer be called from the root of the program then the function is removed after inlining.
+
+\paragraph{Specialise:} The \C{specialise} stage of the algorithm takes expressions of the form |Call fn xs| where |any isHO xs|, and generates a specialised version of the function \C{fn} where all the higher order elements are frozen in, and all the other variables are passed normally.
+
+Assuming that a function |fn| results in the specialised version |fn'|, then the translation would be:
+
+\begin{code}
+transform (Call fn xs) | any isHO xs = Call fn' (concatMap f xs)
+    where
+    fn' = generate fn xs
+    
+    f x  | isHO x     = freeVars x
+         | otherwise  = [x]
+\end{code}
+
+This technique is very powerful -- there is no program without a higher order initial input which will not have a rule available for firing. The fact that a higher order function has ``no where to hide'' can be seen easily. A higher order function must either be the first thing in a function (in which case it will be inlined), or it must be the argument to a function (in which case it is specialised). There are only two places left for a higher order function:
+
+\begin{enumerate}
+\item As the scrutinee of a |case| expression. This is not possible due to static typing -- all |case| expressions must choose over a data value.
+
+\item Inside an \C{Apply} with a variable as the function. This is does not happen if all other higher order functions have been removed, and hence is safe.
+\end{enumerate}
+
+There are some sticky points to this translation, one is the \C{seq} primitive of Haskell, which has no natural translation to Core, and is usually expressed as a primitive function. The \C{seq} command is special in that it is a primitive which is polymorphic in both arguments. If a higher order function is the first argument of \C{seq} then the \C{seq} can be removed, and replaced with the second argument. If the second argument is a higher order function, but the first function is guaranteed not to be, then this can be replaced with a |case| expression. In Haskell |case x of _ -> y| would not evaluate |x|, however in the Core language given this would.
+
+The next tricky point is \C{undefined}, consider the program:
+
+\begin{code}
+main = f undefined
+f x = x 1
+\end{code}
+
+This program passes \C{undefined} as a function, which is allowable as \C{undefined} has a fully polymorphic result. This can be worked around by treating \C{undefined} (and by extension, \C{error}) as higher order functions.
+
+Alternative methods are available for full firstification, such as that detailed by Hughes \cite{hughes:type-spec}.
+
+There are of course disadvantages to specialisation, this is essentially a whole program analysis transformation, and the performance is not stunning. However, in practice it seems that the generated code corresponds much more closely to what the original author had meant, and is significantly shorter -- which is not a massive surprise, Jones has shown this result in the specific context of type classes before.
 
 
 \section{Results and Evaluation}
