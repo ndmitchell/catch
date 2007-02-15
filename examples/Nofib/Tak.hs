@@ -9,4 +9,4 @@ tak x y z = if not(y < x) then z
 		(tak (y-1) z x)
 		(tak (z-1) x y)
 
-main = print (shows (tak 24 16 8) "\n")
+main x y z = print (tak x y z)
