@@ -68,6 +68,8 @@
 
 \begin{abstract}
 A Haskell program may fail at runtime with a pattern-match error if the program has any incomplete (non-exhaustive) patterns in definitions or case alternatives. This paper describes a static checker that allows non-exhaustive patterns to exist, yet ensures that a pattern-match error does not occur. It describes a constraint language that can be used to reason about pattern matches, along with mechanisms to propagate these constraints between program components.
+
+I claim an achievement, I can successfully check 94\% of the Nofib suite, and the reasons for the rest failing are discussed.
 \end{abstract}
 
 % \category{CR-number}{subcategory}{third-level}
@@ -119,6 +121,8 @@ Turning the \C{risers} function over to the checker developed in this paper, the
 \end{code}
 
 In addition the checker produces a set of axioms it has proved about Risers, along with an outline of the proof. Fuller details of how the checking is performed follow in Section \ref{sec:walkthrough}.
+
+The contributions beyond the original pattern match checker paper are many and varied. List them here.
 
 \subsection{Road map}
 
@@ -926,7 +930,7 @@ context of type classes before.
 
 
 
-\section{Results}
+\section{Results and Evaluation}
 \label{sec:results}
 
 \subsection{Small Examples}
@@ -992,7 +996,7 @@ My previous paper (not called Catch!) had lots of todo items on it, all have sin
 ESC/Haskell is fully manual.
 
 
-\section{Conclusion}
+\section{Conclusions and Future Work}
 \label{sec:conclusion}
 
 I conclude that Catch is a useful tool.
@@ -1008,6 +1012,8 @@ I conclude that Catch is a useful tool.
 \acks
 
 Thanks to the Plasma people, especially Matt and Tom for fruitful discussions.
+
+References need to be much much longer.
 
 \bibliographystyle{plainnat}
 \bibliography{catch}
