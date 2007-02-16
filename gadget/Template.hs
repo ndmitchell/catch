@@ -75,7 +75,7 @@ templateAdd core globalCache req =
                 (success,failure) = partition (isJust . snd) res
                 ans = Req arg (valsOrs core $ map (fromJust . snd) success)
             when (not $ null failure) $ modifyIORef ref (\old -> snub $ old ++ map fst failure)
-            return $ if null success then propTrue else propLit ans
+            return $ if null failure then propLit ans else propTrue
 
 
 -- given an expression (which will be a call) instantiate it by doing
