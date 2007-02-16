@@ -16,6 +16,7 @@ foreign import primitive anyEval3 :: a -> b -> c -> d
 
 any2 a b = if any0 then a else b
 any3 a b c = any2 a (any2 b c)
+any4 a b c d = any2 a (any2 b (any2 c d))
 
 
 ---------------------------------------------------------------------
@@ -119,7 +120,11 @@ numEq x y = case x of
 numNe x y = not (numEq x y)
 
 
-numLt x y = anyEval2 x y
+numLt x y = case y of
+                Neg  -> case x of {Neg -> any0; _ -> False}
+                Zero -> case x of {Neg -> True; _ -> False}
+                Pos  -> case x of {Pos -> any0; _ -> True }
+
 numGt x y = anyEval2 x y
 
 global_Prelude'_Prelude'_Num'_Prelude'_Integer'_signum a = a
