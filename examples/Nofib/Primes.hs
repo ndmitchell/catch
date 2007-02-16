@@ -13,4 +13,4 @@ the_filter (n:ns) = filter (isdivs n) ns
 primes :: [Int]
 primes = map head (iterate the_filter (iterate suCC 2))
 
-main = print (primes !! 900)
+main n = print (primes !! n)
