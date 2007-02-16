@@ -67,19 +67,38 @@ numPrims = [("ADD_W","numAdd"),("SUB_W","numSub")
 caseAbstract :: Core -> Core
 caseAbstract core = mapUnderCore f core
     where
-        f x@(CoreCase on alts) | any (isCoreConst . fst) alts = error $ "Todo: " ++ show x
+        f (CoreCase on alts) | any (isCoreChr . fst) alts
+            = CoreCase on [(CoreVar "_", anys (map snd alts))]
+
+        f x@(CoreCase on alts) | any (isCoreConst . fst) alts
+            = CoreCase on (cas "Zero" zero ++ cas "Pos" pos ++ cas "Neg" neg ++ def)
+            where
+                zero = let x = pick "Zero" in if null x then other else x
+                pos = other ++ pick "Pos"
+                neg = other ++ pick "Neg"
+                other = pick ""
+            
+                pick x = map snd $ filter ((==) x . g . fst) alts
+                g x = if isCoreConst x then constAbstract x else ""
+                
+                def = [(CoreVar "_", anys other) | any (== other) [zero, pos, neg]]
+                cas x rs = [(CoreApp (CoreCon ("Primitive." ++ x)) [], anys rs) | rs /= other]
+
         f x = x
+        
+        
+        anys [x] = x
+        anys xs = CoreApp (CoreFun $ "Primitive.any" ++ show (length xs)) xs
    
+
+
+
 
 
 numAbstract :: Core -> Core
 numAbstract core = mapUnderCore f $ caseAbstract core
     where
-        f (CoreChr x) = CoreApp (CoreCon "Primitive.Char") []
-        f (CoreInt x) = number x
-        f (CoreInteger x) = number x
-        f (CoreDouble x) = number x
-        f (CoreFloat x) = number x
+        f x | isPrimConst x = CoreApp (CoreCon ("Primitive." ++ constAbstract x)) []
         
         f (CoreFun x) = case lookup x numPrims of
                             Nothing -> CoreFun x
@@ -91,5 +110,18 @@ numAbstract core = mapUnderCore f $ caseAbstract core
         f x = x
 
 
-        number x = CoreApp (CoreCon ("Primitive." ++ s)) []
-            where s = if x == 0 then "Zero" else if x < 0 then "Neg" else "Pos"
+
+isPrimConst x = isCoreConst x && not (isCoreStr x)
+
+
+constAbstract :: CoreExpr -> String
+constAbstract x = f x
+    where
+        f (CoreChr     x) = "Char"
+        f (CoreInt     x) = number x
+        f (CoreInteger x) = number x
+        f (CoreDouble  x) = number x
+        f (CoreFloat   x) = number x
+
+        number x = if x == 0 then "Zero" else if x < 0 then "Neg" else "Pos"
+
