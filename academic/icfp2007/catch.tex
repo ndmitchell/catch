@@ -949,9 +949,9 @@ The next step where many fail is that read is applied to an argument extracted f
 
 Imaginery:
 
-bernouilli - blows up going through firstify
+bernoulli - FAILS IN FIRSTIFIER
 
-digits-of-e1 - two pattern match errors, both proven safe due to infinite lists. One division by zero error, which is not safe. The author cannot determine a suitable precondition for the function -- appears to involve complex equalities. The function is far from complete as it stands.
+digits-of-e1 - two pattern match errors, both proven safe due to infinite lists. One division by zero error, which is not safe. The author cannot determine a suitable precondition for the function -- appears to involve complex equalities. The function is far from complete as it stands. A slight alteration is sufficient to make the code provably safe, replacing a crash with undefined behaviour if the code is ever used in an unexpected manner.
 
 digits-of-e2 - this problem has explicit pattern matches, division and mod by potentially zero values, head and tail, including tail as a higher order pipeline to a function. Despite all this, it finds 4 incomplete patterns and solves them all.
 
@@ -961,9 +961,9 @@ gen-regexps
 
 integrate - some division by a constant, a few cases of head and tail. One on the result of a zipWith. Note that \C{rtotal} and \C{itotal} are in the program but never called, hence the |!!| is safe. All proved safe.
 
-paraffins
+paraffins - FAILS IN FIRSTIFIER
 
-primes
+primes - there are six pattern match errors, a couple in |!!|, a division, a pattern match and a head. NEEDS LOTS MORE INVESTIGATION, SHOWING UP SEVERE BUGS. Look at |(("Primes.primes",[]+: * :),[])| in detail!.
 
 queens - no pattern match errors, trivially safe
 
