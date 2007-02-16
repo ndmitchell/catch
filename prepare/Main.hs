@@ -68,7 +68,7 @@ caseAbstract :: Core -> Core
 caseAbstract core = mapUnderCore f core
     where
         f (CoreCase on alts) | any (isCoreChr . fst) alts
-            = CoreCase on [(CoreVar "_", anys (map snd alts))]
+            = CoreCase on [(CoreApp (CoreCon "Primitive.Char") [], anys (map snd alts))]
 
         f x@(CoreCase on alts) | any (isCoreConst . fst) alts
             = CoreCase on (cas "Zero" zero ++ cas "Pos" pos ++ cas "Neg" neg ++ def)
