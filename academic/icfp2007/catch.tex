@@ -898,7 +898,7 @@ Assuming that a function |fn| results in the specialised version |fn'|, then the
 transform (Call fn xs) | any isHO xs = Call fn' (concatMap f xs)
     where
     fn' = generate fn xs
-    
+
     f x  | isHO x     = freeVars x
          | otherwise  = [x]
 \end{code}
@@ -969,13 +969,13 @@ queens - fails in let elim (need to write abstract before let-elim)
 
 rfib
 
-tak
+tak - no pattern match errors, trivially safe
 
 wheel-sieve1
 
 wheel-sieve2
 
-x2n1
+x2n1 - no pattern match failures, but has division and ratio's. Underneath there are calls to the ratio library which do plenty of division, and one explicit division. All are proved safe using neg,zero,pos abstract interpretation. Requires an abstract interpretation for things like gcd etc. Gives preconditions such as the f function must operate only on non-zero numbers. Nice encoding of division as a pattern match failure.
 
 \section{Related Work}
 \label{sec:related}
