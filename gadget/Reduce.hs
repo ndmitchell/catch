@@ -74,6 +74,7 @@ reduceOne core req@(Req expr vals) = case expr of
 
     CoreApp (CorePrim "error") _ -> propTrue -- since will never return anything
     CoreApp (CorePrim x) ys -> propFalse -- absolutely no idea what the result is
+    CorePrim x -> propFalse
     c | isCoreConst c -> propFalse -- if you care, abstract before here
 
     _ -> error $ "reduceOne: " ++ show req
