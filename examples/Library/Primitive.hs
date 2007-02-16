@@ -10,7 +10,9 @@ import Data.Char(ord)
 -- local definitions
 
 foreign import primitive any0 :: a
-foreign import primitive anyEval :: a -> b
+foreign import primitive anyEval1 :: a -> b
+foreign import primitive anyEval2 :: a -> b -> c
+foreign import primitive anyEval3 :: a -> b -> c -> d
 
 any2 a b = if any0 then a else b
 any3 a b c = any2 a (any2 b c)
@@ -41,8 +43,9 @@ global_Prelude'_reverse x = f x []
 
 -- may return an error, or a demonic value
 -- cannot use read in a safe program!
-global_Prelude'_read a b = any2 (error "Prelude.read") (anyEval b)
-
+global_Prelude'_read a b = any2 (error "Prelude.read") (anyEval1 b)
+global_Prelude'_Prelude'_Show'_Prelude'_Int'_showsPrec a b c = any0 : anyEval1 b ++ c
+global_Prelude'_Prelude'_Show'_Prelude'_Integer'_showsPrec a b c = any0 : anyEval1 b ++ c
 
 ---------------------------------------------------------------------
 -- System.IO
@@ -71,8 +74,69 @@ global_YHC'_Internal'_unsafePerformIO (IO a) = a
 ---------------------------------------------------------------------
 -- Data.Char
 
+data Char = Char
+
 -- generates too much data
 -- abstractly it generates 1..n characters
 global_Data'_Char'_showLitChar :: Char -> ShowS
-global_Data'_Char'_showLitChar x y = anyEval x : anyEval x ++ y
+global_Data'_Char'_showLitChar x y = anyEval1 x : anyEval1 x ++ y
 
+global_Data'_Char'_intToDigit x = anyEval1 x
+
+
+---------------------------------------------------------------------
+-- Numerics
+
+global_Numeric'_showGFloat _ x y = any0 : anyEval1 x ++ y
+global_Numeric'_showInt    _ x y = any0 : anyEval1 x ++ y
+
+data Num = Neg | Zero | Pos
+
+
+divZero x Zero = error "Divide by zero"
+divZero x y    = anyEval1 x
+
+
+numAdd x y = case x of
+                Zero -> y
+                Pos -> case y of {Neg -> any0; _ -> Pos}
+                Neg -> case y of {Pos -> any0; _ -> Neg}
+
+numSub x y = case y of
+                Zero -> x
+                _ -> any0
+
+
+numQuot x y = divZero x y
+numRem  x y = divZero x y
+global_Prelude'_Prelude'_Integral'_Prelude'_Int'_mod x y = divZero x y
+global_Prelude'_Prelude'__'_divMod _ x y = divZero x y
+
+
+
+numLT x y = anyEval2 x y
+numGT x y = anyEval2 x y
+
+global_Prelude'_Prelude'_Num'_Prelude'_Integer'_signum a = a
+global_Prelude'_Prelude'_Num'_Prelude'_Integer'_abs a = case a of {Neg -> Pos; _ -> a}
+
+
+global_Prelude'_'hat _ _ a b = anyEval2 a b
+global_Prelude'_'hat'hat _ _ a b = anyEval2 a b
+global_Prelude'_gcd _ a b = anyEval2 a b
+global_Prelude'_Prelude'_Real'_Prelude'_Double'_toRational a = anyEval1 a
+global_Prelude'_Prelude'_RealFrac'_Prelude'_Double'_properFraction _ a = anyEval1 a
+global_Prelude'_Prelude'_Floating'_Prelude'_Double'_sinh a = anyEval1 a
+global_Prelude'_Prelude'_Floating'_Prelude'_Double'_asinh a = anyEval1 a
+global_Prelude'_Prelude'_Floating'_Prelude'_Double'_cosh a = anyEval1 a
+global_Prelude'_Prelude'_Floating'_Prelude'_Double'_acosh a = anyEval1 a
+global_Prelude'_Prelude'_Floating'_Prelude'_Double'_tanh a = anyEval1 a
+global_Prelude'_Prelude'_Floating'_Prelude'_Double'_atanh a = anyEval1 a
+global_Prelude'_Prelude'___'_atan2 a b c = anyEval3 a b c
+global_Prelude'_Prelude'___'_ceiling a b c = anyEval1 c
+global_Prelude'_Prelude'___'_exponent _ a = anyEval1 a
+global_Prelude'_Prelude'___'_floor _ _ a = anyEval1 a
+global_Prelude'_Prelude'___'_logBase _ a b = anyEval2 a b
+global_Prelude'_Prelude'___'_round _ _ a = anyEval1 a
+global_Prelude'_Prelude'___'_scaleFloat _ a b = anyEval2 a b
+global_Prelude'_even _ a = anyEval1 a

@@ -49,4 +49,31 @@ overlay file = do
     system "yhc -hide -core ../examples/Library/Primitive.hs"
     src <- loadCore file
     over <- loadCore "../examples/Library/ycr/Primitive.ycr"
-    saveCore (replaceExtension file "over.yca") $ coreReachable ["main"] $ coreOverlay src over
+    let core2 = coreReachable ["main"] $ coreOverlay (numAbstract src) over
+    saveCore (replaceExtension file "over.yca") core2
+
+
+
+numPrims = [("ADD_W","numAdd"),("SUB_W","numSub")
+           ,("LT_W","numLT"),("GT_W","numGT")
+           ,("QUOT","numQuot"),("REM","numRem")
+           ]
+
+
+numAbstract :: Core -> Core
+numAbstract core = mapUnderCore f core
+    where
+        f (CoreChr x) = CoreApp (CoreCon "Primitive.Char") []
+        f (CoreInt x) = number x
+        f (CoreInteger x) = number x
+        f (CoreDouble x) = number x
+        f (CoreFloat x) = number x
+        
+        f (CorePrim x) = case lookup x numPrims of
+                            Nothing -> CorePrim x
+                            Just y -> CoreFun ("Primitive." ++ y)
+        f x = x
+
+
+        number x = CoreApp (CoreCon ("Primitive." ++ s)) []
+            where s = if x == 0 then "Zero" else if x < 0 then "Neg" else "Pos"
