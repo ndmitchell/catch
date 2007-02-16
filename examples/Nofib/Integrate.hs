@@ -1,8 +1,6 @@
 
 module Integrate where
 
-import System.Environment
-
 integrate1D :: Double -> Double -> (Double->Double) -> Double
 integrate1D l u f =
   let  d = (u-l)/8.0 in
@@ -36,8 +34,6 @@ es = map (^2) (zipWith (-) rtotals itotals)
 etotal n = sum (take n es)
 
 -- The (analytical) result should be zero
-main = do
-	[range] <- getArgs
-	putStrLn $ show $ etotal $ read range
+main range = putStrLn $ show $ etotal range
 
 
