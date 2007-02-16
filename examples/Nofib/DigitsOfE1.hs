@@ -39,8 +39,6 @@ toDigits (x:xs) = x:toDigits (ratTrans (10,0,0,1) xs)
 e :: [Integer]
 e = toDigits eContFrac
 
-main = do
-    [digits] <- getArgs
-    print (take (read digits) e)
+main digits = print (take digits e)
 
 

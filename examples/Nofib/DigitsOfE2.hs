@@ -2,7 +2,6 @@
 --Due to John Hughes, Aug 2001
 
 module DigitsOfE2 where
-import System.Environment
 
 --Here's a way to compute all the digits of e. We use the series
 
@@ -52,6 +51,4 @@ e = ("2."++) $
     iterate (carryPropagate 2 . map (10*) . tail) $
     2:[1,1..]
 
-main = do
-	[digits] <- getArgs
-	print (take (read digits) e)
+main digits = print (take digits e)
