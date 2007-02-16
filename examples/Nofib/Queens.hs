@@ -3,7 +3,7 @@
 
 module Queens where
 
-main = print (nsoln 10)
+main n = print $ nsoln n
 
 nsoln nq = length (gen nq)
  where
