@@ -57,6 +57,8 @@ overlay file = do
 numPrims = [("ADD_W","numAdd"),("SUB_W","numSub")
            ,("LT_W","numLT"),("GT_W","numGT")
            ,("QUOT","numQuot"),("REM","numRem")
+           ,("YHC.Primitive.primIntegerEq","numEq")
+           ,("YHC.Primitive.primIntegerQuot","numQuot")
            ]
 
 
@@ -68,6 +70,10 @@ numAbstract core = mapUnderCore f core
         f (CoreInteger x) = number x
         f (CoreDouble x) = number x
         f (CoreFloat x) = number x
+        
+        f (CoreFun x) = case lookup x numPrims of
+                            Nothing -> CoreFun x
+                            Just y -> CoreFun ("Primitive." ++ y)
         
         f (CorePrim x) = case lookup x numPrims of
                             Nothing -> CorePrim x
