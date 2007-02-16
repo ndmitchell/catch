@@ -951,23 +951,23 @@ Imaginery:
 
 bernouilli - blows up going through firstify
 
-digits-of-e1
+digits-of-e1 - two pattern match errors, both proven safe due to infinite lists. One division by zero error, which is not safe. The author cannot determine a suitable precondition for the function -- appears to involve complex equalities. The function is far from complete as it stands.
 
-digits-of-e2
+digits-of-e2 - this problem has explicit pattern matches, division and mod by potentially zero values, head and tail, including tail as a higher order pipeline to a function. Despite all this, it finds 4 incomplete patterns and solves them all.
 
-exp3-8
+exp3-8 - no pattern match errors, trivially safe
 
 gen-regexps
 
-integrate
+integrate - some division by a constant, a few cases of head and tail. One on the result of a zipWith. Note that \C{rtotal} and \C{itotal} are in the program but never called, hence the |!!| is safe. All proved safe.
 
 paraffins
 
 primes
 
-queens - fails in let elim (need to write abstract before let-elim)
+queens - no pattern match errors, trivially safe
 
-rfib
+rfib - no pattern match errors, trivially safe
 
 tak - no pattern match errors, trivially safe
 
@@ -975,7 +975,7 @@ wheel-sieve1
 
 wheel-sieve2
 
-x2n1 - no pattern match failures, but has division and ratio's. Underneath there are calls to the ratio library which do plenty of division, and one explicit division. All are proved safe using neg,zero,pos abstract interpretation. Requires an abstract interpretation for things like gcd etc. Gives preconditions such as the f function must operate only on non-zero numbers. Nice encoding of division as a pattern match failure.
+x2n1 - no pattern match failures, but has division and ratio's. Underneath there are calls to the ratio library which do plenty of division, and one explicit division. All are proved safe using neg,zero,pos abstract interpretation. Requires an abstract interpretation for things like abs/signum etc. Gives preconditions such as the f function must operate only on non-zero numbers. Nice encoding of division as a pattern match failure. All proved safe.
 
 \section{Related Work}
 \label{sec:related}
