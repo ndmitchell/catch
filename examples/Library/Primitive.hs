@@ -89,6 +89,7 @@ data Num = Neg | Zero | Pos
 divZero x Zero = error "Divide by zero"
 divZero x y    = anyEval1 x
 
+numId x = x
 
 numAdd x y = case x of
                 Zero -> y
@@ -102,6 +103,7 @@ numSub x y = case y of
 
 numQuot x y = divZero x y
 numRem  x y = divZero x y
+numDiv  x y = divZero x y
 global_Prelude'_Prelude'_Integral'_Prelude'_Int'_mod x y = divZero x y
 global_Prelude'_Prelude'__'_divMod _ x y = divZero x y
 
