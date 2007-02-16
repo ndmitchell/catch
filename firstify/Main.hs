@@ -10,6 +10,8 @@ import Data.List
 import Data.Char
 import Debug.Trace
 
+import qualified Data.Set as Set
+
 
 main = do
         x <- getArgs
@@ -159,25 +161,36 @@ emptySpec = []
 
 
 specHOs :: Special -> Core -> Maybe (Special, Core)
-specHOs spec core = case specHO spec core of
+specHOs spec core = case specHO spec2 core2 of
                         Nothing -> Nothing
                         Just (s2,c2) -> f s2 c2
     where
+        (spec2,core2) = specReachable spec core
+    
         f s c = case specHO s c of
                     Nothing -> Just (s,c)
                     Just (s,c) -> f s c
-        
+
 
 specHO :: Special -> Core -> Maybe (Special, Core)
-specHO spec core = if changed || not (null new) then Just (spec2, core4) else Nothing
+specHO spec core = if changed || not (null new) then Just (specReachable spec2 core4) else Nothing
     where
-        core4 = coreReachable ["main"] $ coreSimplify $ core3
+        core4 = coreSimplify $ core3
         (changed,core3) = useSpecial core2 spec2
         core2 = core{coreFuncs = func2 ++ coreFuncs core}
         func2 = genSpecial core new
         spec2 = new ++ spec
         new = nameSpecial core $ askSpecial core \\ spec
 
+
+
+specReachable :: Special -> Core -> (Special, Core)
+specReachable spec core = (filter f spec, core2)
+    where
+        names = Set.fromList (map coreFuncName $ coreFuncs core2)
+        core2 = coreReachable ["main"] core
+        
+        f (Spec _ _ x) = x `Set.member` names
 
 
 
