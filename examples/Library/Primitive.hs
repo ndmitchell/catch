@@ -85,6 +85,8 @@ global_Numeric'_showInt    _ x y = any0 : anyEval1 x ++ y
 
 data Num = Neg | Zero | Pos
 
+not x = case x of {True -> False; False -> True}
+
 
 divZero x Zero = error "Divide by zero"
 divZero x y    = anyEval1 x
@@ -114,9 +116,11 @@ numEq x y = case x of
                 Zero -> case y of {Zero -> True; _ -> False}
                 Pos  -> case y of {Pos  -> True; _ -> False}
 
+numNe x y = not (numEq x y)
 
-numLT x y = anyEval2 x y
-numGT x y = anyEval2 x y
+
+numLt x y = anyEval2 x y
+numGt x y = anyEval2 x y
 
 global_Prelude'_Prelude'_Num'_Prelude'_Integer'_signum a = a
 global_Prelude'_Prelude'_Num'_Prelude'_Integer'_abs a = case a of {Neg -> Pos; _ -> a}
