@@ -55,13 +55,14 @@ overlay file = do
 
 
 numPrims = [("ADD_W","numAdd"),("SUB_W","numSub")
-           ,("LT_W","numLT"),("GT_W","numGT")
+           ,("LT_W","numLt"),("GT_W","numGt")
            ,("QUOT","numQuot"),("REM","numRem"),("SLASH_D","numDiv")
            ,("YHC.Primitive.primIntegerEq","numEq")
            ,("YHC.Primitive.primIntegerQuot","numQuot")
            ,("YHC.Primitive.primDoubleFromInteger","numId")
            ,("YHC.Primitive.primIntegerFromInt","numId")
            ,("YHC.Primitive.primIntegerAdd","numAdd")
+           ,("YHC.Primitive.primIntegerNe","numNe")
            ]
 
 
