@@ -18,13 +18,6 @@ any2 a b = if any0 then a else b
 any3 a b c = any2 a (any2 b c)
 
 
--- things which suck, mutually recursively
-foreign import primitive global_Numeric'_fromRat'' :: a -> b -> c
-foreign import primitive global_PreludeAux'__floatFromRational :: a -> b
-foreign import primitive global_PreludeAux'__doubleFromRational :: a -> b
-foreign import primitive global_Numeric'_floatToDigits :: a -> b -> c
-
-
 ---------------------------------------------------------------------
 -- Prelude
 
@@ -114,16 +107,27 @@ global_Prelude'_Prelude'__'_divMod _ x y = divZero x y
 
 
 
+numEq x y = case x of
+                Neg  -> case y of {Neg  -> True; _ -> False}
+                Zero -> case y of {Zero -> True; _ -> False}
+                Pos  -> case y of {Pos  -> True; _ -> False}
+
+
 numLT x y = anyEval2 x y
 numGT x y = anyEval2 x y
 
 global_Prelude'_Prelude'_Num'_Prelude'_Integer'_signum a = a
 global_Prelude'_Prelude'_Num'_Prelude'_Integer'_abs a = case a of {Neg -> Pos; _ -> a}
 
+global_Prelude'_gcd x y = case x of
+                              Zero -> case y of
+                                           Zero -> error "GCD 0 0"
+                                           _ -> Pos
+                              _ -> Pos
+
 
 global_Prelude'_'hat _ _ a b = anyEval2 a b
 global_Prelude'_'hat'hat _ _ a b = anyEval2 a b
-global_Prelude'_gcd _ a b = anyEval2 a b
 global_Prelude'_Prelude'_Real'_Prelude'_Double'_toRational a = anyEval1 a
 global_Prelude'_Prelude'_RealFrac'_Prelude'_Double'_properFraction _ a = anyEval1 a
 global_Prelude'_Prelude'_Floating'_Prelude'_Double'_sinh a = anyEval1 a
@@ -140,3 +144,6 @@ global_Prelude'_Prelude'___'_logBase _ a b = anyEval2 a b
 global_Prelude'_Prelude'___'_round _ _ a = anyEval1 a
 global_Prelude'_Prelude'___'_scaleFloat _ a b = anyEval2 a b
 global_Prelude'_even _ a = anyEval1 a
+global_PreludeAux'__floatFromRational a = anyEval1 a
+global_PreludeAux'__doubleFromRational a = anyEval1 a
+
