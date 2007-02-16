@@ -61,6 +61,7 @@ numPrims = [("ADD_W","numAdd"),("SUB_W","numSub")
            ,("YHC.Primitive.primIntegerQuot","numQuot")
            ,("YHC.Primitive.primDoubleFromInteger","numId")
            ,("YHC.Primitive.primIntegerFromInt","numId")
+           ,("YHC.Primitive.primIntegerAdd","numAdd")
            ]
 
 
