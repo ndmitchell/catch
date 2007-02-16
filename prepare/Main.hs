@@ -64,8 +64,16 @@ numPrims = [("ADD_W","numAdd"),("SUB_W","numSub")
            ]
 
 
+caseAbstract :: Core -> Core
+caseAbstract core = mapUnderCore f core
+    where
+        f x@(CoreCase on alts) | any (isCoreConst . fst) alts = error $ "Todo: " ++ show x
+        f x = x
+   
+
+
 numAbstract :: Core -> Core
-numAbstract core = mapUnderCore f core
+numAbstract core = mapUnderCore f $ caseAbstract core
     where
         f (CoreChr x) = CoreApp (CoreCon "Primitive.Char") []
         f (CoreInt x) = number x
