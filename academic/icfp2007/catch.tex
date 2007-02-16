@@ -963,7 +963,7 @@ integrate - some division by a constant, a few cases of head and tail. One on th
 
 paraffins - FAILS IN FIRSTIFIER
 
-primes - there are six pattern match errors, a couple in |!!|, a division, a pattern match and a head. NEEDS LOTS MORE INVESTIGATION, SHOWING UP SEVERE BUGS. Look at |(("Primes.primes",[]+: * :),[])| in detail!.
+primes - there are six pattern match errors, a couple in |!!|, a division, a pattern match and a head. The program is not safe as it stands, if the user enters (-1) then it will crash. The precondition on \C{main} is Zero or Pos, a perfectly accurate condition.
 
 queens - no pattern match errors, trivially safe
 
