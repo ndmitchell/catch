@@ -131,7 +131,8 @@ inlineHOs x | isJust x2 = Just $ f $ fromJust x2
 
 inlineHO :: Core -> Maybe Core
 inlineHO core | null inline = Nothing
-              | otherwise = Just $ coreReachable ["main"] $ coreSimplify $ mapUnderCore f $ zeroApp core
+              | otherwise = trace (show ("INLINE:",map fst inline)) $
+                            Just $ coreReachable ["main"] $ coreSimplify $ mapUnderCore f $ zeroApp core
     where
         inline = [(coreFuncName func, func) | func <- coreFuncs core, isHO core $ coreFuncBody func] --, canInline func]
         
@@ -207,7 +208,7 @@ wantSpecial _ _ = Nothing
 
 
 nameSpecial :: Core -> [Spec] -> [Spec]
-nameSpecial core xs = f (map coreFuncName $ coreFuncs core) xs
+nameSpecial core xs = trace (show ("SPECIALISE",xs)) $ f (map coreFuncName $ coreFuncs core) xs
     where
         f seen [] = []
         f seen (Spec func args _ : rest) = Spec func args newname : f (newname:seen) rest
