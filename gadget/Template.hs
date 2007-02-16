@@ -52,9 +52,9 @@ templateAdd core globalCache req =
     where
         f done [] = return done
         f done todo@((key,val):rest) = do
-            putStrLn $ "Trying with " ++ show (length done) ++ ", " ++ show key ++ " = " ++ show val
+            --putStrLn $ "Trying with " ++ show (length done) ++ ", " ++ show key ++ " = " ++ show val
             (new,val2) <- solve (done ++ todo ++ globalCache) key
-            when (not $ null new) $ putStrLn $ "ADDING " ++ show (length new) ++ " onto " ++ show (length todo + length done)
+            --when (not $ null new) $ putStrLn $ "ADDING " ++ show (length new) ++ " onto " ++ show (length todo + length done)
             let val3 = valsAnd core val val2
             if not $ null new then f [] (zip new (repeat valsTrue) ++ (key,val3) : rest ++ done)
              else if val3 /= val then f [] ((key,val3) : rest ++ done)
