@@ -49,23 +49,17 @@ overlay file = do
     system "yhc -hide -core ../examples/Library/Primitive.hs"
     src <- loadCore file
     over <- loadCore "../examples/Library/ycr/Primitive.ycr"
-    let core2 = coreReachable ["main"] $ coreOverlay (numAbstract src) over
+    let core2 = coreReachable ["main"] $ coreOverlay (abstract src) over
     saveCore (replaceExtension file "over.yca") core2
+    writeFile (replaceExtension file "over.yca.html") (coreHtml core2)
 
 
 
-numPrims = [("ADD_W","numAdd"),("SUB_W","numSub")
-           ,("LT_W","numLt"),("GT_W","numGt")
-           ,("QUOT","numQuot"),("REM","numRem"),("SLASH_D","numDiv")
-           ,("YHC.Primitive.primIntegerEq","numEq")
-           ,("YHC.Primitive.primIntegerQuot","numQuot")
-           ,("YHC.Primitive.primDoubleFromInteger","numId")
-           ,("YHC.Primitive.primIntegerFromInt","numId")
-           ,("YHC.Primitive.primIntegerAdd","numAdd")
-           ,("YHC.Primitive.primIntegerNe","numNe")
-           ]
+abstract = litAbstract . primAbstract . caseAbstract
 
 
+---------------------------------------------------------------------
+-- Remove cases on constants
 caseAbstract :: Core -> Core
 caseAbstract core = mapUnderCore f core
     where
@@ -93,15 +87,24 @@ caseAbstract core = mapUnderCore f core
         anys xs = CoreApp (CoreFun $ "Primitive.any" ++ show (length xs)) xs
    
 
+---------------------------------------------------------------------
+-- Remove cases on constants
+
+numPrims = [("ADD_W","numAdd"),("SUB_W","numSub")
+           ,("LT_W","numLt"),("GT_W","numGt")
+           ,("QUOT","numQuot"),("REM","numRem"),("SLASH_D","numDiv")
+           ,("YHC.Primitive.primIntegerEq","numEq")
+           ,("YHC.Primitive.primIntegerQuot","numQuot")
+           ,("YHC.Primitive.primDoubleFromInteger","numId")
+           ,("YHC.Primitive.primIntegerFromInt","numId")
+           ,("YHC.Primitive.primIntegerAdd","numAdd")
+           ,("YHC.Primitive.primIntegerNe","numNe")
+           ]
 
 
-
-
-numAbstract :: Core -> Core
-numAbstract core = mapUnderCore f $ caseAbstract core
+primAbstract :: Core -> Core
+primAbstract = mapUnderCore f
     where
-        f x | isPrimConst x = CoreApp (CoreCon ("Primitive." ++ constAbstract x)) []
-        
         f (CoreFun x) = case lookup x numPrims of
                             Nothing -> CoreFun x
                             Just y -> CoreFun ("Primitive." ++ y)
@@ -111,6 +114,13 @@ numAbstract core = mapUnderCore f $ caseAbstract core
                             Just y -> CoreFun ("Primitive." ++ y)
         f x = x
 
+
+
+litAbstract :: Core -> Core
+litAbstract = mapUnderCore f
+    where
+        f x | isPrimConst x = CoreApp (CoreCon ("Primitive." ++ constAbstract x)) []
+        f x = x
 
 
 isPrimConst x = isCoreConst x && not (isCoreStr x)
