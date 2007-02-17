@@ -63,6 +63,8 @@ global_Prelude'_Prelude'_Monad'_YHC'_Internal'_IO'_return a = IO a
 global_Prelude'_Prelude'_Monad'_YHC'_Internal'_IO'_'gt'gt (IO a) b = b
 global_Prelude'_Prelude'_Monad'_YHC'_Internal'_IO'_'gt'gt'eq (IO a) f = f a
 global_YHC'_Internal'_unsafePerformIO (IO a) = a
+global_Prelude'_interact f = anyEval1 (f any0)
+
 
 
 ---------------------------------------------------------------------
