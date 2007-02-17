@@ -949,7 +949,7 @@ The next step where many fail is that read is applied to an argument extracted f
 
 Imaginery:
 
-bernoulli - FAILS IN FIRSTIFIER
+bernoulli - NOT DONE PAST FIRSTIFIER
 
 digits-of-e1 - two pattern match errors, both proven safe due to infinite lists. One division by zero error, which is not safe. The author cannot determine a suitable precondition for the function -- appears to involve complex equalities. The function is far from complete as it stands. A slight alteration is sufficient to make the code provably safe, replacing a crash with undefined behaviour if the code is ever used in an unexpected manner.
 
@@ -957,11 +957,11 @@ digits-of-e2 - this problem has explicit pattern matches, division and mod by po
 
 exp3-8 - no pattern match errors, trivially safe
 
-gen-regexps
+gen-regexps - NOT DONE PAST FIRSTIFIER
 
 integrate - some division by a constant, a few cases of head and tail. One on the result of a zipWith. Note that \C{rtotal} and \C{itotal} are in the program but never called, hence the |!!| is safe. All proved safe.
 
-paraffins - FAILS IN FIRSTIFIER
+paraffins - FAILS IN FIRSTIFIER, array operations are in the IO monad and are not wrapped properly
 
 primes - there are six pattern match errors, a couple in |!!|, a division, a pattern match and a head. The program is not safe as it stands, if the user enters (-1) then it will crash. The precondition on \C{main} is Zero or Pos, a perfectly accurate condition.
 
@@ -971,9 +971,9 @@ rfib - no pattern match errors, trivially safe
 
 tak - no pattern match errors, trivially safe
 
-wheel-sieve1
+wheel-sieve1 - solves all pattern match errors but division by 0, possibly solvable with knowledge that n-1 is pos or zero if original was pos. Takes too long for the div constraint. FAILS IN GADGET, TIMEOUT
 
-wheel-sieve2
+wheel-sieve2 - FAILS IN GADGET, TIMEOUT
 
 x2n1 - no pattern match failures, but has division and ratio's. Underneath there are calls to the ratio library which do plenty of division, and one explicit division. All are proved safe using neg,zero,pos abstract interpretation. Requires an abstract interpretation for things like abs/signum etc. Gives preconditions such as the f function must operate only on non-zero numbers. Nice encoding of division as a pattern match failure. All proved safe.
 
