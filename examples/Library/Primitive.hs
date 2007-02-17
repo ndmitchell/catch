@@ -77,6 +77,13 @@ global_Data'_Char'_showLitChar x y = anyEval1 x : anyEval1 x ++ y
 
 global_Data'_Char'_intToDigit x = anyEval1 x
 
+---------------------------------------------------------------------
+-- Data.Array
+
+global_Data'_Array'_array _ x y = anyEval3 x y (error "Data.Array.array is not able to be proven")
+global_Data'_Array'_listArray _ x y = anyEval2 x y
+global_Data'_Array'_'ex _ x y = anyEval3 x y (error "Data.Array.(!) is not able to be proven")
+
 
 ---------------------------------------------------------------------
 -- Numerics
