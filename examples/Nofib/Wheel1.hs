@@ -34,4 +34,4 @@ nextSize (Wheel s ns) p =
               n <- ns,
               n' <- [n+o], n'`mod`p > 0]
 
-main = print (primes!!(10000::Int))
+main n = print (primes !! n)

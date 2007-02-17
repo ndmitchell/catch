@@ -8,7 +8,6 @@
 module Bernoulli where
 
 import Ratio
-import System.Environment
 
 -- powers = [[r^n | r<-[2..]] | n<-1..]
 powers = [2..] : map (zipWith (*) (head powers)) powers
@@ -31,8 +30,6 @@ bernoulli n =
      | (k,combs)<- zip [2..n] pascal]
   where powers = (neg_powers!!(n-1))
 
-main = do
- [arg] <- getArgs
- let n = (read arg)::Int
+main n = do
  putStr $ "Bernoulli of " ++ (show n) ++ " is "
  print (bernoulli n)

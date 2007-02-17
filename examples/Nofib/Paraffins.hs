@@ -84,8 +84,8 @@ paraffins_until n =
  where
   radicals = radical_generator (div n 2)
 
-main = do
-  print [length (rads!i) | rads <- [(radical_generator 17)], i <- [0..17]]
+main num = do
+  print [length (rads!i) | rads <- [(radical_generator num)], i <- [0..num]]
   print (bcp_until 17)
   print (ccp_until 17)
   print (paraffins_until 17)

@@ -41,5 +41,5 @@ nextSize (Wheel s ms ns) p q =
     let n' = o+n in
     if n'`mod`p>0 then n':rs else rs
 
-main = print (primes!!(10000::Int))
+main n = print (primes !! n)
 
