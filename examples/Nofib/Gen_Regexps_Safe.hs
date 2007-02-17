@@ -7,7 +7,10 @@ module Gen_Regexps_Safe where
 -- CHANGE: was import Char (needs fixing, but later)
 import Data.Char
 
-main = interact (("Enter a generator: " ++).show.expand.takeWhile (/= '\n'))
+main = interact (("Enter a generator: " ++).show.numchars.expand.takeWhile (/= '\n'))
+
+numchars :: [String] -> Int
+numchars l = sum $ map length l
 
 expand []	= [""]
 expand ('<':x)	= numericRule x
@@ -34,8 +37,5 @@ numericRule x
     width   = max (length (show u)) (length (show v))
 
 
-safeSpan p x = (a, safeTail x)
+safeSpan p x = (a, drop 1 b)
     where (a,b) = span p x
-
-safeTail (x:xs) = xs
-safeTail x = x

@@ -957,7 +957,7 @@ digits-of-e2 - this problem has explicit pattern matches, division and mod by po
 
 exp3-8 - no pattern match errors, trivially safe
 
-gen-regexps - NOT DONE PAST FIRSTIFIER
+gen-regexps - The initial version fails with 8 pattern match errors, one of which can be proven safe. Provoking the program to fail is trivial -- |"<"| and |"["| are obvious ways which can be seen from examining the source code for a few seconds. A modified version has been written, completing one pattern match, replacing |head . lines| with |takeWhile (/= '\n')| and changing \C{span} for a version which safely deletes head of the \C{snd} component of the result -- changing about 6 lines in total -- which is proven safe.
 
 integrate - some division by a constant, a few cases of head and tail. One on the result of a zipWith. Note that \C{rtotal} and \C{itotal} are in the program but never called, hence the |!!| is safe. All proved safe.
 
