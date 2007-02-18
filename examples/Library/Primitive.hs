@@ -93,25 +93,15 @@ global_Data'_Array'_'ex _ x y = anyEval3 x y (error "Data.Array.(!) is not able 
 global_Numeric'_showGFloat _ x y = any0 : anyEval1 x ++ y
 global_Numeric'_showInt    _ x y = any0 : anyEval1 x ++ y
 
-data Num = Neg | Zero | Pos
+data Num = Neg | Zero | One | Pos
 
 not x = case x of {True -> False; False -> True}
 
 
-divZero x Zero = error "Divide by zero"
-divZero x y    = anyEval1 x
-
 numId x = x
 
-numAdd x y = case x of
-                Zero -> y
-                Pos -> case y of {Neg -> any0; _ -> Pos}
-                Neg -> case y of {Pos -> any0; _ -> Neg}
-
-numSub x y = case y of
-                Zero -> x
-                _ -> any0
-
+divZero x Zero = error "Divide by zero"
+divZero x y    = anyEval1 x
 
 numQuot x y = divZero x y
 numRem  x y = divZero x y
@@ -120,11 +110,24 @@ global_Prelude'_Prelude'_Integral'_Prelude'_Int'_mod x y = divZero x y
 global_Prelude'_Prelude'__'_divMod _ x y = divZero x y
 
 
+numAdd x y = case x of
+                Zero -> y
+                One -> case y of {Neg -> any2 Neg Zero; Zero -> One; One -> Pos; Pos -> Pos}
+                Pos -> case y of {Neg -> any0; Zero -> any2 One Pos; One -> Pos; Pos -> Pos}
+                Neg -> case y of {Neg -> Neg; Zero -> Neg; One -> any2 Zero Neg; Pos -> any0}
+
+numSub x y = case y of
+                Zero -> x
+                One -> case y of {Neg -> Neg; Zero -> Neg; One -> Zero; Pos -> any2 One Pos}
+                _ -> any0
+
+
 
 numEq x y = case x of
-                Neg  -> case y of {Neg  -> True; _ -> False}
+                Neg  -> case y of {Neg  -> any0; _ -> False}
                 Zero -> case y of {Zero -> True; _ -> False}
-                Pos  -> case y of {Pos  -> True; _ -> False}
+                One  -> case y of {One  -> True; _ -> False}
+                Pos  -> case y of {Pos  -> any0; _ -> False}
 
 numNe x y = not (numEq x y)
 
@@ -132,18 +135,20 @@ numNe x y = not (numEq x y)
 numLt x y = case y of
                 Neg  -> case x of {Neg -> any0; _ -> False}
                 Zero -> case x of {Neg -> True; _ -> False}
+                One  -> case x of {Neg -> True; Zero -> True; _ -> False}
                 Pos  -> case x of {Pos -> any0; _ -> True }
 
 numGt x y = anyEval2 x y
 
-global_Prelude'_Prelude'_Num'_Prelude'_Integer'_signum a = a
-global_Prelude'_Prelude'_Num'_Prelude'_Integer'_abs a = case a of {Neg -> Pos; _ -> a}
+global_Prelude'_Prelude'_Num'_Prelude'_Integer'_signum a = case a of {Pos -> One; _ -> a}
 
-global_Prelude'_gcd x y = case x of
-                              Zero -> case y of
-                                           Zero -> error "GCD 0 0"
-                                           _ -> Pos
-                              _ -> Pos
+global_Prelude'_Prelude'_Num'_Prelude'_Integer'_abs a = case a of {Neg -> any2 One Pos; _ -> a}
+
+global_Prelude'_gcd _ x y = case x of
+                                Zero -> case y of
+                                            Zero -> error "GCD 0 0"
+                                            _ -> any2 One Pos
+                                _ -> any2 One Pos
 
 
 global_Prelude'_'hat _ _ a b = anyEval2 a b

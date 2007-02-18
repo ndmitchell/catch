@@ -67,9 +67,10 @@ caseAbstract core = mapUnderCore f core
             = CoreCase on [(CoreApp (CoreCon "Primitive.Char") [], anys (map snd alts))]
 
         f x@(CoreCase on alts) | any (isCoreConst . fst) alts
-            = CoreCase on (cas "Zero" zero ++ cas "Pos" pos ++ cas "Neg" neg ++ def)
+            = CoreCase on (cas "Neg" neg ++ cas "Zero" zero ++ cas "One" one ++ cas "Pos" pos ++ def)
             where
                 zero = let x = pick "Zero" in if null x then other else x
+                one  = let x = pick "One"  in if null x then other else x
                 pos = other ++ pick "Pos"
                 neg = other ++ pick "Neg"
                 other = pick ""
@@ -77,7 +78,7 @@ caseAbstract core = mapUnderCore f core
                 pick x = map snd $ filter ((==) x . g . fst) alts
                 g x = if isCoreConst x then constAbstract x else ""
                 
-                def = [(CoreVar "_", anys other) | any (== other) [zero, pos, neg]]
+                def = [(CoreVar "_", anys other) | any (== other) [neg, zero, one, pos]]
                 cas x rs = [(CoreApp (CoreCon ("Primitive." ++ x)) [], anys rs) | rs /= other]
 
         f x = x
@@ -134,5 +135,7 @@ constAbstract x = f x
         f (CoreDouble  x) = number x
         f (CoreFloat   x) = number x
 
-        number x = if x == 0 then "Zero" else if x < 0 then "Neg" else "Pos"
-
+        number x = if x < 0 then "Neg"
+                   else if x == 0 then "Zero"
+                   else if x == 1 then "One"
+                   else "Pos"
