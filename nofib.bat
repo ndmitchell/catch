@@ -23,10 +23,16 @@ cd ..
 
 echo RUNNING NOFIB TESTS > nofib.txt
 for %%i in (%tests%) do call %0 build %%i
+
+cls
+echo BEGIN DIFFERENCES
+diff nofib_oracle.txt nofib.txt --unified
+echo END DIFFERENCES
 goto finish
 
 
 :build
+echo FAILED TO RUN CATCH > logs\%file%\summary.log
 cd prepare
 %hugs% %file%
 cd ..
