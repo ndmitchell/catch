@@ -105,14 +105,13 @@ numPrims = [("ADD_W","numAdd"),("SUB_W","numSub")
 primAbstract :: Core -> Core
 primAbstract = mapUnderCore f
     where
-        f (CoreFun x) = case lookup x numPrims of
-                            Nothing -> CoreFun x
-                            Just y -> CoreFun ("Primitive." ++ y)
-        
-        f (CorePrim x) = case lookup x numPrims of
-                            Nothing -> CorePrim x
-                            Just y -> CoreFun ("Primitive." ++ y)
+        f (CoreFun  x) = g CoreFun  x
+        f (CorePrim x) = g CorePrim x
         f x = x
+        
+        g rebuild x = case lookup x numPrims of
+                           Nothing -> rebuild x
+                           Just y -> CoreFun ("Primitive." ++ y)
 
 
 
