@@ -476,6 +476,10 @@ The mechanism used to calculate a fixed point is to execute the template functio
 
 Given that there are a finite number of constraints, there are only a finite number of constraint/function pairs, which guarantees that this function terminates.
 
+\subsection{Laziness of Analysis}
+
+The analysis relies on laziness for transformations, but it does not actually do laziness. I.e. |False && error "here"| is failing. This is dealt with by inlining |(&&)| and |(||||)|. To devise an analysis on this would be easy, but would require an additional fixed point, and is rarely likely to be worth the cost.
+
 
 \section{Real Constraints}
 \label{sec:constraint}
