@@ -975,7 +975,7 @@ wheel-sieve1 - solves all pattern match errors but division by 0, possibly solva
 
 wheel-sieve2 - FAILS IN GADGET, TIMEOUT
 
-x2n1 - no pattern match failures, but has division and ratio's. Underneath there are calls to the ratio library which do plenty of division, and one explicit division. All are proved safe using neg,zero,pos abstract interpretation. Requires an abstract interpretation for things like abs/signum etc. Gives preconditions such as the f function must operate only on non-zero numbers. Nice encoding of division as a pattern match failure. All proved safe.
+x2n1 - no pattern match failures, but has division, gcd and ratio's. Underneath there are calls to the ratio library which do plenty of division, and one explicit division. All are proved safe using neg,zero,pos abstract interpretation. Requires an abstract interpretation for things like abs/signum etc. Gives preconditions such as the f function must operate only on non-zero numbers. Nice encoding of division as a pattern match failure. All proved safe.
 
 \section{Related Work}
 \label{sec:related}
