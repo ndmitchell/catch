@@ -35,6 +35,9 @@ exec fil = do
         file <- findFile fil
         core <- liftM prepare $ loadCore file
         
+        hSummary <- beginLog file "summary"
+        let out msg = putStrLn msg >> hPutStrLn hSummary msg
+        
         hCore <- beginLog file "core"
         hPutStrLn hCore (show core)
         hBack <- beginLog file "back"
@@ -42,33 +45,33 @@ exec fil = do
 
         template <- templateInit core hFore
         let conds = initialReqs core
-        res <- mapM (f hFore hBack core template) conds
+        res <- mapM (f out hFore hBack core template) conds
         let ress = valsAnds core res
 
         when (null conds) $
-            putStrLn "No pattern match errors, trivially safe"
+            out "No pattern match errors, trivially safe"
 
         let msg = show ress
             lmsg = length msg
-        putStrLn $ "Final: \\forall main, " ++ msg
+        out $ "Final: \\forall main, " ++ msg
         when (lmsg > 200) $
-            putStrLn $ "Long: " ++ show lmsg
+            out $ "Long: " ++ show lmsg
 
         hClose hCore
         hClose hBack
         hClose hFore
     where
-        f hFore hBack core template cond = do
+        f out hFore hBack core template cond = do
             let pref = "\n\n" ++ replicate 70 '-' ++ "\n"
                 msg1 = "Solving " ++ show cond
-            putStrLn msg1
+            out msg1
             hPutStrLn hFore (pref ++ msg1)
             hPutStrLn hBack (pref ++ msg1)
             
             res <- backward core template hBack [cond]
             
             let msg2 = "Result \\forall main, " ++ show res
-            putStrLn msg2
+            out msg2
             hPutStrLn hBack $ "\n" ++ msg2
             return res
             
