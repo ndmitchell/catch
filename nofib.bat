@@ -2,7 +2,7 @@
 set file=%2
 if not "%1"=="" goto %1
 
-set tests=DigitsOfE1 DigitsOfE1_Safe DigitsOfE2 Exp3_8 Gen_Regexps Gen_Regexps_Safe Integrate Primes Queens Rfib Tak X2n1
+set tests=Bernoulli Bernoulli_Safe DigitsOfE1 DigitsOfE1_Safe DigitsOfE2 Exp3_8 Gen_Regexps Gen_Regexps_Safe Integrate Primes Queens Rfib Tak X2n1
 
 if exist C:\Neil\yhc set comp=C:\\Neil\\yhc
 if exist C:\Documents\Uni\yhc\current set comp=C:\\Documents\\Uni\\yhc\\current

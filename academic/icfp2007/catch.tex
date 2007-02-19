@@ -949,7 +949,7 @@ The next step where many fail is that read is applied to an argument extracted f
 
 Imaginery:
 
-bernoulli - NOT DONE PAST FIRSTIFIER
+bernoulli - Uses ratios, indexing, head and tail. The only one that can't be proven in |tail (tail x)|, as this is more than the abstraction is capable of expressing. Rewriting this as the more compact |drop 2 x| replaces failure by |[]|, but in all other cases gives the same result. This small modification allows the program to be proven safe.
 
 digits-of-e1 - two pattern match errors, both proven safe due to infinite lists. One division by zero error, which is not safe. The author cannot determine a suitable precondition for the function -- appears to involve complex equalities. The function is far from complete as it stands. A slight alteration is sufficient to make the code provably safe, replacing a crash with undefined behaviour if the code is ever used in an unexpected manner.
 

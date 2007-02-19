@@ -1,4 +1,32 @@
 RUNNING NOFIB TESTS 
+TEST: Bernoulli 
+Solving (\forall Data.Ratio.%_1, [#2 {_} {Neg+One+Pos}])
+Result \forall main, [_]
+Solving (\forall Prelude.!!, [#2 {:} {_}])
+Result \forall main, [_]
+Solving (\forall Prelude.!!.1, [#3 {False} {_} {_}])
+Result \forall main, [_]
+Solving (\forall Prelude.Prelude.Prelude.881.walk, [#2 {:} {_}])
+Result \forall main, [_]
+Solving (\forall Prelude.head, [:])
+Result \forall main, [_]
+Solving (\forall Prelude.tail, [:])
+Result \forall main, [Zero+One]
+Final: \forall main, [Zero+One]
+ 
+TEST: Bernoulli_Safe 
+Solving (\forall Data.Ratio.%_1, [#2 {_} {Neg+One+Pos}])
+Result \forall main, [_]
+Solving (\forall Prelude.!!, [#2 {:} {_}])
+Result \forall main, [_]
+Solving (\forall Prelude.!!.1, [#3 {False} {_} {_}])
+Result \forall main, [_]
+Solving (\forall Prelude.Prelude.Prelude.881.walk, [#2 {:} {_}])
+Result \forall main, [_]
+Solving (\forall Prelude.head, [:])
+Result \forall main, [_]
+Final: \forall main, [_]
+ 
 TEST: DigitsOfE1 
 Solving (\forall DigitsOfE1.ratTrans.1, [#7 {_} {_} {_} {_} {_} {_} {:} | #7 {True} {_} {_} {_} {_} {_} {_}])
 Result \forall main, [_]
