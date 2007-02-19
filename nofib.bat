@@ -31,7 +31,7 @@ goto finish
 
 
 :build
-echo FAILED TO RUN CATCH > logs\%file%\summary.log
+if exist logs\%file%\summary.log echo FAILED TO RUN CATCH > logs\%file%\summary.log
 cd prepare
 %hugs% %file%
 cd ..
