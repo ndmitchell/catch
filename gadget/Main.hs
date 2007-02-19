@@ -45,7 +45,7 @@ exec fil = do
 
         template <- templateInit core hFore
         let conds = initialReqs core
-        res <- mapM (f out hFore hBack core template) conds
+        res <- zipWithM (f out hFore hBack core template (length conds)) [1..] conds
         let ress = valsAnds core res
 
         when (null conds) $
@@ -61,9 +61,9 @@ exec fil = do
         hClose hBack
         hClose hFore
     where
-        f out hFore hBack core template cond = do
+        f out hFore hBack core template n i cond = do
             let pref = "\n\n" ++ replicate 70 '-' ++ "\n"
-                msg1 = "Solving " ++ show cond
+                msg1 = "Solving (" ++ show i ++ "/" ++ show n ++ ") " ++ show cond
             out msg1
             hPutStrLn hFore (pref ++ msg1)
             hPutStrLn hBack (pref ++ msg1)
