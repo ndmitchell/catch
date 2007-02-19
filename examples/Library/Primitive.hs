@@ -179,3 +179,21 @@ global_Prelude'_even _ a = anyEval1 a
 global_PreludeAux'__floatFromRational a = anyEval1 a
 global_PreludeAux'__doubleFromRational a = anyEval1 a
 
+
+
+---------------------------------------------------------------------
+-- Data.Ratio
+
+-- not correct, not free enough
+-- if anyone ever tries to use ratio on their own types, will fail
+-- unlikely though
+data Global_Ratio a = Global_Data'_Ratio'_'col'per Num Num
+
+
+global_Data'_Ratio'_'per _ a b =
+    case b of
+        Zero -> error "Data.Ratio.% with zero as the second argument, bad person"
+        One  -> Global_Data'_Ratio'_'col'per a b
+        _    -> Global_Data'_Ratio'_'col'per (any3 Neg One Pos) (any2 One Pos)
+
+global_Data'_Ratio'_reduce a b c = global_Data'_Ratio'_'per a b c
