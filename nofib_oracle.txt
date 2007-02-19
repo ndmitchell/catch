@@ -1,60 +1,60 @@
 RUNNING NOFIB TESTS 
 TEST: Bernoulli 
-Solving (\forall Data.Ratio.%_1, [#2 {_} {Neg+One+Pos}])
+Solving (1/6) (\forall Data.Ratio.%_1, [#2 {_} {Neg+One+Pos}])
 Result \forall main, [_]
-Solving (\forall Prelude.!!, [#2 {:} {_}])
+Solving (2/6) (\forall Prelude.!!, [#2 {:} {_}])
 Result \forall main, [_]
-Solving (\forall Prelude.!!.1, [#3 {False} {_} {_}])
+Solving (3/6) (\forall Prelude.!!.1, [#3 {False} {_} {_}])
 Result \forall main, [_]
-Solving (\forall Prelude.Prelude.Prelude.881.walk, [#2 {:} {_}])
+Solving (4/6) (\forall Prelude.Prelude.Prelude.881.walk, [#2 {:} {_}])
 Result \forall main, [_]
-Solving (\forall Prelude.head, [:])
+Solving (5/6) (\forall Prelude.head, [:])
 Result \forall main, [_]
-Solving (\forall Prelude.tail, [:])
+Solving (6/6) (\forall Prelude.tail, [:])
 Result \forall main, [Zero+One]
 Final: \forall main, [Zero+One]
  
 TEST: Bernoulli_Safe 
-Solving (\forall Data.Ratio.%_1, [#2 {_} {Neg+One+Pos}])
+Solving (1/5) (\forall Data.Ratio.%_1, [#2 {_} {Neg+One+Pos}])
 Result \forall main, [_]
-Solving (\forall Prelude.!!, [#2 {:} {_}])
+Solving (2/5) (\forall Prelude.!!, [#2 {:} {_}])
 Result \forall main, [_]
-Solving (\forall Prelude.!!.1, [#3 {False} {_} {_}])
+Solving (3/5) (\forall Prelude.!!.1, [#3 {False} {_} {_}])
 Result \forall main, [_]
-Solving (\forall Prelude.Prelude.Prelude.881.walk, [#2 {:} {_}])
+Solving (4/5) (\forall Prelude.Prelude.Prelude.881.walk, [#2 {:} {_}])
 Result \forall main, [_]
-Solving (\forall Prelude.head, [:])
+Solving (5/5) (\forall Prelude.head, [:])
 Result \forall main, [_]
 Final: \forall main, [_]
  
 TEST: DigitsOfE1 
-Solving (\forall DigitsOfE1.ratTrans.1, [#7 {_} {_} {_} {_} {_} {_} {:} | #7 {True} {_} {_} {_} {_} {_} {_}])
+Solving (1/3) (\forall DigitsOfE1.ratTrans.1, [#7 {_} {_} {_} {_} {_} {_} {:} | #7 {True} {_} {_} {_} {_} {_} {_}])
 Result \forall main, [_]
-Solving (\forall DigitsOfE1.toDigits, [:])
+Solving (2/3) (\forall DigitsOfE1.toDigits, [:])
 Result \forall main, [_]
-Solving (\forall Primitive.divZero, [#2 {_} {Neg+One+Pos}])
+Solving (3/3) (\forall Primitive.divZero, [#2 {_} {Neg+One+Pos}])
 Result \forall main, []
 Final: \forall main, []
  
 TEST: DigitsOfE1_Safe 
-Solving (\forall DigitsOfE1_Safe.ratTrans.1, [#7 {_} {_} {_} {_} {_} {_} {:} | #7 {True} {_} {_} {_} {_} {_} {_}])
+Solving (1/3) (\forall DigitsOfE1_Safe.ratTrans.1, [#7 {_} {_} {_} {_} {_} {_} {:} | #7 {True} {_} {_} {_} {_} {_} {_}])
 Result \forall main, [_]
-Solving (\forall DigitsOfE1_Safe.toDigits, [:])
+Solving (2/3) (\forall DigitsOfE1_Safe.toDigits, [:])
 Result \forall main, [_]
-Solving (\forall Primitive.divZero, [#2 {_} {Neg+One+Pos}])
+Solving (3/3) (\forall Primitive.divZero, [#2 {_} {Neg+One+Pos}])
 Result \forall main, [_]
 Final: \forall main, [_]
  
 TEST: DigitsOfE2 
-Solving (\forall DigitsOfE2._LAMBDA343_1_1.1, [:])
+Solving (1/5) (\forall DigitsOfE2._LAMBDA343_1_1.1, [:])
 Result \forall main, [_]
-Solving (\forall DigitsOfE2.carryPropagate_1, [#2 {_} {:}])
+Solving (2/5) (\forall DigitsOfE2.carryPropagate_1, [#2 {_} {:}])
 Result \forall main, [_]
-Solving (\forall Prelude.head, [:])
+Solving (3/5) (\forall Prelude.head, [:])
 Result \forall main, [_]
-Solving (\forall Prelude.tail, [:])
+Solving (4/5) (\forall Prelude.tail, [:])
 Result \forall main, [_]
-Solving (\forall Primitive.divZero, [#2 {_} {Neg+One+Pos}])
+Solving (5/5) (\forall Primitive.divZero, [#2 {_} {Neg+One+Pos}])
 Result \forall main, [_]
 Final: \forall main, [_]
  
@@ -63,54 +63,54 @@ No pattern match errors, trivially safe
 Final: \forall main, [_]
  
 TEST: Gen_Regexps 
-Solving (\forall Gen_Regexps._LAMBDA534.1, [(,) {_} {:}])
+Solving (1/10) (\forall Gen_Regexps._LAMBDA534.1, [(,) {_} {:}])
 Result \forall main, []
-Solving (\forall Gen_Regexps._LAMBDA539.1, [(,) {_} {:}])
+Solving (2/10) (\forall Gen_Regexps._LAMBDA539.1, [(,) {_} {:}])
 Result \forall main, []
-Solving (\forall Gen_Regexps.alphabeticRule, [[] | []+: * []])
+Solving (3/10) (\forall Gen_Regexps.alphabeticRule, [[] | []+: * []])
 Result \forall main, []
-Solving (\forall Gen_Regexps.alphabeticRule, [[] | []+: * : | []+: * []])
+Solving (4/10) (\forall Gen_Regexps.alphabeticRule, [[] | []+: * : | []+: * []])
 Result \forall main, []
-Solving (\forall Gen_Regexps.alphabeticRule, [[] | []+: * : | []+: * []])
+Solving (5/10) (\forall Gen_Regexps.alphabeticRule, [[] | []+: * : | []+: * []])
 Result \forall main, []
-Solving (\forall Gen_Regexps.alphabeticRule, [[] | []+: * []])
+Solving (6/10) (\forall Gen_Regexps.alphabeticRule, [[] | []+: * []])
 Result \forall main, []
-Solving (\forall Gen_Regexps.alphabeticRule, [[] | []+: * :])
+Solving (7/10) (\forall Gen_Regexps.alphabeticRule, [[] | []+: * :])
 Result \forall main, []
-Solving (\forall Gen_Regexps.alphabeticRule, [:])
+Solving (8/10) (\forall Gen_Regexps.alphabeticRule, [:])
 Result \forall main, []
-Solving (\forall Gen_Regexps.constantRule, [:])
+Solving (9/10) (\forall Gen_Regexps.constantRule, [:])
 Result \forall main, [_]
-Solving (\forall Prelude.head, [:])
+Solving (10/10) (\forall Prelude.head, [:])
 Result \forall main, []
 Final: \forall main, []
  
 TEST: Gen_Regexps_Safe 
-Solving (\forall Gen_Regexps_Safe.constantRule, [:])
+Solving (1/1) (\forall Gen_Regexps_Safe.constantRule, [:])
 Result \forall main, [_]
 Final: \forall main, [_]
  
 TEST: Integrate 
-Solving (\forall Prelude.head, [:])
+Solving (1/3) (\forall Prelude.head, [:])
 Result \forall main, [_]
-Solving (\forall Prelude.tail, [:])
+Solving (2/3) (\forall Prelude.tail, [:])
 Result \forall main, [_]
-Solving (\forall Primitive.divZero, [#2 {_} {Neg+One+Pos}])
+Solving (3/3) (\forall Primitive.divZero, [#2 {_} {Neg+One+Pos}])
 Result \forall main, [_]
 Final: \forall main, [_]
  
 TEST: Primes 
-Solving (\forall Prelude.!!, [#2 {:} {_}])
+Solving (1/6) (\forall Prelude.!!, [#2 {:} {_}])
 Result \forall main, [_]
-Solving (\forall Prelude.!!.1, [#3 {False} {_} {_}])
+Solving (2/6) (\forall Prelude.!!.1, [#3 {False} {_} {_}])
 Result \forall main, [Zero+One+Pos]
-Solving (\forall Prelude.Prelude.Prelude.881.walk, [#2 {:} {_}])
+Solving (3/6) (\forall Prelude.Prelude.Prelude.881.walk, [#2 {:} {_}])
 Result \forall main, [_]
-Solving (\forall Prelude.head, [:])
+Solving (4/6) (\forall Prelude.head, [:])
 Result \forall main, [_]
-Solving (\forall Primes.the_filter, [:])
+Solving (5/6) (\forall Primes.the_filter, [:])
 Result \forall main, [_]
-Solving (\forall Primitive.divZero, [#2 {_} {Neg+One+Pos}])
+Solving (6/6) (\forall Primitive.divZero, [#2 {_} {Neg+One+Pos}])
 Result \forall main, [_]
 Final: \forall main, [Zero+One+Pos]
  
@@ -127,9 +127,9 @@ No pattern match errors, trivially safe
 Final: \forall main, [_]
  
 TEST: X2n1 
-Solving (\forall Data.Ratio.%_1, [#2 {_} {Neg+One+Pos}])
+Solving (1/2) (\forall Data.Ratio.%_1, [#2 {_} {Neg+One+Pos}])
 Result \forall main, [_]
-Solving (\forall Primitive.divZero, [#2 {_} {Neg+One+Pos}])
+Solving (2/2) (\forall Primitive.divZero, [#2 {_} {Neg+One+Pos}])
 Result \forall main, [_]
 Final: \forall main, [_]
  
