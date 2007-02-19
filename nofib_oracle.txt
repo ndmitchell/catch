@@ -99,9 +99,7 @@ No pattern match errors, trivially safe
 Final: \forall main, [_]
  
 TEST: X2n1 
-Solving (\forall Data.Ratio.reduce_1.1, [#4 {_} {False} {_} {_}])
-Result \forall main, [_]
-Solving (\forall Prelude.gcd_1, [#2 {_} {Neg+One+Pos} | #2 {Neg+One+Pos} {_}])
+Solving (\forall Data.Ratio.%_1, [#2 {_} {Neg+One+Pos}])
 Result \forall main, [_]
 Solving (\forall Primitive.divZero, [#2 {_} {Neg+One+Pos}])
 Result \forall main, [_]
