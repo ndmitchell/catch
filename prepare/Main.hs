@@ -99,6 +99,7 @@ numPrims = [("ADD_W","numAdd"),("SUB_W","numSub")
            ,("YHC.Primitive.primDoubleFromInteger","numId")
            ,("YHC.Primitive.primIntegerFromInt","numId")
            ,("YHC.Primitive.primIntegerAdd","numAdd")
+           ,("YHC.Primitive.primIntegerMul","numMul")
            ,("YHC.Primitive.primIntegerNe","numNe")
            ]
 

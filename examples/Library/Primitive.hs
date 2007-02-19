@@ -128,6 +128,11 @@ numSub x y = case y of
                 One -> case y of {Neg -> Neg; Zero -> Neg; One -> Zero; Pos -> any2 One Pos}
                 _ -> any0
 
+numMul x y = case x of
+                Zero -> Zero
+                One -> y
+                Pos -> case y of {Neg -> Neg; Zero -> Zero; One -> Pos; Pos -> Pos}
+                Neg -> case y of {Neg -> any2 Pos One; Zero -> Zero; One -> Neg; Pos -> Neg}
 
 
 numEq x y = case x of
