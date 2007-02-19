@@ -103,11 +103,18 @@ numId x = x
 divZero x Zero = error "Divide by zero"
 divZero x y    = anyEval1 x
 
-numQuot x y = divZero x y
+numQuot x y = case y of
+                  Zero -> error "Divide by zero, quotient"
+                  One  -> x
+                  Pos  -> case x of {One -> Zero; Zero -> Zero; Pos -> any3 Zero One Pos; Neg -> any2 Zero Neg}
+                  Neg  -> case x of {One -> any2 Zero Neg; Zero -> Zero; Pos -> any2 Zero Neg; Neg -> any3 Zero One Pos}
+
 numRem  x y = divZero x y
 numDiv  x y = divZero x y
-global_Prelude'_Prelude'_Integral'_Prelude'_Int'_mod x y = divZero x y
-global_Prelude'_Prelude'__'_divMod _ x y = divZero x y
+numMod  x y = divZero x y
+
+global_Prelude'_Prelude'_Integral'_Prelude'_Int'_mod x y = numMod x y
+global_Prelude'_Prelude'__'_divMod _ x y = (numDiv x y, numMod x y)
 
 
 numAdd x y = case x of
