@@ -1,4 +1,3 @@
-echo on
 
 set file=%2
 if not "%1"=="" goto %1
