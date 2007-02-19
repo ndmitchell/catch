@@ -99,6 +99,24 @@ Solving (3/3) (\forall Primitive.divZero, [#2 {_} {Neg+One+Pos}])
 Result \forall main, [_]
 Final: \forall main, [_]
  
+TEST: Paraffins 
+Solving (1/4) (\forall Data.Array.!_1, [])
+Result \forall main, []
+Solving (2/4) (\forall Data.Array.array_1, [])
+Result \forall main, []
+Solving (3/4) (\forall Prelude.undefined, [])
+Result \forall main, []
+Solving (4/4) (\forall Primitive.divZero, [#2 {_} {Neg+One+Pos}])
+Result \forall main, [_]
+Final: \forall main, []
+ 
+TEST: Paraffins_Safe 
+Solving (1/2) (\forall Data.Array.!_1, [])
+Result \forall main, []
+Solving (2/2) (\forall Primitive.divZero, [#2 {_} {Neg+One+Pos}])
+Result \forall main, [_]
+Final: \forall main, []
+ 
 TEST: Primes 
 Solving (1/6) (\forall Prelude.!!, [#2 {:} {_}])
 Result \forall main, [_]
