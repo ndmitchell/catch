@@ -150,7 +150,11 @@ numLt x y = case y of
                 One  -> case x of {Neg -> True; Zero -> True; _ -> False}
                 Pos  -> case x of {Pos -> any0; _ -> True }
 
-numGt x y = anyEval2 x y
+numGt x y = case y of
+                Neg  -> case x of {Neg -> any0; _ -> True}
+                Zero -> case x of {Zero -> False; Neg -> False; _ -> True}
+                One  -> case x of {Pos -> True; _ -> False}
+                Pos  -> case x of {Pos -> any0; _ -> False}
 
 global_Prelude'_Prelude'_Num'_Prelude'_Integer'_signum a = case a of {Pos -> One; _ -> a}
 
