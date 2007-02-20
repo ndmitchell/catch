@@ -19,7 +19,8 @@ reduces core reqs = propMap (reduce core) reqs
 
 reduce :: Core -> Req -> Reqs
 reduce core req@(Req expr vals) = case expr of
-    _ | vals == valsTrue -> propTrue
+    _ | vals == valsTrue  -> propTrue
+      | vals == valsFalse -> propFalse
     CoreApp (CoreFun x) _ | not $ "." `isPrefixOf` x -> propLit req
     CoreVar x -> propLit req
     _ -> reduces core $ reduceOne core req
@@ -34,7 +35,8 @@ reducesWithM core f reqs = propMapReduceM core (reduceWithM core f) reqs
 
 reduceWithM :: Core -> (Req -> IO Reqs) -> Req -> IO Reqs
 reduceWithM core f req@(Req expr vals) = case expr of
-    _ | vals == valsTrue -> return propTrue
+    _ | vals == valsTrue  -> return propTrue
+      | vals == valsFalse -> return propFalse
     CoreApp (CoreFun x) _ | not $ "." `isPrefixOf` x -> f req >>= reducesWithM core f
     CoreVar x -> return $ propLit req
     _ -> reducesWithM core f $ reduceOne core req
