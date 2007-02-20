@@ -698,7 +698,7 @@ The enumeration constraints have different power to the regular expression const
 
 \begin{code}
 (e :< v1) || (e :< v2) = e :< (v1 ++ v2)
-(e :< v1) && (e :< v2) = e :< [a `mergeAnd` b | a <- v1, b <- v2]
+(e :< v1) && (e :< v2) = e :< [a `mergeVal` b | a <- v1, b <- v2]
 \end{code}
 
 Here the list comprehension in the |(&&)| rule is being used to generate the cross-product of the two lists.
@@ -926,26 +926,46 @@ f x = x 1
 
 This program passes \C{undefined} as a function, which is allowable as \C{undefined} has a fully polymorphic result. This can be worked around by treating \C{undefined} (and by extension, \C{error}) as higher order functions.
 
-Alternative methods are available for full firstification, such as that detailed by Hughes \cite{hughes:type-spec}.
+And finally, it is possible to construct a program which has an infinite number of specialisations:
 
-There are of course disadvantages to specialisation, this is essentially a whole program analysis transformation, and the performance is not stunning. However, in practice it seems that the generated code corresponds much more closely to what the original author had meant, and is significantly shorter -- which is not a massive surprise, Jones has shown this result in the specific context of type classes before.
+\begin{code}
+data Wrap a = Wrap (Wrap a) | Value a
 
+main = f head
+
+f x = f (Wrap x)
+\end{code}
+
+This pattern requires higher order values to be placed in a recursive data structure, then an algorithm which grows the data structure to operate on it. In reality, higher order functions are rarely placed in any data structure other than a tuple. Detecting cases where this is an issue can be implemented, and a fallback to Reynold's style defunctionalisation is possible.
 
 \section{Results and Evaluation}
 \label{sec:results}
 
 \subsection{Small Examples}
 
-Map head, head reverse etc.
-
+To introduce the constraint system, and give a basic overview, here are some simple examples.
 
 \subsection{Nofib - Imaginary}
 
-The whole nofib benchmark, in detail
+The whole nofib benchmark, is too big to analyse, so instead the imaginary section has been chosen. These programs are all under a page of text, and have a variety of list operations and numeric computations.
 
 Most of the benchmarks use [x] <- getArgs, this will always fail as getArgs is a primitive whose implementation is opaque to the system. As a result the system will always return False as the precondition to main.
 
 The next step where many fail is that read is applied to an argument extracted from getArgs. Firstly this argument is entirely unknown. Secondly read is a sufficiently complicated function that while it can be modeled by Catch, there is no possibility for getting an appropriate abstraction which models the failure case. As a result, any program which calls read is unsafe, according to Catch. Using reads is perfectly sufficient, if the failure condition is appropriately handled.
+
+
+
+% \begin{figure}
+% \begin{tabular}{lll}
+% \hline
+% Program & Original Lines & Analysis Lines & Errors & Preconds & pre-Calls & Result \\
+% \hline
+% \end{tabluar}
+% \caption{Table of results}
+% \end{figure}
+
+
+
 
 Imaginery:
 
