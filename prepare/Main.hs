@@ -91,12 +91,13 @@ caseAbstract core = mapUnderCore f core
 ---------------------------------------------------------------------
 -- Remove cases on constants
 
-numPrims = [("ADD_W","numAdd"),("SUB_W","numSub")
+numPrims = [("ADD_W","numAdd"),("SUB_W","numSub"),("MUL_W","numMul")
            ,("LT_W","numLt"),("GT_W","numGt")
            ,("QUOT","numQuot"),("REM","numRem"),("SLASH_D","numDiv")
            ,("YHC.Primitive.primIntegerEq","numEq")
            ,("YHC.Primitive.primIntegerQuot","numQuot")
            ,("YHC.Primitive.primDoubleFromInteger","numId")
+           ,("YHC.Primitive.primIntFromInteger","numId")
            ,("YHC.Primitive.primIntegerFromInt","numId")
            ,("YHC.Primitive.primIntegerAdd","numAdd")
            ,("YHC.Primitive.primIntegerMul","numMul")
