@@ -1,6 +1,6 @@
 
 module Val(
-    Val(..), Vals,
+    Val, Vals,
     valsAnd, valsOr,
     valsAnds, valsOrs,
     valsTrue, valsFalse,
