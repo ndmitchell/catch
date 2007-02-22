@@ -96,6 +96,7 @@ caseAbstract core = mapUnderCore f core
 numPrims = [(PrimAdd, "numAdd"), (PrimSub, "numSub"), (PrimMul, "numMul")
            ,(PrimDiv, "numDiv"), (PrimQuot, "numQuot"), (PrimRem, "numRem")
            ,(PrimEq, "numEq"), (PrimNe, "numNe"), (PrimLt, "numLt"), (PrimGt, "numGt")
+           ,(PrimCast, "numId")
            ]
 
 
