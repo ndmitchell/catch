@@ -92,6 +92,9 @@ caseAbstract core = mapUnderCore f core
 ---------------------------------------------------------------------
 -- Remove cases on constants
 
+{-
+-- NEW VERSION USING Yhc.Core.Prim
+-- causes regressions in Nofib
 
 numPrims = [(PrimAdd, "numAdd"), (PrimSub, "numSub"), (PrimMul, "numMul")
            ,(PrimDiv, "numDiv"), (PrimQuot, "numQuot"), (PrimRem, "numRem")
@@ -111,6 +114,32 @@ primAbstract = mapUnderCore f
                           prim <- corePrimMaybe x
                           func <- lookup (primOp prim) numPrims
                           return $ CoreFun $ "Primitive." ++ func
+-}
+
+numPrims = [("ADD_W","numAdd"),("SUB_W","numSub")
+           ,("LT_W","numLt"),("GT_W","numGt")
+           ,("QUOT","numQuot"),("REM","numRem"),("SLASH_D","numDiv")
+           ,("YHC.Primitive.primIntegerEq","numEq")
+           ,("YHC.Primitive.primIntegerQuot","numQuot")
+           ,("YHC.Primitive.primDoubleFromInteger","numId")
+           ,("YHC.Primitive.primIntegerFromInt","numId")
+           ,("YHC.Primitive.primIntegerAdd","numAdd")
+           ,("YHC.Primitive.primIntegerMul","numMul")
+           ,("YHC.Primitive.primIntegerNe","numNe")
+           ]
+
+
+primAbstract :: Core -> Core
+primAbstract = mapUnderCore f
+    where
+        f (CoreFun  x) = g CoreFun  x
+        f (CorePrim x) = g CorePrim x
+        f x = x
+        
+        g rebuild x = case lookup x numPrims of
+                           Nothing -> rebuild x
+                           Just y -> CoreFun ("Primitive." ++ y)
+
 
 
 litAbstract :: Core -> Core
