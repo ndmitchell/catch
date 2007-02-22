@@ -5,6 +5,7 @@ import System.Environment
 import System.Directory
 import System.FilePath
 import System.Cmd
+import Data.Maybe
 
 import Yhc.Core
 
@@ -91,17 +92,10 @@ caseAbstract core = mapUnderCore f core
 ---------------------------------------------------------------------
 -- Remove cases on constants
 
-numPrims = [("ADD_W","numAdd"),("SUB_W","numSub"),("MUL_W","numMul")
-           ,("LT_W","numLt"),("GT_W","numGt")
-           ,("QUOT","numQuot"),("REM","numRem"),("SLASH_D","numDiv")
-           ,("YHC.Primitive.primIntegerEq","numEq")
-           ,("YHC.Primitive.primIntegerQuot","numQuot")
-           ,("YHC.Primitive.primDoubleFromInteger","numId")
-           ,("YHC.Primitive.primIntFromInteger","numId")
-           ,("YHC.Primitive.primIntegerFromInt","numId")
-           ,("YHC.Primitive.primIntegerAdd","numAdd")
-           ,("YHC.Primitive.primIntegerMul","numMul")
-           ,("YHC.Primitive.primIntegerNe","numNe")
+
+numPrims = [(PrimAdd, "numAdd"), (PrimSub, "numSub"), (PrimMul, "numMul")
+           ,(PrimDiv, "numDiv"), (PrimQuot, "numQuot"), (PrimRem, "numRem")
+           ,(PrimEq, "numEq"), (PrimNe, "numNe"), (PrimLt, "numLt"), (PrimGt, "numGt")
            ]
 
 
@@ -112,10 +106,10 @@ primAbstract = mapUnderCore f
         f (CorePrim x) = g CorePrim x
         f x = x
         
-        g rebuild x = case lookup x numPrims of
-                           Nothing -> rebuild x
-                           Just y -> CoreFun ("Primitive." ++ y)
-
+        g rebuild x = fromMaybe (rebuild x) $ do
+                          prim <- corePrimMaybe x
+                          func <- lookup (primOp prim) numPrims
+                          return $ CoreFun $ "Primitive." ++ func
 
 
 litAbstract :: Core -> Core
