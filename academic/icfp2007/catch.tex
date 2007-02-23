@@ -54,10 +54,10 @@
 \copyrightdata{[to be supplied]}
 
 \titlebanner{\today{} - \currenttime{}}        % These are ignored unless
-\preprintfooter{Catch: A Technical Overview}   % 'preprint' option specified.
+\preprintfooter{}   % 'preprint' option specified.
 
-\title{Catch}
-\subtitle{A Technical Overview}
+\title{Safe Pattern Matching}
+\subtitle{A Static Checker for Haskell}
 
 \authorinfo{Neil Mitchell}
            {York}
@@ -71,7 +71,7 @@
 \begin{abstract}
 A Haskell program may fail at runtime with a pattern-match error if the program has any incomplete (non-exhaustive) patterns in definitions or case alternatives. This paper describes a static checker that allows non-exhaustive patterns to exist, yet ensures that a pattern-match error does not occur. It describes a constraint language that can be used to reason about pattern matches, along with mechanisms to propagate these constraints between program components.
 
-I claim an achievement, I can successfully check 94\% of the Nofib suite, and the reasons for the rest failing are discussed.
+The checker obtains minimal preconditions for 11 out of 14 programs in the Imaginary section of the Nofib suite\citep{nofib}. With minor modifications the remaining 3 are proven safe.
 \end{abstract}
 
 % \category{CR-number}{subcategory}{third-level}
@@ -106,46 +106,50 @@ A sample execution of this function would be:
 
 In the last line of the definition, |(s:ss)| is matched against the output of \C{risers}. If |risers (y:etc)| returns an empty list this would cause a pattern match error. It takes a few moments to check this program manually -- and a few more to be sure one has not made a mistake!
 
-GHC \citep{ghc_manual} 6.6 has a warning flag to detect incomplete patterns, which is named \T{-fwarn-incomplete-patterns}. Adding this flag at compile time reports:
-
-\begin{code}
-Warning: Pattern match(es) are non-exhaustive
-\end{code}
-
-The Bugs (12.2.1) section of the manual notes that the checks are sometimes wrong, particularly with string patterns or guards, and that this part of the compiler ``needs an overhaul really'' \citep{ghc_manual}.
-
-But the GHC checks are only local. If the function \C{head} is defined, then it raises a warning. No effort is made to check the \textit{callers} of \C{head} -- this is an obligation left to the programmer.
-
 Turning the \C{risers} function over to the checker developed in this paper, the output is:
 
 \begin{code}
-> Safe
+> Incomplete pattern on line 5, proven safe
+> Whole program is Safe
 \end{code}
 
-In addition the checker produces a set of axioms it has proved about Risers, along with an outline of the proof. Fuller details of how the checking is performed follow in Section \ref{sec:walkthrough}.
+In addition the checker produces a set of properties it has proved about Risers, along with an outline of the proof. Fuller details of how the checking is performed follow in \S\ref{sec:walkthrough}.
 
 \subsection{Contributions}
 
-This is not the first paper on pattern match checking, indeed this system owes a lot of its heritage to \citet{catch_tfp}. A quick glance at the future work section of that original paper shows that all the issues listed are addressed in this paper. The original version of Catch followed a similar motivation, but was unable to handle full Haskell, and had a particularly unsatisfactory story when it came to type classes and higher order functions -- both things now dealt with convincingly. In terms of the underlying analysis, the constraint language has been changed, the fixed pointing method is entirely different and the success on moderately complex examples is massively increased.
+The contributions of this paper include:
 
-While the original version of Catch shared motivation with this paper, the underlying mechanism have changed entirely, leading to a much more powerful tool.
+\begin{enumerate}
+\item Two constraint languages to reason about pattern match failures
+\item A mechanism for generating and solving appropriate constraints
+\item Details of an implementation which handles the complete Haskell 98 language
+\item Results, showing success on a number of unmodified examples
+\end{enumerate}
+
+In \citet{catch_tfp} a pattern match checker was described with similar aims. All the issues list in the future work section have been addressed in this paper. In particular the checker is robust enough to handle real Haskell programs, with no restriction on the recursion patterns, higher order function use or type classes. The underlying mechanism of the first pattern match checker bears only passing resemblance to the mechanism described in this paper.
 
 \subsection{Road map}
 
-This paper first takes the reader on an overview walkthrough of checking the \C{risers} function \S\ref{sec:walkthrough}. Next we introduce a small core functional language, along with a mechanism for reasoning about this language \S\ref{sec:manipulate}, and a constraint language \S\ref{sec:constraint}. Next we discuss how to transform Haskell to this core language \S\ref{sec:transform}.
+All data structures and equations are presented in Haskell, although should be accessible to all readers.
 
-Having described the underlying system, we move on to an evaluation on various sample programs -- including the \textsf{nofib} benchmark suite \S\ref{sec:results}. We compare our work to other work \S\ref{sec:related} before presenting some concluding remarks \S\ref{sec:conclusion}.
+\S\ref{sec:walkthrough} gives an overview of the checking process for the \C{risers} function. \S\ref{sec:manipulate} introduces a small core functional language and a mechanism for reasoning about this language, \S\ref{sec:constraint} covers a constraint language. \S\ref{sec:transform} discusses how to transform Haskell to this core language.
+
+\S\ref{sec:results} evaluates Catch on various sample programs -- including the Nofib benchmark suite. \S\ref{sec:related} compares our work to other work before \S\ref{sec:conclusion} presents some concluding remarks.
 
 \section{Walkthrough of Risers}
 \label{sec:walkthrough}
 
-This section details all the stages that are executed in order to generate a proof that the \C{risers} function in the Introduction does not crash with a pattern match error. No one area is examined in detail, but an overall flavor is given.
+This section details the process of checking that the \C{risers} function in the Introduction does not crash with a pattern match error.
 
 \subsection{Modifying Risers for analysis}
 
-There is one restriction on the functions that Catch can analyse -- they must not take any explicitly higher order parameters. The reason for this is to reduce the complexity in the analysis engine. Removing the ability to pass functions as input removes the need to state conditions on functions.
+\todo{Tidy up this section}
 
-In Haskell \citep{haskell},type classes are typically implemented \citep{type_classes} as dictionaries, meaning that all functions with a type class have a dictionary of higher order functions passed. This means that the function to analyse must not have any outstanding context.
+There is a restriction on the starting functions that Catch can analyse -- they must not have any argument of functional type. The reason for this is to reduce the complexity in the analysis engine.
+
+In Haskell \citep{haskell},type classes are typically implemented \citep{type_classes} as dictionaries. All functions with qualified polymorphic types have one or more dictionaries of class methods as auxiliary arguments. This means that the function to analyse must not have any outstanding context.
+
+\todo{Jump's around a bit here}
 
 The type of the \C{risers} function is |risers :: Ord alpha => [alpha] -> [[alpha]]| -- this can easily be made first-order by making a new function \C{main} the root of the analysis, and providing a concrete type:
 
@@ -156,9 +160,9 @@ main x = risers x
 
 \subsection{Conversion to a Core Language}
 
-Rather than analyse full Haskell, the Catch tool analyses a first-order Core language, without lambda's (other than at the top level), partial application or let bindings. While this at first seems like a substantial restriction, a convertor is provided from the full Haskell 98 language to this very restricted language. Full details are provided in section \S\ref{sec:transform}.
+Rather than analyse full Haskell, the Catch tool analyses a first-order Core language, without lambda expressions, partial application or let bindings. While this at first seems like a substantial restriction, a convertor is provided from the full Haskell 98 language to this very restricted language. Full details are provided in section \S\ref{sec:transform}.
 
-After converting to Core Haskell, and renaming the identifiers for ease of human reading, the resulting Core is as shown in Figure \ref{fig:risers_core}. The function \C{risers4} and \C{risers2} correspond to the pattern match in the |where|. The function |<=| in this example has been specialised to the Int data type, unlike the standard |(<=)| operator which is a member of the \C{Num} class.
+After converting the \C{risers} program to Core Haskell, and renaming the identifiers for ease of human reading, the resulting Core is as shown in Figure \ref{fig:risers_core}. The case expressions in the functions \C{risers4} and \C{risers2} correspond to the pattern match in the |where|. The function |<=| in this example has been specialised to the Int data type, unlike the standard |(<=)| operator which is a member of the \C{Num} class.
 
 \begin{figure}
 \begin{code}
@@ -178,23 +182,35 @@ risers2 x y z =  case y of
     True -> (z : snd x) : (fst x)
     False -> (z : []) : (snd x : fst x)
 \end{code}
-\caption{\C{risers} in the Core language}
+\caption{\C{risers} in the Core language.}
 \label{fig:risers_core}
 \end{figure}
 
 \subsection{Analysis}
 
-Within the Core language every pattern match covers all possible constructors of the appropriate type -- any patterns which were not originally complete have calls to \C{error} inserted. The analysis first starts by finding calls to \C{error}, then trying to prove that these calls will not be reached. In the above example it is easy to see there is only one \C{error} call, which corresponds to a pattern match error which has been desugared.
+In the Core language every pattern match covers all possible constructors of the appropriate type. The alternatives for constructor cases not originally given are calls to \C{error}. The analysis first starts by finding calls to \C{error}, then tries to prove that these calls will not be reached. In the \C{risers} example there is only one \C{error} call, corresponding to the |where| pattern match.
 
-The analysis determines that if \C{risers4} is called, the argument must always be a |(:)|-constructed value for the code to be safe. Following the call chain backwards shows that \C{risers3} calls \C{risers4}, passing |(risers (x:y))| as the argument. In this particular case it is possible to see that risers of a |(:)| always results in a |(:)| - requiring in part the knowledge that \C{risers2} always evaluates to a |(:)|. With these axioms it can be shown that the entire program is safe.
+Only one precondition is required for this example:
 
-Unfortunately the analysis is not blessed with the foresight to know which axioms are required and the direction in which the proof must proceed. The analysis manipulates constraints on expressions until a fixed point is found -- speculatively attempting to discharge constraints as they arise. The exact transformation rules, along with the constraints that can be expressed by the system are the main substance of the analysis.
+\begin{code}
+forall risers4 `dot` x :< (:)
+\end{code}
 
+This condition states that all callers of \C{risers4} must supply an argument which is a |(:)| constructed value. Two properties are required to prove this:
+
+\begin{code}
+x :< (:)  => (risers x       ) :< (:)
+True      => (risers2 x y z  ) :< (:)
+\end{code}
+
+The first property says that provided the input to \C{risers} is a |(:)| constructed value, the output will be. The second states that the output from \C{risers2} is always a |(:)|. Given the above precondition, and the properties, a proof \C{risers} does not reach \C{error} can be constructed.
+
+\todo{Cite the specific bits from the analysis}
 
 \section{The Constraints}
 \label{sec:manipulate}
 
-This section explains the underlying constraint system in Catch, focusing on how the constraints are put together to express properties of expressions and the data structures they evaluate to. All data structures and equations are presented in Haskell, although should be accessible to all readers.
+This section explains the underlying constraint system in Catch, focusing on how the constraints are put together to express properties of expressions and the data structures they evaluate to.
 
 \subsection{Reduced expression language}
 \label{sec:core}
@@ -211,9 +227,9 @@ data Expr  =  Var String
            |  Call FuncName [Expr]
            |  Case Expr [Alt]
 
-type Alt = (CtorName, Expr)]
+type Alt = [(CtorName, Expr)]
 \end{code}
-\caption{Core Data Type}
+\caption{Core Data Type.}
 \label{fig:core}
 \end{figure}
 
@@ -226,16 +242,18 @@ pathCtor  :: PathName  -> CtorName
 pathPosn  :: PathName  -> Int
 isRec     :: PathName  -> Bool
 \end{code}
-\caption{Miscellaneous functions to manipulate Core}
+\caption{Miscellaneous functions to manipulate Core.}
 \end{figure}
 
-The abstract syntax tree for the reduced expression language is given in figure \ref{fig:core}. The Core language chosen for this purpose is like most others, with the exception of paths. The language is first order, has only simple case statements, and only algebraic data types. The evaluation strategy is lazy. All case statements are defined to be complete, with error being introduced where a pattern match error would occur. Every constructor has an arity, which can be obtained with the \C{arity} function. To determine all constructors in a set the \C{ctors} function can be used, for example |ctors "True" = ["False", "True"]| and |ctors "[]" = ["[]", ":"]|.
+Syntax for the reduced expression language is given in figure \ref{fig:core}. The Core language chosen for this purpose is fairly standard \cite{spj_lester_book}, with the exception of paths. The language is first order, has only simple case statements, and only algebraic data types. The evaluation strategy is lazy. All case statements are syntactically complete, with error being introduced where a pattern match error would occur.
 
-For analysis purposes we can ignore the default construction for alternatives - in practice this can always be expressed by a set of alternatives with bound constructors. In practice the default alternative is present in Catch, which results in a performance gain.
+Every constructor has an arity, which can be obtained with the \C{arity} function. To determine all constructors in a set the \C{ctors} function can be used, for example |ctors True = {False, True}| and |ctors [] = {[], :}|.
 
 \subsubsection{Paths}
 
-The one thing present in our Core language, but not in other languages, is the \textit{path}. Some examples of paths include \C{hd} and \C{tl}. A path asserts that a data value has a given constructor, and then follows its appropriate field. The concrete syntax for paths is |x-*tl|. Some examples of paths:
+\todo{Remove this section, specify the program in terms of only case statements!}
+
+One innovation in our Core language is the \textit{path}. Some examples of paths include \C{hd} and \C{tl}. A path asserts that a data value has a given constructor, and then follows its appropriate field. The concrete syntax for paths is |x-*tl|. Some examples of paths:
 
 \begin{code}
 (1:2:[])-*hd == 1
@@ -1058,6 +1076,17 @@ x2n1 - no pattern match failures, but has division, gcd and ratio's. Underneath 
 
 \section{Related Work}
 \label{sec:related}
+
+
+GHC \citep{ghc_manual} 6.6 has a warning flag to detect incomplete patterns, which is named \T{-fwarn-incomplete-patterns}. Adding this flag at compile time reports:
+
+\begin{code}
+Warning: Pattern match(es) are non-exhaustive
+\end{code}
+
+The Bugs (12.2.1) section of the manual notes that the checks are sometimes wrong, particularly with string patterns or guards, and that this part of the compiler ``needs an overhaul really'' \citep{ghc_manual}.
+
+But the GHC checks are only local. If the function \C{head} is defined, then it raises a warning. No effort is made to check the \textit{callers} of \C{head} -- this is an obligation left to the programmer.
 
 Viewed as a \textbf{proof tool} this work can be seen as following Turner's goal to define a Haskell-like language which is total \cite{tfp:total}. Turner disallows incomplete pattern matches, saying this will ``force you to pay attention to exactly those corner cases which are likely to cause trouble''. Our checker may allow this restriction to be lifted, yet still retain a total programming language.
 
