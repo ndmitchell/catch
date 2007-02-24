@@ -119,12 +119,12 @@ In addition the checker produces a set of properties it has proved about Risers,
 
 The contributions of this paper include:
 
-\begin{enumerate}
+\begin{itemize}
 \item Two constraint languages to reason about pattern match failures
 \item A mechanism for generating and solving appropriate constraints
 \item Details of an implementation which handles the complete Haskell 98 language
 \item Results, showing success on a number of unmodified examples
-\end{enumerate}
+\end{itemize}
 
 In \citet{catch_tfp} a pattern match checker was described with similar aims. All the issues list in the future work section have been addressed in this paper. In particular the checker is robust enough to handle real Haskell programs, with no restriction on the recursion patterns, higher order function use or type classes. The underlying mechanism of the first pattern match checker bears only passing resemblance to the mechanism described in this paper.
 
@@ -193,7 +193,7 @@ In the Core language every pattern match covers all possible constructors of the
 Only one precondition is required for this example:
 
 \begin{code}
-forall risers4 `dot` x :< (:)
+forall risers4 `o` x :< (:)
 \end{code}
 
 This condition states that all callers of \C{risers4} must supply an argument which is a |(:)| constructed value. Two properties are required to prove this:
@@ -207,7 +207,7 @@ The first property says that provided the input to \C{risers} is a |(:)| constru
 
 \todo{Cite the specific bits from the analysis}
 
-\section{The Constraints}
+\section{Pattern Match Analysis}
 \label{sec:manipulate}
 
 This section explains the underlying constraint system in Catch, focusing on how the constraints are put together to express properties of expressions and the data structures they evaluate to.
@@ -219,15 +219,15 @@ This section explains the underlying constraint system in Catch, focusing on how
 \begin{code}
 type CtorName  =  String
 type FuncName  =  String
-type PathName  =  String
+type VarName   =  String
+type Field     =  (CtorName, Int)
 
-data Expr  =  Var String
-           |  Path Expr PathName
-           |  Make CtorName [Expr]
-           |  Call FuncName [Expr]
-           |  Case Expr [Alt]
+data Expr  =  Var   VarName
+           |  Make  CtorName  [Expr]
+           |  Call  FuncName  [Expr]
+           |  Case  Expr      [Alt]
 
-type Alt = [(CtorName, Expr)]
+data Alt = Alt CtorName [VarName] Expr
 \end{code}
 \caption{Core Data Type.}
 \label{fig:core}
@@ -237,51 +237,19 @@ type Alt = [(CtorName, Expr)]
 \begin{code}
 ctors     :: CtorName  -> [CtorName]
 arity     :: CtorName  -> Int
-paths     :: CtorName  -> [PathName]
-pathCtor  :: PathName  -> CtorName
-pathPosn  :: PathName  -> Int
-isRec     :: PathName  -> Bool
+var       :: VarName   -> Maybe (Expr, Field)
+isRec     :: Field     -> Bool
 \end{code}
 \caption{Miscellaneous functions to manipulate Core.}
 \end{figure}
 
-Syntax for the reduced expression language is given in figure \ref{fig:core}. The Core language chosen for this purpose is fairly standard \cite{spj_lester_book}, with the exception of paths. The language is first order, has only simple case statements, and only algebraic data types. The evaluation strategy is lazy. All case statements are syntactically complete, with error being introduced where a pattern match error would occur.
+Syntax for the reduced expression language is given in figure \ref{fig:core}. The Core language chosen for this purpose is fairly standard \cite{spj_lester_book}. The language is first order, has only simple case statements, and only algebraic data types. The evaluation strategy is lazy. All case statements are syntactically complete, with error being introduced where a pattern match error would occur. An \C{Alt} data type has the constructor to match, a list of variables to bind to and an expression to execute.
 
-Every constructor has an arity, which can be obtained with the \C{arity} function. To determine all constructors in a set the \C{ctors} function can be used, for example |ctors True = {False, True}| and |ctors [] = {[], :}|.
-
-\subsubsection{Paths}
-
-\todo{Remove this section, specify the program in terms of only case statements!}
-
-One innovation in our Core language is the \textit{path}. Some examples of paths include \C{hd} and \C{tl}. A path asserts that a data value has a given constructor, and then follows its appropriate field. The concrete syntax for paths is |x-*tl|. Some examples of paths:
-
-\begin{code}
-(1:2:[])-*hd == 1
-(1:2:[])-*tl == (2:[])
-[]-*hd -- this is statically impossible
-\end{code}
-
-A path has a given constructor, and returns a given field member from that constructor -- this information is available using the functions \C{pathCtor} and \C{pathPosn}.
-
-Constructions such as |[]-*hd| are statically disallowed. The original input language to Catch is Haskell, which does not have a path expression, meaning that all path's are introduced by the transformation process. It is the responsibility of the transformations to ensure that invalid paths are not introduced.
-
-To take a simple example, here is the function \C{risers4} from the introductory example, using path's instead of constructors. In general functions are given without the use of paths -- they are an underlying implementation concern which does not change the meaning or understanding of the algorithms.
-
-\begin{code}
-risers4 x = case x of
-    (:) -> (x-*tl, x-*hd)
-    [] -> error "Pattern Match Failure, 11:12."
-\end{code}
-
-Our use of paths contrasts with other functional Core language's (for example \citet{ghc_core}). Our choice has a number of merits, in particular they simplify a number of issues. By using path statements, the alternatives in a \C{case} expression do not need to bind variables. This then means that all free variables are declared at the top of a function, and have a scope consisting of the entire function -- since let's expressions are not permitted. The simplification of free variable handling allows a corresponding simplification of the entire analysis. The rules for variables are also simplified -- there are no special cases for variables bound in a case expression.
-
-The name of paths can be automatically generated from a constructor and an index, however if a Haskell program defines a data type with uniquely named fields, then these field names are used. The definition for lists in Catch is:
-
-\begin{code}
-data [alpha] = [] | {hd :: alpha, tl :: [alpha]}
-\end{code}
+Every constructor has an arity, which can be obtained with the \C{arity} function. To determine all constructors in a set the \C{ctors} function can be used, for example |ctors True = {False, True}| and |ctors [] = {[], :}|. The \C{var} function returns \C{Nothing} for variables which are arguments, and \C{Just} with the expression on the \C{Case} expression and the field.
 
 \subsubsection{\C{isRec} function}
+
+\todo{Expand this section}
 
 Detail the purpose of the \C{isRec} function, what it does, and why. Also mention that co-recursive types are disallowed.
 
@@ -293,14 +261,10 @@ Invariant, given a finite typed structure, there must be no chain of fields whic
 \begin{code}
 data Int = Neg | Zero | Pos
 
-any0 = primitive
-any2 x y = if any0 then x else y
-any3 x y z = any2 x (any2 y z)
-
 x     + Zero  = x
 Zero  + x     = x
 x     + y     | x == y = x
-_     + _     = any3 Neg Zero Pos
+_     + _     = any0
 
 x     - Zero  = x
 Zero  - Zero  = Zero
@@ -308,7 +272,7 @@ Zero  - Neg   = Pos
 Zero  - Pos   = Neg
 Neg   - Pos   = Neg
 Pos   - Neg   = Pos
-_     - _     = any3 Neg Zero Pos
+_     - _     = any0
 \end{code}
 \caption{Abstract implementation of integers}
 \label{fig:abstract_int}
@@ -323,15 +287,17 @@ data Nat  = Zero | Succ Nat
 data Int  = Minus Nat | Zero | Plus Nat
 \end{code}
 
-While this abstraction captures all the underlying detail of the number system, it is not detail that can be used during the analysis -- due to the underlying constraint systems discussed in \S\ref{sec:constraints}. A more practically motivated example is given in Figure \ref{fig:abstract_int}, and this is the abstraction that is used in practice. The \T{any0} method is an internally implemented method of Catch, assumed to be any demonic value.
+While this abstraction captures all the underlying detail of the number system, it is not detail that can be used during the analysis -- due to the underlying constraint systems discussed in \S\ref{sec:constraints}. A more practically motivated example is given in Figure \ref{fig:abstract_int}, and this is the abstraction that is used in practice. The \T{any0} method is an internally implemented method of Catch, assumed to be any demonic value, of the correct type.
+
+\todo{Add notes on One as an abstract value}
 
 The abstraction of characters is often more practically interesting. The Haskell language standard calls for Unicode character literals -- and depending on the compiler the number of distinct characters varies between 256 and 1114111. There are several possible abstractions of characters:
 
 \begin{code}
 data Char = Char
 data Char = Alpha | Digit | White | Other
-data Char = A .. Z | a .. z | 0 .. 9 | ! .. # | Other
-data Char = 00 | 01 | 02 ..
+data Char = 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | Other
+data Char = '\0' | '\1' | '\2' ..
 \end{code}
 
 The simplest abstraction is that all characters are the same. A slightly more refined abstraction is to partition the characters based on the character testing functions provided in the \C{Char} module of Haskell. Refining the model further can give special status to characters that commonly occur, giving all uncommon characters the \C{Other} value. Finally, given that \C{Char} is a finite enumeration, the entire range of characters could each be represented distinctly.
@@ -345,7 +311,7 @@ The final issue of abstraction relates to primitive functions, for example the \
 
 An expression evaluates to a (potentially infinite) data structure, or to $\bot{}$ caused by either non-termination of pattern match error. If an expression does evaluate to a data structure, then a constraint states the possible forms of data value it may take. A constraint is a set of data structures that a value may match. In order to practically represent a constraint, there are several different concrete representations -- these will be discussed in \S\ref{sec:constraints}.
 
-Given a mechanism of expressing some set of constructors, $E(x) \in C$ states that the expression $x$ must, when evaluated be a member of the set defined by $C$. Since the Core language is typed, the constraint $C$ will only refer to a well typed term. These atomic constraints can be built up into a proposition of constraints, each possibly on different variables.
+Given a mechanism of expressing some set of constructors, $E(x) \in C$ states that the expression $x$ must, when evaluated be a member of the set defined by $C$. Since the Core language is typed, the constraint $C$ will only refer to a set of well typed terms. These atomic constraints can be built up into a proposition of constraints, each possibly on different variables.
 
 Since free variables are bound by function calls, it is possible to scope a constraint by making it a proposition. These can then be placed into a proposition. For example, $\forall f, i \in C$ states that for the function $f$, the argument $i$ must be in the set $C$. To take a concrete example, one particular example is $\forall \C{risers4}, x \in \g{\_ : \_}$.
 
@@ -363,7 +329,7 @@ data Match  =  Match CtorName [Match]
 data Req = Expr :< Constraint
 
 notin :: CtorName -> Constraint
-(|>) :: FieldName -> Constraint -> Constraint
+(|>) :: Field -> Constraint -> Constraint
 (<|) :: Expr -> Constraint -> Prop Req
 \end{code}
 \caption{Constraint language}
@@ -381,7 +347,7 @@ notin c = map f (delete c (ctors c))
    where f x = Match x (replicate (arity c) Any)
 \end{code}
 
-An assumption made about the constraint system is that for any given finite type, there exist only a finite number of constraints. This simple constraint system violates property -- consider a recursive data structure such as a list, an infinite number of type-correct patterns are possible.
+An assumption made about the constraint system is that for any given finite type, there exist only a finite number of constraints. This simple constraint system violates property -- consider a recursive data structure such as a list, an infinite number of type-correct patterns are possible. This could be fixed by limiting the depth, although is not done to allow the principles to be expressed more clearly.
 
 \subsection{Safety Preconditions}
 
@@ -389,11 +355,10 @@ An assumption made about the constraint system is that for any given finite type
 \begin{code}
 pre :: Expr -> Prop Req
 pre (Var   x         ) = True
-pre (Path  x   _     ) = pre x
 pre (Make  _   xs    ) = and (map pre xs)
 pre (Call  fn  xs    ) = preFunc fn xs && and (map pre xs)
-pre (Case  on  alts  ) = and [f c e | (c,e) <- alts]
-    where f c e = on :< notin c || pre e
+pre (Case  on  alts  ) = pre on && and [f c e | Alt c vs e <- alts]
+    where f c e = (on :< notin c) || pre e
 
 preFunc :: FuncName -> [Expr] -> Prop Req
 \end{code}
@@ -403,40 +368,41 @@ preFunc :: FuncName -> [Expr] -> Prop Req
 
 There exists a precondition for every function such that if this precondition holds, then all function calls made will have their preconditions respected. The precondition on the \C{error} function is False. The process of analysis can be seen as deriving these preconditions.
 
-A function is safe if the precondition on \T{main} is True. Given a function that returns the precondition on a functions arguments \T{preFunc}, a function to determine the precondition on an expression can be specified as \T{pre} in figure \ref{fig:precondition}. A fixed point is found iff:
+A program is safe if the precondition on \C{main} is True. Given a function that returns the precondition on a functions arguments \C{preFunc}, a function to determine the precondition on an expression can be specified as \C{pre} in figure \ref{fig:precondition}. A fixed point is found iff:
 
 \begin{code}
-forall f, xs `dot` preFunc f xs => pre (instantiate f xs)
+forall fn, xs `o` preFunc fn xs => pre (instantiate fn xs)
 \end{code}
 
-This states that the preconditions assigned to each function by \T{preFunc} must imply the preconditions calculated on the instantiation of a function with its arguments. One such fixed point is that all calls to \T{preFunc} return False. A perfect precondition would be such that \T{preFunc f xs == pre (instantiate f xs)}.
+This states that the preconditions assigned to each function by \C{preFunc} must imply the preconditions calculated on the instantiation of a function with its arguments. One such fixed point is that all calls to \C{preFunc} return False. A perfect precondition would be such that |preFunc f xs == pre (instantiate f xs)|.
 
 The way preconditions are found for functions is that initially all functions are considered to have the precondition True, apart from error, which has the precondition False. For each precondition that has changed (initially error) all those functions which call this function have their bodies checked, assuming their current precondition. If the precondition has changed, then the new precondition is anded with the current one, and marked as changed. Once all preconditions are stable, a fixed point has been found.
 
-The reason for anding with the previous value is to ensure termination -- the and ensures that the fixed point only ever becomes more restrictive, and therefore given a constraint model with a finite number of terms, is guaranteed to terminate.
+The reason for anding with the previous value is to ensure termination -- the and ensures that the value only ever becomes more restrictive, and therefore given a constraint model with a finite number of terms, is guaranteed to terminate.
 
 A fixed point can be obtained more quickly by first propagating the functions at the leaf of the call tree. Once these have found a fixed point, it is only possible for the functions they call to require further computation with this expression. This is achieved by constructing a call graph, and taking a flattening to get an effective order for propagation. This can substantially reduce the amount of work required.
+
+One point to make is that the given computation of preconditions does not respect laziness, in particular the \C{Call} equation demands the preconditions to hold on all its arguments -- only correct if a function is strict on its arguments. This is however a safe approximation, so is still sound. The analysis relies on laziness for transformations, but it does not actually do laziness. I.e. the precondition on |False && error "here"| is False, when it should be True.
+
+To introduce laziness an evaluation method could be added, which would require an additional fixed point computation, and complicate both the analysis and the generated constraints. In practice simply inlining |(&&)| and |(||||)| achieves most of the benefits that a laziness analysis would provide.
 
 
 \subsection{Manipulating constraints}
 \label{sec:backward}
 
-Constraints on free variables can be considered as preconditions to the function they are scoped over. Constraints on function calls have to be treated specially, in a manner detailed in \S\ref{sec:template}, using a process called templating. All other constraints can be reduced using the process denoted by a function \T{back}, which takes a constraint and returns a predicate over constraints. This function is detailed in Figure~\ref{fig:backward}.
+Constraints on arguments to a function can be considered as preconditions to that function. All other constraints can be reduced using the process denoted by a function \C{back}, which takes a constraint and returns a predicate over constraints. This function is detailed in Figure~\ref{fig:backward}. The \C{backs} function repeatedly applies these rules until the only remaining constraints will be either on arguments to the function.
 
 \begin{figure}
 \begin{code}
 back :: Req -> Prop Req
-back (Var   x         :< k) = Var x :< k
-back (Path  x   p     :< k) = x :< (p |> k)
-back (Make  c   xs    :< k) = Make ct args <| k
-back (Call  fn  xs    :< k) = template k fn args
-back (Case  on  alts  :< k) = and [f c e | (c,e) <- alts]
+back (Var   x         :< k) = on :< (c |> k)
+    where Just (on, c) = var x
+back (Make  c   xs    :< k) = Make c xs <| k
+back (Call  fn  xs    :< k) = template k fn xs
+back (Case  on  alts  :< k) = and [f c e | Alt c vs e <- alts]
     where f c e = (on :< notin c) || back (e :< k)
 
-backs :: Req -> Prop Req
-backs x = mapProp f (back x)
-    where  f (Var x :< k) = Var x :< k
-           f x = backs x
+backs :: Prop Req -> Prop Req
 \end{code}
 \caption{Specification of backward analysis, \C{back}}
 \label{fig:backward}
@@ -444,15 +410,13 @@ backs x = mapProp f (back x)
 
 \begin{description}
 
-\item[The \C{Path} rule] moves the condition from the expression to the path. The |(||>)| operation can be seen as extending a constraint from being on one small part of the data structure, to being on the entire data structure. The implementation of this operation on the simple constraint type is now given:
+\item[The \C{Var} rule] applies only to variables which are bound by case expressions. This rule moves the condition from the bound variable to the subject of the |case| expression which introduced it. The |(||>)| operation can be seen as extending a constraint from being on one small part of the data structure, to being on the entire data structure. The implementation of this operation on the simple constraint type is now given:
 
 \begin{code}
-p |> k = map extend k
+(c,i) |> k = map extend k
     where
     extend x = Match c (anys i ++ [x] ++ anys (n-i))
     anys j = replicate j Any
-    i = pathPosn p
-    c = pathCtor p
     n = arity c
 \end{code}
 
@@ -466,18 +430,16 @@ p |> k = map extend k
         and (zipWith (:<) xs (map (:[]) xs2))
 \end{code}
 
+\item[The \C{Call} rule] relies on properties being derived on the function being called, and applied here. This process is explained in \S\ref{sec:template}, using a process called templating.
 
 \item[The \C{Case} rule] generates a conjunct for each alternative. The generated condition says either the subject of the case analysis has a different constructor (so this particular alternative is not executed in this circumstance), or the right hand side of the alternative is safe given the conditions for this expression.
 \end{description}
 
-The \T{backs} function repeatedly applies these rules until the only remaining constraints will be either on free variables, or function application. Function application is dealt with by templating, to reduce the problem to one on only free variables.
-
-Once a constraint is on free variables, it is treated as a precondition to a function. It is then propagated to all the callers of the given function, and the process is repeated.
 
 \subsection{Templating}
 \label{sec:template}
 
-When a constraint of the form \T{Call f xs :< k} is found, this needs to be reduced to a proposition of constraints on the expressions in \T{xs}. There are two strategies that can be used. One method is to use the $\beta$ substitution rule (\T{instantiate}) from $\lambda$-calculus, and replace the call with the body of \T{f}. Another alternative is to create fresh variables for each element in \T{xs}, solve this new problem, and then instantiate the results.
+When a constraint of the form |Call fn xs :< k| is found, this needs to be reduced to a proposition of constraints on the expressions in |xs|. There are two strategies that can be used. One method is to use the $\beta$ substitution rule (\C{instantiate}) from $\lambda$-calculus, and replace the call with the body of |fn|. Another alternative is to create fresh variables for each element in |xs|, solve this new problem, and then instantiate the results.
 
 An earlier version of the Catch tool chose the former method, but the current version chooses the latter. The later is more amenable to finding a fixed point, and allows for a cache of the results to be built from which future questions can be answered. This cache of results can be seen as a set of axioms, and indeed this cache is saved to a file for future examination after Catch has finished.
 
@@ -486,8 +448,8 @@ The primary template mechanism, and its essential condition are given as:
 \begin{code}
 template :: Constraint -> FuncName -> [Expr] -> Prop Req
 
-forall f `dot` p xs => backs (instantiate f xs :< k)
-    where p = template k f
+forall fn, xs `o` p xs => backs (instantiate fn xs :< k)
+    where p = template k fn
 \end{code}
 
 The condition can be read as given a function call and a constraint, the resulting condition on the arguments must ensure that the condition holds on the instantiated body.
@@ -495,11 +457,6 @@ The condition can be read as given a function call and a constraint, the resulti
 The mechanism used to calculate a fixed point is to execute the template function for one iteration, on the body of the function instantiated with free variables for each argument. After the result is obtained, it is anded with the existing value. If any other template is invoked within the template call then this must be considered at the same time as the current template. Each template is checked in turn until all templates do not change.
 
 Given that there are a finite number of constraints, there are only a finite number of constraint/function pairs, which guarantees that this function terminates.
-
-\subsection{Laziness of Analysis}
-
-The analysis relies on laziness for transformations, but it does not actually do laziness. I.e. |False && error "here"| is failing. This is dealt with by inlining |(&&)| and |(||||)|. To devise an analysis on this would be easy, but would require an additional fixed point, and is rarely likely to be worth the cost.
-
 
 \section{Real Constraints}
 \label{sec:constraint}
@@ -526,35 +483,33 @@ If you assume that the |(||>)| operator reduces a constraint to the arguments to
 \begin{code}
 data Constraint = RegExp :! [CtorName]
 
-data RegExp = [Atom]
+type RegExp = [Atom]
 
-data Atom = Atom PathName
-          | Star [PathName]
+data Atom  =  Atom  Field
+           |  Star  [Field]
 
 notin :: CtorName -> Constraint
-notin c = [] :! delete c (ctors c)
+notin c = [] :- delete c (ctors c)
 
 (|>) :: PathName -> Constraint -> Constraint
-p |> (r :! c) = integrate p r :! c
+p |> (r :- c) = integrate p r :- c
 
 (<|) :: Expr -> Constraint -> Prop Req
-(Make c xs) <| (r :! cs) =
-    ewp r => c `elem` cs &&
+(Make c xs) <| (r :- cs) = (ewp r => c `elem` cs) &&
     and (zipWith f (paths c) xs)
     where
-    f p x = case differentiate p r of
-                Nothing -> True
-                Just r2 -> x :< (r2 :! cs)
+    f p x = case  differentiate p r of
+                  Nothing -> True
+                  Just r2 -> x :< (r2 :- cs)
 
 ewp :: RegExp -> Bool
 ewp x = all isStar x
-   where isStar (Star _) = True
-         isStar (Atom _) = False
+   where  isStar (Star  _) = True
+          isStar (Atom  _) = False
 
 integrate :: PathName -> RegExp -> RegExp
 integrate p r | not (isRec p) = Atom p : r
-integrate p (Star ps:r)  | p `elem` ps  = Star ps : r
-                         | otherwise    = Star (p:ps) : r
+integrate p (Star ps:r) = Star (nub (p:ps) : r)
 integrate p r = Star [p] : r
 
 differentiate :: PathName -> Path -> Maybe Path
@@ -568,54 +523,56 @@ differentiate p (Star  r:rs)  | p `elem` r  = Just (Star r:rs)
 \label{fig:regexp}
 \end{figure}
 
-The original Catch tool used regular expression based constraints. A data type for the constraint, along with the essential operations upon it is given in Figure \ref{fig:regexp}. Given a constraint |(r :! c)|, |r| is referred to as the regular expression, and |c| is referred to as the set of constructors. Such a constraint matches those data values such that any well-defined application of a path of selectors described by |r| must reach a constructor in the set |c|.
+The original Catch tool used regular expression based constraints. A data type for the constraint, along with the essential operations upon it is given in Figure \ref{fig:regexp}. Given a constraint |(r :- c)|, |r| is referred to as the regular expression, and |c| is referred to as the set of constructors. Such a constraint matches those data values such that any well-defined application of a path of selectors described by |r| must reach a constructor in the set |c|.
 
 The meaning of a constraint is defined by:
 
 \begin{code}
-e :< (r :! c) <=> (forall l `elem` lang r `dot` defined e l => ctor(e-*l) `elem` c)
+e :< (r :- c) <=> (forall l `elem` lang r `o` defined e l => ctor e l `elem` c)
 \end{code}
 
-Here |lang r| is the language represented by the regular expression |r|; \C{defined} returns true if a path selection is well-defined; and \C{ctor} gives the constructor used to create the data. Of course, since |lang r| is potentially infinite, this cannot be checked by enumeration.
+Here |lang r| is the language represented by the regular expression |r|; \C{defined} returns true if a path selection is well-defined; and \C{ctor} gives the constructor used to create the data, after following the path. Since |lang r| is potentially infinite, this cannot be checked by enumeration.
 
 If no path selection is well-defined then the constraint is vacuously true.
 
 A regular expression is defined as:\\ \\
 \begin{tabular}{ll}
-|s+t| & union of regular expressions $s$ and $t$ \\
-$s\D t$ & concatenation of regular expressions $s$ then $t$ \\
-$s\K$  & any number (possibly zero) occurrences of $s$ \\
+|s+t| & union of regular expressions |s| and |t| \\
+|s^.t| & concatenation of regular expressions |s| then |t| \\
+|s^*|  & any number (possibly zero) occurrences of |s| \\
 \C{x} & a path, such as \C{hd} or \C{tl} \\
-$\lambda$ & the language is the set containing the empty string \\
-$\phi$ & the language is the empty set
+0 & the language is the empty set \\
+1 & the language is the set containing the empty string
 \end{tabular} \\
 
-The differentiation operation is that as defined by \citet{conway}, and called quotient in some text books. The empty word property (\C{ewp}) is equivalent to |lambda `elem` lang r|, and can be calculated simply from a regular expression. Integration is merely the inverse of differentiation -- not usually treated as a separate operation in most regular expression systems.
+The differentiation operation is that as defined by \citet{conway}, and called quotient in some text books. The empty word property (\C{ewp}) is equivalent to |lang 1 `subseteq` lang r|, and can be calculated simply from a regular expression. Integration is merely the inverse of differentiation -- not usually treated as a separate operation in most regular expression systems.
 
 In the original version of Catch regular expressions were based on the full regular expression language. However the implementation above is limited to concatenation of atoms, or stars of unions. Formally the context free grammar of this type of regular expression is:
 
 \[\begin{array}{lllll}
-r & = & \lambda & || & a\D r \\
-a & = & \C{x}   & || & u\K \\
-u & = & \C{x}   & || & \C{x} + u
+r & = & 1     & || & |a^.r| \\
+a & = & \C{x} & || & |u^*| \\
+u & = & \C{x} & || & \C{x} + u
 \end{array}\]
 
 There are some additional restrictions on regular expressions: all paths which are recursive must be under \C{Star} and all which are not must be \C{Atom}. Two \C{Star}'s are not allowed to be concatenated to each other.
 
-This restricted regular expression language, combined with $\phi$, is closed under integration and differentiation. The $\phi$ alternative is catered for by the \T{Maybe} return type in the differentiation. The constraint |phi :! c| always evaluates to True, so in |(<||)|, \C{Nothing}\ is replaced by True.
+This restricted regular expression language, combined with 0, is closed under integration and differentiation. The 0 alternative is catered for by the \C{Maybe} return type in the differentiation. The constraint |0 :- c| always evaluates to True, so in |(<||)|, \C{Nothing}\ is replaced by True.
 
-The constructors, because of static typing and the restricted form of regular expression, must all by of the same type.  Given a finite type, these restrictions are enough to ensure that there are only a finite number of regular expressions. Combined with the finite number of constructors, this is enough to guarantee finiteness, which satisfies the termination properties assumed on constraints.
+The constructors, because of static typing and the restricted form of regular expression, must all be of the same type.  Given a finite type, these restrictions are enough to ensure that there are only a finite number of regular expressions. Combined with the finite number of constructors, this is enough to guarantee finiteness, which satisfies the termination properties assumed on constraints.
+
+\todo{More examples here?}
 
 Two examples of constrains are:
 
 \begin{code}
-e :< ([] :! [":"])
+e :< (1 :- {:})
 \end{code}
 
 This constraint says that the expression must be a cons.
 
 \begin{code}
-e :< ([Star ["tl"], Atom "hd"] :! [":"])
+e :< (tl ^* ^. hd :- {:})
 \end{code}
 
 This constraint says that a list must consist of |(:)| constructed elements. If the list is empty, this still satisfies the constraint. If the list is infinite then the condition applies to all elements, constraining an infinite number. Note that this was not possible with the simple constraint framework introduced earlier.
@@ -627,11 +584,11 @@ The underlying type that is manipulated by Catch is not a constraint, but a prop
 From the definition of the constraints it is possible to construct a number of identities which can be used for simplification.
 
 \begin{description}
-\item[Exhaustive conditions:] in the constraint |e :< (r :! [":","[]"])| the condition lists all the possible constructors, if |e| reaches weak head normal form then because of static typing |e| must be one of these constructors, therefore this constraint simplifies to True.
+\item[Exhaustive conditions:] in the constraint |e :< (r :- [":","[]"])| the condition lists all the possible constructors, if |e| reaches weak head normal form then because of static typing |e| must be one of these constructors, therefore this constraint simplifies to True.
 
-\item[Constraint merging:] given |e :< (r :! c1) `and` e :< (r :! c2)|, this can be replaced by |e :< (r :! (c1 `union` c2))|.
+\item[Constraint merging:] given |e :< (r :- c1) `and` e :< (r :- c2)|, this can be replaced by |e :< (r :- (c1 `union` c2))|.
 
-\item[More] more constraints are in the source code, move a few of the better ones to this document.
+\item[More] \todo{more constraints are in the source code, move a few of the better ones to this document}.
 \end{description}
 
 In addition to having useful simplification rules, by having a more accurate equality test, a fixed point can be reached earlier. A standard algebraic proposition is useful, but testing for the equality of two propositions is a challenge. If you have an ordering over constraints, then you can use a Binary Decision Diagram (BDD) which guarantees a unique normal form for each proposition. The other advantage of BDD's is that (assuming every term is independent) there will be no terms remaining which do not directly effect the truth of a proposition. In the above constraints terms are not independent, but they are sufficiently close to make this a useful property.
@@ -688,7 +645,7 @@ mergePart (c1 :| v1) (c2 :| v2) = (c1 `intersect` c2) :| zipWith f v1 v2
 \label{fig:enumeration}
 \end{figure}
 
-The enumeration based constraints are implemented as in figure \ref{fig:enumeration}. These constraints are similar to those given as the basic example model of constraints, but can constraint an infinite number of items, and can be represented in a finite space.
+The enumeration based constraints are implemented as in figure \ref{fig:enumeration}. These constraints are similar to those given as the basic example model of constraints, but can constrain an infinite number of items, and can be represented in a finite space.
 
 Each constraint has two parts, the first part (before the |:*|) represents the constructor and the non-recursive fields. The second part represents all recursive fields. Given a constraint |((c1 :* v1) :|| (c2 :* v2))|, each |c| is a set of constructors, and each |v| is a mapping from non-recursive field names to values. In this example, |c1| is the set of constructors allowed in the value, and |c2| is the set allowed after following \textit{any number} of recursive fields. Similarly, |v1| represents the fields allowed following non-recursive field names from the root, while |v2| lists the field names from the recursive values.
 
@@ -745,7 +702,7 @@ v1 = Branch (Leaf True   ) (Leaf False  )
 v2 = Branch (Leaf False  ) (Leaf True   )
 \end{code}
 
-Taking the values |v1| and |v2|, the regular expression constraint |([Star ["left"]] :! ["True"])| matches |v1| but not |v2|. Using enumeration based constraints, there is no way to differentiate between these two values.
+Taking the values |v1| and |v2|, the regular expression constraint |([Star ["left"]] :- ["True"])| matches |v1| but not |v2|. Using enumeration based constraints, there is no way to differentiate between these two values.
 
 The final Catch system uses enumeration based constraints, for their propositional simplification rules, which is critical in obtaining a fixed point quickly.
 
@@ -972,7 +929,7 @@ Catch additionally produces a log containing the entire program in Core form bef
 \begin{example}
 \begin{code}
 main x = head x
-> forall main `dot` x :< [ (:) ]
+> forall main `o` x :< [ (:) ]
 \end{code}
 
 The program infers that \C{head} crashes on the empty list, then propagates this precondition.
@@ -981,7 +938,7 @@ The program infers that \C{head} crashes on the empty list, then propagates this
 \begin{example}
 \begin{code}
 main x = map head x
-> forall main `dot` x :< [ [] + : (:) _ :* [] + : (:) _ ]
+> forall main `o` x :< [ [] + : (:) _ :* [] + : (:) _ ]
 \end{code}
 
 This program infers the precondition on \C{head} as before, then obtains a fixed point because of the recursive call in \C{map}. Behind the scenes this program generates the specialised version of \C{mapHead}. The final condition on \C{main} is that the constraint must be a |[]| or a |:| at any level, but if it is a |:| then the first element must be a |:| itself.
@@ -990,7 +947,7 @@ This program infers the precondition on \C{head} as before, then obtains a fixed
 \begin{example}
 \begin{code}
 main x = map head (reverse x)
-> forall main `dot` x :<  [ [] + (:) * (:)
+> forall main `o` x :<  [ [] + (:) * (:)
 >                         | [] + : (:) _ :* [] + : (:) _]
 \end{code}
 
@@ -1000,7 +957,7 @@ This small example shows the use of \C{reverse}, which is defined in terms of \C
 \begin{example}
 \begin{code}
 main x = tail (tail x)
-> forall main `dot` x :< [ (:) * (:) ]
+> forall main `o` x :< [ (:) * (:) ]
 \end{code}
 
 Finally we give an example where Catch fails. The abstraction employed for lists cannot differentiate between the 2 element list (the minimal precondition for the above example) and the infinite list (the precondition given). This is unfortunate, but a minor modification to \C{drop 2} would ensure safety.
