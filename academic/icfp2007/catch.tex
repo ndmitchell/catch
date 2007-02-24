@@ -604,19 +604,19 @@ type Constraint = [Val]
 
 data Val   =  Part :* Part
            |  Any
-data Part  =  [CtorName] :| [(PathName,Val)]
+data Part  =  Part [(CtorName, [Val])]
 
 -- useful auxiliary, the non-recursive paths
 fields :: [CtorName] -> [PathName]
 fields = filter (not . isRec) . concatMap paths
 
 notin :: CtorName -> Constraint
-notin c = (delete c cs :| as) :* (cs :| as)
-    where
-    cs = ctors c
-    as = zip (fields cs) (repeat True)
+notin c = map f (delete c cs) :* map f cs
+    where  cs = ctors c
+           f c = (c, replicate (arity c) Any)
 
-(|>) :: PathName -> Constraint -> Constraint
+-- TODO, update these to use the new data structure
+(|>) :: Field -> Constraint -> Constraint
 p |> vs = notin c ++ map f vs
     where
     c = pathCtor p; cs = ctors c; xs = fields cs
@@ -947,8 +947,8 @@ This program infers the precondition on \C{head} as before, then obtains a fixed
 \begin{example}
 \begin{code}
 main x = map head (reverse x)
-> forall main `o` x :<  [ [] + (:) * (:)
->                         | [] + : (:) _ :* [] + : (:) _]
+> forall main `o` x :<  [  [] + (:) * (:)
+>                       |  [] + : (:) _ :* [] + : (:) _]
 \end{code}
 
 This small example shows the use of \C{reverse}, which is defined in terms of \C{foldl}, and is therefore not directly recursive. The second condition produced is the same as the previous example. The first condition says that either the list is empty, or the list is infinite -- an infinite list is safe because \C{reverse} is tail strict, and therefore no crash will ever occur, as the program will loop forever.
