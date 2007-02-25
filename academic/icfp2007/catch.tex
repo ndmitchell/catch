@@ -115,6 +115,10 @@ Turning the \C{risers} function over to the checker developed in this paper, the
 
 In addition the checker produces a set of properties it has proved about Risers, along with an outline of the proof. Fuller details of how the checking is performed follow in \S\ref{sec:walkthrough}.
 
+\subsection{A Real World Problem}
+
+The problem of pattern match failures in Haskell is a serious one. The darcs \citep{darcs} project is one of the most successful large scale programs written in Haskell for non-Haskell developers. Taking a look at their bug tracker, 13 problems are errors related to fromJust and 19 are direct pattern match failures.
+
 \subsection{Contributions}
 
 The contributions of this paper include:
@@ -1109,31 +1113,37 @@ e =  ("2."++) $
 
 This fragment has two calls to \C{tail}, and one to \C{head}. They are mixed in a relatively complex manner, including as a higher order functional pipeline in the case of \C{iterate} and \C{map}. Understanding and manually validating this fragment would be tricky, but Catch is able to do so automatically.
 
+
 \section{Related Work}
 \label{sec:related}
 
+\subsection{Proving Incomplete Patterns Safe}
 
-GHC \citep{ghc_manual} 6.6 has a warning flag to detect incomplete patterns, which is named \T{-fwarn-incomplete-patterns}. Adding this flag at compile time reports:
+Despite the seriousness of the problem of pattern matching, the topic of pattern match error detection and elimination has not been studied extensively. The two papers which offer the most promising start in this area are the approach by \cite{me:catch_2005} and ESC/Haskell \citep{esc_haskell}. The first paper attempts to define an automatic inference that pattern matches are safe, much like the analysis presented in this paper. Unfortunately the restrictions in that paper make it an interesting starting point, but nothing more. The analysis in this paper differs radically in many design decisions -- particularly in relation to fixed points and constraints. Perhaps the introductory risers example is most clearly illustrates the differences -- for the original paper this was towards the boundary of what was possible, for this paper it is trivial.
 
-\begin{code}
-Warning: Pattern match(es) are non-exhaustive
-\end{code}
+The ESC/Haskell approach requires the programmer to give explicit preconditions and contracts which the program obeys. While this approach is likely to result in a checker with more expressive power in the end (one of the examples involves an invariant on an ordered list, something beyond Catch), it also requires the programmer to spend more time doing the validation. It should be noted that the preconditions derived by Catch, along with the properties, could easily be turned into ESC/Haskell annotations, allowing both tools to be used together.
 
-The Bugs (12.2.1) section of the manual notes that the checks are sometimes wrong, particularly with string patterns or guards, and that this part of the compiler ``needs an overhaul really'' \citep{ghc_manual}.
+\subsection{Eliminating Incomplete Patterns}
 
-But the GHC checks are only local. If the function \C{head} is defined, then it raises a warning. No effort is made to check the \textit{callers} of \C{head} -- this is an obligation left to the programmer.
+One simple way to guarantee that a program does not crash with an incomplete pattern is to ensure that there are no pattern match errors in the code. The GHC \citep{ghc_manual} compiler has a warning flag to detect incomplete patterns, named \T{-fwarn-incomplete-patterns}. Adding this flag when compiling risers results in a message that ``Pattern matches are non-exhaustive''. Unfortunately the Bugs (12.2.1) section of the manual notes that the checks are sometimes wrong, particularly with string patterns or guards, and that this part of the compiler ``needs an overhaul really'' \citep{ghc_manual}. But the GHC checks are only local. Using an incomplete function from a library, such as \C{head}, gives no warning. If the function \C{head} is defined, then it raises a warning.
 
-Viewed as a \textbf{proof tool} this work can be seen as following Turner's goal to define a Haskell-like language which is total \cite{tfp:total}. Turner disallows incomplete pattern matches, saying this will ``force you to pay attention to exactly those corner cases which are likely to cause trouble''. Our checker may allow this restriction to be lifted, yet still retain a total programming language.
+There have been attempts at defining what it means for a program to be complete with regard to pattern matches \citep{pattern_match}, along with implementations in some compilers.
 
-Viewed as a basic \textbf{pattern match checker}, the work on compiling warnings about incomplete and overlapping patterns is quite relevant \cite{ghc,pattern_match}. As noted in the introduction, these checks are only local.
+One approach for programming is to design a functional language without pattern match errors or non-termination \cite{tfp:total}. In this approach incomplete pattern matches are banned, suggesting this will ``force you to pay attention to exactly those corner cases which are likely to cause trouble''. The results in \S\ref{sec:nofib} show that in sample Haskell programs there are a reasonably high number of incomplete pattern matches, which are still safe. Using the Catch tool this restriction could be reduced.
 
-Viewed as a \textbf{mistake detector} this tool has a similar purpose to the classic C Lint tool \cite{lint}, or Dialyzer \cite{dialyzer} -- a static checker for Erlang. The aim is to have a static checker that works on unmodified code, with no additional annotations. However, a key difference is that in Dialyzer all warnings indicate a genuine problem that needs to be fixed. Because Erlang is a dynamically typed language, a large proportion of Dialyzer's warnings relate to mistakes a type checker would have detected.
+\subsection{A Mistake Detector}
 
-Viewed as a \textbf{soft type system} the checker can be compared to the tree automata work done on XML and XSL \cite{static_xslt}, which can be seen as an algebraic data type and a functional language. Another soft typing system with similarities is by Aiken \cite{type:dynamic}, on the functional language FL. This system tries to assign a type to each function using a set of constructors, for example \T{head} is given just \T{Cons} and not \T{Nil}.
+There has been a long history of writing tools to analyse programs to detect potential bugs, going back to the classic C Lint tool \citep{lint}. In the functional arena the Dialyzer \citep{dialyzer} for Erlang \citep{erlang} performs a similar function. The aim is to have a static checker that works on unmodified code, with no additional annotations. However, a key difference is that in Dialyzer all warnings indicate a genuine problem that needs to be fixed. Because Erlang is a dynamically typed language, a large proportion of Dialyzer's warnings relate to mistakes a type checker would have detected.
 
-My previous paper (not called Catch!) had lots of todo items on it, all have since been done
+Part of the mistake detection aspect can be seen as defining a slightly more restrictive type system. In this light the checker can be compared to the tree automata work done on XML \citep{xml} and XSL \citep{static_xslt}, which can be seen as an algebraic data type and a functional language. Another soft typing system with similarities is by Aiken \cite{type:dynamic}, on the functional language FL. This system tries to assign a type to each function using a set of constructors, for example \T{head} is given just \T{Cons} and not \T{Nil}.
 
-ESC/Haskell is fully manual.
+\subsection{Type System Safety}
+
+GADT example
+
+Oleg example
+
+Epigram example
 
 
 \section{Conclusions and Future Work}
@@ -1153,7 +1163,7 @@ I conclude that Catch is a useful tool.
 
 Thanks to the Plasma people, especially Matt and Tom for fruitful discussions.
 
-References need to be much much longer.
+\todo{References need to be much much longer.}
 
 \bibliographystyle{plainnat}
 \bibliography{catch}
