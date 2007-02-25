@@ -1100,11 +1100,11 @@ This program is particularly complex, featuring a number of possible pattern mat
 Here there are 3 potential pattern match errors in a relatively small amount of code. Two of these are the calls to |div| and |mod|, both requiring |base| to be non-zero. A possibly more subtle pattern match error is the |nextcarry:fraction| left hand side of the 3rd line -- humans examining source code can easily miss these pattern bindings. Catch is able to prove all of these patterns safe.
 
 \begin{code}
-e = ("2."++) $
-    tail . concat $
-    map (show.head) $
-    iterate (carryPropagate 2 . map (10*) . tail) $
-    2:[1,1..]
+e =  ("2."++) $
+     tail . concat $
+     map (show.head) $
+     iterate (carryPropagate 2 . map (10*) . tail) $
+     2:[1,1..]
 \end{code}
 
 This fragment has two calls to \C{tail}, and one to \C{head}. They are mixed in a relatively complex manner, including as a higher order functional pipeline in the case of \C{iterate} and \C{map}. Understanding and manually validating this fragment would be tricky, but Catch is able to do so automatically.
