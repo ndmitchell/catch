@@ -1133,17 +1133,61 @@ One approach for programming is to design a functional language without pattern 
 
 \subsection{A Mistake Detector}
 
+One tool in most Haskell programmers arsenal is the QuickCheck tool \citep{quickcheck}. This tool allows properties to be specified which are randomly tests. In many cases these properties may be similar to those derived by the templating mechanism -- if the Catch tool had a way of directly entering these conditions then perhaps some of the simpler properties could be automatically proven.
+
 There has been a long history of writing tools to analyse programs to detect potential bugs, going back to the classic C Lint tool \citep{lint}. In the functional arena the Dialyzer \citep{dialyzer} for Erlang \citep{erlang} performs a similar function. The aim is to have a static checker that works on unmodified code, with no additional annotations. However, a key difference is that in Dialyzer all warnings indicate a genuine problem that needs to be fixed. Because Erlang is a dynamically typed language, a large proportion of Dialyzer's warnings relate to mistakes a type checker would have detected.
 
 Part of the mistake detection aspect can be seen as defining a slightly more restrictive type system. In this light the checker can be compared to the tree automata work done on XML \citep{xml} and XSL \citep{static_xslt}, which can be seen as an algebraic data type and a functional language. Another soft typing system with similarities is by Aiken \cite{type:dynamic}, on the functional language FL. This system tries to assign a type to each function using a set of constructors, for example \T{head} is given just \T{Cons} and not \T{Nil}.
 
 \subsection{Type System Safety}
 
-GADT example
+\begin{figure}
+\begin{code}
+data Cons; data Unknown
+newtype List a t = List [a]
 
-Oleg example
+nil :: List a Unknown
+nil = List []
 
-Epigram example
+cons :: a -> [a] -> List a Cons
+cons a as = List (a:as)
+
+fromList :: [a] -> List a Unknown
+fromList xs = List xs
+
+safeTail :: List a Cons -> a
+safeTail (List (a:as)) = as
+\end{code}
+\caption{A safe \C{head} function with Phantom types.}
+\label{fig:phantom}
+\end{figure}
+
+One method which is frequently used to encode invariants on data in functional languages is the type system. One approach is the use of Phantom types \citep{phantom}, for example a safe variant of \C{head} can be written as in Figure \ref{fig:phantom}. In this example the \C{List} data structure would not be exported, ensuring that all lists with a \C{Cons} tag are indeed non-empty. The values \C{Cons} and \C{Unknown} are phantom types -- they exist only in the type level, not the value level.
+
+\begin{figure}
+\begin{code}
+data ConsT a; data NilT
+
+data List a t where
+    Cons  :: a -> List a b -> List a (ConsT b)
+    Nil   :: List a NilT
+
+safeTail :: List a (ConsT t) -> List a t
+safeTail (Cons a b) = b
+
+fromList :: [a] -> (forall t. List a t -> r) -> r
+fromList []      fn = fn Nil
+fromList (x:xs)  fn = fromList xs (\sl -> fn (Cons x sl))
+\end{code}
+\caption{A safe \C{tail} function using GADT's.}
+\label{fig:gadt}
+\end{figure}
+
+Another method of encoding addition type information which is becoming increasingly popular in Haskell is the use of GADT's \citep{gadt}. Using this technique, sometimes referred to as first class Phantom Types, an encoding of lists can be written as in Figure \ref{fig:gadt}. Unlike the first method, the \C{fromList} method requires the complexity of existential types.
+
+The type directed method can be pushed much further with dependant types, which allow types to depend on values. This approach allows safe versions of \C{head} and \C{tail} to be written. There has been much work on type systems, some using undecidable type systems \citep{cayenne}, some based on extensible kinds \citep{omega} and others which restrict the type system to a decidable fragment \citep{practical_dependant}.
+
+The downside to all these type systems is that they require the programmer to make explicit annotations, and require the user to learn new techniques for computation.
 
 
 \section{Conclusions and Future Work}
