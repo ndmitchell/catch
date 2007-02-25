@@ -350,6 +350,7 @@ notin c = map f (delete c (ctors c))
 An assumption made about the constraint system is that for any given finite type, there exist only a finite number of constraints. This simple constraint system violates property -- consider a recursive data structure such as a list, an infinite number of type-correct patterns are possible. This could be fixed by limiting the depth, although is not done to allow the principles to be expressed more clearly.
 
 \subsection{Safety Preconditions}
+\label{sec:precond}
 
 \begin{figure}
 \begin{code}
@@ -947,7 +948,7 @@ This program infers the precondition on \C{head} as before, then obtains a fixed
 \begin{example}
 \begin{code}
 main x = map head (reverse x)
-> forall main `o` x :<  [  [] + (:) * (:)
+> forall main `o` x :<  [  [] + (:) :* (:)
 >                       |  [] + : (:) _ :* [] + : (:) _]
 \end{code}
 
@@ -957,7 +958,7 @@ This small example shows the use of \C{reverse}, which is defined in terms of \C
 \begin{example}
 \begin{code}
 main x = tail (tail x)
-> forall main `o` x :< [ (:) * (:) ]
+> forall main `o` x :< [ (:) :* (:) ]
 \end{code}
 
 Finally we give an example where Catch fails. The abstraction employed for lists cannot differentiate between the 2 element list (the minimal precondition for the above example) and the infinite list (the precondition given). This is unfortunate, but a minor modification to \C{drop 2} would ensure safety.
@@ -965,71 +966,148 @@ Finally we give an example where Catch fails. The abstraction employed for lists
 
 \subsection{Nofib - Imaginary}
 
-The whole nofib benchmark, is too big to analyse, so instead the imaginary section has been chosen. These programs are all under a page of text, and particularly stress list operations and numeric computations. All the benchmark code is available online\footnote{\texttt{http://darcs.haskell.org/nofib/imaginary/}, as of February 2007}.
+The whole nofib benchmark is too large for the authors to take the time to investigate all the programs, so instead the imaginary section has been chosen. These programs are all under a page of text, and particularly stress list operations and numeric computations. All the benchmark code is available online\footnote{\texttt{http://darcs.haskell.org/nofib/imaginary/}, as of February 2007}.
 
 To take a typical benchmark, Primes, the \C{main} function is:
 
 \begin{code}
 main = do  [arg] <- getArgs
-           print (primes !! (read arg))
-\end{code}
+           print $ primes !! (read arg)
+\end{code} % $
 
 The first unsafe pattern here is |[arg] <- getArgs|, as \C{getArgs} is a primitive whose implementation is opaque to the system. As a result the system will always return False as the precondition to main.
 
-The next step where many fail is that \C{read} is applied to an argument extracted from getArgs. Firstly this argument is entirely unknown. Secondly \C{read} is a sufficiently complicated function that while it can be modelled by Catch, there is no possibility for getting an appropriate abstraction which models the failure case. As a result, any program which calls \C{read} is unsafe, according to Catch. Using \C{reads}, which indicates failure properly, can allow a program to still be checked.
+The next step where many fail is that \C{read} is applied to an argument extracted from getArgs. Firstly this argument is entirely unknown. Secondly \C{read} is a sufficiently complicated function that while it can be modeled by Catch, there is no possibility for getting an appropriate abstraction which models the failure case. As a result, any program which calls \C{read} is unsafe, according to Catch. Using \C{reads}, which indicates failure properly, can allow a program to still be checked.
 
 Catch can accurately calculate these preconditions, but their repetitiveness throughout the suite obscures the ``interesting'' pattern matches that also exist. As a result the programs have been rewritten to:
 
 \begin{code}
-main x = print (primes !! (read x))
-\end{code}
+main x = print $ primes !! (read x)
+\end{code} % $
 
 \begin{figure}
-\begin{tabular}{||l||l||l||l||l||l||l||}
+\begin{tabular}{||l||rrr||rr||r||l||l||l||}
 \hline
-Program & Size & Preconds & Cost & Result \\
+Program       &\multicolumn{3}{c}{Code Size} & \multicolumn{2}{c}{Pre} & Rank & Changes \\
 \hline
-Bernoulli & 35, 1616, 652 & 5, 11 & 33 & |tail . tail| \\
+Bernoulli     & 35 & 1616 &  652 & 5 & 11 & 33 & 1 Bad  \\
+Digits of E1  & 44 &  957 &  377 & 3 &  8 & 10 & 1 Good \\
+Digits of E2  & 54 & 1179 &  455 & 5 & 19 & 28 & None   \\
+Exp3-8        & 29 &  220 &  163 & 0 &    &    & None   \\
+Gen-Regexps   & 41 & 1006 &  776 & 1 &  1 &  1 & 4 Good \\
+Integrate     & 39 & 2466 &  364 & 3 &  3 &  6 & None   \\
+Paraffins     & 91 & 2627 & 1153 & 2 &  2 &  * & 2 Bad  \\
+Primes        & 16 &  302 &  241 & 6 & 13 & 15 & None   \\
+Queens        & 16 &  648 &  283 & 0 &    &    & None   \\
+Rfib          &  9 & 1918 &  100 & 0 &    &    & None   \\
+Tak           & 12 &  209 &  155 & 0 &    &    & None   \\
+Wheel Sieve 1 & 37 & 1221 &  570 \\
+Wheel Sieve 2 & 45 & 1397 &  636 \\
+X2n1          & 10 & 2637 &  331 & 2 &  5 &  6 & None   \\
 \hline
 \end{tabular}
 \caption{Table of results}
 \label{fig:results}
 \end{figure}
 
-The raw results are given in Figure \cite{fig:results}. The \textit{size} measure is the number of lines of code in the original example, after the whole program including libraries are included and after firstification and let-elimination. The \textit{preconds} is the number of calls to error, and the number of functions which have a precondition on them. The \textit{cost} measure is the number of times a function is called with a precondition -- this corresponds roughly to the complexity (not the time) of the analysis. The Result gives either success (all found patterns are proven safe), pre condition (their is a valid precondition for the program), no pattern match failures or a note as to what the failure was. All the statistics are given on the modified safe programs.
+The raw results are given in Figure \ref{fig:results}. Where changes were required to prove the program, the table gives the statistics for the modified program.
 
+\begin{description}
+\item[Code Size] represents the number of lines of code. The first figure is the number of lines of Haskell written for this benchmark. The second figure is the total number of lines of Yhc Core, including all functions used from libraries, when pretty printed. The final figure is the number of lines after firstification, just before analysis.
 
+\item[Pre] is the number of calls to error, followed by the number of functions which have a precondition which is not True.
 
+\item[Rank] is a rough measurement of the complexity of the pattern match analysis. This value is the number of calls to functions with preconditions. This value does not relate to the time required to check the program.
 
-Imaginery:
+\item[Changes] is the number of modifications that had to be made to the program to make it validate. Changes are marked as good where either the program was genuinely unsafe, or was too complex for the authors of this paper to determine safety manually. Bad changes are those which were necessary because of limitations of the tool -- these are discussed.
+\end{description}
 
-bernoulli - Uses ratios, indexing, head and tail. The only one that can't be proven in |tail (tail x)|, as this is more than the abstraction is capable of expressing. Rewriting this as the more compact |drop 2 x| replaces failure by |[]|, but in all other cases gives the same result. This small modification allows the program to be proven safe.
+Of the programs 4 used the |(!!)| function, which requires the index to be non-negative and less than the length of the list -- in practice Catch can only prove this if the list being indexed on is infinite. 8 programs used either \C{head} or \C{tail}, most of which can be proven safe. There are 7 programs incomplete patterns, often as a result of |where| binding -- Catch performs well on these. In this particular benchmark suite there are 9 programs which use division, with the precondition that the divisor must not be zero. Most of these can be proven safe. Only 4 programs in this benchmark have no pattern match errors.
 
-digits-of-e1 - two pattern match errors, both proven safe due to infinite lists. One division by zero error, which is not safe. The author cannot determine a suitable precondition for the function -- appears to involve complex equalities. The function is far from complete as it stands. A slight alteration is sufficient to make the code provably safe, replacing a crash with undefined behaviour if the code is ever used in an unexpected manner.
+There were 3 programs which have preconditions on the \C{main} function, all of which state that the argument must be a natural number. This is an accurate precondition on all 3, one of which was the Primes program.
 
-digits-of-e2 - this problem has explicit pattern matches, division and mod by potentially zero values, head and tail, including tail as a higher order pipeline to a function. Despite all this, it finds 4 incomplete patterns and solves them all.
+I will now discuss the 4 programs which required changes, along with the Digits of E2 program -- the other program with the highest rank.
 
-exp3-8 - no pattern match errors, trivially safe
+\paragraph{Bernoulli}
 
-gen-regexps - The initial version fails with 8 pattern match errors, one of which can be proven safe. Provoking the program to fail is trivial -- |"<"| and |"["| are obvious ways which can be seen from examining the source code for a few seconds. A modified version has been written, completing one pattern match, replacing |head . lines| with |takeWhile (/= '\n')| and changing \C{span} for a version which safely deletes head of the \C{snd} component of the result -- changing about 6 lines in total -- which is proven safe.
+This program has one instance of |tail (tail x)|, which is beyond the capabilities of Catch. Replacing this with |drop 2 x| allows all other pattern matches to be proven. Even with this change, the program still has a high level of potential pattern match errors -- all of which can be proven.
 
-integrate - some division by a constant, a few cases of head and tail. One on the result of a zipWith. Note that \C{rtotal} and \C{itotal} are in the program but never called, hence the |!!| is safe. All proved safe.
+\paragraph{Digits of E1}
 
-paraffins - This program uses arrays, and indexing, which are beyond the capabilities of Catch. By replacing an unused parameter from \C{undefined} to |()| this eliminates one crash. By replacing \C{array} with \C{listArray} this makes the code slightly simpler and eliminates some potential crashes. Sadly the |!| operator is beyond the scope of Catch.
+This program contains the following equation:
 
-primes - there are six pattern match errors, a couple in |!!|, a division, a pattern match and a head. The program is not safe as it stands, if the user enters (-1) then it will crash. The precondition on \C{main} is Zero or Pos, a perfectly accurate condition.
+\begin{code}
+ratTrans (a,b,c,d) xs |
+  ((signum c == signum d) || (abs c < abs d)) &&
+  (c+d)*q <= a+b && (c+d)*q + (c+d) > a+b
+     = q:ratTrans (c,d,a-q*c,b-q*d) xs
+  where q = b `div` d
+\end{code}
 
-queens - no pattern match errors, trivially safe
+Catch is able to prove that the division by |d| is only unsafe if both |c| and |d| are zero. Proving that this invariant is maintained is beyond the capabilities of either Catch or the authors. A slight modification is possible:
 
-rfib - no pattern match errors, trivially safe
+\begin{code}
+  where q = if d == 0 then 0 else b `div` d
+\end{code}
 
-tak - no pattern match errors, trivially safe
+This gives the same behavior where the previous program would have, but $\bot{}$ is now replaced by a defined (although potentially nonsensical) value.
 
-wheel-sieve1 - solves all pattern match errors but division by 0, possibly solvable with knowledge that n-1 is pos or zero if original was pos. Takes too long for the div constraint. FAILS IN GADGET, TIMEOUT
+\paragraph{Gen-Regexps}
 
-wheel-sieve2 - FAILS IN GADGET, TIMEOUT
+This program was written expecting valid input, and crashes on even slight variations from what is expected. Some ways of crashing the program include entering |""|, |"["|, |"<"| and lots of other programs.
 
-x2n1 - no pattern match failures, but has division, gcd and ratio's. Underneath there are calls to the ratio library which do plenty of division, and one explicit division. All are proved safe using neg,zero,pos abstract interpretation. Requires an abstract interpretation for things like abs/signum etc. Gives preconditions such as the f function must operate only on non-zero numbers. Nice encoding of division as a pattern match failure. All proved safe.
+One potential error comes from |head . lines|, which can be replaced by |takeWhile (/= '\n')| to have the same effect, apart from on the empty list, where it returns |""|.
+
+One pattern match error is can be fixed by adding a default clause.
+
+Two errors of the form |(a,_:b) = span f x| can be fixed by changing them to |(a,b) = safeSpan f x|, where \C{safeSpan} is defined as:
+
+\begin{code}
+safeSpan p x = (a, drop 1 b)
+    where (a,b) = span p x
+\end{code}
+
+This example shows that with relatively little effort a program written with no regard for pattern match safety can be made safe.
+
+\paragraph{Paraffins}
+
+The Paraffins program cannot be validated by Catch, without unfortunately large modifications. The first error, which can be fixed easily, is the use of undefined to prevent a space leak:
+
+\begin{code}
+radical_generator n = radicals undefined
+  where radicals unused = big_memory_computation
+\end{code}
+
+In Haskell if a function is defined with no arguments it is considered a constant applicative form (CAF), and has its results computed only once in the program. To prevent something which allocates a lot of memory from having this behavior, a dummy argument can be passed. The \C{undefined} is merely serving as a dummy argument, but if evaluated would result in a pattern match error. If the analysis was lazy (as discussed in \S\ref{sec:precond}) then this would pass with Catch, although as currently implemented simply changing \C{undefined} to |()| removes the potential error.
+
+The Paraffins program also uses the function |array :: Ix a => (a, a) -> [(a, b)] -> Array a b| which takes a list of index/value pairs and builds an array. The precondition on this function is that all indexes must be in the range specified and all arguments must be valid. This precondition is too complex for Catch, but simply using \C{listArray}, which takes a list of elements one after another, the program can be validated. In the particular example used in Paraffins, the use of \C{listArray} leads to shorter and more readable code.
+
+The final troublesome error in Paraffins is the use of the |(!)| indexing operator. This requires that the index is in the bounds given when the array was constructed, something Catch has no way of knowing.
+
+This program shows that one weak area of Catch is code that uses arrays, fortunately in Haskell arrays are a relatively uncommon data structure.
+
+\paragraph{Digits of E2}
+
+This program is particularly complex, featuring a number of possible pattern match errors. Catch is particularly effective at the job of spotting pattern match errors:
+
+\begin{code}
+  where  carryguess = d `div` base
+         remainder = d `mod` base
+         nextcarry:fraction = carryPropagate (base+1) ds
+         dCorrected = d + nextcarry
+\end{code}
+
+Here there are 3 potential pattern match errors in a relatively small amount of code. Two of these are the calls to |div| and |mod|, both requiring |base| to be non-zero. A possibly more subtle pattern match error is the |nextcarry:fraction| left hand side of the 3rd line -- humans examining source code can easily miss these pattern bindings. Catch is able to prove all of these patterns safe.
+
+\begin{code}
+e = ("2."++) $
+    tail . concat $
+    map (show.head) $
+    iterate (carryPropagate 2 . map (10*) . tail) $
+    2:[1,1..]
+\end{code}
+
+This fragment has two calls to \C{tail}, and one to \C{head}. They are mixed in a relatively complex manner, including as a higher order functional pipeline in the case of \C{iterate} and \C{map}. Understanding and manually validating this fragment would be tricky, but Catch is able to do so automatically.
 
 \section{Related Work}
 \label{sec:related}

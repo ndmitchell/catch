@@ -1,0 +1,31 @@
+
+Imaginery:
+
+bernoulli - Uses ratios, indexing, head and tail. The only one that can't be proven in |tail (tail x)|, as this is more than the abstraction is capable of expressing. Rewriting this as the more compact |drop 2 x| replaces failure by |[]|, but in all other cases gives the same result. This small modification allows the program to be proven safe.
+
+digits-of-e1 - two pattern match errors, both proven safe due to infinite lists. One division by zero error, which is not safe. The author cannot determine a suitable precondition for the function -- appears to involve complex equalities. The function is far from complete as it stands. A slight alteration is sufficient to make the code provably safe, replacing a crash with undefined behaviour if the code is ever used in an unexpected manner.
+
+digits-of-e2 - this problem has explicit pattern matches, division and mod by potentially zero values, head and tail, including tail as a higher order pipeline to a function. Despite all this, it finds 4 incomplete patterns and solves them all.
+
+exp3-8 - no pattern match errors, trivially safe
+
+gen-regexps - The initial version fails with 8 pattern match errors, one of which can be proven safe. Provoking the program to fail is trivial -- |"<"| and |"["| are obvious ways which can be seen from examining the source code for a few seconds. A modified version has been written, completing one pattern match, replacing |head . lines| with |takeWhile (/= '\n')| and changing \C{span} for a version which safely deletes head of the \C{snd} component of the result -- changing about 6 lines in total -- which is proven safe.
+
+integrate - some division by a constant, a few cases of head and tail. One on the result of a zipWith. Note that \C{rtotal} and \C{itotal} are in the program but never called, hence the |!!| is safe. All proved safe.
+
+paraffins - This program uses arrays, and indexing, which are beyond the capabilities of Catch. By replacing an unused parameter from \C{undefined} to |()| this eliminates one crash. By replacing \C{array} with \C{listArray} this makes the code slightly simpler and eliminates some potential crashes. Sadly the |!| operator is beyond the scope of Catch.
+
+primes - there are six pattern match errors, a couple in |!!|, a division, a pattern match and a head. The program is not safe as it stands, if the user enters (-1) then it will crash. The precondition on \C{main} is Zero or Pos, a perfectly accurate condition.
+
+queens - no pattern match errors, trivially safe
+
+rfib - no pattern match errors, trivially safe
+
+tak - no pattern match errors, trivially safe
+
+wheel-sieve1 - solves all pattern match errors but division by 0, possibly solvable with knowledge that n-1 is pos or zero if original was pos. Takes too long for the div constraint. FAILS IN GADGET, TIMEOUT
+
+wheel-sieve2 - FAILS IN GADGET, TIMEOUT
+
+x2n1 - no pattern match failures, but has division, gcd and ratio's. Underneath there are calls to the ratio library which do plenty of division, and one explicit division. All are proved safe using neg,zero,pos abstract interpretation. Requires an abstract interpretation for things like abs/signum etc. Gives preconditions such as the f function must operate only on non-zero numbers. Nice encoding of division as a pattern match failure. All proved safe.
+
