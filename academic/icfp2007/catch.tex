@@ -776,9 +776,9 @@ Having a simple Haskell-like language, there are essentially 2 features that Has
 Reynold's style defunctionalization \citep{reynolds:defunc} is a simple method of generating a first order program from a higher order one. Taking the following example:
 
 \begin{code}
-map f x = case x of
-               [] -> []
-               (a:as) -> f a : map f as
+map f x = case  x of
+                []      -> []
+                (a:as)  -> f a : map f as
 \end{code}
 
 Here \C{f} is a higher order input, of type |(a -> b)|. Defunctionalisation works by creating a data type to represent all possible f's, and using that. For example:
@@ -786,12 +786,12 @@ Here \C{f} is a higher order input, of type |(a -> b)|. Defunctionalisation work
 \begin{code}
 data Functions = Head | Tail
 
-apply Head x = head x
-apply Tail x = tail x
+apply Head  x = head  x
+apply Tail  x = tail  x
 
-map f x = case x of
-    [] -> []
-    (a:as) -> apply f a : map f as
+map f x = case  x of
+                []      -> []
+                (a:as)  -> apply f a : map f as
 \end{code}
 
 Now all calls to map head would be replaced with |map Head|, and \C{Head} is a first order value. This scheme can easily be extended to currying, let us take the \C{add} function, which adds two \C{Int}'s:
@@ -799,8 +799,8 @@ Now all calls to map head would be replaced with |map Head|, and \C{Head} is a f
 \begin{code}
 data Functions = Head | Tail | Add0 | Add1 Int
 
-apply Add0 n = Add1 n
-apply (Add1 a) b = add a b
+apply Add0      n  = Add1 n
+apply (Add1 a)  b  = add a b
 \end{code}
 
 There are a couple of things to note about this approach. One is that while this is still type safe, to do type checking would require a dependently typed language. This is unfortunate, but for our checker (which does not use type information), this is acceptable. The unacceptable aspect is the creation of an apply function, whose semantics are very general. This essentially introduces a bottleneck through which various properties must be proven. Asking questions, such as is the result of \C{apply} a \C{Cons} or a \C{Nil}, are confusing.
@@ -819,9 +819,9 @@ When a function can be specialised, the expression passed as the $n$th argument 
 \yesexample
 
 \begin{code}
-map f xs = case xs of
-                []     -> []
-                (a:as) -> f a : map f as
+map f xs = case  xs of
+                 []      -> []
+                 (a:as)  -> f a : map f as
 
 adds x n = map (add n) x
 \end{code}
@@ -829,12 +829,12 @@ adds x n = map (add n) x
 \noindent is transformed into:
 
 \begin{code}
-map_adds n xs = case xs of
-                     []     -> []
-                     (a:as) -> add n a : map_adds n as
+map_adds n xs = case  xs of
+                      []      -> []
+                      (a:as)  -> add n a : map_adds n as
 
-adds x n = map_adds n x\noexample
-\end{code}
+adds x n = map_adds n x
+\end{code}\noexample
 
 Although this firstification approach is not complete by any means, it is sufficient for a large range of examples. This approach has the unfortunate effect of specialising more than just higher order functions, which can lead to obscured code. It also has complications with dictionaries and point-free style code.
 
@@ -967,9 +967,9 @@ main x = tail (tail x)
 Finally we give an example where Catch fails. The abstraction employed for lists cannot differentiate between the 2 element list (the minimal precondition for the above example) and the infinite list (the precondition given). This is unfortunate, but a minor modification to \C{drop 2} would ensure safety.
 \end{example}
 
-\subsection{Nofib - Imaginary}
+\subsection{The Nofib Benchmark}
 
-The whole nofib benchmark is too large for the authors to take the time to investigate all the programs, so instead the imaginary section has been chosen. These programs are all under a page of text, and particularly stress list operations and numeric computations. All the benchmark code is available online\footnote{\texttt{http://darcs.haskell.org/nofib/imaginary/}, as of February 2007}.
+The whole Nofib benchmark \citep{nofib} is too large for the authors to take the time to investigate all the programs, so instead the imaginary section has been chosen. These programs are all under a page of text, and particularly stress list operations and numeric computations. All the benchmark code is available online\footnote{\texttt{http://darcs.haskell.org/nofib/imaginary/}, as of February 2007}.
 
 To take a typical benchmark, Primes, the \C{main} function is:
 
@@ -1118,17 +1118,17 @@ This fragment has two calls to \C{tail}, and one to \C{head}. They are mixed in 
 
 \subsection{Proving Incomplete Patterns Safe}
 
-Despite the seriousness of the problem of pattern matching, the topic of pattern match error detection and elimination has not been studied extensively. The two papers which offer the most promising start in this area are the approach by \cite{me:catch_2005} and ESC/Haskell \citep{esc_haskell}. The first paper attempts to define an automatic inference that pattern matches are safe, much like the analysis presented in this paper. Unfortunately the restrictions in that paper make it an interesting starting point, but nothing more. The analysis in this paper differs radically in many design decisions -- particularly in relation to fixed points and constraints. Perhaps the introductory risers example is most clearly illustrates the differences -- for the original paper this was towards the boundary of what was possible, for this paper it is trivial.
+Despite the seriousness of the problem of pattern matching, the topic of pattern match error detection and elimination has not been studied extensively. The two papers which offer the most promising start in this area are the approach by \cite{me:catch_tfp} and ESC/Haskell \citep{esc_haskell}. The first paper attempts to define an automatic inference that pattern matches are safe, much like the analysis presented in this paper. Unfortunately the restrictions in that paper make it an interesting starting point, but nothing more. The analysis in this paper differs radically in many design decisions -- particularly in relation to fixed points and constraints. Perhaps the introductory risers example is most clearly illustrates the differences -- for the original paper this was towards the boundary of what was possible, for this paper it is trivial.
 
 The ESC/Haskell approach requires the programmer to give explicit preconditions and contracts which the program obeys. While this approach is likely to result in a checker with more expressive power in the end (one of the examples involves an invariant on an ordered list, something beyond Catch), it also requires the programmer to spend more time doing the validation. It should be noted that the preconditions derived by Catch, along with the properties, could easily be turned into ESC/Haskell annotations, allowing both tools to be used together.
 
 \subsection{Eliminating Incomplete Patterns}
 
-One simple way to guarantee that a program does not crash with an incomplete pattern is to ensure that there are no pattern match errors in the code. The GHC \citep{ghc_manual} compiler has a warning flag to detect incomplete patterns, named \T{-fwarn-incomplete-patterns}. Adding this flag when compiling risers results in a message that ``Pattern matches are non-exhaustive''. Unfortunately the Bugs (12.2.1) section of the manual notes that the checks are sometimes wrong, particularly with string patterns or guards, and that this part of the compiler ``needs an overhaul really'' \citep{ghc_manual}. But the GHC checks are only local. Using an incomplete function from a library, such as \C{head}, gives no warning. If the function \C{head} is defined, then it raises a warning.
+One simple way to guarantee that a program does not crash with an incomplete pattern is to ensure that there are no pattern match errors in the code. The GHC compiler  \citep{ghc} has a warning flag to detect incomplete patterns, named \T{-fwarn-incomplete-patterns}. Adding this flag when compiling risers results in a message that ``Pattern matches are non-exhaustive''. Unfortunately the Bugs (12.2.1) section of the manual notes that the checks are sometimes wrong, particularly with string patterns or guards, and that this part of the compiler ``needs an overhaul really'' \citep{ghc_manual}. But the GHC checks are only local. Using an incomplete function from a library, such as \C{head}, gives no warning. If the function \C{head} is defined, then it raises a warning.
 
-There have been attempts at defining what it means for a program to be complete with regard to pattern matches \citep{pattern_match}, along with implementations in some compilers.
+There have been attempts at defining what it means for a program to be complete with regard to pattern matches \citep{maranget:pattern_warnings}, along with implementations in some compilers.
 
-One approach for programming is to design a functional language without pattern match errors or non-termination \cite{tfp:total}. In this approach incomplete pattern matches are banned, suggesting this will ``force you to pay attention to exactly those corner cases which are likely to cause trouble''. The results in \S\ref{sec:nofib} show that in sample Haskell programs there are a reasonably high number of incomplete pattern matches, which are still safe. Using the Catch tool this restriction could be reduced.
+One approach for programming is to design a functional language without pattern match errors or non-termination \cite{turner:total}. In this approach incomplete pattern matches are banned, suggesting this will ``force you to pay attention to exactly those corner cases which are likely to cause trouble''. The results in \S\ref{sec:nofib} show that in sample Haskell programs there are a reasonably high number of incomplete pattern matches, which are still safe. Using the Catch tool this restriction could be reduced.
 
 \subsection{A Mistake Detector}
 
@@ -1136,7 +1136,7 @@ One tool in most Haskell programmers arsenal is the QuickCheck tool \citep{quick
 
 There has been a long history of writing tools to analyse programs to detect potential bugs, going back to the classic C Lint tool \citep{lint}. In the functional arena the Dialyzer \citep{dialyzer} for Erlang \citep{erlang} performs a similar function. The aim is to have a static checker that works on unmodified code, with no additional annotations. However, a key difference is that in Dialyzer all warnings indicate a genuine problem that needs to be fixed. Because Erlang is a dynamically typed language, a large proportion of Dialyzer's warnings relate to mistakes a type checker would have detected.
 
-Part of the mistake detection aspect can be seen as defining a slightly more restrictive type system. In this light the checker can be compared to the tree automata work done on XML \citep{xml} and XSL \citep{static_xslt}, which can be seen as an algebraic data type and a functional language. Another soft typing system with similarities is by Aiken \cite{type:dynamic}, on the functional language FL. This system tries to assign a type to each function using a set of constructors, for example \T{head} is given just \T{Cons} and not \T{Nil}.
+Part of the mistake detection aspect can be seen as defining a slightly more restrictive type system. In this light the checker can be compared to the tree automata work done on XML \citep{xml} and XSL \citep{static_xslt}, which can be seen as an algebraic data type and a functional language. Another soft typing system with similarities is by Aiken \cite{aiken:type_infer}, on the functional language FL. This system tries to assign a type to each function using a set of constructors, for example \T{head} is given just \T{Cons} and not \T{Nil}.
 
 \subsection{Type System Safety}
 
@@ -1161,7 +1161,7 @@ safeTail (List (a:as)) = as
 \label{fig:phantom}
 \end{figure}
 
-One method which is frequently used to encode invariants on data in functional languages is the type system. One approach is the use of Phantom types \citep{phantom}, for example a safe variant of \C{head} can be written as in Figure \ref{fig:phantom}. In this example the \C{List} data structure would not be exported, ensuring that all lists with a \C{Cons} tag are indeed non-empty. The values \C{Cons} and \C{Unknown} are phantom types -- they exist only in the type level, not the value level.
+One method which is frequently used to encode invariants on data in functional languages is the type system. One approach is the use of Phantom types \citep{fluet:phantom}, for example a safe variant of \C{head} can be written as in Figure \ref{fig:phantom}. In this example the \C{List} data structure would not be exported, ensuring that all lists with a \C{Cons} tag are indeed non-empty. The values \C{Cons} and \C{Unknown} are phantom types -- they exist only in the type level, not the value level.
 
 \begin{figure}
 \begin{code}
@@ -1184,7 +1184,7 @@ fromList (x:xs)  fn = fromList xs (\sl -> fn (Cons x sl))
 
 Another method of encoding addition type information which is becoming increasingly popular in Haskell is the use of GADT's \citep{gadt}. Using this technique, sometimes referred to as first class Phantom Types, an encoding of lists can be written as in Figure \ref{fig:gadt}. Unlike the first method, the \C{fromList} method requires the complexity of existential types.
 
-The type directed method can be pushed much further with dependant types, which allow types to depend on values. This approach allows safe versions of \C{head} and \C{tail} to be written. There has been much work on type systems, some using undecidable type systems \citep{cayenne}, some based on extensible kinds \citep{omega} and others which restrict the type system to a decidable fragment \citep{practical_dependant}.
+The type directed method can be pushed much further with dependant types, which allow types to depend on values. This approach allows safe versions of \C{head} and \C{tail} to be written. There has been much work on type systems, some using undecidable type systems \citep{cayenne, epigram}, some based on extensible kinds \citep{omega} and others which restrict the type system to a decidable fragment \citep{xi:dependent_practical}.
 
 The downside to all these type systems is that they require the programmer to make explicit annotations, and require the user to learn new techniques for computation.
 
