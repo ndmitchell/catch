@@ -1193,9 +1193,13 @@ The downside to all these type systems is that they require the programmer to ma
 \section{Conclusions and Future Work}
 \label{sec:conclusion}
 
-I conclude that Catch is a useful tool.
+A static checker for potential pattern-match errors in Haskell has been specified and implemented. This checker is capable of determining preconditions under which a program with non-exhaustive patterns executes without failing due to a pattern-match error. A section of the Nofib suite has been tested, with encouraging results -- all but one program can be proved safe, most without any modification at all.
 
+There are two main avenues of future work to extend to the mechanisms introduced in this paper. There first is to extend the power of the checker. Possible directions to increase the power include the addition of explicit annotations of properties, or a more powerful constraint language. The constraint languages introduced could be augmented with special purpose constraints, designed to tackle particular problems. One particular constraint system that may prove fruitful is a linear inequality constraint system.
 
+The next direction for future work would be using the Catch tool to solve other problems. The direct result of the absence of pattern match failure could be used to feed information to an optimising compiler. The properties generated could also be used to generate more efficient code. If the programmer was able to specify more restrictive preconditions, or properties, or invariants, then these may be able checked with Catch. If the power of the constraint system was increased then richer program annotations could be used.
+
+As the Catch tool stands, it is already capable of detecting and proving the absence of pattern match failures in sample programs. We hope this tool will become a part of the standard arsenal of Haskell programmers.
 
 
 % \appendix
@@ -1205,9 +1209,7 @@ I conclude that Catch is a useful tool.
 
 \acks
 
-Thanks to the Plasma people, especially Matt and Tom for fruitful discussions.
-
-\todo{References need to be much much longer.}
+The first author is a PhD student supported by a studentship from the Engineering and Physical Sciences Research Council of the UK.
 
 \bibliographystyle{plainnat}
 \bibliography{catch}
