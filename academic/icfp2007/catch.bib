@@ -1,44 +1,216 @@
-@Book{haskell,
-  author =       "Simon Peyton Jones",
-  title =        "{H}askell 98 {L}anguage and {L}ibraries: {T}he
-                 {R}evised {R}eport",
-  year =         "2003",
-  publisher =    "Cambridge University Press",
-  edition =      "First",
-  nid =          "N001",
-  URL =          "http://www.haskell.org/onlinereport/",
-  urlpdf =       "http://www.haskell.org/definition/haskell98--report.pdf",
-  comment =      "The standard definition of Haskell and its standard
-                 libraries",
-  label =        "background standard haskell",
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% LANGUAGE REFERENCES
+
+% When refering to a programming langauge this is the definative reference
+
+@book{haskell,
+    title =         "{H}askell 98 {L}anguage and {L}ibraries: {T}he {R}evised {R}eport",
+    author =        "Simon Peyton Jones",
+    year =          "2003",
+    publisher =     "Cambridge University Press",
+    edition =       "First",
+    URL =           "http://www.haskell.org/onlinereport/",
+    urlpdf =        "http://www.haskell.org/definition/haskell98--report.pdf",
+    comment =       "Language definition for Haskell",
 }
 
-@Book{lisp,
-  author =       "Guy L. Steele",
-  title =        "{C}ommon {L}isp the {L}anguage",
-  year =         "1990",
-  publisher =    "Digital Press",
-  edition =      "Second",
-  nid =          "N002",
-  URL =          "http://www--2.cs.cmu.edu/Groups/AI/html/cltl/cltl2.html",
-  urlps =        "http://www--2.cs.cmu.edu/afs/cs.cmu.edu/project/ai--repository/ai/lang/lisp/doc/cltl/cltl_ps.tgz",
-  comment =      "A definition of the language of Common Lisp",
-  label =        "background standard",
+@book{lisp,
+    title =         "{C}ommon {L}isp the {L}anguage",
+    author =        "Guy L. Steele",
+    year =          "1990",
+    publisher =     "Digital Press",
+    edition =       "Second",
+    URL =           "http://www--2.cs.cmu.edu/Groups/AI/html/cltl/cltl2.html",
+    urlps =         "http://www--2.cs.cmu.edu/afs/cs.cmu.edu/project/ai--repository/ai/lang/lisp/doc/cltl/cltl_ps.tgz",
+    comment =       "Language definition for Lisp",
 }
 
-@Article{turing,
-  author =       "Alan Mathinson Turing",
-  title =        "{O}n {C}omputable {N}umbers, with an {A}pplication to
-                 the {E}ntscheidungsproblem",
-  journal =      "Proceedings of the London Mathematical Society",
-  volume =       "42",
-  pages =        "230--265",
-  year =         "1937",
-  nid =          "N003",
-  comment =      "Defines the halting problem, introduces the notion of
-                 the turing machine",
-  label =        "background",
+@unpublished{xml,
+    title =         "{E}xtensible {M}arkup {L}anguage ({X}{M}{L}) 1.0",
+    author =        "Tim Bray",
+    year =          "2004",
+    month =         feb,
+    edition =       "Third"
+    note =          "\url{http://www.w3.org/TR/2004/REC-xml-20040204/}",
 }
+
+@unpublished{xslt,
+  title =           "{X}{S}{L} {T}ransformations ({X}{S}{L}{T})",
+  author =          "James Clark",
+  year =            "1999",
+  month =           nov,
+  note =            "\url{http://www.w3.org/TR/xslt}",
+}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% TOOL REFERENCES
+
+% References to tools or programs
+% All of which I would know by name
+
+@inproceedings{ghc,
+    title =         "{T}he {G}lasgow {H}askell {C}ompiler: {A} {T}echnical {O}verview",
+    author =        "S L Peyton Jones and C V Hall and K Hammond and W Partain and P Wadler",
+    year =          "1993",
+    booktitle =     "Proc. UK Joint Framework for Information Technology (JFIT) Technical Conference",
+    note =          "\url{http://www.haskell.org/ghc/}",
+}
+
+@unpublished{ghc_core,
+    title =         "{A}n {E}xternal {R}epresentation for the {GHC} {C}ore {L}anguage",
+    author =        "Andrew Tolmach",
+    year =          "2001",
+    month =         sep,
+    howpublished =  "\url{http://www.haskell/org/ghc/documentation.html}",
+}
+
+@misc{ghc_manual,
+    title =         "{T}he {G}lorious {G}lasgow {H}askell {C}ompilation {S}ystem {U}ser's {G}uide, {V}ersion 6.6",
+    author =        "{The GHC Team}",
+    year =          "2006",
+    month =         oct,
+    howpublished =  "\url{http://www.haskell.org/ghc/docs/latest/html/users_guide}",
+}
+
+@inproceedings{darcs,
+    author =        "David Roundy",
+    title =         "{D}arcs: distributed version management in {H}askell",
+    year =          "2005",
+    booktitle =     "Haskell '05: Proceedings of the 2005 ACM SIGPLAN workshop on Haskell",
+    pages =         "1--4",
+    isbn =          "1-59593-071-X",
+    location =      "Tallinn, Estonia",
+    doi =           "http://doi.acm.org/10.1145/1088348.1088349",
+    publisher =     "ACM Press",
+}
+
+@manual{epigram,
+    title =         "{E}pigram: {P}ractical {P}rogramming with {D}ependent {T}ypes",
+    author =        "Conor McBride",
+    year =          "2005",
+    month =         apr,
+}
+
+@inproceedings{quickcheck,
+    title =         "{Q}uick{C}heck: {A} {L}ightweight {T}ool for {R}andom {T}esting of {H}askell {P}rograms",
+    author =        "Koen Claessen and John Hughes",
+    year =          "2000",
+    booktitle =     "Proc. 5th {ACM SIGPLAN} International Conference on Functional Programming {(ICFP'00})",
+    pages =         "268--279",
+    publisher =     "{ACM} Press",
+}
+
+@inproceedings{nofib,
+    title =         "{T}he \texttt{nofib} {B}enchmark {S}uite of {H}askell {P}rograms",
+    author =        "Will Partain",
+    year =          "1992",
+    booktitle =     "Functional Programming, Glasgow 1992",
+    pages =         "195--202",
+    publisher =     "Springer-Verlag Workshops in Computing",
+    editor =        "J Launchbury and PM Sansom",
+}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% SEMINAL PAPERS
+
+% Papers which you always need to cite everywhere
+
+@article{turing:halting,
+    title =         "{O}n {C}omputable {N}umbers, with an {A}pplication to the {E}ntscheidungsproblem",
+    author =        "Alan Mathinson Turing",
+    year =          "1937",
+    journal =       "Proceedings of the London Mathematical Society",
+    volume =        "42",
+    pages =         "230--265",
+    comment =       "Defines the halting problem, introduces the notion of the turing machine",
+}
+
+@Article{turner:tfp,
+  author =       "David Turner",
+  title =        "{T}otal {F}unctional {P}rogramming",
+  month =        jul,
+  year =         "2004",
+  journal =      "Journal of Universal Computer Science",
+  volume =       "10",
+  number =       "7",
+  pages =        "751--768",
+  URL =          "http://www.jucs.org/jucs_10_7/total_functional_programming",
+}
+
+@book{conway:regexp,
+  title =        "{R}egular {A}lgebra and {F}inite {M}achines",
+  author =       "John Horton Conway",
+  year =         "1971",
+  publisher =    "London Chapman and Hall",
+  ISBN =         "0-412-10620-5",
+}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% MY SEMINAL PAPERS :)
+
+% Papers which I wrote
+
+@inproceedings{me:catch_tfp,
+    title =         "Unfailing {H}askell: A Static Checker for Pattern Matching",
+    author =        "Neil Mitchell and Colin Runciman",
+    booktitle =     "Proceedings of the Sixth Symposium on Trends in Functional Programming",
+    pages =         "313--328",
+    year =          "2005",
+    month =         sep,
+}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% HASKELL PAPERS
+
+
+@inproceedings{wadler:type_classes,
+    title =         "How to make ad-hoc polymorphism less ad hoc",
+    author =        "Philip Wadler and Stephen Blott",
+    booktitle =     "POPL '89: Proceedings of the 16th ACM SIGPLAN-SIGACT symposium on Principles of programming languages",
+    year =          "1989",
+    isbn =          "0-89791-294-2",
+    pages =         "60--76",
+    location =      "Austin, Texas, United States",
+    doi =           "http://doi.acm.org/10.1145/75277.75283",
+    publisher =     "ACM Press",
+    address =       "New York, NY, USA",
+    comment =       "The idea of type classes, along with the dictionary implementation"
+}
+
+@inproceedings{jones:dictionary_removal,
+  author =          "Mark P. Jones",
+  title =           "{D}ictionary-free {O}verloading by {P}artial {E}valuation",
+  booktitle =       "ACM SIGPLAN Workshop on Partial Evaluation and Semantics-Based Program Manipulation",
+  year =            "1994",
+  month =           jun,
+  location =        "Orlando, Florida, United States",
+  publisher =       "ACM Press",
+  comment =         "How to remove dictionaries by partial evaluation/specialisation"
+}
+
+@inproceedings{reynolds:defunc,
+    title =         "Definitional interpreters for higher-order programming languages",
+    author =        "John C. Reynolds",
+    booktitle =     "ACM '72: Proceedings of the ACM annual conference",
+    year =          "1972",
+    pages =         "717--740",
+    location =      "Boston, Massachusetts, United States",
+    publisher =     "ACM Press",
+    address =       "New York, NY, USA",
+}
+
+
+
+
+
+
+
+
+
 
 @Misc{monads,
   author =       "Noel Winstanley",
@@ -49,6 +221,19 @@
   comment =      "Introduction to Monads",
   label =        "tutorial haskell",
 }
+
+@Article{term:erlang,
+  author =       "Jurgen Giesl and Thomas Arts",
+  title =        "{V}erification of {E}rlang {P}rocesses by {D}ependency
+                 {P}airs",
+  journal =      "Applicable Algebra in Engineering, Communication and
+                 Computing",
+  volume =       "12",
+  number =       "1/2",
+  pages =        "39--72",
+  year =         "2001",
+}
+
 
 @Misc{tableaux,
   author =       "Reiner Hahnle",
@@ -115,19 +300,6 @@
   institution =  "The Computing Laboratory, University of Kent at
                  Canterbury",
   number =       "TR 14--97",
-}
-
-@Article{tfp:total,
-  author =       "David Turner",
-  title =        "{T}otal {F}unctional {P}rogramming",
-  month =        jul,
-  year =         "2004",
-  journal =      "Journal of Universal Computer Science",
-  volume =       "10",
-  number =       "7",
-  pages =        "751--768",
-  URL =          "http://www.jucs.org/jucs_10_7/total_functional_programming",
-  nid =          "N009",
 }
 
 @InProceedings{hughes:type-spec,
@@ -287,18 +459,6 @@
   publisher =    "Springer--Verlag",
 }
 
-@Article{term:erlang,
-  author =       "Jurgen Giesl and Thomas Arts",
-  title =        "{V}erification of {E}rlang {P}rocesses by {D}ependency
-                 {P}airs",
-  journal =      "Applicable Algebra in Engineering, Communication and
-                 Computing",
-  volume =       "12",
-  number =       "1/2",
-  pages =        "39--72",
-  year =         "2001",
-}
-
 @InProceedings{term:orderings,
   author =       "Jürgen Giesl",
   title =        "{T}ermination {A}nalysis for {F}unctional {P}rograms
@@ -430,17 +590,6 @@
   year =         "2004",
 }
 
-@InProceedings{quickcheck,
-  author =       "Koen Claessen and John Hughes",
-  title =        "{Q}uick{C}heck: {A} {L}ightweight {T}ool for {R}andom
-                 {T}esting of {H}askell {P}rograms",
-  year =         "2000",
-  pages =        "268--279",
-  booktitle =    "Proc. 5th {ACM SIGPLAN} International Conference on
-                 Functional Programming {(ICFP'00})",
-  publisher =    "{ACM} Press",
-}
-
 @Unpublished{pattern_match,
   month =        mar,
   title =        "{W}arnings for {P}attern {M}atching",
@@ -460,32 +609,6 @@
   chapter =      "6",
 }
 
-@InProceedings{ghc,
-  note =         "\url{http://www.haskell.org/ghc/}",
-  title =        "{T}he {G}lasgow {H}askell {C}ompiler: {A} {T}echnical
-                 {O}verview",
-  year =         "1993",
-  author =       "S L Peyton Jones and C V Hall and K Hammond and W
-                 Partain and P Wadler",
-  booktitle =    "Proc. UK Joint Framework for Information Technology
-                 (JFIT) Technical Conference",
-}
-
-@Book{conway,
-  title =        "{R}egular {A}lgebra and {F}inite {M}achines",
-  author =       "John Horton Conway",
-  year =         "1971",
-  publisher =    "London Chapman and Hall",
-  ISBN =         "0-412-10620-5",
-}
-
-@Manual{epigram,
-  month =        apr,
-  title =        "{E}pigram: {P}ractical {P}rogramming with {D}ependent
-                 {T}ypes",
-  year =         "2005",
-  author =       "Conor McBride",
-}
 
 @InProceedings{ml_patterns,
   booktitle =    "Partial Evaluation",
@@ -513,34 +636,6 @@
   address =      "New York, NY, USA",
 }
 
-@Unpublished{xml,
-  month =        feb,
-  title =        "{E}xtensible {M}arkup {L}anguage ({X}{M}{L}) 1.0
-                 ({T}hird {E}dition)",
-  year =         "2004",
-  author =       "Tim Bray",
-  note =         "\url{http://www.w3.org/TR/2004/REC-xml-20040204/}",
-}
-
-@Unpublished{xslt,
-  month =        nov,
-  title =        "{X}{S}{L} {T}ransformations ({X}{S}{L}{T})",
-  year =         "1999",
-  author =       "James Clark",
-  note =         "\url{http://www.w3.org/TR/xslt}",
-}
-
-@InProceedings{nofib,
-  booktitle =    "Functional Programming, Glasgow 1992",
-  author =       "Will Partain",
-  publisher =    "Springer-Verlag Workshops in Computing",
-  editor =       "J Launchbury and PM Sansom",
-  pages =        "195--202",
-  year =         "1992",
-  title =        "{T}he \texttt{nofib} {B}enchmark {S}uite of {H}askell
-                 {P}rograms",
-}
-
 @Article{clausify,
   title =        "{H}eap {P}rofiling of {L}azy {F}unctional {P}rograms",
   year =         "1993",
@@ -551,24 +646,6 @@
   pages =        "217--245",
 }
 
-@Unpublished{core,
-  title =        "{A}n {E}xternal {R}epresentation for the {GHC} {C}ore
-                 {L}anguage",
-  author =       "Andrew Tolmach",
-  year =         "2001",
-  howpublished = "\url{http://www.haskell/org/ghc/documentation.html}",
-  month =        sep,
-}
-
-@Misc{ghc_manual,
-  howpublished = "\url{http://www.haskell/org/ghc/docs/latest/html/users_guide}",
-  title =        "{T}he {G}lorious {G}lasgow {H}askell {C}ompilation
-                 {S}ystem {U}ser's {G}uide, {V}ersion 6.4",
-  author =       "{The GHC Team}",
-  year =         "2005",
-  month =        mar,
-}
-
 @Misc{all_in_one,
   month =        jul,
   title =        "{H}askell {A}ll-{I}n-{O}ne",
@@ -577,23 +654,6 @@
   howpublished = "\url{http://www.isi.edu/~hdaume/HAllInOne/}",
 }
 
-@inproceedings{catch_tfp,
-    author    = "Neil Mitchell and Colin Runciman",
-    title     = "Unfailing {H}askell: A Static Checker for Pattern Matching",
-    booktitle = "Proceedings of the Sixth Symposium on Trends in Functional Programming",
-    pages     = "313--328",
-    year      = "2005",
-    month     = "September",
-    day       = "24",
-    pdf       = "http://www-users.cs.york.ac.uk/\~{}ndm/downloads/paper-unfailing_haskell_a_static_checker_for_pattern_matching-24_sep_2005.pdf",
-    abstract  =
-        "A Haskell program may fail at runtime with a pattern-match error if the program has
-        any incomplete (non-exhaustive) patterns in definitions or case alternatives. This paper
-        describes a static checker that allows non-exhaustive patterns to exist, yet ensures
-        that a pattern-match error does not occur. It describes a constraint language that can
-        be used to reason about pattern matches, along with mechanisms to propagate these
-        constraints between program components.",
-}
 
 @misc{phantom,
 	title = "http://www.brics.dk/RS/02/34/",

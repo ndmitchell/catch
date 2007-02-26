@@ -117,7 +117,7 @@ In addition the checker produces a set of properties it has proved about Risers,
 
 \subsection{A Real World Problem}
 
-The problem of pattern match failures in Haskell is a serious one. The darcs \citep{darcs} project is one of the most successful large scale programs written in Haskell for non-Haskell developers. Taking a look at their bug tracker, 13 problems are errors related to fromJust and 19 are direct pattern match failures.
+The problem of pattern match failures in Haskell is a serious one. The darcs \citep{darcs} project is one of the most successful large scale programs written in Haskell for non-Haskell developers. Taking a look at their bug tracker, 13 problems are errors related to \C{fromJust} and 19 are direct pattern match failures.
 
 \subsection{Contributions}
 
@@ -130,11 +130,11 @@ The contributions of this paper include:
 \item Results, showing success on a number of unmodified examples
 \end{itemize}
 
-In \citet{catch_tfp} a pattern match checker was described with similar aims. All the issues list in the future work section have been addressed in this paper. In particular the checker is robust enough to handle real Haskell programs, with no restriction on the recursion patterns, higher order function use or type classes. The underlying mechanism of the first pattern match checker bears only passing resemblance to the mechanism described in this paper.
+In \citet{me:catch_tfp} a pattern match checker was described with similar aims. All the issues list in the future work section have been addressed in this paper. In particular the checker is robust enough to handle real Haskell programs, with no restriction on the recursion patterns, higher order function use or type classes. The underlying mechanism of the first pattern match checker bears only passing resemblance to the mechanism described in this paper.
 
 \subsection{Road map}
 
-All data structures and equations are presented in Haskell, although should be accessible to all readers.
+All data structures and equations are presented in Haskell \citep{haskell}, although should be accessible to all readers.
 
 \S\ref{sec:walkthrough} gives an overview of the checking process for the \C{risers} function. \S\ref{sec:manipulate} introduces a small core functional language and a mechanism for reasoning about this language, \S\ref{sec:constraint} covers a constraint language. \S\ref{sec:transform} discusses how to transform Haskell to this core language.
 
@@ -151,7 +151,7 @@ This section details the process of checking that the \C{risers} function in the
 
 There is a restriction on the starting functions that Catch can analyse -- they must not have any argument of functional type. The reason for this is to reduce the complexity in the analysis engine.
 
-In Haskell \citep{haskell},type classes are typically implemented \citep{type_classes} as dictionaries. All functions with qualified polymorphic types have one or more dictionaries of class methods as auxiliary arguments. This means that the function to analyse must not have any outstanding context.
+In Haskell,type classes are typically implemented as dictionaries \citep{wadler:type_classes}. All functions with qualified polymorphic types have one or more dictionaries of class methods as auxiliary arguments. This means that the function to analyse must not have any outstanding context.
 
 \todo{Jump's around a bit here}
 
@@ -247,7 +247,7 @@ isRec     :: Field     -> Bool
 \caption{Miscellaneous functions to manipulate Core.}
 \end{figure}
 
-Syntax for the reduced expression language is given in figure \ref{fig:core}. The Core language chosen for this purpose is fairly standard \cite{spj_lester_book}. The language is first order, has only simple case statements, and only algebraic data types. The evaluation strategy is lazy. All case statements are syntactically complete, with error being introduced where a pattern match error would occur. An \C{Alt} data type has the constructor to match, a list of variables to bind to and an expression to execute.
+Syntax for the reduced expression language is given in figure \ref{fig:core}. The Core language chosen for this purpose is fairly standard \citep{ghc_core}, but with additional restrictions. The language is first order, has only simple case statements, and only algebraic data types. The evaluation strategy is lazy. All case statements are syntactically complete, with error being introduced where a pattern match error would occur. An \C{Alt} data type has the constructor to match, a list of variables to bind to and an expression to execute.
 
 Every constructor has an arity, which can be obtained with the \C{arity} function. To determine all constructors in a set the \C{ctors} function can be used, for example |ctors True = {False, True}| and |ctors [] = {[], :}|. The \C{var} function returns \C{Nothing} for variables which are arguments, and \C{Just} with the expression on the \C{Case} expression and the field.
 
@@ -291,7 +291,7 @@ data Nat  = Zero | Succ Nat
 data Int  = Minus Nat | Zero | Plus Nat
 \end{code}
 
-While this abstraction captures all the underlying detail of the number system, it is not detail that can be used during the analysis -- due to the underlying constraint systems discussed in \S\ref{sec:constraints}. A more practically motivated example is given in Figure \ref{fig:abstract_int}, and this is the abstraction that is used in practice. The \T{any0} method is an internally implemented method of Catch, assumed to be any demonic value, of the correct type.
+While this abstraction captures all the underlying detail of the number system, it is not detail that can be used during the analysis -- due to the underlying constraint systems discussed in \S\ref{sec:constraints}. A more practically motivated example is given in Figure \ref{fig:abstract_int}, and this is the abstraction that is used in practice. The \C{any0} method is an internally implemented method of Catch, assumed to be any demonic value, of the correct type.
 
 \todo{Add notes on One as an abstract value}
 
@@ -550,7 +550,7 @@ A regular expression is defined as:\\ \\
 1 & the language is the set containing the empty string
 \end{tabular} \\
 
-The differentiation operation is that as defined by \citet{conway}, and called quotient in some text books. The empty word property (\C{ewp}) is equivalent to |lang 1 `subseteq` lang r|, and can be calculated simply from a regular expression. Integration is merely the inverse of differentiation -- not usually treated as a separate operation in most regular expression systems.
+The differentiation operation is that as defined by \citet{conway:regexp}, and called quotient in some text books. The empty word property (\C{ewp}) is equivalent to |lang 1 `subseteq` lang r|, and can be calculated simply from a regular expression. Integration is merely the inverse of differentiation -- not usually treated as a separate operation in most regular expression systems.
 
 In the original version of Catch regular expressions were based on the full regular expression language. However the implementation above is limited to concatenation of atoms, or stars of unions. Formally the context free grammar of this type of regular expression is:
 
@@ -718,10 +718,9 @@ The full Haskell language is a bit unwieldy for analysis. In particular the synt
 
 \subsection{Yhc Core}
 
-In order to generate a simplified language, it is natural to start with a full Haskell compiler, and we chose Yhc, a fork of nhc. The internal language of Yhc is called PosLambda -- a simple variant of lambda calculus without types, but with source position information. Yhc works by applying basic desugaring transformations, without optimization transformations. This simplicity ensures the generated PosLambda is close to the original Haskell in its structure. Each top level function in a source file maps to a top level function in the generated PosLambda, retaining the same name.
+In order to generate a simplified language, it is natural to start with a full Haskell compiler, and we chose Yhc \citep{Yhc}, a fork of nhc \citep{nhc}. The internal language of Yhc is called PosLambda -- a simple variant of lambda calculus without types, but with source position information. Yhc works by applying basic desugaring transformations, without optimization transformations. This simplicity ensures the generated PosLambda is close to the original Haskell in its structure. Each top level function in a source file maps to a top level function in the generated PosLambda, retaining the same name.
 
-PosLambda does have some constructs that have no direct representation in Haskell, for example there is a FatBar construct, which is used for compiling pattern matches which require fall through behaviour. The PosLambda language was always intended as an internal representation, and exposes certain details that are specific to the compiler. We have introduced a new Core language to Yhc, intended as a simple subset of Haskell where possible, on to which PosLambda can easily be mapped. This Core language is not explicitly typed, and has very few constructs. We have also written a library, Yhc.Core, which is used by Yhc to generate these Core files, and by external programs to load and
-manipulate the generated Core.
+PosLambda does have some constructs that have no direct representation in Haskell, for example there is a FatBar construct, which is used for compiling pattern matches which require fall through behaviour. The PosLambda language was always intended as an internal representation, and exposes certain details that are specific to the compiler. We have introduced a new Core language to Yhc, intended as a simple subset of Haskell where possible, on to which PosLambda can easily be mapped. This Core language is not explicitly typed, and has very few constructs. We have also written a library, Yhc.Core, which is used by Yhc to generate these Core files, and by external programs to load and manipulate the generated Core.
 
 The importance of this Core language is not what remains, but what has been removed.
 
@@ -737,7 +736,7 @@ The importance of this Core language is not what remains, but what has been remo
 
 \subsection{The Dictionary Transformation}
 
-Most of the transformations in Yhc operate at a very local level, either on a single function at a time or on a small expression within a function. The only analysis/transformation phases which require information about more than one function are type checking and the dictionary transformation, used to implement type classes.
+Most of the transformations in Yhc operate at a very local level, either on a single function at a time or on a small expression within a function. The only analysis/transformation phases which require information about more than one function are type checking and the dictionary transformation, used to implement type classes \citep{wadler:type_classes}.
 
 \yesexample
 
@@ -774,7 +773,7 @@ Having a simple Haskell-like language, there are essentially 2 features that Has
 
 \subsection{Reynold's style defunctionalization}
 
-Reynold's style defunctionalization is a simple method of generating a first order program from a higher order one. Taking the following example:
+Reynold's style defunctionalization \citep{reynolds:defunc} is a simple method of generating a first order program from a higher order one. Taking the following example:
 
 \begin{code}
 map f x = case x of
