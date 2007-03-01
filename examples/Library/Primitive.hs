@@ -24,6 +24,8 @@ any4 a b c d = any2 a (any2 b (any2 c d))
 
 -- make error primitive
 foreign import primitive global_Prelude'_error :: a -> b
+global_Prelude'__patternMatchFail c = error c
+global_Prelude'__noMethodError c = error c
 
 -- things which are mutually recursive and useful
 global_Prelude'_repeat x = x : global_Prelude'_repeat x
