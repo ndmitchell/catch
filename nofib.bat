@@ -1,4 +1,4 @@
-
+@echo off
 set file=%2
 if not "%1"=="" goto %1
 
@@ -24,6 +24,8 @@ goto finish
 
 
 :build
+echo TEST: %file%
+
 if exist logs\%file%\summary.log echo FAILED TO RUN CATCH > logs\%file%\summary.log
 
 cd catch_1
