@@ -14,6 +14,7 @@ cd ..
 
 
 echo RUNNING NOFIB TESTS > nofib.txt
+echo RUNNING NOFIB TESTS > timings.txt
 for %%i in (%tests%) do call %0 build %%i
 
 cls
@@ -25,19 +26,25 @@ goto finish
 
 :build
 echo TEST: %file%
+echo TEST: %file% >> nofib.txt
+echo TEST: %file% >> timings.txt
 
 if exist logs\%file%\summary.log echo FAILED TO RUN CATCH > logs\%file%\summary.log
 
 cd catch_1
-catch %file% 2> nul > nul
-if errorlevel 1 goto finish
+unix_time catch %file% +RTS -t 2> nul > catch.time
+tail catch.stat --lines=1 >> ..\timings.txt
+tail catch.time --lines=1 >> ..\timings.txt
+echo . >> ..\timings.txt
 cd ..
 
 cd gadget
-gadget %file%
+unix_time gadget %file% +RTS -t 2> nul > gadget.time
+tail gadget.stat --lines=1 >> ..\timings.txt
+tail gadget.time --lines=1 >> ..\timings.txt
+echo . >> ..\timings.txt
 cd ..
 
-echo TEST: %file% >> nofib.txt
 type logs\%file%\summary.log >> nofib.txt
 echo. >> nofib.txt
 
