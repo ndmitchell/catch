@@ -1,13 +1,9 @@
 
 module Prepare.Firstify(firstify) where
 
-import System.FilePath
 import Yhc.Core
-import System.Environment
-import System.Directory
 import Data.Maybe
 import Data.List
-import Data.Char
 import Debug.Trace
 
 import qualified Data.Set as Set
@@ -67,23 +63,6 @@ isHO core (CoreCase x ys) = any (isHO core . snd) ys
 isHO core (CoreApp (CoreCon _) args) = any (isHO core) args
 isHO core _ = False
 
-
-isDataHO :: Core -> CoreExpr -> Bool
-isDataHO core (CoreApp (CoreCon _) args) = any (isHO core) args
-isDataHO core (CoreLet _ x) = isDataHO core x
-isDataHO core (CoreCase x ys) = any (isDataHO core . snd) ys
-isDataHO _ _ = False
-
-
-inlineHOs :: Core -> Maybe Core
-inlineHOs x | isJust x2 = Just $ f $ fromJust x2
-            | otherwise = Nothing
-    where
-        x2 = inlineHO x
-    
-        f x = case inlineHO x of
-                  Nothing -> x
-                  Just y -> f y
 
 
 inlineHO :: Core -> Maybe Core
