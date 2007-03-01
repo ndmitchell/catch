@@ -14,7 +14,7 @@ import qualified Data.Set as Set
 
 
 
-firstify core = if ans then res else error "Did not make first order :("
+firstify core = (if ans then "Did not make first order :(" else "",res)
     where (ans,res) = firstify2 $ mapUnderCore remCorePos $ lambdas $ zeroApp core
 
 

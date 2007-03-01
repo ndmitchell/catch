@@ -69,21 +69,24 @@ execFile stages options file = do
 
         putStrLn $ "Executing: " ++ file ++ ", " ++ realfile
         when (Compile `elem` stages) $ compile realfile
-        res <- test Overlay  over (Right yca) overlay
+        res <- test Overlay  over (Right yca) (liftM wrap . overlay)
         res <- test Firstify first res (return . firstify)
-        res <- test LetElim  letelim res (return . letElim)
+        res <- test LetElim  letelim res (return . wrap . letElim)
 
         return ()
     where
-        test :: Stage -> FilePath -> Either Core FilePath -> (Core -> IO Core) -> IO (Either Core FilePath)
+        wrap x = ("",x)
+    
+        test :: Stage -> FilePath -> Either Core FilePath -> (Core -> IO (String,Core)) -> IO (Either Core FilePath)
         test x out inp f | x `notElem` stages = return $ Right out
                          | otherwise = do
             putStrLn $ "Task: " ++ show x
             core <- either return loadCore inp
-            core2 <- f core
+            (err,core2) <- f core
             when (Text `elem` options) $ writeFile (out <.> "txt") (show core2)
             when (Html `elem` options) $ writeFile (out <.> "html") (coreHtml core2)
             saveCore out core2
+            when (not $ null err) $ error err
             return $ Left core2
 
 
