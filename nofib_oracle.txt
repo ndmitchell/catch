@@ -1,6 +1,6 @@
 RUNNING NOFIB TESTS 
 TEST: Bernoulli 
-Solving (1/6) (\forall Data.Ratio.%_1, [#2 {_} {Neg+One+Pos}])
+Solving (1/6) (\forall Data.Ratio.%$95, [#2 {_} {Neg+One+Pos}])
 Result \forall main, [_]
 Solving (2/6) (\forall Prelude.!!, [#2 {:} {_}])
 Result \forall main, [_]
@@ -15,7 +15,7 @@ Result \forall main, [Zero+One]
 Final: \forall main, [Zero+One]
  
 TEST: Bernoulli_Safe 
-Solving (1/5) (\forall Data.Ratio.%_1, [#2 {_} {Neg+One+Pos}])
+Solving (1/5) (\forall Data.Ratio.%$94, [#2 {_} {Neg+One+Pos}])
 Result \forall main, [_]
 Solving (2/5) (\forall Prelude.!!, [#2 {:} {_}])
 Result \forall main, [_]
@@ -46,9 +46,9 @@ Result \forall main, [_]
 Final: \forall main, [_]
  
 TEST: DigitsOfE2 
-Solving (1/5) (\forall DigitsOfE2._LAMBDA343_1_1.1, [:])
+Solving (1/5) (\forall DigitsOfE2._LAMBD$131.1, [:])
 Result \forall main, [_]
-Solving (2/5) (\forall DigitsOfE2.carryPropagate_1, [#2 {_} {:}])
+Solving (2/5) (\forall DigitsOfE2.carryPropagate$42, [#2 {_} {:}])
 Result \forall main, [_]
 Solving (3/5) (\forall Prelude.head, [:])
 Result \forall main, [_]
@@ -100,9 +100,9 @@ Result \forall main, [_]
 Final: \forall main, [_]
  
 TEST: Paraffins 
-Solving (1/4) (\forall Data.Array.!_1, [])
+Solving (1/4) (\forall Data.Array.!$73, [])
 Result \forall main, []
-Solving (2/4) (\forall Data.Array.array_1, [])
+Solving (2/4) (\forall Data.Array.array$72, [])
 Result \forall main, []
 Solving (3/4) (\forall Prelude.undefined, [])
 Result \forall main, []
@@ -111,7 +111,7 @@ Result \forall main, [_]
 Final: \forall main, []
  
 TEST: Paraffins_Safe 
-Solving (1/2) (\forall Data.Array.!_1, [])
+Solving (1/2) (\forall Data.Array.!$73, [])
 Result \forall main, []
 Solving (2/2) (\forall Primitive.divZero, [#2 {_} {Neg+One+Pos}])
 Result \forall main, [_]
@@ -145,7 +145,7 @@ No pattern match errors, trivially safe
 Final: \forall main, [_]
  
 TEST: X2n1 
-Solving (1/2) (\forall Data.Ratio.%_1, [#2 {_} {Neg+One+Pos}])
+Solving (1/2) (\forall Data.Ratio.%$118, [#2 {_} {Neg+One+Pos}])
 Result \forall main, [_]
 Solving (2/2) (\forall Primitive.divZero, [#2 {_} {Neg+One+Pos}])
 Result \forall main, [_]
