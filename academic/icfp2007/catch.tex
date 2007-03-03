@@ -17,6 +17,8 @@
 \newcommand{\tup}[1]{\ensuremath{\langle #1 \rangle}}
 \newcommand{\mtxt}[1]{\textsf{#1}}
 
+\newcommand{\catch}{\textsc{Catch}}
+
 % examples
 \newcounter{exmp}
 \setcounter{exmp}{1}
@@ -71,7 +73,7 @@
 \begin{abstract}
 A Haskell program may fail at runtime with a pattern-match error if the program has any incomplete (non-exhaustive) patterns in definitions or case alternatives. This paper describes a static checker that allows non-exhaustive patterns to exist, yet ensures that a pattern-match error does not occur. It describes a constraint language that can be used to reason about pattern matches, along with mechanisms to propagate these constraints between program components.
 
-The checker obtains minimal preconditions for 11 out of 14 programs in the Imaginary section of the Nofib suite\citep{nofib}. With minor modifications the remaining 3 are proven safe.
+The checker obtains minimal preconditions for 10 out of 14 programs in the Imaginary section of the Nofib suite\citep{nofib}. With minor modifications a further 3 are proven safe.
 \end{abstract}
 
 % \category{CR-number}{subcategory}{third-level}
@@ -86,6 +88,8 @@ The checker obtains minimal preconditions for 11 out of 14 programs in the Imagi
 \label{sec:introduction}
 
 Often it is useful to define pattern matches which are incomplete, for example \C{head} fails on the empty list. Unfortunately programs with incomplete pattern matches may fail at runtime.
+
+The problem of pattern match failures in Haskell is a serious one. The darcs \citep{darcs} project is one of the most successful large scale programs written in Haskell. Taking a look at their bug tracker, 13 problems are errors related to \C{fromJust} and 19 are direct pattern match failures.
 
 Consider the following example:
 
@@ -110,31 +114,31 @@ Turning the \C{risers} function over to the checker developed in this paper, the
 
 \begin{code}
 > Incomplete pattern on line 5, proven safe
-> Whole program is Safe
+> Program is Safe
 \end{code}
 
 In addition the checker produces a set of properties it has proved about Risers, along with an outline of the proof. Fuller details of how the checking is performed follow in \S\ref{sec:walkthrough}.
-
-\subsection{A Real World Problem}
-
-The problem of pattern match failures in Haskell is a serious one. The darcs \citep{darcs} project is one of the most successful large scale programs written in Haskell for non-Haskell developers. Taking a look at their bug tracker, 13 problems are errors related to \C{fromJust} and 19 are direct pattern match failures.
 
 \subsection{Contributions}
 
 The contributions of this paper include:
 
 \begin{itemize}
-\item Two constraint languages to reason about pattern match failures
-\item A mechanism for generating and solving appropriate constraints
-\item Details of an implementation which handles the complete Haskell 98 language
-\item Results, showing success on a number of unmodified examples
+\item Two constraint languages to reason about pattern match failures.
+\item A mechanism for generating and solving appropriate constraints.
+\item Details of an implementation which handles the complete Haskell 98 language \citep{haskell}.
+\item An implementation of the checker, referred to as \catch07.
+\item Results, showing success on a number of unmodified examples.
+\item Some larger examples, investigating the scalability of the checker.
 \end{itemize}
 
-In \citet{me:catch_tfp} a pattern match checker was described with similar aims. All the issues list in the future work section have been addressed in this paper. In particular the checker is robust enough to handle real Haskell programs, with no restriction on the recursion patterns, higher order function use or type classes. The underlying mechanism of the first pattern match checker bears only passing resemblance to the mechanism described in this paper.
+In \citet{me:catch_tfp} a pattern match checker was described with similar aims, which we will refer to as \catch05. All the issues listed in the future work section of that paper have been addressed in this paper. \catch07 is robust enough to handle real Haskell programs, with no restriction on the recursion patterns, higher order function use or type classes. Many scalability problems have been addressed -- \catch07 is able to check much larger programs.
+
+The underlying mechanism of \catch07 is radically different from \catch05 -- particularly in relation to the constraints and fixed points. Perhaps the introductory risers example is most clearly illustrates the differences -- for \catch05 risers was towards the boundary of what was possible, for \catch07 it is trivial.
 
 \subsection{Road map}
 
-All data structures and equations are presented in Haskell \citep{haskell}, although should be accessible to all readers.
+All data structures and equations are presented in Haskell, although should be accessible to all readers.
 
 \S\ref{sec:walkthrough} gives an overview of the checking process for the \C{risers} function. \S\ref{sec:manipulate} introduces a small core functional language and a mechanism for reasoning about this language, \S\ref{sec:constraint} covers a constraint language. \S\ref{sec:transform} discusses how to transform Haskell to this core language.
 
@@ -147,24 +151,20 @@ This section details the process of checking that the \C{risers} function in the
 
 \subsection{Modifying Risers for analysis}
 
-\todo{Tidy up this section}
-
-There is a restriction on the starting functions that Catch can analyse -- they must not have any argument of functional type. The reason for this restriction is to reduce the complexity in the analysis engine.
-
-In Haskell,type classes are typically implemented as dictionaries \citep{wadler:type_classes}. All functions with qualified polymorphic types have one or more dictionaries of class methods as auxiliary arguments. The result is that the function to analyse must not have any outstanding context.
-
-\todo{Jump's around a bit here}
-
-The type of the \C{risers} function is |risers :: Ord alpha => [alpha] -> [[alpha]]| -- which can easily be made first-order by making a new function \C{main} the root of the analysis, and providing a concrete type:
+In order to check \C{risers}, a \C{main} function must be provided, where \catch{} will begin checking:
 
 \begin{code}
 main :: [Int] -> [[Int]]
 main x = risers x
 \end{code}
 
+\catch imposes a restriction on \C{main}, it must not have any argument of functional type, or any type classes. The reason for this restriction is to reduce the complexity of analysis. In \C{main} the type signature is more restrictive than \C{risers}, removing the type class.
+
+In Haskell, type classes are typically implemented as dictionaries \citep{wadler:type_classes}. All functions with type classes have one or more dictionaries of class methods as auxiliary arguments. This implementation results in type classes being converted to arguments of functional type, hence the restriction on type classes.
+
 \subsection{Conversion to a Core Language}
 
-Rather than analyse full Haskell, the Catch tool analyses a first-order Core language, without lambda expressions, partial application or let bindings. A convertor is provided from the full Haskell 98 language to this restricted language. Full details are provided in section \S\ref{sec:transform}.
+Rather than analyse full Haskell, \catch{} analyses a first-order Core language, without lambda expressions, partial application or let bindings. A convertor is provided from the full Haskell 98 language to this restricted language. Full details are provided in \S\ref{sec:transform}.
 
 After converting the \C{risers} program to Core Haskell, and renaming the identifiers for ease of human reading, the resulting Core is as shown in Figure \ref{fig:risers_core}. The case expressions in the functions \C{risers4} and \C{risers2} correspond to the pattern match in the |where|. The function |<=| in this example has been specialised to the Int data type, unlike the standard |(<=)| operator which is a member of the \C{Num} class.
 
@@ -194,13 +194,13 @@ risers2 x y z =  case y of
 
 In the Core language every pattern match covers all possible constructors of the appropriate type. The alternatives for constructor cases not originally given are calls to \C{error}. The analysis first starts by finding calls to \C{error}, then tries to prove that these calls will not be reached. In the \C{risers} example there is only one \C{error} call, corresponding to the |where| pattern match.
 
-Only one precondition is required for this example:
+Only one precondition is required for this example (see \S\ref{sec:precond}):
 
 \begin{code}
-forall risers4 `o` x :< (:)
+risers4, x :< (:)
 \end{code}
 
-This condition states that all callers of \C{risers4} must supply an argument which is a |(:)| constructed value. To construct a proof, two properties are required::
+This condition states that all callers of \C{risers4} must supply an argument which is a |(:)| constructed value. To construct a proof, two properties are required (see \S\ref{sec:template}):
 
 \begin{code}
 x :< (:)  => (risers x       ) :< (:)
@@ -208,8 +208,6 @@ True      => (risers2 x y z  ) :< (:)
 \end{code}
 
 The first property says that provided the input to \C{risers} is a |(:)| constructed value, the output will be. The second states that the output from \C{risers2} is always a |(:)|. Given the precondition, and the properties, a proof \C{risers} does not reach \C{error} can be constructed.
-
-\todo{Cite the specific bits from the analysis}
 
 \section{Pattern Match Analysis}
 \label{sec:manipulate}
@@ -226,12 +224,14 @@ type FuncName  =  String
 type VarName   =  String
 type Field     =  (CtorName, Int)
 
+data Func  =  Func FuncName [VarName] Expr
+
 data Expr  =  Var   VarName
            |  Make  CtorName  [Expr]
            |  Call  FuncName  [Expr]
            |  Case  Expr      [Alt]
 
-data Alt = Alt CtorName [VarName] Expr
+data Alt   =  Alt CtorName [VarName] Expr
 \end{code}
 \caption{Core Data Type.}
 \label{fig:core}
@@ -244,58 +244,57 @@ arity     :: CtorName  -> Int
 var       :: VarName   -> Maybe (Expr, Field)
 isRec     :: Field     -> Bool
 \end{code}
-\caption{Miscellaneous functions to manipulate Core.}
+\caption{Operations on Core.}
+\label{fig:core_operations}
 \end{figure}
 
-Syntax for the reduced expression language is given in figure \ref{fig:core}. The Core language chosen for this purpose is fairly standard \citep{ghc_core}, but with additional restrictions. The language is first order, has only simple case statements, and only algebraic data types. The evaluation strategy is lazy. All case statements are syntactically complete, with error being introduced where a pattern match error would occur. An \C{Alt} data type has the constructor to match, a list of variables to bind to and an expression to execute.
+Syntax for the core language is given in Figure \ref{fig:core}. Our Core language is a little more restrictive than the core languages used in other compilers \citep{ghc_core}. The language is first order, has only simple case statements, and only algebraic data types. All case statements are syntactically complete, with error being introduced where a pattern match error would occur. An \C{Alt} data type has the constructor to match, a list of variables to bind to and an expression to execute.
 
-Every constructor has an arity, which can be obtained with the \C{arity} function. To determine all constructors in a set the \C{ctors} function can be used, for example |ctors True = {False, True}| and |ctors [] = {[], :}|. The \C{var} function returns \C{Nothing} for variables which are arguments, and \C{Just} with the expression on the \C{Case} expression and the field.
+The evaluation strategy is lazy. \todo{Colin wants semantics}
 
-\subsubsection{\C{isRec} function}
+\subsubsection{Operations on Core}
 
-\todo{Expand this section}
+Figure \ref{fig:core_operations} gives functions which the checker uses to operate over the core data type. Every constructor has an arity, which can be obtained with the \C{arity} function. To determine all constructors in a set the \C{ctors} function can be used, for example |ctors True = {False, True}| and |ctors [] = {[], :}|. The \C{var} function returns \C{Nothing} for variables which are arguments, and \C{Just} with the expression on the \C{Case} expression and the field.
 
-Detail the purpose of the \C{isRec} function, what it does, and why. Also mention that co-recursive types are disallowed.
+The |isRec (c,n)| function returns true if the constructor |c| has a recursive element at position |n|. This function is used to bound the size of constraints. Taking the example of a \C{List}:
 
-Invariant, given a finite typed structure, there must be no chain of fields which are not \C{isRec} one after another.
+\begin{code}
+data List alpha = Nil | Cons alpha (List alpha)
+\end{code}
+
+The type of the definition is |List alpha|, all fields of this type are said to be recursive. \C{Cons} has two fields, the first is of type |alpha| and is not recursive, the second is of type |List alpha| and is considered recursive.
+
+This approach works provided no fields have a type that is structurally greater than the defined type, and no higher kinded type variables are used. If the presence of definitions involving these features, either a translation can be made to a permitted form, or \C{isRec} can conservatively return True.
+
+More formally, there exists a function |bounded t| such that the number of non-recursive fields in any path of any value of type |t| is less than this value.
+
+\begin{code}
+forall x,t,p `o`  x :: t && p `elem` paths x =>
+                  length (filter (not . isRec) p) < bounded t
+\end{code}
+
+A path is a list of fields, the \C{paths} function returns all possible paths in a given data structure -- a potentially infinite number.
 
 \subsubsection{Abstraction}
 
-\begin{figure}
-\begin{code}
-data Int = Neg | Zero | Pos
-
-x     + Zero  = x
-Zero  + x     = x
-x     + y     | x == y = x
-_     + _     = any0
-
-x     - Zero  = x
-Zero  - Zero  = Zero
-Zero  - Neg   = Pos
-Zero  - Pos   = Neg
-Neg   - Pos   = Neg
-Pos   - Neg   = Pos
-_     - _     = any0
-\end{code}
-\caption{Abstract implementation of integers}
-\label{fig:abstract_int}
-\end{figure}
-
-The Core language only has algebraic data types, specifically the types missing from a general purpose functional programming language are text characters, integers (bounded and unbounded) and floating point numbers. Catch allows for these programs by abstracting them into algebraic data constructors. Different programs may require different abstractions for the various pattern matches.
+The Core language only has algebraic data types. So what about primitive types such as text characters, integers (bounded and unbounded) and floating point numbers? \catch{} allows for these types by abstracting them into algebraic data types.
 
 Natural numbers are often encoded by Peano numerals, and this idea can easily be extended to integers:
 
 \begin{code}
-data Nat  = Zero | Succ Nat
-data Int  = Minus Nat | Zero | Plus Nat
+data Pos  = One | Succ Pos
+data Int  = Minus Pos | Zero | Plus Pos
 \end{code}
 
-This abstraction captures all the underlying detail of the number system, but it is not detail that can be used during the analysis -- due to the underlying constraint systems discussed in \S\ref{sec:constraints}. A more practically motivated example is given in Figure \ref{fig:abstract_int}, this abstraction is used in practice. The \C{any0} method is an internally implemented method of Catch, assumed to be any demonic value, of the correct type.
+Although this abstraction of \C{Int} captures all the underlying detail of the number system, the underlying constraint systems discussed in \S\ref{sec:constraint} would be unable to distinguishing between any pair of numbers both greater than 2, or both less than -2. The actual abstraction used in \catch{} is:
 
-\todo{Add notes on One as an abstract value}
+\begin{code}
+data Int = Neg | Zero | One | Pos
+\end{code}
 
-The abstraction of characters is often more practically interesting. The Haskell language standard calls for Unicode character literals -- and depending on the compiler the number of distinct characters varies between 256 and 1114111. There are several possible abstractions of characters:
+In our experience, most constraints on numeric systems require a number to be a natural, or to be non-zero. Similarly, the addition or subtraction of one is the most common operation. These trends stem from the common treatment of integers as inductive natural numbers in a functional language \citep{runciman:naturals}. This abstraction models the common properties and operations well, while remaining simple.
+
+The abstraction of characters is often more practically interesting. The Haskell language standard calls for Unicode character literals. In practice, depending on the compiler, the number of distinct characters varies between 256 and 1114111. There are several possible abstractions of characters:
 
 \begin{code}
 data Char = Char
@@ -306,14 +305,14 @@ data Char = '\0' | '\1' | '\2' ..
 
 The simplest abstraction is that all characters are the same. A slightly more refined abstraction is to partition the characters based on the character testing functions provided in the \C{Char} module of Haskell. Refining the model further can give special status to characters that commonly occur, giving all uncommon characters the \C{Other} value. Finally, given that \C{Char} is a finite enumeration, the entire range of characters could each be represented distinctly.
 
-In practice, programs often require different levels of abstraction for characters. Many will accept the most basic abstraction, others require certain literals to be represented precisely - for example a noughts and crosses\footnote{Tic-tac-toe, for US readers.} program matches on 'X' and 'O'.
+\catch{} employs the first abstraction by default, but provides a flag to allow alternative abstractions to be selected. This choice is motivated by simplicity -- few additional programs are proven safe with a more specific character abstraction.
 
-The final issue of abstraction relates to primitive functions, for example the \C{getArgs} function which returns the command line arguments, or the \C{readFile} which reads from the underlying filesystem. In most cases the most appropriate model is to return \C{any0}.
+The final issue of abstraction relates to primitive functions in the \C{IO} monad, for example the \C{getArgs} function which returns the command line arguments, or the \C{readFile} which reads from the underlying filesystem. In most cases the function is modelled as returning any value of the correct type.
 
 
 \subsection{Constraints}
 
-An expression evaluates to a (potentially infinite) data structure, or to $\bot{}$ caused by either non-termination of pattern match error. If an expression does evaluate to a data structure, then a constraint states the possible forms of data value it may take. A constraint is a set of data structures that a value may match. In order to practically represent a constraint, there are several different concrete representations -- these will be discussed in \S\ref{sec:constraints}.
+An expression in our first-order core language either evaluates to a (potentially infinite) data structure, or to $\bot{}$ caused by either non-termination of pattern match error. If an expression does evaluate to a data structure, then a constraint states the possible forms of data value it may take. A constraint describes a set of data structures that a value may match. Two alternative constraint systems will be introduced in \S\ref{sec:regexp} and \S\ref{sec:multipattern}.
 
 Given a mechanism of expressing a set of constructors, $E(x) \in C$ states that the expression $x$ must, when evaluated be a member of the set defined by $C$. Since the Core language is typed, the constraint $C$ will only refer to a set of well typed terms. These atomic constraints can be built up into a proposition of constraints, each possibly on different variables.
 
@@ -991,24 +990,24 @@ main x = print $ primes !! (read x)
 \end{code} % $
 
 \begin{figure}
-\begin{tabular}{||l||rrr||rr||r||l||l||l||}
+\begin{tabular}{lrrrrrrlll}
 \hline
-Program       &\multicolumn{3}{c||}{Code Size} & \multicolumn{2}{c||}{Pre} & Rank & Changes \\
+Program       &\multicolumn{3}{c}{Code Size} & \multicolumn{2}{c}{Pre} \\
 \hline
-Bernoulli     & 35 & 1616 &  652 & 5 & 11 & 33 & 1 Bad  \\
-Digits of E1  & 44 &  957 &  377 & 3 &  8 & 10 & 1 Good \\
-Digits of E2  & 54 & 1179 &  455 & 5 & 19 & 28 & None   \\
-Exp3-8        & 29 &  220 &  163 & 0 &    &    & None   \\
-Gen-Regexps   & 41 & 1006 &  776 & 1 &  1 &  1 & 4 Good \\
-Integrate     & 39 & 2466 &  364 & 3 &  3 &  6 & None   \\
-Paraffins     & 91 & 2627 & 1153 & 2 &  2 &  * & 2 Bad  \\
-Primes        & 16 &  302 &  241 & 6 & 13 & 15 & None   \\
-Queens        & 16 &  648 &  283 & 0 &    &    & None   \\
-Rfib          &  9 & 1918 &  100 & 0 &    &    & None   \\
-Tak           & 12 &  209 &  155 & 0 &    &    & None   \\
-Wheel Sieve 1 & 37 & 1221 &  570 \\
-Wheel Sieve 2 & 45 & 1397 &  636 \\
-X2n1          & 10 & 2637 &  331 & 2 &  5 &  6 & None   \\
+\textbf{Bernoulli}    & 35 & 1616 &  652 & 5 & 11 \\
+\textbf{Digits of E1} & 44 &  957 &  377 & 3 &  8 \\
+Digits of E2          & 54 & 1179 &  455 & 5 & 19 \\
+Exp3-8                & 29 &  220 &  163 & 0 &    \\
+\textbf{Gen-Regexps}  & 41 & 1006 &  776 & 1 &  1 \\
+Integrate             & 39 & 2466 &  364 & 3 &  3 \\
+\textbf{Paraffins}    & 91 & 2627 & 1153 & 2 &  2 \\
+Primes                & 16 &  302 &  241 & 6 & 13 \\
+Queens                & 16 &  648 &  283 & 0 &    \\
+Rfib                  &  9 & 1918 &  100 & 0 &    \\
+Tak                   & 12 &  209 &  155 & 0 &    \\
+Wheel Sieve 1         & 37 & 1221 &  570 \\
+Wheel Sieve 2         & 45 & 1397 &  636 \\
+X2n1                  & 10 & 2637 &  331 & 2 &  5 \\
 \hline
 \end{tabular}
 \caption{Table of results}
