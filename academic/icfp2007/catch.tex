@@ -237,24 +237,25 @@ data Alt   =  Alt CtorName [VarName] Expr
 \label{fig:core}
 \end{figure}
 
-\begin{figure}
-\begin{code}
-ctors     :: CtorName  -> [CtorName]
-arity     :: CtorName  -> Int
-var       :: VarName   -> Maybe (Expr, Field)
-isRec     :: Field     -> Bool
-\end{code}
-\caption{Operations on Core.}
-\label{fig:core_operations}
-\end{figure}
-
 Syntax for the core language is given in Figure \ref{fig:core}. Our Core language is a little more restrictive than the core languages used in other compilers \citep{ghc_core}. The language is first order, has only simple case statements, and only algebraic data types. All case statements are syntactically complete, with error being introduced where a pattern match error would occur. An \C{Alt} data type has the constructor to match, a list of variables to bind to and an expression to execute.
 
 The evaluation strategy is lazy. \todo{Colin wants semantics}
 
 \subsubsection{Operations on Core}
 
-Figure \ref{fig:core_operations} gives functions which the checker uses to operate over the core data type. Every constructor has an arity, which can be obtained with the \C{arity} function. To determine all constructors in a set the \C{ctors} function can be used, for example |ctors True = {False, True}| and |ctors [] = {[], :}|. The \C{var} function returns \C{Nothing} for variables which are arguments, and \C{Just} with the expression on the \C{Case} expression and the field.
+\begin{figure}
+\begin{code}
+ctors        :: CtorName  -> [CtorName]
+arity        :: CtorName  -> Int
+var          :: VarName   -> Maybe (Expr, Field)
+instantiate  :: FuncName  -> [Expr] -> Expr
+isRec        :: Field     -> Bool
+\end{code}
+\caption{Operations on Core.}
+\label{fig:core_operations}
+\end{figure}
+
+Figure \ref{fig:core_operations} gives functions which the checker uses to operate over the core data type. Every constructor has an arity, which can be obtained with the \C{arity} function. To determine all constructors in a set the \C{ctors} function can be used, for example |ctors True = {False, True}| and |ctors [] = {[], :}|. The \C{var} function returns \C{Nothing} for variables which are arguments, and \C{Just} with the expression on the \C{Case} expression and the field. The function \C{instantiate} corresponds to $\beta$ reduction in $\lambda$ calculus.
 
 The |isRec (c,n)| function returns true if the constructor |c| has a recursive element at position |n|. This function is used to bound the size of constraints. Taking the example of a \C{List}:
 
@@ -312,15 +313,17 @@ The final issue of abstraction relates to primitive functions in the \C{IO} mona
 
 \subsection{Constraints}
 
-An expression in our first-order core language either evaluates to a (potentially infinite) data structure, or to $\bot{}$ caused by either non-termination of pattern match error. If an expression does evaluate to a data structure, then a constraint states the possible forms of data value it may take. A constraint describes a set of data structures that a value may match. Two alternative constraint systems will be introduced in \S\ref{sec:regexp} and \S\ref{sec:multipattern}.
+An expression in our first-order core language either evaluates to a (potentially infinite) data structure, or to $\bot{}$ caused by either non-termination of pattern match error. If an expression does evaluate to a data structure, then a constraint states the possible forms of data value it may take. A constraint describes a set of data structures that a value may match.
 
-Given a mechanism of expressing a set of constructors, $E(x) \in C$ states that the expression $x$ must, when evaluated be a member of the set defined by $C$. Since the Core language is typed, the constraint $C$ will only refer to a set of well typed terms. These atomic constraints can be built up into a proposition of constraints, each possibly on different variables.
+If |x| is an expression and |c| is a constraint we write |x :< c| to assert that expression |x| must, when evaluated, be a member of the set defined by |c|. Since the Core language is typed, the constraint |c| will only refer to a set of well typed terms. These atomic constraints can be built up into a proposition of constraints, each possibly on different variables.
 
-Since free variables are bound by function calls, it is possible to scope a constraint by making it a proposition. These can then be placed into a proposition. For example, $\forall f, x \in C$ states that for the function $f$, the argument $x$ must be in the set $C$. To take a concrete example, one particular example is $\forall \C{risers4}, x \in \g{\_ : \_}$.
+Free variables are bound by function calls. It is therefore convenient to have a notation for constraints upon named arguments of named functions: |f, x :< c| states that the argument |x| of |f| must be in the set |c|.
 
-These constraints are sufficient to express many useful properties. Several underlying models are possible, and will be discussed later.
+We require that for any type, there are only a finite number of constraints. This property is used for termination proofs. Several underlying models are possible, as discussed in \S\ref{sec:basic}, \S\ref{sec:regexp} and \S\ref{sec:multipattern}.
 
-\subsection{Constraints - Pattern Matching}
+
+\subsection{Basic Constraints and Pattern Matching}
+\label{sec:basic}
 
 \begin{figure}
 \begin{code}
@@ -328,29 +331,35 @@ type Constraint = [Match]
 
 data Match  =  Match CtorName [Match]
             |  Any
+\end{code}
+\caption{Basic pattern constraints.}
+\label{fig:basic}
+\end{figure}
 
+\begin{figure}
+\begin{code}
 data Req = Expr :< Constraint
 
 notin :: CtorName -> Constraint
 (|>) :: Field -> Constraint -> Constraint
 (<|) :: Expr -> Constraint -> Prop Req
 \end{code}
-\caption{Constraint language}
+\caption{Constraint operations.}
 \label{fig:constraint}
 \end{figure}
 
-The simplest constraint language can be seen as that which corresponds to Haskell pattern matching. A constraint is a set of pattern matches, following the data structure given in figure \ref{fig:constraint}. A given data structure can be said to be a member of this constraint if there exists a match which would allow the data structure.
+A basic constraint directly corresponds to Haskell pattern matching. A constraint is a finite set of patterns represented in Figure \ref{fig:basic}. A given data structure |d| satisfies a constraint |ms| if |d| matches at least one pattern in |ms|. True and false can be represented as |[Any]| and |[]| respectively.
 
-This constraint language is limited in expressivity -- for example it is impossible to state in a finite space that all the elements of a list are the literal True. However, even with this limited constraint language the Risers example can be proven safe.
+This constraint language is limited in expressivity -- for example it is impossible to state that all the elements of a list are True. However, even with this limited constraint language the Risers example can be proven safe. For simplicity, the analysis framework will be introduced using these basic constraints. In  reality more powerful constraints are used, see \S\ref{sec:regexp} and \S\ref{sec:multipattern}.
 
-The analysis framework will be introduced using these constraints as a suitable example -- but in  reality these constraints are not used. A \C{Req} is an expression and a constraint pair, stating that the expression must evaluate to something in the constraint. There are 3 operations which must be provided on every constraint implementation, whose signatures are given in figure \ref{fig:constraint}. |(||>)| and |(<||)| are discussed in \S\ref{sec:backward}. The \C{notin} function generates a constructor which does \textit{not} match the constructor given. For example, an implementation for the simple constraint language would be:
+There are 3 operations which must be provided on every constraint implementation, whose signatures are given in figure \ref{fig:constraint}. \C{Req} is the type of the |(:<)| condition, introduced previously. The operators |(||>)| and |(<||)| are discussed in \S\ref{sec:backward}. The \C{notin} function generates a constraint which does \textit{not} match the constructor given. For example, an implementation for the simple constraint language would be:
 
 \begin{code}
 notin c = map f (delete c (ctors c))
    where f x = Match x (replicate (arity c) Any)
 \end{code}
 
-An assumption made about the constraint system is that for any given finite type, there exist only a finite number of constraints. This constraint system violates property -- consider a recursive data structure such as a list, an infinite number of type-correct patterns are possible. This problem could be fixed by limiting the depth, although is not done to allow the principles to be expressed more clearly.
+This constraint language violates the property of having a finite number of constraints a type. Consider a list: an infinite number of type-correct patterns are possible. This issue could be resolved by limiting the depth of the patterns, but would obscure the simplicity of the constraints.
 
 \subsection{Safety Preconditions}
 \label{sec:precond}
@@ -366,33 +375,56 @@ pre (Case  on  alts  ) = pre on && and [f c e | Alt c vs e <- alts]
 
 preFunc :: FuncName -> [Expr] -> Prop Req
 \end{code}
-\caption{Precondition of an expression, \C{pre}}
+\caption{Precondition of an expression, \C{pre}.}
 \label{fig:precondition}
 \end{figure}
 
-There exists a precondition for every function such that if this precondition holds, then all function calls made will have their preconditions respected. The precondition on the \C{error} function is False. The process of analysis can be seen as deriving these preconditions.
+For every function, constraints on the arguments form a precondition for pattern safety. This precondition implies that all function calls made will have their preconditions met. The precondition on \C{error} is False. The process of analysis can be seen as deriving these preconditions.
 
-A program is safe if the precondition on \C{main} is True. Given a function that returns the precondition on a functions arguments \C{preFunc}, a function to determine the precondition on an expression can be specified as \C{pre} in figure \ref{fig:precondition}. A fixed point is found iff:
+A program is safe if the precondition on \C{main} is True. Given a function that returns the precondition on a function's arguments \C{preFunc}, a function to determine the precondition on an expression can be specified as \C{pre} in figure \ref{fig:precondition}.
+
+\subsubsection{Precondition Fixed Point}
+
+The preconditions given by |preFunc| are sound if a fixed point can be found, satisfying the following property:
 
 \begin{code}
 forall fn, xs `o` preFunc fn xs => pre (instantiate fn xs)
 \end{code}
 
-This property states that the preconditions assigned to each function by \C{preFunc} must imply the preconditions calculated on the instantiation of a function with its arguments. One such fixed point is that all calls to \C{preFunc} return False. A perfect precondition would be such that |preFunc f xs == pre (instantiate f xs)|.
+This property states that the preconditions assigned to each function by \C{preFunc} must imply the preconditions calculated on the instantiation of that function with its arguments. One such fixed point is that all calls to \C{preFunc} return False. A perfect precondition would be such that |preFunc f xs == pre (instantiate f xs)|.
 
-The way preconditions are found for functions is that initially all functions are considered to have the precondition True, apart from error, which has the precondition False. For each precondition that has changed (initially error) all those functions which call this function have their bodies checked, assuming their current precondition. If the precondition has changed, then the new precondition is anded with the current one, and marked as changed. Once all preconditions are stable, a fixed point has been found.
+\begin{figure}
+\begin{code}
+for fn `elem` funcs do conds(fn) <- (fn /= "erorr")
+loop
+    for fn `elem` funcs do
+        conds'(fn) <- conds(fn) && pre (instantiate fn vs)
+    if conds' == conds then break
+    conds <- conds'
+end loop
+    where
+        preFunc fn xs = cond(fn)[vs1/xs1 .. vs_n/xs_n]
+        vs = ... -- free variables
+\end{code}
+\caption{Precondition fixed point calculation.}
+\label{fig:precond_fixp}
+\end{figure}
 
-The reason for anding with the previous value is to ensure termination -- the and ensures that the value only ever becomes more restrictive, and therefore given a constraint model with a finite number of terms, is guaranteed to terminate.
+The algorithm for finding a fixed point is given in Figure \ref{fig:precond_fixp}. Initially all preconditions are assumed to be True, apart from \C{error}, which is False. New preconditions are calculated for every function, until the conditions do not change. The reason for anding with the previous precondition is to ensure termination. In each iteration the preconditions become more restrictive, and therefore given a constraint model with a finite number of terms, termination is guaranteed.
 
-A fixed point can be obtained more quickly by first propagating the functions at the leaf of the call tree. Once these have found a fixed point, it is only possible for the functions they call to require further computation with this expression. This technique is implemented by constructing a call graph, and taking a flattening to get an effective order for propagation, and can substantially reduce the amount of work required.
+A more efficient algorithm can be derived by tracking which preconditions depend on which others, and only performing the minimum amount of recalculation. Computing the preconditions for functions based on the dependencies can also speed up the computation. Constructing a set of strongly connected components would also allow the computation for separate parts of the program to be performed in isolation. 
 
-The given computation of preconditions does not respect laziness, in particular the \C{Call} equation demands the preconditions to hold on all its arguments -- only correct if a function is strict on its arguments. For example the precondition on |False && error "here"| is False, when it should be True. This definition is more restrictive, so is still sound. The analysis relies on laziness for transformations.
+\subsubsection{Preconditions and Laziness}
 
-To introduce laziness an evaluation method could be added, which would require an additional fixed point computation, and complicate both the analysis and the generated constraints. In practice simply inlining |(&&)| and |(||||)| achieves most of the benefits that a laziness analysis would provide.
+This method for computing preconditions does not respect laziness. The \C{Call} equation demands that preconditions to hold on all arguments -- only correct if a function is strict in all arguments. For example, the precondition on |False && error "here"| is False, when it should be True. In general, preconditions may be more restrictive than necessary, so remains sound. The analysis relies on laziness for transformations.
+
+To introduce laziness an evaluation method could be added, which would require an additional fixed point computation, and complicate both the analysis and the generated constraints. Investigation of a range of examples suggests inlining |(&&)| and |(||||)| achieves most of the benefits that a laziness analysis would provide.
 
 
 \subsection{Manipulating constraints}
 \label{sec:backward}
+
+\todo{Fixed up to here!}
 
 Constraints on arguments to a function can be considered as preconditions to that function. All other constraints can be reduced using the process denoted by a function \C{back}, which takes a constraint and returns a predicate over constraints. This function is detailed in Figure~\ref{fig:backward}. The \C{backs} function repeatedly applies these rules until the only remaining constraints will be either on arguments to the function.
 
@@ -482,6 +514,7 @@ accept v k = backs (f v :< k)
 If we assume that the |(||>)| operator reduces a constraint to the arguments to the \C{Make}, then this operator results in only constraints on \C{Make} being generated -- since all children are guaranteed to be \C{Make}. This observation allows a simple encoding of the semantics of a constraint system.
 
 \subsection{Regular Expression Based}
+\label{sec:regexp}
 
 \begin{figure}
 \begin{code}
@@ -600,7 +633,7 @@ In addition to having useful simplification rules, by having a more accurate equ
 The Catch system operates primarily on algebraic propositions, using the simplification rules where possible. Factorisation and expansion of propositions is not performed -- they can lead to additional simplification but can also potentially increase the proposition size. Before equality is performed, the proposition is first turned into a BDD and normalised -- which helps to obtain a fixed point quicker.
 
 \subsection{Enumeration Based}
-
+\label{sec:multipattern}
 
 \begin{figure}
 \begin{code}
