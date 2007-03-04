@@ -48,6 +48,7 @@
 %format xs1 = "\Varid{xs_1}"
 %format xs_n = "\Varid{xs_n}"
 %format vs_n = "\Varid{vs_n}"
+%format v_n = "\Varid{v_n}"
 
 
 %format a  = "\Varid{a}"

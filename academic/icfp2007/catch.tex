@@ -342,7 +342,7 @@ data Req = Expr :< Constraint
 
 notin :: CtorName -> Constraint
 (|>) :: Field -> Constraint -> Constraint
-(<|) :: Expr -> Constraint -> Prop Req
+(<|) :: CtorName -> Prop Req
 \end{code}
 \caption{Constraint operations.}
 \label{fig:constraint}
@@ -412,41 +412,45 @@ end loop
 
 The algorithm for finding a fixed point is given in Figure \ref{fig:precond_fixp}. Initially all preconditions are assumed to be True, apart from \C{error}, which is False. New preconditions are calculated for every function, until the conditions do not change. The reason for anding with the previous precondition is to ensure termination. In each iteration the preconditions become more restrictive, and therefore given a constraint model with a finite number of terms, termination is guaranteed.
 
-A more efficient algorithm can be derived by tracking which preconditions depend on which others, and only performing the minimum amount of recalculation. Computing the preconditions for functions based on the dependencies can also speed up the computation. Constructing a set of strongly connected components would also allow the computation for separate parts of the program to be performed in isolation. 
+A more efficient algorithm can be derived by tracking which preconditions depend on which others, and only performing the minimum amount of recalculation. Computing the preconditions for functions based on the dependencies can also speed up the computation. Constructing a set of strongly connected components would also allow the computation for separate parts of the program to be performed in isolation.
 
 \subsubsection{Preconditions and Laziness}
 
 This method for computing preconditions does not respect laziness. The \C{Call} equation demands that preconditions to hold on all arguments -- only correct if a function is strict in all arguments. For example, the precondition on |False && error "here"| is False, when it should be True. In general, preconditions may be more restrictive than necessary, so remains sound. The analysis relies on laziness for transformations.
 
-To introduce laziness an evaluation method could be added, which would require an additional fixed point computation, and complicate both the analysis and the generated constraints. Investigation of a range of examples suggests inlining |(&&)| and |(||||)| achieves most of the benefits that a laziness analysis would provide.
+To introduce laziness an evaluation method could be added, which would require an additional fixed point computation, and complicate both the analysis and the generated constraints. Investigation of a range of examples suggests inlining |(&&)| and |(||||)| captures many of the common cases where laziness would be required.
 
 
 \subsection{Manipulating constraints}
 \label{sec:backward}
-
-\todo{Fixed up to here!}
-
-Constraints on arguments to a function can be considered as preconditions to that function. All other constraints can be reduced using the process denoted by a function \C{back}, which takes a constraint and returns a predicate over constraints. This function is detailed in Figure~\ref{fig:backward}. The \C{backs} function repeatedly applies these rules until the only remaining constraints will be either on arguments to the function.
 
 \begin{figure}
 \begin{code}
 back :: Req -> Prop Req
 back (Var   x         :< k) = on :< (c |> k)
     where Just (on, c) = var x
-back (Make  c   xs    :< k) = Make c xs <| k
-back (Call  fn  xs    :< k) = template k fn xs
+back (Make  c   xs    :< k) = replaceVars xs (c <| k)
 back (Case  on  alts  :< k) = and [f c e | Alt c vs e <- alts]
     where f c e = (on :< notin c) || back (e :< k)
+back (Call  fn  xs    :< k) = replaceVars xs (property fn k)
 
 backs :: Prop Req -> Prop Req
+property :: FuncName -> Constraint -> Prop Req
+replaceVars :: [Expr] -> Prop Req -> Prop Req
 \end{code}
 \caption{Specification of backward analysis, \C{back}}
 \label{fig:backward}
 \end{figure}
 
+Constraints on arguments to a function can be considered as preconditions to that function. Constraints on other expressions can be rewritten using the \C{back} function, detailed in Figure \ref{fig:backward}. The \C{backs} function repeatedly applies the \C{back} function rules until all remaining constraints are on arguments.
+
+The \C{replaceVars} function takes a proposition of constraints over a set of variables, |v1..v_n|, and replaces each variable with a corresponding expression. This implementation ensures that the function \C{property} and the operator |(<||)| are not effected by the expressions within the \C{Call} or \C{Make}.
+
 \begin{description}
 
-\item[The \C{Var} rule] applies only to variables which are bound by case expressions. This rule moves the condition from the bound variable to the subject of the |case| expression which introduced it. The |(||>)| operation can be seen as extending a constraint from being on one small part of the data structure, to being on the entire data structure. The implementation of this operation on the simple constraint type is now given:
+\item[The \C{Var} rule] applies only to variables which are bound by case expressions. This rule moves the condition from the bound variable to the subject of the |case| expression which introduced it.
+    
+    This equation requires the |(||>)| operation, which lifts a constraint on one part of a data structure, to a constraint on the entire data structure. The implementation of this operation on the simple constraint type is now given:
 
 \begin{code}
 (c,i) |> k = map extend k
@@ -456,52 +460,62 @@ backs :: Prop Req -> Prop Req
     n = arity c
 \end{code}
 
-\item[The \C{Make} rule] deals with an application of a constructor. The |(<||)| operator changes to the constraint from one on the entire structure, to one on each of the parts of the constructor.
+\item[The \C{Make} rule] deals with an application of a constructor. The |(<||)| operator splits a basic constraint on an entire structure into a combination of constraints on each part.
 
 \begin{code}
-(Make c xs) <| k = or (map f k)
+c <| k = propOr (map f k)
     where
+    vs = [Var ('v':show i) | i <- [1..]]
     f Any = Any
-    f (Match c2 xs2) = c2 == c &&
-        and (zipWith (:<) xs (map (:[]) xs2))
+    f (Match c2 xs) = c2 == c &&
+        and (zipWith (:<) vs (map (:[]) xs))
 \end{code}
-
-\item[The \C{Call} rule] relies on properties being derived on the function being called, and applied here. This process is explained in \S\ref{sec:template}, using a process called templating.
 
 \item[The \C{Case} rule] generates a conjunct for each alternative. The generated condition says either the subject of the case analysis has a different constructor (so this particular alternative is not executed in this circumstance), or the right hand side of the alternative is safe given the conditions for this expression.
+
+\item[The \C{Call} rule] relies on properties of the applied function. The key property of this equation is:
+    
+    \begin{code}
+    forall fn, xs, k `o`  backs (Call fn xs :< k) =>
+                          backs (instantiate fn xs :< k)
+    \end{code}
+    
+    Two strategies that can be used to implement this:
+    
+    \begin{enumerate}
+    \item Use $\beta$ substitution (\C{instantiate}) replacing the call with the body of |fn|.
+    \item Create fresh variables for each element in |xs|, solve this new problem, and then instantiate the results.
+    \end{enumerate}
+    
+    An earlier version of the Catch tool \citep{me:catch_tfp} used method 1. But the current version uses method 2, which is more amenable to finding a fixed point, and allows a cache of results to be built from which future questions can be answered.
+    
+    The implementation uses a function \C{property} which fresh variables and solves the problem on this problem. The \C{replaceVars} changes the fresh variables into the arguments give to the |Call|.
+
+    \begin{figure}
+    \begin{code}
+    ps <- [(fn,k) | fn <- funcs, k <- constraints]
+    for (fn,k) `elem` ps do prop(fn,k) := True
+    loop
+        for (fn,k) `elem` p do
+            prop'(fn,k) := prop(fn,k) && backs (instantiate fn vs :< k)
+        if prop' == prop then break
+        prop <- prop'
+    end loop
+        where
+            property fn k = prop(fn,k)
+    \end{code}
+    \caption{Fixed point calculation for \C{property}.}
+    \label{fig:property_fixp}
+    \end{figure}
+        
+    The properties can be calculated by obtaining a fixed point as detailed in Figure \ref{fig:property_fixp}. In a similar strategy to the fixed point for preconditions in \S\ref{sec:precond}, each result is anded with its existing value. Given that there are a finite number of constraints, there are only a finite number of constraint/function pairs, which guarantees that this function terminates.
+    
+    In a similar way to the precondition fixed point, a speed up can be obtained by tracking the dependencies between constraints.
 \end{description}
-
-
-\subsection{Templating}
-\label{sec:template}
-
-When a constraint of the form |Call fn xs :< k| is found, this constraint needs to be reduced to a proposition of constraints on the expressions in |xs|. There are two strategies that can be used. One method is to use the $\beta$ substitution rule (\C{instantiate}) from $\lambda$-calculus, and replace the call with the body of |fn|. Another alternative is to create fresh variables for each element in |xs|, solve this new problem, and then instantiate the results.
-
-An earlier version of the Catch tool chose the former method, but the current version chooses the latter. The later is more amenable to finding a fixed point, and allows for a cache of the results to be built from which future questions can be answered. This cache of results can be seen as a set of axioms, and indeed this cache is saved to a file for future examination after Catch has finished.
-
-The primary template mechanism, and its essential condition are given as:
-
-\begin{code}
-template :: Constraint -> FuncName -> [Expr] -> Prop Req
-
-forall fn, xs `o` p xs => backs (instantiate fn xs :< k)
-    where p = template k fn
-\end{code}
-
-The condition can be read as given a function call and a constraint, the resulting condition on the arguments must ensure that the condition holds on the instantiated body.
-
-The mechanism used to calculate a fixed point is to execute the template function for one iteration, on the body of the function instantiated with free variables for each argument. After the result is obtained, it is anded with the existing value. If any other template is invoked within the template call then this call must be considered at the same time as the current template. Each template is checked in turn until all templates do not change.
-
-Given that there are a finite number of constraints, there are only a finite number of constraint/function pairs, which guarantees that this function terminates.
-
-\section{Real Constraints}
-\label{sec:constraint}
-
-There are various interpretations of constraints, here we outline two that have been used in various versions of Catch. Neither is strictly more powerful than the other, both are capable of expressing constraints that the other system cannot.
 
 \subsection{Semantics of Constraints}
 
-Before discussing various types of constraint, it is useful to have a way of expressing which values a constraint accepts. It turns out that the |(||>)| operator introduced earlier already provides all the necessary information:
+It is useful to have a way of expressing which values a constraint accepts. It turns out that the |(||>)| operator introduced earlier already provides all the necessary information:
 
 \begin{code}
 data Value = Value CtorName [Value]
@@ -512,6 +526,12 @@ accept v k = backs (f v :< k)
 \end{code}
 
 If we assume that the |(||>)| operator reduces a constraint to the arguments to the \C{Make}, then this operator results in only constraints on \C{Make} being generated -- since all children are guaranteed to be \C{Make}. This observation allows a simple encoding of the semantics of a constraint system.
+
+
+\section{Constraint Systems}
+\label{sec:constraint}
+
+There are various interpretations of constraints, here we outline two -- one adapted from \catch05, the other used in \catch07. Neither is strictly more powerful than the other; each is capable of expressing constraints that the other cannot expression.
 
 \subsection{Regular Expression Based}
 \label{sec:regexp}
