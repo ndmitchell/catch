@@ -255,7 +255,7 @@ isRec        :: Field     -> Bool
 \label{fig:core_operations}
 \end{figure}
 
-Figure \ref{fig:core_operations} gives functions which the checker uses to operate over the core data type. Every constructor has an arity, which can be obtained with the \C{arity} function. To determine all constructors in a set the \C{ctors} function can be used, for example |ctors True = {False, True}| and |ctors [] = {[], :}|. The \C{var} function returns \C{Nothing} for variables which are arguments, and \C{Just} with the expression on the \C{Case} expression and the field. The function \C{instantiate} corresponds to $\beta$ reduction in $\lambda$ calculus.
+Figure \ref{fig:core_operations} gives functions which the checker uses to operate over the core data type. Every constructor has an arity, which can be obtained with the \C{arity} function. To determine all constructors in a set the \C{ctors} function can be used, for example |ctors True = {False, True}| and |ctors [] = {[], :}|. The \C{var} function returns \C{Nothing} for variables which are arguments, and \C{Just} with the expression on the \C{Case} expression and the field. The function \C{instantiate} corresponds to $\beta$ reduction.
 
 The |isRec (c,n)| function returns true if the constructor |c| has a recursive element at position |n|. This function is used to bound the size of constraints. Taking the example of a \C{List}:
 
@@ -338,15 +338,17 @@ data Match  =  Match CtorName [Match]
 
 \begin{figure}
 \begin{code}
-data Req = Expr :< Constraint
+data Req a = a :< Constraint
 
 notin :: CtorName -> Constraint
 (|>) :: Field -> Constraint -> Constraint
-(<|) :: CtorName -> Prop Req
+(<|) :: CtorName -> Prop (Req Int)
 \end{code}
 \caption{Constraint operations.}
 \label{fig:constraint}
 \end{figure}
+
+\todo{COLIN QUESTION: Propositions are never introduced, and things like |(||||)| and |(&&)| etc are assumed to work over propositions and booleans equally. Is this wrong? Should this be fixed? What about \C{propLit}?}
 
 A basic constraint directly corresponds to Haskell pattern matching. A constraint is a finite set of patterns represented in Figure \ref{fig:basic}. A given data structure |d| satisfies a constraint |ms| if |d| matches at least one pattern in |ms|. True and false can be represented as |[Any]| and |[]| respectively.
 
@@ -366,14 +368,14 @@ This constraint language violates the property of having a finite number of cons
 
 \begin{figure}
 \begin{code}
-pre :: Expr -> Prop Req
+pre :: Expr -> Prop (Req Expr)
 pre (Var   x         ) = True
 pre (Make  _   xs    ) = and (map pre xs)
 pre (Call  fn  xs    ) = preFunc fn xs && and (map pre xs)
 pre (Case  on  alts  ) = pre on && and [f c e | Alt c vs e <- alts]
     where f c e = (on :< notin c) || pre e
 
-preFunc :: FuncName -> [Expr] -> Prop Req
+preFunc :: FuncName -> [Expr] -> Prop (Req Expr)
 \end{code}
 \caption{Precondition of an expression, \C{pre}.}
 \label{fig:precondition}
@@ -426,7 +428,7 @@ To introduce laziness an evaluation method could be added, which would require a
 
 \begin{figure}
 \begin{code}
-back :: Req -> Prop Req
+back :: Req Expr -> Prop (Req Expr)
 back (Var   x         :< k) = on :< (c |> k)
     where Just (on, c) = var x
 back (Make  c   xs    :< k) = replaceVars xs (c <| k)
@@ -434,9 +436,11 @@ back (Case  on  alts  :< k) = and [f c e | Alt c vs e <- alts]
     where f c e = (on :< notin c) || back (e :< k)
 back (Call  fn  xs    :< k) = replaceVars xs (property fn k)
 
-backs :: Prop Req -> Prop Req
-property :: FuncName -> Constraint -> Prop Req
-replaceVars :: [Expr] -> Prop Req -> Prop Req
+backs :: Prop Req -> Prop (Req VarName)
+property :: FuncName -> Constraint -> Prop (Req Int)
+
+replaceVars :: [Expr] -> Prop (Req Int) -> Prop (Req Expr)
+replaceVars xs p = mapProp (\(i:<k) -> (xs!!i) :< k) p
 \end{code}
 \caption{Specification of backward analysis, \C{back}}
 \label{fig:backward}
@@ -465,10 +469,9 @@ The \C{replaceVars} function takes a proposition of constraints over a set of va
 \begin{code}
 c <| k = propOr (map f k)
     where
-    vs = [Var ('v':show i) | i <- [1..]]
     f Any = Any
     f (Match c2 xs) = c2 == c &&
-        and (zipWith (:<) vs (map (:[]) xs))
+        and (zipWith (:<) [0..] (map (:[]) xs))
 \end{code}
 
 \item[The \C{Case} rule] generates a conjunct for each alternative. The generated condition says either the subject of the case analysis has a different constructor (so this particular alternative is not executed in this circumstance), or the right hand side of the alternative is safe given the conditions for this expression.
@@ -515,30 +518,39 @@ c <| k = propOr (map f k)
 
 \subsection{Semantics of Constraints}
 
-It is useful to have a way of expressing which values a constraint accepts. It turns out that the |(||>)| operator introduced earlier already provides all the necessary information:
+It is useful to have a way of expressing which values a constraint accepts. It turns out that the |(||>)| operator already provides all the necessary information:
 
 \begin{code}
 data Value = Value CtorName [Value]
 
 accept :: Value -> Constraint -> Bool
-accept v k = backs (f v :< k)
-    where f (Value c xs) = Make c (map f xs)
+accept (Value c xs) = mapProp f (c <| k)
+    where f (i :< k2) = accept (xs !! i) k2
 \end{code}
 
-If we assume that the |(||>)| operator reduces a constraint to the arguments to the \C{Make}, then this operator results in only constraints on \C{Make} being generated -- since all children are guaranteed to be \C{Make}. This observation allows a simple encoding of the semantics of a constraint system.
+With this representation of the semantics of a constraint, it is now possible to state more concretely the properties that were previously stated about the other operations:
 
+\begin{code}
+forall v, k, i `o` accept v ((c,i) |> k) => (c2 /= c || accept (x !! i) k)
+    where Value c2 xs = v
+
+forall v, c `o` accept v (notin c) => (valueCtor v /= c)
+    where valueCtor (Value c2 xs) = c2
+\end{code}
+
+Note that in both properties the |=>| operator is used -- the constraints may become more restrictive than necessary to capture the semantics.
 
 \section{Constraint Systems}
 \label{sec:constraint}
 
 There are various interpretations of constraints, here we outline two -- one adapted from \catch05, the other used in \catch07. Neither is strictly more powerful than the other; each is capable of expressing constraints that the other cannot expression.
 
-\subsection{Regular Expression Based}
+\subsection{Regular Expression Constraints}
 \label{sec:regexp}
 
 \begin{figure}
 \begin{code}
-data Constraint = RegExp :! [CtorName]
+data Constraint = RegExp :- [CtorName]
 
 type RegExp = [Atom]
 
@@ -548,12 +560,12 @@ data Atom  =  Atom  Field
 notin :: CtorName -> Constraint
 notin c = [] :- delete c (ctors c)
 
-(|>) :: PathName -> Constraint -> Constraint
-p |> (r :- c) = integrate p r :- c
+(|>) :: Field -> Constraint -> Constraint
+p |> (r :- cs) = integrate p r :- cs
 
-(<|) :: Expr -> Constraint -> Prop Req
-(Make c xs) <| (r :- cs) = (ewp r => c `elem` cs) &&
-    and (zipWith f (paths c) xs)
+(<|) :: CtorName -> Constraint -> Prop Req
+c <| (r :- cs) = (ewp r => c `elem` cs) &&
+    and (zipWith f (paths c) [0..])
     where
     f p x = case  differentiate p r of
                   Nothing -> True
@@ -564,47 +576,46 @@ ewp x = all isStar x
    where  isStar (Star  _) = True
           isStar (Atom  _) = False
 
-integrate :: PathName -> RegExp -> RegExp
+integrate :: Field -> RegExp -> RegExp
 integrate p r | not (isRec p) = Atom p : r
 integrate p (Star ps:r) = Star (nub (p:ps) : r)
 integrate p r = Star [p] : r
 
-differentiate :: PathName -> Path -> Maybe Path
+differentiate :: Field -> Path -> Maybe Path
 differentiate p [] = Nothing
 differentiate p (Atom  r:rs)  | p == r     = Just rs
                               | otherwise  = Nothing
 differentiate p (Star  r:rs)  | p `elem` r  = Just (Star r:rs)
                               | otherwise   = differentiate p rs
 \end{code}
-\caption{Regular expression based constraints}
+\caption{RE-constraints.}
 \label{fig:regexp}
 \end{figure}
 
-The original Catch tool used regular expression based constraints. A data type for the constraint, along with the essential operations upon it is given in Figure \ref{fig:regexp}. Given a constraint |(r :- c)|, |r| is referred to as the regular expression, and |c| is referred to as the set of constructors. Such a constraint matches those data values such that any well-defined application of a path of selectors described by |r| must reach a constructor in the set |c|.
+\catch05 used regular expressions in constraints. A data type for regular expression based constraints (RE-constraints), along with the essential operations upon it is given in Figure \ref{fig:regexp}. In a constraint of the form |(r :- cs)|, |r| is a regular expression, and |cs| is a set of constructors. Such a constraint is satisfied by a data structure if every well-defined application to a path of fields described by |r| reaches a constructor in the set |cs|.
 
-The meaning of a constraint is defined by:
+That is:
 
 \begin{code}
 e :< (r :- c) <=> (forall l `elem` lang r `o` defined e l => ctor e l `elem` c)
 \end{code}
 
-Here |lang r| is the language represented by the regular expression |r|; \C{defined} returns true if a path selection is well-defined; and \C{ctor} gives the constructor used to create the data, after following the path. Since |lang r| is potentially infinite, this property cannot be checked by enumeration.
+Here |lang r| is the language represented by the regular expression |r|; \C{defined} returns true if a path selection is well-defined; and \C{ctor} gives the constructor used to create the data, after following the path. Since |lang r| is potentially infinite, this property cannot be checked by enumeration. If no path selection is well-defined then the constraint is vacuously true.
 
-If no path selection is well-defined then the constraint is vacuously true.
-
-A regular expression is defined as:\\ \\
+As usual, a regular expression takes on of six forms:\\ \\
 \begin{tabular}{ll}
-|s+t| & union of regular expressions |s| and |t| \\
+|s+t|  & union of regular expressions |s| and |t| \\
 |s^.t| & concatenation of regular expressions |s| then |t| \\
 |s^*|  & any number (possibly zero) occurrences of |s| \\
-\C{x} & a path, such as \C{hd} or \C{tl} \\
-0 & the language is the empty set \\
-1 & the language is the set containing the empty string
+\C{x}  & a field, i.e. |(:,0)| for the head of a list \\
+       & We use \C{hd} to abbreviate |(:,0)| and \C{tl} to abbreviate |(:,1)|. \\
+0      & the language is the empty set \\
+1      & the language is the set containing the empty string
 \end{tabular} \\
 
-The differentiation operation is that as defined by \citet{conway:regexp}, and called quotient in some text books. The empty word property (\C{ewp}) is equivalent to |lang 1 `subseteq` lang r|, and can be calculated simply from a regular expression. Integration is merely the inverse of differentiation -- not usually treated as a separate operation in most regular expression systems.
+The differentiation operation is defined by \citet{conway:regexp}, and called quotient in some text books. The empty word property (\C{ewp}) is equivalent to |lang 1 `subseteq` lang r|, and can be calculated simply from a regular expression. Integration is the inverse of differentiation.
 
-In the original version of Catch regular expressions were based on the full regular expression language. However this implementation is limited to concatenation of atoms, or stars of unions. Formally the context free grammar is:
+\catch05 regular expressions were unrestricted. In contrast \catch07 is limited to concatenation of atoms, or stars of unions. Formally the context free grammar is:
 
 \[\begin{array}{lllll}
 r & = & 1     & || & |a^.r| \\
@@ -612,56 +623,73 @@ a & = & \C{x} & || & |u^*| \\
 u & = & \C{x} & || & \C{x} + u
 \end{array}\]
 
-There are additional restrictions on regular expressions: all paths which are recursive must be under \C{Star} and all which are not must be \C{Atom}; two \C{Star}'s are not allowed to be concatenated to each other.
+There are additional restrictions on regular expressions: all fields for which \C{isRec} returns true must be under \C{Star} and all which are not must be \C{Atom}. Also two \C{Star}s cannot be concatenated.
 
-This restricted regular expression language, combined with 0, is closed under integration and differentiation. The 0 alternative is catered for by the \C{Maybe} return type in the differentiation. The constraint |0 :- c| always evaluates to True, so in |(<||)|, \C{Nothing}\ is replaced by True.
+In \catch05 regular expressions quickly grew to an unmanageable size, thwarting analysis of larger programs. The original solution to this problem was to bound the number of successive fields to some depth, typically 3, and use kleene star for anything larger. The restricted language was chosen for several reasons:
 
-The constructors, because of static typing and the restricted form of regular expression, must all be of the same type.  Given a finite type, these restrictions are enough to ensure that there are only a finite number of regular expressions. Combined with the finite number of constructors, this property is enough to guarantee finiteness, which satisfies the termination properties assumed on constraints.
+\begin{itemize}
+\item The constructors, because of static typing and the restricted form of regular expression, must all be of the same type. In \catch05 expressions such as |hd^*| could arise, which is no longer type safe.
 
-\todo{More examples here?}
+\item There are only a finite number of regular expressions for any type. Combined with the finite number of constructors, this property is enough to guarantee finiteness, which satisfies the termination properties assumed on constraints.
 
-Two examples of constrains are:
+\item This restricted regular expression language, combined with 0, is closed under integration and differentiation. The 0 alternative is catered for by the \C{Maybe} return type in the differentiation. The constraint |0 :- c| always evaluates to True, so in |(<||)|, \C{Nothing}\ is replaced by True.
+\end{itemize}
 
-\begin{code}
-e :< (1 :- {:})
-\end{code}
+\subsection{Example Constraints}
+\label{sec:small_examples}
 
-This constraint says that the expression must be a cons.
-
-\begin{code}
-e :< (tl ^* ^. hd :- {:})
-\end{code}
-
-This constraint says that a list must consist of |(:)| constructed elements. If the list is empty, it still satisfies the constraint. If the list is infinite then the condition applies to all elements, constraining an infinite number. This constraint was not possible with the simple constraint framework introduced earlier.
-
-\subsection{Propositions on Regular Expression Constraints}
-
-The underlying type that is manipulated by Catch is not a constraint, but a proposition of constraints. These propositions are compared for equality to obtain a fixed point, and are variously manipulated by the system. Since the complexity of performing an operation is often proportional to the number of constraints in the proposition, having simplification rules can lead to a big win.
-
-From the definition of the constraints it is possible to construct a number of identities which can be used for simplification.
+In order to introduce the constraints more concretely, we shall express the preconditions to a set of sample expressions:
 
 \begin{description}
-\item[Exhaustive conditions:] in the constraint |e :< (r :- [":","[]"])| the condition lists all the possible constructors, if |e| reaches weak head normal form then because of static typing |e| must be one of these constructors, therefore this constraint simplifies to True.
+\item[|(head x)|] is safe if |x| evaluates to a non-empty list. The constraint for this is:
+    
+    \begin{code}
+    x :< (1 :- {:})
+    \end{code}
 
-\item[Constraint merging:] given |e :< (r :- c1) `and` e :< (r :- c2)|, this constraint can be replaced by |e :< (r :- (c1 `union` c2))|.
+\item[|(map head x)|] is safe if |x| evaluates to a list of non-empty lists. This is expressed as:
+    
+    \begin{code}
+    x :< (tl^* ^. hd :- {:})
+    \end{code}
+    
+    If the list is empty, it still satisfies the constraint. If the list is infinite then the condition applies to all elements, constraining an infinite number. This constraint was not possible with the simple constraint framework introduced earlier.
 
-\item[More] \todo{more constraints are in the source code, move a few of the better ones to this document}.
+\item[|(map head (reverse x))|] is safe if either every item in the list is |(:)|-constructed, or if the list is infinite -- as in this case \C{reverse} will not terminate.
+    
+    \begin{code}
+    x :< (tl^* ^. hd :- {:}) || x :< (tl^* :- {:})
+    \end{code}
 \end{description}
 
-In addition to having useful simplification rules, by having a more accurate equality test, a fixed point can be reached earlier. A standard algebraic proposition is useful, but testing for the equality of two propositions is a challenge. If you have an ordering over constraints, then you can use a Binary Decision Diagram (BDD) which guarantees a unique normal form for each proposition. The other advantage of BDD's is that (assuming every term is independent) there will be no terms remaining which do not directly effect the truth of a proposition. In this constraint system terms are not independent, but a BDD would still achieve a useful reduction.
+\subsection{Constraint Propositions}
 
-The Catch system operates primarily on algebraic propositions, using the simplification rules where possible. Factorisation and expansion of propositions is not performed -- they can lead to additional simplification but can also potentially increase the proposition size. Before equality is performed, the proposition is first turned into a BDD and normalised -- which helps to obtain a fixed point quicker.
+The underlying type manipulated by Catch is not a constraint, but propositional formulae with constraints as atomic propositions. These propositions are compared for equality to obtain a fixed point, and are variously manipulated by the system. Since the complexity of performing an operation is often proportional to the number of atomic constraints in the proposition, simplification rules can decrease the running time.
 
-\subsection{Enumeration Based}
+From the definition of the constraints it is possible to construct a number of simplification rules. There are nineteen rules implemented in the current checker, three particularly useful ones are:
+
+\begin{description}
+\item[Exhaustive conditions:] in the constraint |x :< (r :- {:,[]})| the condition lists all the possible constructors, if |x| reaches weak head normal form then because of static typing |x| must be one of these constructors, therefore this constraint simplifies to True.
+
+\item[And merging:] given |e :< (r :- c1) && e :< (r :- c2)|, this constraint can be replaced by |e :< (r :- (c1 `union` c2))|.
+
+\item[Or merging:] given |e :< (r1 :- c1) || e :< (r2 :- c2)|, where |r1 `subseteq` r2 && c1 `subseteq` r2|, this can be replaced by |e :< (r2 :- c2)|.
+\end{description}
+
+All the fixed point algorithms given in this paper stop once equal values are found. One method for testing a proposition for equality is to transform it to disjunctive normal form -- unfortunately this can often cause the size of the proposition to increase substantially. We use a Binary Decision Diagram (BDD) \citep{lee:bdd} to test for equality faster.
+
+\subsection{Multipattern Constraints}
 \label{sec:multipattern}
 
 \begin{figure}
 \begin{code}
 type Constraint = [Val]
 
-data Val   =  Part :* Part
-           |  Any
-data Part  =  Part [(CtorName, [Val])]
+data Val    =  [Match] :* [Match]
+            |  Any
+data Match  =  Match CtorName [Val]
+
+-- REWRITE TO USE NEW TYPES
 
 -- useful auxiliary, the non-recursive paths
 fields :: [CtorName] -> [PathName]
@@ -684,6 +712,7 @@ p |> vs = notin c ++ map f vs
     f v = ([c] :| fs) :* (cs :| as)
         where fs = [(x, if x == p then v else Any) |  x <- xs]
 
+-- TODO, use the new signature for this
 (<|) :: Expr -> Constraint -> Prop Req
 (Make c xs) <| vs = or (map f vs)
     where
@@ -698,72 +727,97 @@ mergePart :: Part -> Part -> Part
 mergePart (c1 :| v1) (c2 :| v2) = (c1 `intersect` c2) :| zipWith f v1 v2
     where f (p1,v1) (p2,v2) = assert (p1 == p2) (v1 `mergeVal` v2)
 \end{code}
-\caption{Enumeration Based Constraints}
+\caption{MP-constraints.}
 \label{fig:enumeration}
 \end{figure}
 
-The enumeration based constraints are implemented as in figure \ref{fig:enumeration}. These constraints are similar to those given as the basic example model of constraints, but can constrain an infinite number of items, and can be represented in a finite space.
+While the RE-constraints are capable of solving many problems, they suffer from a problem of scale. As the system becomes more complex the size of the propositions grows quickly, slowing down the system to an unacceptable level. Multipattern constraints (MP-constraints) are an alternative which scales better.
 
-Each constraint has two parts, the first part (before the |:*|) represents the constructor and the non-recursive fields. The second part represents all recursive fields. Given a constraint |((c1 :* v1) :|| (c2 :* v2))|, each |c| is a set of constructors, and each |v| is a mapping from non-recursive field names to values. In this example, |c1| is the set of constructors allowed in the value, and |c2| is the set allowed after following \textit{any number} of recursive fields. Similarly, |v1| represents the fields allowed following non-recursive field names from the root and |v2| lists the field names from the recursive values.
+MP-constraints are implemented as in Figure \ref{fig:enumeration}. These constraints are similar to basic pattern constraints, but can constrain an infinite number of items, and can be represented in a finite space.
 
-To take the examples from the regular expression based constraints:
+Given a constraint |p1 :* p2|, |p1| is the restricts the current value, while |p2| restricts all the recursive fields. Each part is given as a set of matches -- much like the simple pattern language in \S\ref{sec:basic}. The difference is that each \C{Match} only specifies the values for the non-recursive fields, all recursive fields are handled by |p2|. The proof that there are finitely many multipattern constraint for a given type is relatively easy.
 
-\begin{code}
-cons = ([":"] :| [("hd",Any)]) :* (["[]",":"] :| [("hd",Any)])
-\end{code}
+Revisiting the examples from the RE-constraints in \S\ref{sec:small_examples}:
 
-This constraint states that the first constructor is a |(:)|. Note that it is a lot more verbose than the regular expression one. This constraint is much more explicit -- even though no conditions are introduced on \C{hd}, the mapping from \C{hd} to \C{Any} is given explicitly.
+\begin{description}
+\item[|(head x)|] requires |x| to be a non-empty list.
 
-A simple form of pretty printing is employed to reduce the complexity of constraints for the user. \todo{describe here}
+    \begin{code}
+    {(:) Any} :* {[], (:) Any}
+    \end{code}
+    
+    This constraint is longer than the corresponding RE-constraint, partly because it is more explicit. Although no restriction is given on the \C{hd} field, it is still stated.
 
-Taking the next example from regular expressions:
+\item[|(map head x)|] requires |x| to be a list of non-empty lists.
 
-\begin{code}
-(["[]",":"] :| [("hd",cons)]) :* (["[]",":"] :| [("hd",cons)])
-\end{code}
+    \begin{code}
+    {[], (:) ({(:) Any} :* {[], (:) Any})}
+    :*
+    {[], (:) ({(:) Any} :* {[], (:) Any})}
+    \end{code}
 
-This example reuses the \C{cons} constraint introduced before, in the interest of brevity. Again this constraint is much larger than the regular expression, partly because it fills out all the details.
+\item[|(map head (reverse x))|] requires |x| to be a list of non-empty lists, or infinite. The restriction to an infinite list is expressed as:
 
-The proof of finiteness for these constraints is relatively easy, given a finite type.
+    \begin{code}
+    {(:) Any} :* {(:) Any}
+    \end{code}
+\end{description}
 
-One operation on enumeration constraints that is not given here is normalisation. One way to optimise a constraint would be to remove duplicates. Using the relationship between constraints there are additional reductions that are possible. The normalisation operation is complex, but not difficult. The use of normalisation allows for a fixed point to be found more rapidly.
+While RE-constraints have simplification rules, MP-constraints have a normalisation procedure. Normalisation takes an MP-constraint and returns one which is equivalent, but in a more standard form -- for example in some cases multiple matches can be collapsed into one. In a similar manner to the RE-constraints, these allow a fixed point to be found faster.
 
-\subsection{Enumeration Based Propositions}
+\subsection{Multipattern Propositions}
 
-The enumeration constraints have different power to the regular expression constraints, but their primary advantage comes when they are combined into propositions. The advantage is that given two constraints on the same expression, combined at the proposition level, they can be reduced into one constraint:
+The MP-constraints have different power to the RE-constraints, but their primary advantage comes when they are combined into propositions. The advantage is that two constraints on the same expression are combined at the proposition level, they can be reduced into one constraint:
 
 \begin{code}
 (e :< v1) || (e :< v2) = e :< (v1 ++ v2)
 (e :< v1) && (e :< v2) = e :< [a `mergeVal` b | a <- v1, b <- v2]
 \end{code}
 
-Here the list comprehension in the |(&&)| rule is being used to generate the cross-product of the two lists.
+This ability to combine constraints on equal expressions can be exploited further by translating the program to be analysed. After the \C{backs} function has operated, all constraints will be in terms of the arguments to a function -- if all functions took exactly one argument then all expressions could be collapsed. By placing all the arguments to a function into a tuple, a function can be reduced to one with only a single argument. Taking an example:
 
-The power to reduce constraints on equal expressions can be exploited further by translation of the program at the beginning. If every function takes exactly one argument, which guarantees that all expressions will result in being reduced to the same expression, as they will all be reduced to variables, and only one variable is present in each function. The easy way to perform this translation is to introduce tuples where a function would have more than one argument.
+\begin{code}
+(||) x y = case  x of
+                 True   -> True
+                 False  -> y
+\end{code}
 
-Combining these two properties means that a \C{Prop Req} is equivalent in power to \C{Req}. Exploiting this fact can lead to a faster computation of a fixed point.
+\noindent can be translated into:
 
-The introduction of tuples would not harm the regular expression constraint system, due to the simplification rules present, but would not eliminate propositions. None of the simplification rules are able to optimise between discrete components in a tuple, leading to no benefit at the cost of a slightly obfusticated program.
+\begin{code}
+(||) a = case  a of
+               (x,y) -> case  x of
+                              True    -> True
+                              False   -> y
+\end{code}
+ 
+Combining the MP-constraint reduction rules, along with the tupling transformation, a \C{Prop (Req VarName)} is now equivalent in power to \C{Req VarName}. This simplification reduces the number of different propositional values, and obtains a fixed point faster.
+
+In the RE-constraint system the tupling transformation would do no harm, but would be of no benefit either. None of the simplification rules are able to optimise between discrete components in a tuple.
 
 \subsection{Comparison of Constraints}
 
-Both constraint systems are capable of expressing a wide range of values, but neither subsumes the other. To give an example of the power, we give examples of two concrete values where one constraint language can differentiate between them, and the other cannot.
+Both RE-constraints and MP-constraints are capable of expressing a wide range of values, but neither subsumes the other. We give examples where one constraint language can differentiate between a pair of values, and the other cannot.
 
-Take the following two values: |(T:[])| and |(T:T:[])|, using the enumeration based constraint of |(([":"] :| [("hd",Any)]) :* (["[]"] :| [("hd",Any)]))| the first matches but the second does not. Using propositions over regular expression constraints there is no way to differentiate between these two values.
+\begin{example}
+Take the following two values: |(T:[])| and |(T:T:[])|, using the enumeration based constraint of |{(:) Any} :* {[]}| the first matches but the second does not. Using propositions over RE-constraints there is no way to differentiate between these two values.
+\end{example}
 
+\begin{example}
 Taking a tree data structure:
 
 \begin{code}
-data Tree a  =  Branch {left :: Tree a, right :: Tree a}
-             |  Leaf a
+data Tree alpha  =  Branch {left :: Tree alpha, right :: Tree alpha}
+                 |  Leaf alpha
 
 v1 = Branch (Leaf True   ) (Leaf False  )
 v2 = Branch (Leaf False  ) (Leaf True   )
 \end{code}
 
-Taking the values |v1| and |v2|, the regular expression constraint |([Star ["left"]] :- ["True"])| matches |v1| but not |v2|. Using enumeration based constraints, there is no way to differentiate between these two values.
+The RE-constraint |(left^* :- True)| matches |v1| but not |v2|. Using enumeration based constraints, there is no way to differentiate between these two values.
+\end{example}
 
-The final Catch system uses enumeration based constraints, for their propositional simplification rules, which is critical in obtaining a fixed point quickly.
+\catch07 uses MP-constraints, as they scale to much larger examples.
 
 \section{Converting Haskell to Core}
 \label{sec:transform}
