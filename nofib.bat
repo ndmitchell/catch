@@ -5,7 +5,7 @@ if not "%1"=="" goto %1
 set tests=Bernoulli Bernoulli_Safe DigitsOfE1 DigitsOfE1_Safe DigitsOfE2 Exp3_8 Gen_Regexps Gen_Regexps_Safe Integrate Paraffins Paraffins_Safe Primes Queens Rfib Tak X2n1
 
 cd catch_1
-call make
+call make opt
 cd ..
 
 cd gadget
