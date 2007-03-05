@@ -155,7 +155,7 @@ specialise fm = f fm (Map.keys fm)
             func <- specRequest fm (coreFuncMap fm x)
             s <- get
             put s{specPromises=[]}
-            let fs = map (specFulfil fm) $ filter ((`Map.notMember` fm) . fst) $ nub $ reverse $ specPromises s
+            let fs = map (specFulfil fm) $ filter (not . (`Map.member` fm) . fst) $ nub $ reverse $ specPromises s
                 fm2 = foldl (\m x -> Map.insert (coreFuncName x) x m) fm fs
             f (Map.insert x func fm2) (map coreFuncName fs ++ xs)
 
