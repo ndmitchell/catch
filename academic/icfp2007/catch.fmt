@@ -16,6 +16,7 @@
 %format `union` = "\cup{}"
 %format `intersect` = "\cap{}"
 %format not = "\mathsf{not}"
+%format undefined   = "\mathsf{undefined}"
 %format `mergeVal` = "\sqcap{}"
 
 \newcommand{\keyword}[1]{\hspace{-1mm}\text{\textsf{\textbf{ #1}}}}
@@ -30,6 +31,7 @@
 %format end   = "\keyword{end}"
 %format loop  = "\keyword{loop}"
 %format for   = "\keyword{for}"
+
 
 %format a1  = "\Varid{a_1}"
 %format a2  = "\Varid{a_2}"
@@ -106,6 +108,7 @@
 %format zs = "\Varid{zs}"
 
 %format fn = "\Varid{fn}"
+%format fn2 = "\Varid{fn_2}"
 %format on = "\Varid{on}"
 %format etc = "\Varid{etc}"
 %format alts = "\Varid{alts}"

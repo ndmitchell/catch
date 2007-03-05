@@ -454,7 +454,7 @@ The \C{replaceVars} function takes a proposition of constraints over a set of va
 \begin{description}
 
 \item[The \C{Var} rule] applies only to variables which are bound by case expressions. This rule moves the condition from the bound variable to the subject of the |case| expression which introduced it.
-    
+
     This equation requires the |(||>)| operation, which lifts a constraint on one part of a data structure, to a constraint on the entire data structure. The implementation of this operation on the simple constraint type is now given:
 
 \begin{code}
@@ -478,21 +478,21 @@ c <| k = propOr (map f k)
 \item[The \C{Case} rule] generates a conjunct for each alternative. The generated condition says either the subject of the case analysis has a different constructor (so this particular alternative is not executed in this circumstance), or the right hand side of the alternative is safe given the conditions for this expression.
 
 \item[The \C{Call} rule] relies on properties of the applied function. The key property of this equation is:
-    
+
     \begin{code}
     forall fn, xs, k `o`  backs (Call fn xs :< k) =>
                           backs (instantiate fn xs :< k)
     \end{code}
-    
+
     Two strategies that can be used to implement this:
-    
+
     \begin{enumerate}
     \item Use $\beta$ substitution (\C{instantiate}) replacing the call with the body of |fn|.
     \item Create fresh variables for each element in |xs|, solve this new problem, and then instantiate the results.
     \end{enumerate}
-    
+
     An earlier version of the Catch tool \citep{me:catch_tfp} used method 1. But the current version uses method 2, which is more amenable to finding a fixed point, and allows a cache of results to be built from which future questions can be answered.
-    
+
     The implementation uses a function \C{property} which fresh variables and solves the problem on this problem. The \C{replaceVars} changes the fresh variables into the arguments give to the |Call|.
 
     \begin{figure}
@@ -511,9 +511,9 @@ c <| k = propOr (map f k)
     \caption{Fixed point calculation for \C{property}.}
     \label{fig:property_fixp}
     \end{figure}
-        
+
     The properties can be calculated by obtaining a fixed point as detailed in Figure \ref{fig:property_fixp}. In a similar strategy to the fixed point for preconditions in \S\ref{sec:precond}, each result is anded with its existing value. Given that there are a finite number of constraints, there are only a finite number of constraint/function pairs, which guarantees that this function terminates.
-    
+
     In a similar way to the precondition fixed point, a speed up can be obtained by tracking the dependencies between constraints.
 \end{description}
 
@@ -643,21 +643,21 @@ In order to introduce the constraints more concretely, we shall express the prec
 
 \begin{description}
 \item[|(head x)|] is safe if |x| evaluates to a non-empty list. The constraint for this is:
-    
+
     \begin{code}
     x :< (1 :- {:})
     \end{code}
 
 \item[|(map head x)|] is safe if |x| evaluates to a list of non-empty lists. This is expressed as:
-    
+
     \begin{code}
     x :< (tl^* ^. hd :- {:})
     \end{code}
-    
+
     If the list is empty, it still satisfies the constraint. If the list is infinite then the condition applies to all elements, constraining an infinite number. This constraint was not possible with the simple constraint framework introduced earlier.
 
 \item[|(map head (reverse x))|] is safe if either every item in the list is |(:)|-constructed, or if the list is infinite -- as in this case \C{reverse} will not terminate.
-    
+
     \begin{code}
     x :< (tl^* ^. hd :- {:}) || x :< (tl^* :- {:})
     \end{code}
@@ -746,7 +746,7 @@ Revisiting the examples from the RE-constraints in \S\ref{sec:small_examples}:
     \begin{code}
     {(:) Any} :* {[], (:) Any}
     \end{code}
-    
+
     This constraint is longer than the corresponding RE-constraint, partly because it is more explicit. Although no restriction is given on the \C{hd} field, it is still stated.
 
 \item[|(map head x)|] requires |x| to be a list of non-empty lists.
@@ -791,7 +791,7 @@ This ability to combine constraints on equal expressions can be exploited furthe
                               True    -> True
                               False   -> y
 \end{code}
- 
+
 Combining the MP-constraint reduction rules, along with the tupling transformation, a \C{Prop (Req VarName)} is now equivalent in power to \C{Req VarName}. This simplification reduces the number of different propositional values, and obtains a fixed point faster.
 
 In the RE-constraint system the tupling transformation would do no harm, but would be of no benefit either. None of the simplification rules are able to optimise between discrete components in a tuple.
@@ -953,24 +953,22 @@ Although specialisation is not complete by any means, it is sufficient for a lar
 
 \subsection{Specialisation with Inlining}
 
-\todo{Fixed up to here!}
-
 The power of specialisation is greatly increased if it is combined with inlining, and restricted to only target higher order functions. Although this technique is not complete, in practice we have yet to encounter an example where it fails, excluding nonsense examples created specifically to break this approach.
- 
-Although this technique is not complete, in practice it is sufficiently powerful. The algorithm combines specialisation with inlining, and only removes higher order functions.
 
-The algorithm proceeds as follows. First two additional constructions are introduced into the expression data type:
-
+\begin{figure}
 \begin{code}
-data Expr  =  ...
-           |  Part Int FuncName [Expr]
-           |  Apply Expr [Expr]
+data Expr  =  ... -- as in Figure {\ref{fig:core}}
+           |  Part   Int FuncName [Expr]
+           |  Apply  Expr [Expr]
 
 Part 0 fn xs == Call fn xs
 Apply (Part n fn xs) ys == Part (n - length ys) fn (xs ++ ys)
 \end{code}
+\caption{Augmented Core syntax.}
+\label{fig:core_ho}
+\end{figure}
 
-The \C{Apply} constructor is simply application, which allows an unsaturated function call, or a variable to be used as the function. The \C{Part} constructor is used to represent unsaturated function calls, leaving the normal \C{Call} constructor to represent saturated calls. The \C{Part} keeps track of how many missing arguments it has. To express a higher-order program requires \C{Apply}. Annotating a higher order program with \C{Part} as appropriate is a simple operation. This algorithm assumes that \C{Make} is always fully saturated -- which is easy to achieve with the introduction of new functions as necessary.
+In order to permit a higher order program to be represented, the Core language is augmented with additional constructs, as shown in Figure \ref{fig:core_ho}, along with two identities. The \C{Apply} allows an unsaturated function call, or a variable to be used as the function. The \C{Part} constructor is used to represent unsaturated function calls, leaving the normal \C{Call} constructor to represent saturated calls. A \C{Part} construction records how many arguments are needed.
 
 \begin{figure}
 \begin{code}
@@ -980,100 +978,164 @@ isHO (Make _ xs)     = any isHO xs
 isHO (Case on alts)  = any (isHO . snd) alts
 isHO _               = False
 \end{code}
-\caption{Tests for the firstifier}
-\label{fig:firstify}
+\caption{Tests for the firstifier.}
+\label{fig:isHO}
 \end{figure}
 
-The algorithm has two separate stages, specialisation and inlining. The algorithm applies the specialise rule until a fixed point is reached, then applies the inline rule once. The algorithm repeats these two steps until a fixed point is reached. Given an appropriate \C{fix} function, \C{firstify} can be implemented as:
+The algorithm has two components, specialisation and inlining. The algorithm applies the specialise rule until a fixed point is reached, then applies the inline rule once. The algorithm repeats these two steps until a fixed point is reached. Given an appropriate \C{fix} function, \C{firstify} can be implemented as:
 
 \begin{code}
+firstify :: Program -> Program
 firstify = fix (inline . fix specialise)
 \end{code}
 
-\paragraph{Inline:} The \C{inline} stage of the algorithm is much simpler than the specialisation aspect, and hence is treated first. A function is inlined once if the body passes the \C{isHO} test. If this process causes a function to no longer be called from the root of the program, then the function is removed after inlining.
+\begin{description}
+\item[The \C{inline}] stage of the algorithm is simple. A function call is inlined if the body of the called function passes the \C{isHO} test, defined in Figure \ref{fig:isHO}. If this process causes a function to no longer be called from the root of the program, then the function is removed after inlining.
 
-\paragraph{Specialise:} The \C{specialise} stage of the algorithm takes expressions of the form |Call fn xs| where |any isHO xs|, and generates a specialised version of the function \C{fn} where all the higher order elements are frozen in, and all the other variables are passed normally.
+\item[The \C{specialise}] stage of the algorithm takes expressions of the form |Call fn xs| where |any isHO xs|, and generates a specialised version of the function |fn| where all the function arguments in |xs| are frozen in, and all the others are passed normally.
 
-Assuming that a function |fn| results in the specialised version |fn'|, then the translation would be:
+    Assuming that a function |fn| results in the specialised version |fn2|, then the translation would be:
 
-\begin{code}
-transform (Call fn xs) | any isHO xs = Call fn' (concatMap f xs)
-    where
-    fn' = generate fn xs
+    \begin{code}
+    transform (Call fn xs) | any isHO xs =
+        Call fn' (concatMap f xs)
+        where
+        fn' = generate fn xs
 
-    f x  | isHO x     = freeVars x
-         | otherwise  = [x]
-\end{code}
+        f x = if isHO x then freeVars x else [x]
+    \end{code}
+\end{description}
 
-This technique is powerful -- there is no program without a higher order initial input which will not have a rule available for firing. The fact that a higher order function has ``no where to hide'' can be seen easily. A higher order function must either be the first expression in a function (in which case it will be inlined), or it must be the argument to a function (in which case it is specialised). There are only two places left for a higher order function:
+This technique is powerful. The fact that functional arguments have ``nowhere to hide'' can be seen easily. Eiether the entire body is an application of the functional argument (in which case it will be inlined), or it must occur as the argument to a function (in which case it is specialised). There are only two places left for functional arguments to be used:
 
 \begin{enumerate}
 \item As the subject of a |case| expression. This situation is not possible due to static typing -- all |case| expressions must choose over a data value.
 
-\item Inside an \C{Apply} with a variable as the function. This situation does not happen if all other higher order functions have been removed, and hence is safe.
+\item Inside an \C{Apply} with another argument variable as the function. This situation does not happen if all other functional arguments have been removed. \todo{Mutual application, circular reasoning, non-terminating proof!}
 \end{enumerate}
 
-One remaining issue is the \C{seq} primitive of Haskell, which has no natural translation to Core, and is usually expressed as a primitive function. The \C{seq} command is special in that it is a primitive which is polymorphic in both arguments. If a higher order function is the first argument of \C{seq} then the \C{seq} can be removed, and replaced with the second argument. If the second argument is a higher order function, but the first function is guaranteed not to be, then this call can be replaced with a |case| expression. In Haskell |case x of _ -> y| would not evaluate |x|, however in the Core language the subject of a |case| is always evaluated.
-
-The next tricky point is \C{undefined}, consider the program:
+One tricky issue is \C{undefined}, consider the program:
 
 \begin{code}
 main = f undefined
 f x = x 1
 \end{code}
 
-This program passes \C{undefined} as a function, which is allowable as \C{undefined} has a fully polymorphic result. This problem can be worked around by treating \C{undefined} (and by extension, \C{error}) as higher order functions.
+This program passes \C{undefined} as a function, which is allowable as \C{undefined} has a fully polymorphic result. This problem can be worked around by modifying \C{isHO} to treat \C{undefined} (and by extension, \C{error}) as higher order functions, ensuring they are specialised and inlined.
 
-And finally, it is possible to construct a program which has an infinite number of specialisations:
+Finally, it is possible to construct a program with an infinite number of specialisations:
 
 \begin{code}
-data Wrap a = Wrap (Wrap a) | Value a
+data Wrap alpha = Wrap (Wrap alpha) | Value alpha
 
 main = f head
 
 f x = f (Wrap x)
 \end{code}
 
-This pattern requires higher order values to be placed in a recursive data structure, then an algorithm which grows the data structure to operate on it. In reality, higher order functions are rarely placed in any data structure other than a tuple. This situation can be detected, and a fallback to Reynold's style defunctionalisation is possible.
+This pattern requires functions to be placed in a recursive data structure, and an accumulating function to operate over them. In reality, functions are rarely placed in any data structure other than a tuple. This situation can be detected, and a fallback to Reynold's style defunctionalization is possible.
 
 \section{Results and Evaluation}
 \label{sec:results}
 
-The best way to see the power of Catch is by example. This section first starts with artificial small benchmarks which demonstrate the power of Catch. The next section covers the Nofib suite, large examples which we have checked with the Catch tool -- with pleasing results.
+\todo{Mention the price of safety bit}
 
-The Catch tool works by analysing the \C{main} function, and allows addition variables to be passed in, which preconditions are generated on. If a standard Haskell program is passed in, then the \C{main} function takes no arguments and is of type |main :: IO ()| -- this scheme works equally well.
+The best way to see the power of Catch is by example. While introducing the constraints in \S\ref{sec:small_examples} I gave a few micro-examples. \S\ref{sec:imaginary} investigates examples from the Imaginary section of Nofibe, \S\ref{sec:spectral} gives results from larger examples chosen from the Spectral section of Nofib.
+
+\subsection{The Price of Safety}
+
+\todo{Redraft this section}
+
+Before discussing the failing programs, it is useful to reflect on a small example:
+
+\begin{code}
+average xs = sum xs / length xs
+\end{code}
+
+In \C{average}, if |xs| is |[]| then a division by zero would occur. In \catch{}, division by zero is modelled as a pattern match error. One small local change could be made which would remove this pattern match error:
+
+\begin{code}
+average xs = if null xs then 0 else sum xs / length xs 
+\end{code}
+
+In this modified version, if |x| is |[]|, then the program will simply return 0, and no pattern match error will occur. While this program is now safe, this safety has come at a cost -- the code no longer behaves as it did before -- replacing $\bot{}$ with the non-sensical value 0.
+
+In general pattern match errors can either be worked around locally, close to where the pattern match error may occur, or on a more global basis -- in the callers of the unsafe function. The most pleasing result is likely to be achieved using a global fix, but the local fix is likely to be easier to implement.
+
+In the following sections, where modifications were required, we have used local fixes. In some cases the program is not safe without some fix -- the whole program is likely to change substantially.
+
+\subsection{The Imaginary Nofib Benchmark}
+
+The whole Nofib benchmark \citep{nofib} is too large for the authors to take the time to investigate all the programs, so instead the `Imaginary' section has been chosen. These programs are all under a page of text, and particularly stress list operations and numeric computations. All the benchmark code is available online\footnote{\texttt{http://darcs.haskell.org/nofib/imaginary/}, as of February 2007}.
+
+To take a typical benchmark, Primes, the \C{main} function is:
+
+\begin{code}
+main = do  [arg] <- getArgs
+           print $ primes !! (read arg)
+\end{code} % $
+
+The first unsafe pattern here is |[arg] <- getArgs|, as \C{getArgs} is a primitive whose implementation is opaque to the system. With this expression, \catch{} will always return False as the precondition to \C{main}.
+
+The next step that may fail is when \C{read} is applied to an argument extracted from getArgs. This argument is entirely unknown, and \C{read} is a sufficiently complicated function that although it can be modelled by Catch, there is no possibility for getting an appropriate abstraction which models the failure case. As a result, any program which calls \C{read} is unsafe, according to \catch{}!. Using \C{reads}, which indicates failure properly, can allow a program to still be checked.
+
+As a result the program have been rewritten, and \catch{} is directed to check from the \C{compute} function:
+
+\begin{code}
+compute x = print $ primes !! x
+\end{code}
+
+\begin{table}
+\begin{tabular}{lrrrrrrlll}
+Program               & Src & Core & First & \C{error} & Pre & sec & Mb \\
+\vspace{-2.2ex} \\
+\hline
+\vspace{-1.8ex} \\
+\textbf{Bernoulli}    & 35 & 1616 &  652 & 5 & 11 & 1.3 & 0.8 \\
+\textbf{Digits of E1} & 44 &  957 &  377 & 3 &  8 & 1.2 & 0.6 \\
+Digits of E2          & 54 & 1179 &  455 & 5 & 19 & 0.9 & 0.8 \\
+Exp3-8                & 29 &  220 &  163 & 0 &  0 & 0.1 & 0.1 \\
+\textbf{Gen-Regexps}  & 41 & 1006 &  776 & 1 &  1 & 0.5 & 0.4 \\
+Integrate             & 39 & 2466 &  364 & 3 &  3 & 0.3 & 1.9 \\
+\textbf{Paraffins}    & 91 & 2627 & 1153 & 2 &  2 & 1.6 & 1.9 \\
+Primes                & 16 &  302 &  241 & 6 & 13 & 1.9 & 0.1 \\
+Queens                & 16 &  648 &  283 & 0 &  0 & 0.2 & 0.2 \\
+Rfib                  &  9 & 1918 &  100 & 0 &  0 & 0.1 & 1.7 \\
+Tak                   & 12 &  209 &  155 & 0 &  0 & 0.1 & 0.1 \\
+Wheel Sieve 1         & 37 & 1221 &  570 \\
+Wheel Sieve 2         & 45 & 1397 &  636 \\
+X2n1                  & 10 & 2637 &  331 & 2 &  5 & 2.5 & 1.9 \\
+\end{tabular}
+\caption{Table of results}
+\label{tab:results}
+\end{table}
 
 Catch additionally produces a log containing the entire program in Core form before analysis begins, including the effect of abstraction and firstification, a list of all the template axioms calculated and the preconditions on every function.
 
-\subsection{Small Examples}
+Results are given in Table \ref{tab:results}. Where changes were required to obtain the correct precondition, the name of the program is in bold, and will be discussed separately. \catch{} produces a log containing the entire program in Core form before analysis begins, including the effect of abstraction and firstification, a list of all the properties calculated and the preconditions on every function -- this information gives the other statistics.
 
-\begin{example}
-\begin{code}
-main x = head x
-> forall main `o` x :< [ (:) ]
-\end{code}
+\begin{description}
+\item[Source] is the number of lines in the original source code.
+\item[Core] is the total number of lines of Yhc Core, including all functions used from libraries, when pretty printed.
+\item[First-order] is the number of lines after firstification, just before analysis.
+\item[\C{error}] is the number of calls to error.
+\item[Pre] is the number of functions which have a precondition which is not True.
+\item[Sec] is the time in seconds taken for transformations and analysis, excluding the standard Yhc compilation time. No great effort has been put into the optimisation of the analysis code.
+\item[Mb] is the maximum residency of the program at garbage collection time, in Mb. Typically a program will consume twice this size in system memory.
+\end{description}
 
-The program infers that \C{head} crashes on the empty list, then propagates this precondition.
-\end{example}
+Four programs use the |(!!)| function, which requires the index to be non-negative and less than the length of the list. \catch{} can only prove this condition if the list being indexed on is infinite. Eight programs include applications of either \C{head} or \C{tail}, most of which can be proven safe. Seven programs have incomplete patterns, often in a |where| binding -- Catch performs well on these. Nine programs use division, with the precondition that the divisor must not be zero. Most of these can be proven safe. Only four programs contain no calls to \C{error}.
 
-\begin{example}
-\begin{code}
-main x = map head x
-> forall main `o` x :< [ [] + : (:) _ :* [] + : (:) _ ]
-\end{code}
+Three programs have preconditions on the \C{main} function, all of which state that the argument must be a natural number. In all cases the generated precondition is minimal -- if the input violates the precondition then pattern match failure will occur.
 
-This program infers the precondition on \C{head} as before, then obtains a fixed point because of the recursive call in \C{map}. Behind the scenes this program generates the specialised version of \C{mapHead}. The final condition on \C{main} is that the constraint must be a |[]| or a |:| at any level, but if it is a |:| then the first element must be a |:| itself.
-\end{example}
+We will now discuss the 4 programs which required changes, along with the Digits of E2 program -- a program with complex pattern matching that \catch{} is able to prove safe.
 
-\begin{example}
-\begin{code}
-main x = map head (reverse x)
-> forall main `o` x :<  [  [] + (:) :* (:)
->                       |  [] + : (:) _ :* [] + : (:) _]
-\end{code}
+\todo{Got to here!}
 
-This example shows the use of \C{reverse}, which is defined in terms of \C{foldl}, and is therefore not directly recursive. The second condition produced is the same as the previous example. The first condition says that either the list is empty, or the list is infinite -- an infinite list is safe because \C{reverse} is tail strict, and therefore no crash will ever occur, as the program will loop forever.
-\end{example}
+\paragraph{Bernoulli}
+
+This program has one instance of |tail (tail x)|, which is beyond the capabilities of Catch. Replacing this expression with |drop 2 x| allows all other pattern matches to be proven. Even with this change, the program still has a high level of potential pattern match errors -- all of which can be proven.
+
 
 \begin{example}
 \begin{code}
@@ -1084,73 +1146,6 @@ main x = tail (tail x)
 Finally we give an example where Catch fails. The abstraction employed for lists cannot differentiate between the 2 element list (the minimal precondition for the preceding example) and the infinite list (the precondition given). This situation is unfortunate, but a minor modification to \C{drop 2} would ensure safety.
 \end{example}
 
-\subsection{The Nofib Benchmark}
-
-The whole Nofib benchmark \citep{nofib} is too large for the authors to take the time to investigate all the programs, so instead the imaginary section has been chosen. These programs are all under a page of text, and particularly stress list operations and numeric computations. All the benchmark code is available online\footnote{\texttt{http://darcs.haskell.org/nofib/imaginary/}, as of February 2007}.
-
-To take a typical benchmark, Primes, the \C{main} function is:
-
-\begin{code}
-main = do  [arg] <- getArgs
-           print $ primes !! (read arg)
-\end{code} % $
-
-The first unsafe pattern here is |[arg] <- getArgs|, as \C{getArgs} is a primitive whose implementation is opaque to the system. As a result the system will always return False as the precondition to main.
-
-The next step where many fail is that \C{read} is applied to an argument extracted from getArgs. Firstly this argument is entirely unknown. Secondly, \C{read} is a sufficiently complicated function that although it can be modelled by Catch, there is no possibility for getting an appropriate abstraction which models the failure case. As a result, any program which calls \C{read} is unsafe, according to Catch. Using \C{reads}, which indicates failure properly, can allow a program to still be checked.
-
-Catch can accurately calculate these preconditions, but their repetitiveness throughout the suite obscures the ``interesting'' pattern matches that also exist. As a result the programs have been rewritten to:
-
-\begin{code}
-main x = print $ primes !! (read x)
-\end{code} % $
-
-\begin{figure}
-\begin{tabular}{lrrrrrrlll}
-\hline
-Program       &\multicolumn{3}{c}{Code Size} & \multicolumn{2}{c}{Pre} \\
-\hline
-\textbf{Bernoulli}    & 35 & 1616 &  652 & 5 & 11 \\
-\textbf{Digits of E1} & 44 &  957 &  377 & 3 &  8 \\
-Digits of E2          & 54 & 1179 &  455 & 5 & 19 \\
-Exp3-8                & 29 &  220 &  163 & 0 &    \\
-\textbf{Gen-Regexps}  & 41 & 1006 &  776 & 1 &  1 \\
-Integrate             & 39 & 2466 &  364 & 3 &  3 \\
-\textbf{Paraffins}    & 91 & 2627 & 1153 & 2 &  2 \\
-Primes                & 16 &  302 &  241 & 6 & 13 \\
-Queens                & 16 &  648 &  283 & 0 &    \\
-Rfib                  &  9 & 1918 &  100 & 0 &    \\
-Tak                   & 12 &  209 &  155 & 0 &    \\
-Wheel Sieve 1         & 37 & 1221 &  570 \\
-Wheel Sieve 2         & 45 & 1397 &  636 \\
-X2n1                  & 10 & 2637 &  331 & 2 &  5 \\
-\hline
-\end{tabular}
-\caption{Table of results}
-\label{fig:results}
-\end{figure}
-
-The raw results are given in Figure \ref{fig:results}. Where changes were required to prove the program, the table gives the statistics for the modified program.
-
-\begin{description}
-\item[Code Size] represents the number of lines of code. The first figure is the number of lines of Haskell written for this benchmark. The second figure is the total number of lines of Yhc Core, including all functions used from libraries, when pretty printed. The final figure is the number of lines after firstification, just before analysis.
-
-\item[Pre] is the number of calls to error, followed by the number of functions which have a precondition which is not True.
-
-\item[Rank] is a rough measurement of the complexity of the pattern match analysis. This value is the number of calls to functions with preconditions. This value does not relate to the time required to check the program.
-
-\item[Changes] is the number of modifications that had to be made to the program to make it validate. Changes are marked as good where either the program was genuinely unsafe, or was too complex for the authors of this paper to determine safety manually. Bad changes are those which were necessary because of limitations of the tool -- these are discussed.
-\end{description}
-
-Of the programs 4 used the |(!!)| function, which requires the index to be non-negative and less than the length of the list -- in practice Catch can only prove this condition if the list being indexed on is infinite. 8 programs used either \C{head} or \C{tail}, most of which can be proven safe. There are 7 programs incomplete patterns, often as a result of |where| binding -- Catch performs well on these. In this particular benchmark suite there are 9 programs which use division, with the precondition that the divisor must not be zero. Most of these can be proven safe. Only 4 programs in this benchmark have no pattern match errors.
-
-Three programs have preconditions on the \C{main} function, all of which state that the argument must be a natural number, one such program is Primes. In all cases the generated precondition is minimal -- if the input violates the precondition and pattern match failure will occur.
-
-We will now discuss the 4 programs which required changes, along with the Digits of E2 program -- the other program with the highest rank.
-
-\paragraph{Bernoulli}
-
-This program has one instance of |tail (tail x)|, which is beyond the capabilities of Catch. Replacing this expression with |drop 2 x| allows all other pattern matches to be proven. Even with this change, the program still has a high level of potential pattern match errors -- all of which can be proven.
 
 \paragraph{Digits of E1}
 
