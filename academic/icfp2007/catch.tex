@@ -24,6 +24,7 @@
 \setcounter{exmp}{1}
 \newcommand{\yesexample}{\subsubsection*{Example \arabic{exmp}}\addtocounter{exmp}{1}}
 \newcommand{\noexample}{\hfill$\Box$}
+\newcommand{\lastexample}{\arabic{exmp}}
 
 \newcommand{\todo}[1]{\textbf{\textsc{Todo:} #1}}
 
@@ -822,40 +823,40 @@ The RE-constraint |(left^* :- True)| matches |v1| but not |v2|. Using enumeratio
 \section{Converting Haskell to Core}
 \label{sec:transform}
 
-The full Haskell language is a bit unwieldy for analysis. In particular the syntactic sugar complicates analysis by introducing more types of expression to consider. The checker works instead on a simplified language, a core to which other Haskell programs can be reduced. This core language is a functional language, making use of case expressions, function applications and algebraic data types. The abstract syntax tree of expressions is discussed in \S\ref{sec:core}.
+The full Haskell language is unwieldy for analysis. As noted in \S\ref{sec:core}, the checker works instead on a simplified language, a core to which other Haskell programs can be reduced.
 
 \subsection{Yhc Core}
 
-In order to generate a simplified language, it is natural to start with a full Haskell compiler, and we chose Yhc \citep{Yhc}, a fork of nhc \citep{nhc}. The internal language of Yhc is called PosLambda -- a simple variant of lambda calculus without types, but with source position information. Yhc works by applying basic desugaring transformations, without optimization transformations. This simplicity ensures the generated PosLambda is close to the original Haskell in its structure. Each top level function in a source file maps to a top level function in the generated PosLambda, retaining the same name.
+To generate core representations of programs, it is natural to start with a full Haskell compiler, and we chose Yhc \citep{Yhc}, a fork of nhc \citep{nhc}. The internal language of Yhc is called PosLambda -- a simple variant of lambda calculus without types, but with source position information. Yhc works by applying basic desugaring transformations, without optimisation. This simplicity ensures the generated PosLambda is close to the original Haskell in its structure. Each top-level function in a source file maps to a top-level function in the generated PosLambda, retaining the same name.
 
-PosLambda has constructs that have no direct representation in Haskell, for example there is a FatBar construct, which is used for compiling pattern matches which require fall through behaviour. The PosLambda language was always intended as an internal representation, and exposes certain details that are specific to the compiler. We have introduced a new Core language to Yhc, intended as a simple subset of Haskell where possible, on to which PosLambda can easily be mapped. This Core language is not explicitly typed, and has few constructs. We have also written a library, Yhc.Core, which is used by Yhc to generate these Core files, and by external programs to load and manipulate the generated Core.
+However, PosLambda has constructs that have no direct representation in Haskell. For example, there is a FatBar construct \cite{spj:implementation}, used for compiling pattern matches which require fall through behaviour. The PosLambda language was intended only as an internal representation, and exposes certain details that are specific to the compiler. We have therefore introduced a new Core language to Yhc on to which PosLambda can easily be mapped. This Core language is not explicitly typed, and has few constructs. We have also written a library, Yhc.Core, which is used by Yhc to generate these Core files, and by external programs to load and manipulate the generated Core.
 
 The importance of this Core language is not what remains, but what has been removed.
 
 \begin{itemize}
-\item No syntactic sugar such as list comprehensions, \T{do} notation etc.
-\item Only simple \T{case} statements, matching only the top level constructor
-\item All \T{case} statements are complete, including an \T{error} call if necessary
+\item No syntactic sugar such as list comprehensions, |do| notation etc.
+\item Only simple |case| expressions, matching only the top level constructor
+\item All |case| expressions are complete, including an \C{error} call if necessary
 \item All names are fully qualified
 \item Haskell's type classes have been removed (see \ref{sec:dict})
-\item Only top level functions remain, all local functions have been lambda lifted
+\item Only top-level functions remain, all local functions have been lambda lifted
 \item All constructor applications are fully saturated
 \end{itemize}
 
 \subsection{The Dictionary Transformation}
+\label{sec:dict}
 
-Most of the transformations in Yhc operate at a local level, either on a single function at a time or on a small expression within a function. The only analysis/transformation phases which require information about more than one function are type checking and the dictionary transformation, used to implement type classes \citep{wadler:type_classes}.
+Most of the transformations in Yhc operate at a local level, within a single function definition. The only analysis/transformation phases which require information about more than one function are type checking and the dictionary transformation, used to implement type classes \citep{wadler:type_classes}.
 
-\yesexample
-
-Take the following code:
+\begin{example}
+The definition
 
 \begin{code}
 f :: Eq alpha => alpha -> alpha -> Bool
 f x y = x == y || x /= y
 \end{code}
 
-is translated by Yhc into
+\noindent is translated by Yhc into
 
 \begin{code}
 f :: (alpha -> alpha -> Bool, alpha -> alpha -> Bool) -> alpha -> alpha -> Bool
@@ -866,30 +867,32 @@ f dict x y = (||) (((==) dict) x y) (((/=) dict) x y)
 \end{code}
 
 The \C{Eq} class consists of two functions, |(==)| and |(/=)|. Depending on the type of the |alpha| variable in the function \C{f}, different code will be executed for the two functions.
+\end{example}
 
-\noexample
+The dictionary transformation generates a tuple, containing the functions to use for the type class, and passes this structure into all functions requiring this type class. The additional argument is the dictionary, with functions being looked up in the dictionary to obtain the correct behaviour at runtime.
 
-The dictionary transformation generates a tuple, containing the functions to use for the type class, and passes this structure into the \C{f} function as an additional argument. The additional argument can be seen as the dictionary, with functions being looked up in the dictionary to obtain the correct behaviour at runtime.
+The dictionary transformation is a global transformation. In Example \lastexample{} the \C{Eq} context in \C{f} not only requires a dictionary to be accepted by \C{f}; it requires all the callers of \C{f} to pass a dictionary as well.
 
-The dictionary transformation is a global transformation. The \C{Eq} context in \C{f} requires a dictionary to be accepted by \C{f}, and requires all the callers of \C{f} to pass a dictionary as well.
+The type class mechanism in Haskell allows certain classes to require other classes. For example, \C{Ord} requires \C{Eq} for the same type. In such cases the dictionary transformation generates a nested tuple, the \C{Eq} dictionary is a component of the \C{Ord} dictionary.
 
-The type class mechanism in Haskell allows certain classes to require other classes, for example a definition of \C{Ord} requires a definition of \C{Eq} for the same type. In response the dictionary transformation generates a nested tuple, where the \C{Eq} dictionary is given as a member of the \C{Ord} dictionary.
+An alternative approach to implementing type classes is given in \cite{jones:dictionary_free}, which does not rely on higher order functions. While this approach would probably suit \catch{} better, it is not the method implemented in Yhc, which already does the dictionary transformation. The dictionary transformation along with the higher order removal performed by \catch{} is similar to this approach.
 
 \subsection{First Order Haskell}
 
-Within a simple Core language, there are 2 main features that Haskell possesses that may complicate analysis: laziness and higher-order functions. It is possible to convert Haskell to be a first order language by using defunctionalization, and it is possible to convert Haskell to be a lazy language by continuation passing. For the purposes of this checker, laziness is a nice property, as it allows the code to be transformed with greater ease. Higher order functions are less helpful, and obscure the flow of control within a program -- their removal is beneficial.
+Two further features of Haskell may complicate analysis: laziness and higher-order functions. It is possible to convert Haskell programs to strict equivalents by using continuation passing, and to first-order equivalents by defunctionalization, both are detailed in \citet{reynolds:defunc}. For the purposes of this checker, laziness is a nice property, as it allows $\beta$-reduction to be performed. Higher order functions are not handled by \catch{} -- their removal is required.
 
 \subsection{Reynold's style defunctionalization}
 
-Reynold's style defunctionalization \citep{reynolds:defunc} is a simple method of generating a first order program from a higher order one. Taking the following example:
+Reynold's style defunctionalization \citep{reynolds:defunc} is a method for generating a first-order equivalent of a higher-order program.
 
+\begin{example}
 \begin{code}
-map f x = case  x of
-                []      -> []
-                (a:as)  -> f a : map f as
+map fn x = case  x of
+                 []      -> []
+                 (a:as)  -> fn a : map fn as
 \end{code}
 
-Here \C{f} is a higher order input, of type |(a -> b)|. Defunctionalisation works by creating a data type to represent all possible f's, and using that. For example:
+Defunctionalization works by creating a data type to represent all values that |fn| may take.
 
 \begin{code}
 data Functions = Head | Tail
@@ -897,12 +900,16 @@ data Functions = Head | Tail
 apply Head  x = head  x
 apply Tail  x = tail  x
 
-map f x = case  x of
-                []      -> []
-                (a:as)  -> apply f a : map f as
+map fn x = case  x of
+                 []      -> []
+                 (a:as)  -> apply fn a : map fn as
 \end{code}
 
-Now all calls to map head would be replaced with |map Head|, and \C{Head} is a first order value. This scheme can easily be extended to currying, let us take the \C{add} function, which adds two \C{Int}'s:
+Now all calls to |map head| are replaced by |map Head|, and \C{Head} is a first order value.
+\end{example}
+
+\begin{example}
+The scheme easily extendeds to currying. Take the \C{add} function, which adds two \C{Int}'s:
 
 \begin{code}
 data Functions = Head | Tail | Add0 | Add1 Int
@@ -910,26 +917,23 @@ data Functions = Head | Tail | Add0 | Add1 Int
 apply Add0      n  = Add1 n
 apply (Add1 a)  b  = add a b
 \end{code}
+\end{example}
 
-There are a couple of things to note about this approach. One is that although the transformed code is still type safe, to do type checking would require a dependently typed language. Although unfortunate, it presents no problem for our checker, which does not use type information. The unacceptable aspect is the creation of an apply function, whose meaning is excessively general. This transformation introduces a bottleneck through which various properties must be proven. Asking questions, such as is the result of \C{apply} a |[]| value, are confusing.
+Although defunctionalized code is still type safe, to do type checking would require a dependently typed language. This presents no problem for \catch{}, which does not use type information. The unacceptable aspect is the creation of an \C{apply} function, whose meaning is excessively general. This transformation introduces a bottleneck through which various properties must be proven. Asking questions, such as is the result of \C{apply} a |[]| value, require a lot of computation.
 
-Reynold's style defunctionalization is a suitable method for removing higher order functions, but is not ideal.
+Reynold's style defunctionalization is suitable for use by \catch{}, but the introduction of \C{apply} means that defunctionalization is not the preferred method.
 
 \subsection{Specialisation}
 
-One technique that can be used to remove higher order functions, and indeed was employed in the original version of Catch, is specialisation. A mutually recursive group of functions can be specialised in their $n$th argument if in all recursive calls this
-argument is invariant.
-
-Examples of common functions whose applications can be specialised include \T{map}, \T{filter}, \T{foldr} and \T{foldl}.
+\catch05 used a different technique to remove higher-order functions: specialisation. A mutually recursive group of functions can be specialised in their $n$th argument if in all recursive calls this argument is invariant. Examples of common functions whose applications can be specialised include \C{map}, \C{filter}, \C{foldr} and \C{foldl}.
 
 When a function can be specialised, the expression passed as the $n$th argument has all its free variables passed as extra arguments, and is expanded in the specialised version. All recursive calls within the new function are then renamed.
 
-\yesexample
-
+\begin{example}
 \begin{code}
-map f xs = case  xs of
-                 []      -> []
-                 (a:as)  -> f a : map f as
+map fn xs = case  xs of
+                  []      -> []
+                  (a:as)  -> fn a : map fn as
 
 adds x n = map (add n) x
 \end{code}
@@ -942,13 +946,18 @@ map_adds n xs = case  xs of
                       (a:as)  -> add n a : map_adds n as
 
 adds x n = map_adds n x
-\end{code}\noexample
+\end{code}
+\end{example}
 
-Although this firstification approach is not complete by any means, it is sufficient for a large range of examples. This approach has the unfortunate effect of specialising more than just higher order functions, which can lead to obscured code. It also has complications with dictionaries and point-free style code.
+Although specialisation is not complete by any means, it is sufficient for a large range of examples. This approach has the unfortunate effect of specialising more than just higher order functions, which can lead to obscured code. It also cannot cope with point-free code, and does not deal with many forms of dictionaries.
 
-\subsection{Higher Order Removal}
+\subsection{Specialisation with Inlining}
 
-A new technique of higher order function removal has been developed. Although this technique is not complete, in practice it is sufficiently powerful. The algorithm combines specialisation with inlining, and only removes higher order functions.
+\todo{Fixed up to here!}
+
+The power of specialisation is greatly increased if it is combined with inlining, and restricted to only target higher order functions. Although this technique is not complete, in practice we have yet to encounter an example where it fails, excluding nonsense examples created specifically to break this approach.
+ 
+Although this technique is not complete, in practice it is sufficiently powerful. The algorithm combines specialisation with inlining, and only removes higher order functions.
 
 The algorithm proceeds as follows. First two additional constructions are introduced into the expression data type:
 
