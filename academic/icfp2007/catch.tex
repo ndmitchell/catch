@@ -278,6 +278,7 @@ forall x,t,p `o`  x :: t && p `elem` paths x =>
 A path is a list of fields, the \C{paths} function returns all possible paths in a given data structure -- a potentially infinite number.
 
 \subsubsection{Abstraction}
+\label{sec:abstraction}
 
 The Core language only has algebraic data types. So what about primitive types such as text characters, integers (bounded and unbounded) and floating point numbers? \catch{} allows for these types by abstracting them into algebraic data types.
 
@@ -1040,13 +1041,11 @@ This pattern requires functions to be placed in a recursive data structure, and 
 
 \todo{Mention the price of safety bit}
 
-The best way to see the power of Catch is by example. While introducing the constraints in \S\ref{sec:small_examples} I gave a few micro-examples. \S\ref{sec:imaginary} investigates examples from the Imaginary section of Nofibe, \S\ref{sec:spectral} gives results from larger examples chosen from the Spectral section of Nofib.
+The best way to see the power of Catch is by example. While introducing the constraints in \S\ref{sec:small_examples} I gave a few micro-examples. \S\ref{sec:safety} discusses some of the general issues when modifying programs to obtain provable safety. \S\ref{sec:imaginary} investigates all the examples from the Imaginary section of Nofibe, \S\ref{sec:spectral} gives results from a few larger examples chosen from the Spectral section of Nofib.
 
 \subsection{The Price of Safety}
 
-\todo{Redraft this section}
-
-Before discussing the failing programs, it is useful to reflect on a small example:
+Take the following example:
 
 \begin{code}
 average xs = sum xs / length xs
@@ -1055,18 +1054,24 @@ average xs = sum xs / length xs
 In \C{average}, if |xs| is |[]| then a division by zero would occur. In \catch{}, division by zero is modelled as a pattern match error. One small local change could be made which would remove this pattern match error:
 
 \begin{code}
-average xs = if null xs then 0 else sum xs / length xs 
+average xs = if null xs then 0 else sum xs / length xs
 \end{code}
 
 In this modified version, if |x| is |[]|, then the program will simply return 0, and no pattern match error will occur. While this program is now safe, this safety has come at a cost -- the code no longer behaves as it did before -- replacing $\bot{}$ with the non-sensical value 0.
 
-In general pattern match errors can either be worked around locally, close to where the pattern match error may occur, or on a more global basis -- in the callers of the unsafe function. The most pleasing result is likely to be achieved using a global fix, but the local fix is likely to be easier to implement.
+In general pattern match errors can be handled in two manners:
 
-In the following sections, where modifications were required, we have used local fixes. In some cases the program is not safe without some fix -- the whole program is likely to change substantially.
+\begin{description}
+\item [Locally:] The above example shows a local fix, in the same function that calls the division, add a special test. This fix is fairly simple, and requires only small code changes.
+
+\item [Globally:] By investigating the code that calls \C{average}, and ensuring that |[]| is not passed as the first argument. This fix requires a deeper understanding of the flow of the program, and depending on the overall design, may require substantial work. The end result is likely to be a cleaner body of code.
+\end{description}
+
+For programs which were not design with pattern match safety in mind (see Gen-Regexps in \S\ref{sec:imaginary}), the global changes may constitute an entire reimplementation. In the following sections, where modifications were required, we have attempted to make the minimum number of changes. Consequently, we have used local fixes.
 
 \subsection{The Imaginary Nofib Benchmark}
 
-The whole Nofib benchmark \citep{nofib} is too large for the authors to take the time to investigate all the programs, so instead the `Imaginary' section has been chosen. These programs are all under a page of text, and particularly stress list operations and numeric computations. All the benchmark code is available online\footnote{\texttt{http://darcs.haskell.org/nofib/imaginary/}, as of February 2007}.
+The whole Nofib benchmark \citep{nofib} is too large for the authors to take the time to investigate all the programs, so instead the `Imaginary' section has been chosen as our primary focus. These programs are all under a page of text, and particularly stress list operations and numeric computations. All the benchmark code is available online\footnote{\texttt{http://darcs.haskell.org/nofib/imaginary/}, as of February 2007}.
 
 To take a typical benchmark, Primes, the \C{main} function is:
 
@@ -1130,21 +1135,18 @@ Three programs have preconditions on the \C{main} function, all of which state t
 
 We will now discuss the 4 programs which required changes, along with the Digits of E2 program -- a program with complex pattern matching that \catch{} is able to prove safe.
 
-\todo{Got to here!}
-
 \paragraph{Bernoulli}
 
-This program has one instance of |tail (tail x)|, which is beyond the capabilities of Catch. Replacing this expression with |drop 2 x| allows all other pattern matches to be proven. Even with this change, the program still has a high level of potential pattern match errors -- all of which can be proven.
-
-
-\begin{example}
+This program has one instance of |tail (tail x)|, which is beyond the capabilities of \catch{}. Consider the example program and generated condition:
+ 
 \begin{code}
 main x = tail (tail x)
-> forall main `o` x :< [ (:) :* (:) ]
+> main, x :< {(:) Any} :* {(:) Any}
 \end{code}
 
-Finally we give an example where Catch fails. The abstraction employed for lists cannot differentiate between the 2 element list (the minimal precondition for the preceding example) and the infinite list (the precondition given). This situation is unfortunate, but a minor modification to \C{drop 2} would ensure safety.
-\end{example}
+The MP-constraints are unable to express that a list must be of at least length two, so conservatively strengthens this to the condition that the list must be infinite -- a condition that Bernoulli does not satisfy.
+
+Replacing |tail (tail x)| with |drop 2 x| allows all other pattern matches to be proven. Even with this change, the program still has a high level of non-exhaustive pattern matches -- all of which can be proven safe.
 
 
 \paragraph{Digits of E1}
@@ -1159,7 +1161,7 @@ ratTrans (a,b,c,d) xs |
   where q = b `div` d
 \end{code}
 
-Catch is able to prove that the division by |d| is only unsafe if both |c| and |d| are zero. Proving that this invariant is maintained is beyond the capabilities of either Catch or the authors. A slight modification is possible:
+Catch is able to prove that the division by |d| is only unsafe if both |c| and |d| are zero. Proving that this invariant is maintained is beyond the capabilities of either Catch, or the authors of this paper. A slight modification is possible:
 
 \begin{code}
   where q = if d == 0 then 0 else b `div` d
@@ -1169,7 +1171,7 @@ This expression gives the same behavior where the previous program would have, b
 
 \paragraph{Gen-Regexps}
 
-This program was written expecting valid input, and crashes on even slight variations from what is expected. Ways of crashing the program include entering |""|, |"["|, |"<"| and lots of other inputs.
+This program expects valid regular expressions as input. Ways of crashing the program include entering |""|, |"["|, |"<"| and lots of other inputs.
 
 One potential error comes from |head . lines|, which can be replaced by |takeWhile (/= '\n')| to have the same effect, apart from on the empty list, where it returns |""|.
 
@@ -1182,37 +1184,42 @@ safeSpan p x = (a, drop 1 b)
     where (a,b) = span p x
 \end{code}
 
-This example shows that a program written with no regard for pattern match safety can be made safe, without excessive code alterations.
+While at first glance this pattern looks like a simple pattern match against |(:)|, much in the same way as \C{head}, the reality is much more complex. The pattern is only safe if for one of the elements in the list |x|, |f| returns True. In the particular example of Gen-Regexps, the test |f| is actually |(/= '-')|. Using the abstraction for |Char| as detailed in \S\ref{sec:abstraction}, |(/=)| over |Char| always has an unknown result, making this pattern impossible to prove safe.
+
+This example shows that a program written with no regard for pattern match safety can be made safe using local fixes, without excessive code alterations.
 
 \paragraph{Paraffins}
 
-The Paraffins program cannot be validated by Catch, without unfortunately large modifications. The first error, which can be fixed easily, is the use of undefined to prevent a space leak:
+The Paraffins program cannot be validated by Catch, without significant modification. There are two reasons for this:
 
-\begin{code}
-radical_generator n = radicals undefined
-  where radicals unused = big_memory_computation
-\end{code}
+\begin{description}
+\item[Laziness] The first error, which can be fixed easily, is the use of \C{undefined} to prevent a space leak:
 
-In Haskell if a function is defined with no arguments it is considered a constant applicative form (CAF), and has its results computed only once in the program. To prevent something which allocates a lot of memory from having this behaviour, a dummy argument can be passed. The \C{undefined} is merely serving as a dummy argument, but if evaluated would result in a pattern match error. If the analysis was lazy (as discussed in \S\ref{sec:precond}) then this example would succeed using Catch, although as currently implemented simply changing \C{undefined} to |()| removes the potential error.
+    \begin{code}
+    radical_generator n = radicals undefined
+      where radicals unused = big_memory_computation
+    \end{code}
 
-The Paraffins program also uses the function |array :: Ix a => (a, a) -> [(a, b)] -> Array a b| which takes a list of index/value pairs and builds an array. The precondition on this function is that all indexes must be in the range specified and all arguments must be valid. This precondition is too complex for Catch, but simply using \C{listArray}, which takes a list of elements one after another, the program can be validated. In the particular example used in Paraffins, the use of \C{listArray} leads to shorter and more readable code.
+    In Haskell if a function is defined with no arguments it is considered a constant applicative form (CAF), and has its results computed only once in the program. To prevent something which allocates a lot of memory from having this behaviour, a dummy argument can be passed. The \C{undefined} is merely serving as a dummy argument, but if evaluated would result in a pattern match error. If the analysis was lazy (as discussed in \S\ref{sec:precond}) then this example would succeed using \catch{}. As it is, simply changing \C{undefined} to |()| removes the potential error.
 
-The final troublesome error in Paraffins is the use of the |(!)| indexing operator. The precondition requires that the index is in the bounds given when the array was constructed, something Catch does not currently model.
+\item[Arrays] The Paraffins program uses arrays. The function |array :: Ix a => (a, a) -> [(a, b)] -> Array a b| takes a list of index/value pairs and builds an array. The precondition on this function is that all indexes must be in the range specified and all arguments must be valid. This precondition is too complex for Catch. But simply using \C{listArray}, which takes a list of elements one after another, the program can be validated. (Also, the use of \C{listArray} makes the program shorter and more readable.)
 
-This program shows that one weak area of Catch is code that uses arrays, fortunately in Haskell arrays are a relatively uncommon data structure.
+    Use of the array indexing operator |(!)| is also troublesome. The precondition requires that the index is in the bounds given when the array was constructed, something \catch{} does not currently model.
+\end{description}
+
+The Paraffins program does highlight that one weak area of \catch{} is code that uses arrays.
 
 \paragraph{Digits of E2}
 
-This program is particularly complex, featuring a number of possible pattern match errors. Catch is particularly effective at the job of spotting pattern match errors:
+This program is quite complex, featuring a number of possible pattern match errors. To illustrate, consider the following fragment:
 
 \begin{code}
   where  carryguess = d `div` base
          remainder = d `mod` base
          nextcarry:fraction = carryPropagate (base+1) ds
-         dCorrected = d + nextcarry
 \end{code}
 
-Here there are 3 potential pattern match errors in a relatively small amount of code. Two of these are the calls to |div| and |mod|, both requiring |base| to be non-zero. A possibly more subtle pattern match error is the |nextcarry:fraction| left hand side of the 3rd line -- humans examining source code can easily miss these pattern bindings. Catch is able to prove all of these patterns safe.
+Here there are three potential pattern match errors in as many lines. Two of these are the calls to |div| and |mod|, both requiring |base| to be non-zero. A possibly more subtle pattern match error is the |nextcarry:fraction| left-hand side of the third line. \catch{} is able to prove that no pattern match fails.
 
 \begin{code}
 e =  ("2."++) $
@@ -1222,11 +1229,16 @@ e =  ("2."++) $
      2:[1,1..]
 \end{code}
 
-This fragment has two calls to \C{tail}, and one to \C{head}. They are mixed in a relatively complex manner, including as a higher order functional pipeline in the case of \C{iterate} and \C{map}. Understanding and manually validating this fragment would be tricky, but Catch is able to do so automatically.
+There are two calls to \C{tail}, and one to \C{head}. They are mixed in a relatively complex manner, including as a higher order functional pipeline in the case of \C{iterate} and \C{map}. \catch{} is able to prove that no pattern match fails, and that \C{head} and \C{tail} have their preconditions respected.
 
+\subsection{The Spectral Nofib Benchmark}
+
+\todo{Write this section, get some results}
 
 \section{Related Work}
 \label{sec:related}
+
+\todo{Got up to here!}
 
 \subsection{Proving Incomplete Patterns Safe}
 
