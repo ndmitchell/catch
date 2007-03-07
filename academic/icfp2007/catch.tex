@@ -701,21 +701,21 @@ notin c = map complete (delete c cs) :* map complete cs
     where cs = ctors c
 
 (|>) :: Field -> Constraint -> Constraint
-(c,i) |> vs = notin c ++ map f vs
+(c,i) |> k = notin c ++ map f k
     where
     f Any = Any
-    f (v1 :* v2) | isRec (c,i) = complete c :* (v1 `mergePart` v2)
+    f (p1 :* p2) | isRec (c,i) = complete c :* (p1 `mergePart` p2)
     f v = Match c fs :* map complete (ctors c)
         where fs =  [  if i == j then v else Any
                     |  j <- [0..arity c - 1], not (isRec (c,j))]
 
--- \todo{Use the new data type below here}
--- \todo{use the new signature for this}
-(<|) :: Expr -> Constraint -> Prop Req
-(Make c xs) <| vs = or (map f vs)
+-- \todo{Fixups: Use the new data type below here}
+(<|) :: CtorName -> Constraint -> Prop (Req Int)
+c <| vs = or (map f vs)
     where
     f Any = Any
-    f ((c1 :* v1) :| r) = c `elem` c1 && and (zipWith g (paths c) xs)
+    -- mashed and manged below here
+    f (p1 :* p2(c1 :* v1) :| r) = c `elem` c1 && and (zipWith g (paths c) xs)
         where g p x = if isRec p then r :| r else lookup p v1
 
 (`mergeVal`) :: Val -> Val -> Val
