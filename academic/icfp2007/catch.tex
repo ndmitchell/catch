@@ -565,7 +565,7 @@ notin c = [] :- delete c (ctors c)
 (|>) :: Field -> Constraint -> Constraint
 p |> (r :- cs) = integrate p r :- cs
 
-(<|) :: CtorName -> Constraint -> Prop Req
+(<|) :: CtorName -> Constraint -> Prop (Req Int)
 c <| (r :- cs) = (ewp r => c `elem` cs) &&
     and (zipWith f (paths c) [0..])
     where
@@ -691,30 +691,26 @@ data Val    =  [Match] :* [Match]
             |  Any
 data Match  =  Match CtorName [Val]
 
--- REWRITE TO USE NEW TYPES
-
--- useful auxiliary, the non-recursive paths
-fields :: [CtorName] -> [PathName]
-fields = filter (not . isRec) . concatMap paths
+-- useful auxiliary, a complete pattern
+complete :: CtorName -> Match
+complete c = Match c [Any  |  i <- [0..arity n - 1]
+                           ,  not (isRec(c,i))]
 
 notin :: CtorName -> Constraint
-notin c = map f (delete c cs) :* map f cs
-    where  cs = ctors c
-           f c = (c, replicate (arity c) Any)
+notin c = map complete (delete c cs) :* map complete cs
+    where cs = ctors c
 
--- TODO, update these to use the new data structure
 (|>) :: Field -> Constraint -> Constraint
-p |> vs = notin c ++ map f vs
+(c,i) |> vs = notin c ++ map f vs
     where
-    c = pathCtor p; cs = ctors c; xs = fields cs
-    as = zip xs (repeat True)
-
     f Any = Any
-    f (v1 :* v2) | isRec p = ([c] :| as) :* (v1 `mergePart` v2)
-    f v = ([c] :| fs) :* (cs :| as)
-        where fs = [(x, if x == p then v else Any) |  x <- xs]
+    f (v1 :* v2) | isRec (c,i) = complete c :* (v1 `mergePart` v2)
+    f v = Match c fs :* map complete (ctors c)
+        where fs =  [  if i == j then v else Any
+                    |  j <- [0..arity c - 1], not (isRec (c,j))]
 
--- TODO, use the new signature for this
+-- \todo{Use the new data type below here}
+-- \todo{use the new signature for this}
 (<|) :: Expr -> Constraint -> Prop Req
 (Make c xs) <| vs = or (map f vs)
     where
@@ -1041,9 +1037,10 @@ This pattern requires functions to be placed in a recursive data structure, and 
 
 \todo{Mention the price of safety bit}
 
-The best way to see the power of Catch is by example. While introducing the constraints in \S\ref{sec:small_examples} I gave a few micro-examples. \S\ref{sec:safety} discusses some of the general issues when modifying programs to obtain provable safety. \S\ref{sec:imaginary} investigates all the examples from the Imaginary section of Nofibe, \S\ref{sec:spectral} gives results from a few larger examples chosen from the Spectral section of Nofib.
+The best way to see the power of Catch is by example. While introducing the constraints in \S\ref{sec:small_examples} I gave a few micro-examples. \S\ref{sec:safety} discusses some of the general issues when modifying programs to obtain provable safety. \S\ref{sec:imaginary} investigates all the examples from the Imaginary section of Nofib, \S\ref{sec:spectral} gives results from a few larger examples chosen from the Spectral section of Nofib.
 
 \subsection{The Price of Safety}
+\label{sec:safety}
 
 Take the following example:
 
@@ -1133,12 +1130,12 @@ Four programs use the |(!!)| function, which requires the index to be non-negati
 
 Three programs have preconditions on the \C{main} function, all of which state that the argument must be a natural number. In all cases the generated precondition is minimal -- if the input violates the precondition then pattern match failure will occur.
 
-We will now discuss the 4 programs which required changes, along with the Digits of E2 program -- a program with complex pattern matching that \catch{} is able to prove safe.
+We will now discuss the four programs which required changes, along with the Digits of E2 program -- a program with complex pattern matching that \catch{} is able to prove safe.
 
 \paragraph{Bernoulli}
 
 This program has one instance of |tail (tail x)|, which is beyond the capabilities of \catch{}. Consider the example program and generated condition:
- 
+
 \begin{code}
 main x = tail (tail x)
 > main, x :< {(:) Any} :* {(:) Any}
@@ -1232,8 +1229,15 @@ e =  ("2."++) $
 There are two calls to \C{tail}, and one to \C{head}. They are mixed in a relatively complex manner, including as a higher order functional pipeline in the case of \C{iterate} and \C{map}. \catch{} is able to prove that no pattern match fails, and that \C{head} and \C{tail} have their preconditions respected.
 
 \subsection{The Spectral Nofib Benchmark}
+\label{sec:spectral}
 
 \todo{Write this section, get some results}
+
+The `Spectral' section of the Nofib benchmark contains the computational kernels from real program.
+
+The Mandel2 program has 5 divisions, some of which are by the constant 2, others are by a global variable.
+
+2 other programs are also safe.
 
 \section{Related Work}
 \label{sec:related}
