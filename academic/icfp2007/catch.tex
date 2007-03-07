@@ -8,6 +8,10 @@
 \usepackage{datetime}
 \usepackage{comment}
 
+% from the ICFP website
+\bibpunct();A{},
+\let\cite=\citep
+
 %include polycode.fmt
 %include catch.fmt
 
@@ -1238,38 +1242,37 @@ There are two calls to \C{tail}, and one to \C{head}. They are mixed in a relati
 
 The `Spectral' section of the Nofib benchmark contains the computational kernels from real program.
 
-The Mandel2 program has 5 divisions, some of which are by the constant 2, others are by a global variable.
+The Mandel2 program has 5 divisions, some of which are by the constant 2, others are by a global variable. Scc and Atom both have 0 pattern match errors.
 
-2 other programs are also safe.
 
 \section{Related Work}
 \label{sec:related}
 
-\todo{Got up to here!}
+This paper follows very much the same spirit as \cite{me:catch_tfp} -- the goals are the same and some of the approach has similarities. The comparison to the previous paper has been made throughout the this paper, but the two main improvements are support for full Haskell, and scalability.
 
 \subsection{Proving Incomplete Patterns Safe}
 
-Despite the seriousness of the problem of pattern matching, the topic of pattern match error detection and elimination has not been studied extensively. The two papers which offer the most promising start in this area are the approach by \cite{me:catch_tfp} and ESC/Haskell \citep{esc_haskell}. The first paper attempts to define an automatic inference that pattern matches are safe, similar to the analysis presented in this paper. Unfortunately the restrictions in that paper make it an interesting starting point, but nothing more. The analysis in this paper differs radically in many design decisions -- particularly in relation to fixed points and constraints. Perhaps the introductory risers example is most clearly illustrates the differences -- for the original paper risers was towards the boundary of what was possible, for this paper it is trivial.
-
-The ESC/Haskell approach requires the programmer to give explicit preconditions and contracts which the program obeys. This approach is likely to result in a checker with more expressive power in the end (one of the examples involves an invariant on an ordered list, something beyond Catch), but requires the programmer to spend more time doing the validation. It should be noted that the preconditions derived by Catch, along with the properties, could easily be turned into ESC/Haskell annotations, allowing both tools to be used together.
+Despite the seriousness of the problem of pattern matching, the topic of pattern-match error detection and elimination has not been studied extensively. The other paper that covers this issue most directly is \citep{esc_haskell}, where ESC/Haskell is introduced. The ESC/Haskell approach requires the programmer to give explicit preconditions and contracts which the program obeys. This approach is intended to result in a checker with more expressive power -- one of the examples involves an invariant on an ordered list, something beyond Catch -- but it requires the programmer to spend more time doing the validation.
+ 
+Preconditions and other properties derived by Catch could perhaps be turned into ESC/Haskell annotations, allowing both tools to be used together.
 
 \subsection{Eliminating Incomplete Patterns}
 
-One simple way to guarantee that a program does not crash with an incomplete pattern is to ensure that there are no pattern match errors in the code. The GHC compiler  \citep{ghc} has a warning flag to detect incomplete patterns, named \T{-fwarn-incomplete-patterns}. Adding this flag when compiling risers results in a message that ``Pattern matches are non-exhaustive''. Unfortunately the Bugs (12.2.1) section of the manual notes that the checks are sometimes wrong, particularly with string patterns or guards, and that this part of the compiler ``needs an overhaul really'' \citep{ghc_manual}. But the GHC checks are only local. Using an incomplete function from a library, such as \C{head}, gives no warning. If the function \C{head} is defined, then it raises a warning.
+One simple way to guarantee that a program does not crash with an incomplete pattern is to ensure that all pattern matching is exhaustive. The GHC compiler  \citep{ghc} has a warning flag to detect incomplete patterns, named \T{-fwarn-incomplete-patterns}. Adding this flag when compiling risers results in a message that ``Pattern matches are non-exhaustive''. Unfortunately the Bugs (12.2.1) section of the manual notes that the checks are sometimes wrong, particularly with string patterns or guards, and that this part of the compiler ``needs an overhaul really'' \citep{ghc_manual}. But the GHC checks are only local. Using an incomplete function from a library, such as \C{head}, gives no warning. If the function \C{head} is defined, then it raises a warning.
 
 There have been attempts at defining what it means for a program to be complete with regard to pattern matches \citep{maranget:pattern_warnings}, along with associated implementations.
 
-One approach for programming is to design a functional language without pattern match errors or non-termination \cite{turner:total}. In this approach incomplete pattern matches are banned, suggesting this restriction will ``force you to pay attention to exactly those corner cases which are likely to cause trouble''. The results in \S\ref{sec:nofib} show that in sample Haskell programs there are a reasonably high number of incomplete pattern matches, which are still safe. Using the Catch tool this restriction could be reduced.
+A more radical approach is to design a \textit{total} functional language without pattern match errors (or non-termination) \citep{turner:total}. In this approach incomplete pattern matches are banned, suggesting this restriction will ``force you to pay attention to exactly those corner cases which are likely to cause trouble''. The results in \S\ref{sec:imaginary} show that in sample Haskell programs there are a reasonably high number of incomplete pattern matches, which are still safe.
+
+The \catch{} tool could perhaps allow the exhaustive pattern matching restriction to be lifted somewhat. The \catch{} tool will always report success if there are no inexhaustive patterns, so a more generous requirement would be for the \catch{} tool to succeed on the program.
 
 \subsection{A Mistake Detector}
 
-One tool in most Haskell programmers arsenals is the QuickCheck tool \citep{quickcheck}. This tool allows properties to be specified which are randomly tests. In many cases these properties may be similar to those derived by the templating mechanism -- if the Catch tool had a way of directly entering these conditions then perhaps the simpler properties could be proved automatically.
-
-There has been a long history of writing tools to analyse programs to detect potential bugs, going back to the classic C Lint tool \citep{lint}. In the functional arena the Dialyzer \citep{dialyzer} for Erlang \citep{erlang} performs a similar function. The aim is to have a static checker that works on unmodified code, with no additional annotations. However, a key difference is that in Dialyzer all warnings indicate a genuine problem that needs to be fixed. Because Erlang is a dynamically typed language, a large proportion of Dialyzer's warnings relate to mistakes a type checker would have detected.
-
-Part of the mistake detection aspect can be seen as defining a slightly more restrictive type system. In this light the checker can be compared to the tree automata work done on XML \citep{xml} and XSL \citep{static_xslt}, which can be seen as an algebraic data type and a functional language. Another soft typing system with similarities is by Aiken \cite{aiken:type_infer}, on the functional language FL. This system tries to assign a type to each function using a set of constructors, for example \T{head} is given just \T{Cons} and not \T{Nil}.
+There has been a long history of writing tools to analyse programs to detect potential bugs, going back to the classic C Lint tool \citep{lint}. In the functional arena the Dialyzer tool \citep{dialyzer} for Erlang \citep{erlang} performs a similar function. The aim is to have a static checker that works on unmodified code, with no additional annotations. However, a key difference is that in Dialyzer all warnings indicate a genuine problem that needs to be fixed. Because Erlang is a dynamically typed language, a large proportion of Dialyzer's warnings relate to mistakes a type checker would have detected.
 
 \subsection{Type System Safety}
+
+One way of checking pattern matching is to define a slightly more precise type system. In this light the checker can be compared to the tree automata work done on XML and XSL \citep{static_xslt}, which can be seen as an algebraic data type and a functional language. Another soft typing system with similarities is by \citet{aiken:type_infer}, on the functional language FL. This system tries to assign a type to each function using a set of constructors, for example \T{head} is given just \T{Cons} and not \T{Nil}.
 
 \begin{figure}
 \begin{code}
@@ -1292,7 +1295,7 @@ safeTail (List (a:as)) = as
 \label{fig:phantom}
 \end{figure}
 
-One method which is frequently used to encode invariants on data in functional languages is the type system. One approach is the use of Phantom types \citep{fluet:phantom}, for example a safe variant of \C{head} can be written as in Figure \ref{fig:phantom}. In this example the \C{List} data structure would not be exported, ensuring that all lists with a \C{Cons} tag are indeed non-empty. The values \C{Cons} and \C{Unknown} are phantom types -- they exist only in the type level, not the value level.
+Types can also be used to explicitly encode invariants on data in functional languages is the type system. One approach is the use of Phantom types \citep{fluet:phantom}, for example a safe variant of \C{head} can be written as in Figure \ref{fig:phantom}. In this example the \C{List} data structure would not be exported, ensuring that all lists with a \C{Cons} tag are indeed non-empty. The values \C{Cons} and \C{Unknown} are phantom types -- they exist only at the type level, not at the value level.
 
 \begin{figure}
 \begin{code}
@@ -1323,9 +1326,9 @@ The downside to all these type systems is that they require the programmer to ma
 \section{Conclusions and Future Work}
 \label{sec:conclusion}
 
-A static checker for potential pattern-match errors in Haskell has been specified and implemented. This checker is capable of determining preconditions under which a program with non-exhaustive patterns executes without failing due to a pattern-match error. A section of the Nofib suite has been tested, with encouraging results -- all but one program can be proved safe, most without any modification at all.
+A static checker for potential pattern-match errors in Haskell has been specified and implemented. This checker is capable of determining preconditions under which a program with non-exhaustive patterns executes without failing due to a pattern-match error. A section of the Nofib suite has been tested, with encouraging results -- all but one program can be proved safe, most without modification.
 
-There are two main avenues of future work to extend to the mechanisms introduced in this paper. There first is to extend the power of the checker. Possible directions to increase the power include the addition of explicit annotations of properties, or a more powerful constraint language. The constraint languages introduced could be augmented with special purpose constraints, designed to tackle particular problems. One particular constraint system that may prove fruitful is a linear inequality constraint system.
+There are two main avenues of future work. First is to extend the power of the checker. Possible directions to increase the power include the addition of explicit annotations of properties, or a more powerful constraint language. The constraint languages introduced could be augmented with special purpose constraints, designed to tackle particular problems. One particular constraint system that may prove fruitful is a linear inequality constraint system \todo{Colin wants citation}.
 
 The next direction for future work would be using the Catch tool to solve other problems. The direct result of the absence of pattern match failure could be used to feed information to an optimising compiler. The properties generated could also be used to generate more efficient code. If the programmer was able to specify more restrictive preconditions, or properties, or invariants, then these may be able checked with Catch. If the power of the constraint system was increased then richer program annotations could be used.
 
