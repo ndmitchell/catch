@@ -403,7 +403,7 @@ This property states that the preconditions assigned to each function by \C{preF
 
 \begin{figure}
 \begin{code}
-for fn `elem` funcs do conds(fn) <- (fn /= "erorr")
+for fn `elem` funcs do conds(fn) <- (fn /= "error")
 loop
     for fn `elem` funcs do
         conds'(fn) <- conds(fn) && pre (instantiate fn vs)
