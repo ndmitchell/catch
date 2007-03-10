@@ -1,6 +1,7 @@
 
 module Analyse.Req(
     PropReq, Req(..), Constraint,
+    propCon, conTrue, conAnd,
     notin, (|>), (<|)
     ) where
 
@@ -34,8 +35,16 @@ instance (Show a, Ord a) => PropLit (Req a) where
 conReduce (e :< c) = maybe (Value $ e :< c) Literal (conBool c)
 
 
+-- reduce a proposition to a single constraint
+-- demand that each element is the given type
+propCon :: (Show a, Ord a) => a -> PropReq a -> Constraint
+propCon x p = propFold (PropFold conOrs conAnds conNot conLit) p
+    where
+        conNot = error "Analyse.Req.propCon, no conNot exists"
+        conLit (a :< b) | a /= x = error "Analyse.Req.propCon, precondition failed"
+                        | otherwise = b
 
-
+                        
 ---------------------------------------------------------------------
 -- MultiPattern Constraint System
 
@@ -50,7 +59,11 @@ data Match = Match CoreCtorName [Val]
 
 
 boolCon :: Bool -> Constraint
-boolCon x = if x then [Any] else []
+boolCon x = if x then conTrue else conFalse
+
+
+conTrue  = [Any]
+conFalse = []
 
 
 conBool :: Constraint -> Maybe Bool
@@ -108,6 +121,10 @@ merge :: [Match] -> [Match] -> [Match]
 merge  ms1 ms2 = [Match c1 (zipWith mergeVal vs1 vs2) |
        Match c1 vs1 <- ms1, Match c2 vs2 <- ms2, c1 == c2]
 
+
+
+conOrs  = foldr conOr  conFalse
+conAnds = foldr conAnd conTrue
 
 
 conOr :: Constraint -> Constraint -> Constraint
