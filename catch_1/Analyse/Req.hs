@@ -19,15 +19,15 @@ data Req a = a :< Constraint
 
 instance (Show a, Ord a) => PropLit (Req a) where
     (e1 :< a) ?/\ (e2 :< b)
-        | e1 == e2 = reduceConstraint $ e1 :< constraintAnd a b
+        | e1 == e2 = conReduce $ e1 :< conAnd a b
         | otherwise = None
 
     (e1 :< a) ?\/ (e2 :< b)
-        | e1 == e2 = reduceConstraint $ e1 :< constraintOr  a b
+        | e1 == e2 = conReduce $ e1 :< conOr  a b
         | otherwise = None
 
 
-reduceConstraint (e :< c) = maybe (Value $ e :< c) Literal (toBool c)
+conReduce (e :< c) = maybe (Value $ e :< c) Literal (conBool c)
 
 
 
@@ -45,12 +45,12 @@ data Match = Match CoreCtorName [Val]
              deriving (Eq, Ord, Show)
 
 
-fromBool :: Bool -> Constraint
-fromBool x = if x then [Any] else []
+boolCon :: Bool -> Constraint
+boolCon x = if x then [Any] else []
 
 
-toBool :: Constraint -> Maybe Bool
-toBool c
+conBool :: Constraint -> Maybe Bool
+conBool c
     | null c       = Just False
     | Any `elem` c = Just True
     | otherwise    = Nothing
@@ -106,12 +106,12 @@ merge  ms1 ms2 = [Match c1 (zipWith mergeVal vs1 vs2) |
 
 
 
-constraintOr :: Constraint -> Constraint -> Constraint
-constraintOr x y = normalise $ x ++ y
+conOr :: Constraint -> Constraint -> Constraint
+conOr x y = normalise $ x ++ y
 
 
-constraintAnd :: Constraint -> Constraint -> Constraint
-constraintAnd x y = normalise [a `mergeVal` b | a <- x, b <- y]
+conAnd :: Constraint -> Constraint -> Constraint
+conAnd x y = normalise [a `mergeVal` b | a <- x, b <- y]
 
 
 ---------------------------------------------------------------------
