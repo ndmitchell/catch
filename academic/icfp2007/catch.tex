@@ -704,15 +704,15 @@ complete :: CtorName -> Match
 complete c = Match c (map (const Any) (nonRecs c))
 
 notin :: CtorName -> Constraint
-notin c = map complete (delete c cs) :* map complete cs
+notin c = [map complete (delete c cs) :* map complete cs]
     where cs = ctors c
 
 (|>) :: Field -> Constraint -> Constraint
 (c,i) |> k = notin c ++ map f k
     where
     f Any = Any
-    f (ms1 :* ms1) | isRec (c,i) = complete c :* merge ms1 ms2
-    f v =  Match c [if i == j then v else Any | j <- nonRecs c]
+    f (ms1 :* ms2) | isRec (c,i) = [complete c] :* merge ms1 ms2
+    f v =  [Match c [if i == j then v else Any | j <- nonRecs c]]
            :* map complete (ctors c)
 
 (<|) :: CtorName -> Constraint -> Prop (Req Int)
@@ -720,10 +720,10 @@ c <| vs = or (map f vs)
     where
     (rec,non) = partition (isRec . (,) c) [0..arity c-1]
 
-    f Any = Any
+    f Any = propTrue
     f (ms1 :* ms2) = or [g vs | Match c1 vs1 <- ms1, c1 == c]
-        where g vs =  and (zipWith (:<) non vs) &&
-                      and (map (:< (ms2 :* ms2)) rec)
+        where g vs =  and (zipWith (:<) non (map (:[]) vs)) &&
+                      and (map (:< [ms2 :* ms2]) rec)
 
 (`mergeVal`) :: Val -> Val -> Val
 (a1 :* b1) `mergeVal` (a2 :* b2) = merge a1 a2 :* merge b1 b2
@@ -1251,7 +1251,7 @@ This paper follows very much the same spirit as \cite{me:catch_tfp} -- the goals
 \subsection{Proving Incomplete Patterns Safe}
 
 Despite the seriousness of the problem of pattern matching, the topic of pattern-match error detection and elimination has not been studied extensively. The other paper that covers this issue most directly is \citep{esc_haskell}, where ESC/Haskell is introduced. The ESC/Haskell approach requires the programmer to give explicit preconditions and contracts which the program obeys. This approach is intended to result in a checker with more expressive power -- one of the examples involves an invariant on an ordered list, something beyond Catch -- but it requires the programmer to spend more time doing the validation.
- 
+
 Preconditions and other properties derived by Catch could perhaps be turned into ESC/Haskell annotations, allowing both tools to be used together.
 
 \subsection{Eliminating Incomplete Patterns}
