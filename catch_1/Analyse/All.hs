@@ -11,7 +11,7 @@ import Analyse.Property
 analyse :: (Bool -> String -> IO ()) -> Core -> IO ()
 analyse logger core = do
     initInfo core
-    initProperty
+    initProperty (logger False)
     error "analyse, to do"
     termInfo
     termProperty

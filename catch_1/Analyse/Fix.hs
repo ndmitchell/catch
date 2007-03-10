@@ -45,15 +45,27 @@ fixDumb def combine compute initial = cont initial
 data Item k v = Item {value :: v, dependsOn :: Set.Set k, requiredBy :: Set.Set k}
 
 fix
-    :: (Eq v, Ord k)
-    => v                            -- default value
+    :: (Show v, Eq v, Show k, Ord k)
+    => (String -> IO ())            -- logger
+    -> v                            -- default value
     -> (v -> v -> v)                -- combine
     -> ((k -> IO v) -> k -> IO v)   -- compute
     -> Map.Map k v                  -- initial
     -> IO (Map.Map k v)             -- result
-fix def combine compute initial =
-        cont (Map.map blankItem initial) (Map.keysSet initial)
+fix logger def combine compute initial = do
+        logger "BEGIN FIXED POINT"
+        loggerMap initial
+        logger "COMPUTE FIXED POINT"
+        res <- cont (Map.map blankItem initial) (Map.keysSet initial)
+        logger "FOUND FIXED POINT"
+        loggerMap res
+        logger "END FIXED POINT"
+        logger ""
+        return res
     where
+        loggerLine k v = logger $ "    " ++ show k ++ " = " ++ show v
+        loggerMap = mapM (uncurry loggerLine) . Map.toList
+    
         def2 = blankItem def
         blankItem v = Item v Set.empty Set.empty
     
@@ -82,6 +94,7 @@ fix def combine compute initial =
             -- add the new item to the map
             -- cached item may be out of date due to requiredBy computation
             x <- return $ Map.adjust (\i -> i{dependsOn=depends, value=v}) k x
+            loggerLine k v
             cont x pending
 
 

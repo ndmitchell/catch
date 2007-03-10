@@ -20,12 +20,12 @@ import Analyse.Fix
 type Key = (CoreFuncName, Constraint)
 
 
-props :: IORef (Map.Map Key Constraint)
+props :: IORef (String -> IO (), Map.Map Key Constraint)
 props = unsafePerformIO undefined
 
 
-initProperty :: IO ()
-initProperty = writeIORef props Map.empty
+initProperty :: (String -> IO ()) -> IO ()
+initProperty logger = writeIORef props (logger, Map.empty)
 
 
 termProperty :: IO ()
@@ -37,12 +37,12 @@ property :: CoreFuncName -> Constraint -> IO (PropReq Int)
 property func c = do
     info <- getInfo
     let key = (func,c)
-    i <- readIORef props
+    (logger,i) <- readIORef props
     case Map.lookup key i of
         Just y -> return $ lift y
         Nothing -> do
-            res <- fix conTrue conAnd (compute info i) (Map.singleton key conTrue)
-            writeIORef props (i `Map.union` res)
+            res <- fix logger conTrue conAnd (compute info i) (Map.singleton key conTrue)
+            writeIORef props (logger, i `Map.union` res)
             return $ lift $ fromJust $ Map.lookup key res
     where
         compute :: Info -> (Map.Map Key Constraint) -> (Key -> IO Constraint) -> Key -> IO Constraint
