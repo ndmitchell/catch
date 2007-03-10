@@ -1,6 +1,6 @@
 
 module Analyse.Req(
-    Req(..), Constraint,
+    PropReq, Req(..), Constraint,
     notin, (|>), (<|)
     ) where
 
