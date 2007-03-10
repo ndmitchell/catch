@@ -45,7 +45,3 @@ back prop (CoreCase on alts :< k) = do
 back prop (CoreApp (CoreFun f) xs :< k) = do
         c <- prop f k
         return $ replaceVars xs c
-
-
-replaceVars :: [CoreExpr] -> PropReq Int -> PropReq CoreExpr
-replaceVars xs = propChange (\(i:<k) -> propLit $ (xs!!i) :< k)

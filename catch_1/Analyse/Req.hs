@@ -2,7 +2,8 @@
 module Analyse.Req(
     PropReq, Req(..), Constraint,
     propCon, conTrue, conAnd,
-    notin, (|>), (<|)
+    notin, (|>), (<|),
+    replaceVars
     ) where
 
 import Yhc.Core
@@ -43,6 +44,10 @@ propCon x p = propFold (PropFold conOrs conAnds conNot conLit) p
         conNot = error "Analyse.Req.propCon, no conNot exists"
         conLit (a :< b) | a /= x = error "Analyse.Req.propCon, precondition failed"
                         | otherwise = b
+
+
+replaceVars :: [CoreExpr] -> PropReq Int -> PropReq CoreExpr
+replaceVars xs = propChange (\(i:<k) -> propLit $ (xs!!i) :< k)
 
                         
 ---------------------------------------------------------------------
