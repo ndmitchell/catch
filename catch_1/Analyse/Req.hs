@@ -10,6 +10,10 @@ import Data.List
 import Analyse.Info
 
 
+
+type PropReq a = Formula (Req a)
+
+
 ---------------------------------------------------------------------
 -- Req definition
 
@@ -82,7 +86,7 @@ notin info c = [map (complete info) (delete c cs) :* map (complete info) cs]
            :* map (complete info) (ctors info c)
 
 
-(<|) :: Prop p => CoreCtorName -> Constraint -> Info -> p (Req Int)
+(<|) :: CoreCtorName -> Constraint -> Info -> PropReq Int
 (<|) c vs info = propOrs (map f vs)
     where
     (rec,non) = partition (isRec info . (,) c) [0..arity info c-1]
@@ -90,7 +94,7 @@ notin info c = [map (complete info) (delete c cs) :* map (complete info) cs]
     f Any = propTrue
     f (ms1 :* ms2) = propOrs [g vs | Match c1 vs1 <- ms1, c1 == c]
         where
-            g :: Prop p => [Val] -> p (Req Int)
+            g :: [Val] -> PropReq Int
             g vs = propAnds $ map propLit $
                         zipWith (:<) non (map (:[]) vs) ++
                         map (:< [ms2 :* ms2]) rec
