@@ -1,50 +1,123 @@
 
-module Analyse.Req where
+module Analyse.Req(
+    Req(..), Constraint,
+    notin, (|>), (<|)
+    ) where
 
+import Yhc.Core
+import Data.Proposition
+import Data.List
+import Analyse.Info
+
+
+---------------------------------------------------------------------
+-- Req definition
 
 data Req a = a :< Constraint
+             deriving (Eq, Show, Ord)
 
+
+instance (Show a, Ord a) => PropLit (Req a) where
+    (e1 :< a) ?/\ (e2 :< b)
+        | e1 == e2 = reduceConstraint $ e1 :< constraintAnd a b
+        | otherwise = None
+
+    (e1 :< a) ?\/ (e2 :< b)
+        | e1 == e2 = reduceConstraint $ e1 :< constraintOr  a b
+        | otherwise = None
+
+
+reduceConstraint (e :< c) = maybe (Value $ e :< c) Literal (toBool c)
+
+
+
+
+---------------------------------------------------------------------
+-- MultiPattern Constraint System
 
 type Constraint = [Val]
 
-data Val    =  [Match] :* [Match]
-            |  Any
-data Match  =  Match CtorName [Val]
+data Val = [Match] :* [Match]
+         | Any
+           deriving (Eq, Ord, Show)
+
+data Match = Match CoreCtorName [Val]
+             deriving (Eq, Ord, Show)
+
+
+fromBool :: Bool -> Constraint
+fromBool x = if x then [Any] else []
+
+
+toBool :: Constraint -> Maybe Bool
+toBool c
+    | null c       = Just False
+    | Any `elem` c = Just True
+    | otherwise    = Nothing
+
 
 -- useful auxiliaries, non recursive fields
-nonRecs :: CtorName -> [Int]
-nonRecs c = [i | i <- [0..arity c-1], not (isRec (c,i))]
+nonRecs :: Info -> CoreCtorName -> [Int]
+nonRecs info c = [i | i <- [0..arity info c - 1], not $ isRec info (c,i)]
+
 
 -- a complete Match on |c|
-complete :: CtorName -> Match
-complete c = Match c (map (const Any) (nonRecs c))
+complete :: Info -> CoreCtorName -> Match
+complete info c = Match c (map (const Any) (nonRecs info c))
 
-notin :: CtorName -> Constraint
-notin c = map complete (delete c cs) :* map complete cs
-    where cs = ctors c
 
-(|>) :: Field -> Constraint -> Constraint
-(c,i) |> k = notin c ++ map f k
+notin :: Info -> CoreCtorName -> Constraint
+notin info c = [map (complete info) (delete c cs) :* map (complete info) cs]
+    where cs = ctors info c
+
+
+(|>) :: CoreField -> Constraint -> Info -> Constraint
+(|>) (c,i) k info = normalise $ notin info c ++ map f k
     where
+    rec = isRec info (c,i)
+    
     f Any = Any
-    f (ms1 :* ms1) | isRec (c,i) = complete c :* merge ms1 ms2
-    f v =  Match c [if i == j then v else Any | j <- nonRecs c]
-           :* map complete (ctors c)
+    f (ms1 :* ms2) | rec = [complete info c] :* merge ms1 ms2
+    f v =  [Match c [if i == j then v else Any | j <- nonRecs info c]]
+           :* map (complete info) (ctors info c)
 
-(<|) :: CtorName -> Constraint -> Prop (Req Int)
-c <| vs = or (map f vs)
+
+(<|) :: Prop p => CoreCtorName -> Constraint -> Info -> p (Req Int)
+(<|) c vs info = propOrs (map f vs)
     where
-    (rec,non) = partition (isRec . (,) c) [0..arity c-1]
+    (rec,non) = partition (isRec info . (,) c) [0..arity info c-1]
 
-    f Any = Any
-    f (ms1 :* ms2) = or [g vs | Match c1 vs1 <- ms1, c1 == c]
-        where g vs =  and (zipWith (:<) non vs) &&
-                      and (map (:< (ms2 :* ms2)) rec)
+    f Any = propTrue
+    f (ms1 :* ms2) = propOrs [g vs | Match c1 vs1 <- ms1, c1 == c]
+        where
+            g :: Prop p => [Val] -> p (Req Int)
+            g vs = propAnds $ map propLit $
+                        zipWith (:<) non (map (:[]) vs) ++
+                        map (:< [ms2 :* ms2]) rec
+
 
 mergeVal :: Val -> Val -> Val
 (a1 :* b1) `mergeVal` (a2 :* b2) = merge a1 a2 :* merge b1 b2
 
+
 merge :: [Match] -> [Match] -> [Match]
-merge  ms1 ms2 = [Match c1 (zipWith (`mergeVal`) vs1 vs2) |
+merge  ms1 ms2 = [Match c1 (zipWith mergeVal vs1 vs2) |
        Match c1 vs1 <- ms1, Match c2 vs2 <- ms2, c1 == c2]
+
+
+
+constraintOr :: Constraint -> Constraint -> Constraint
+constraintOr x y = normalise $ x ++ y
+
+
+constraintAnd :: Constraint -> Constraint -> Constraint
+constraintAnd x y = normalise [a `mergeVal` b | a <- x, b <- y]
+
+
+---------------------------------------------------------------------
+-- MultiPattern Normalise
+
+normalise :: Constraint -> Constraint
+normalise = id
+
 
