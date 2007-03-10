@@ -46,6 +46,9 @@ class Prop p where
     
     propBool :: Bool -> p a
     propBool b = if b then propTrue else propFalse
+    
+    propChange :: (PropLit a, PropLit b) => (a -> p b) -> p a -> p b
+    propChange f = propFold (PropFold propOrs propAnds propNot f)
 
 
 data Reduce a = Value a
