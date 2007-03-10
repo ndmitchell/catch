@@ -8,6 +8,7 @@ import Data.Maybe
 import Data.List
 import Data.Char
 import Debug.Trace
+import General.General
 
 import Control.Monad.State
 import qualified Data.Set as Set
@@ -37,9 +38,9 @@ The specialised version has:
 
 -- if the first result is not null, an error occurred
 -- the second result is how far you got
-firstify :: Core -> (String, Core)
-firstify core = (if ans then "" else "Did not make first order :("
-                ,coreReachable ["main"] $ fromCoreFuncMap core res)
+firstify :: Core -> Result Core
+firstify core = (if ans then success else failure) $
+                coreReachable ["main"] $ fromCoreFuncMap core res
     where (ans,res) = transform $ prepare core
 
 

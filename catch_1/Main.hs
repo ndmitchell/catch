@@ -4,40 +4,16 @@ module Main where
 import System.Environment
 import System.FilePath
 import System.Directory
+import System.IO
 import Control.Monad
 import Data.Char
+import Data.Maybe
 import Data.List
 import Prepare.All
+import Analyse.All
 import Yhc.Core
-
-
-data Stage = Compile | Overlay | Firstify | LetElim | Analyse
-             deriving (Show, Enum, Bounded, Eq, Ord)
-
-data Option = Text | Html
-              deriving (Show, Enum, Bounded, Eq, Ord)
-
-
-allStages = [minBound..maxBound] :: [Stage]
-
-
-parseCommandItem :: String -> ([Stage],[Option])
-parseCommandItem x
-        | x == "all" = (allStages, [])
-        | otherwise = case (f x, f x) of
-                           ([x],[]) -> ([x],[])
-                           ([],[x]) -> ([],[x])
-                           _ -> error $ "Unknown command line flag, " ++ x
-    where
-        f x = [y | y <- [minBound..maxBound], map toLower (show y) == x]
-
-
-parseCommandLine :: [String] -> ([String], [Stage], [Option])
-parseCommandLine xs = (files, let s = f a in if null s then allStages else s, f b)
-    where
-        f x = sort $ nub $ concat x
-        (a,b) = unzip $ map (parseCommandItem . tail) flags
-        (flags, files) = partition ("-" `isPrefixOf`) xs
+import General.CmdLine
+import General.General
 
 
 
@@ -45,59 +21,103 @@ main :: IO ()
 main = do
     xs <- getArgs
     let (files,stages,options) = parseCommandLine xs
-    if null files then do
-        putStr $ unlines
-            ["Catch 2007, let's have fun!"
-            ,"(C) Neil Mitchell 2005-2007, University of York"
-            ,""
-            ,"  catch [stages] [options] [files]"
-            ,""
-            ,"stages:  -all" ++ concat [", -" ++ map toLower (show x) | x <- [minBound..maxBound] :: [Stage]]
-            ,"options: -" ++ concat (intersperse ", -" [map toLower (show x) | x <- [minBound..maxBound] :: [Option]])
-            ]
-     else
-        mapM_ (execFile stages options) files
+    if null files
+        then helpMessage
+        else mapM_ (execFile stages options) files
 
 
 execFile :: [Stage] -> [Option] -> String -> IO ()
 execFile stages options file = do
-        realfile <- findFileHs file
-        let yca     = dropFileName realfile </> "ycr" </> replaceExtension (takeFileName realfile) "yca"
-            over    = replaceExtension yca "over.yca"
-            first   = replaceExtension yca "first.yca"
-            letelim = replaceExtension yca "letelim.yca"
+        putStrLn $ "Executing: " ++ file
+        origfile <- findStartFile file
+        let origfile_yha = dropFileName origfile </> "ycr" </> replaceExtension (takeFileName origfile) "yca"
+        
+        -- compile
+        ycafile <-
+            if takeExtension origfile == ".yca" then return origfile
+            else if Compile `elem` stages then do
+                putStrLn "Compiling"
+                compile origfile
+                return origfile_yha
+            else do
+                b <- doesFileExist origfile_yha
+                if b then error $ "Compilation not specified, but file not compiled: " ++ origfile
+                     else return origfile_yha
 
-        putStrLn $ "Executing: " ++ file ++ ", " ++ realfile
-        when (Compile `elem` stages) $ compile realfile
-        res <- test Overlay  over (Right yca) (liftM wrap . overlay)
-        res <- test Firstify first res (return . firstify)
-        res <- test LetElim  letelim res (return . wrap . letElim)
+        -- the middle bit
+        res <- execMiddle stages options ycafile
+        
+        -- analysis
+        when (Analyse `elem` stages) $ do
+            putStrLn "Analysing"
+            core <- loadStage ycafile res (pred Analyse)
+            (logger, close) <- if NoLog `elem` options then return (\a b -> return (), return ()) else do
+                let openLog x = do h <- openFile (replaceExtension ycafile (x <.> "log")) WriteMode
+                                   hSetBuffering h NoBuffering
+                                   return h
+                hPre  <- openLog "pre"
+                hProp <- openLog "prop"
+                return (\b -> hPutStrLn $ if b then hPre else hProp
+                       ,hClose hPre >> hClose hProp)
 
-        return ()
+            analyse logger core
+            close
+
+
+
+-- load the result of doing a particular stage
+loadStage :: FilePath -> Maybe (Stage,Core) -> Stage -> IO Core
+loadStage file (Just (s,c)) stage | s == stage = return c
+loadStage file _ stage = loadCore $ whereStage file stage <.> "yca"
+
+
+whereStage :: FilePath -> Stage -> FilePath
+whereStage file stage = replaceExtension file $ map toLower (if stage == Compile then "" else show stage)
+
+
+execMiddle :: [Stage] -> [Option] -> FilePath -> IO (Maybe (Stage,Core))
+execMiddle stages options file = fs [succ Compile .. pred Analyse] Nothing
     where
-        wrap x = ("",x)
+        fs [] prev = return prev
+        fs (s:ss) prev = f s prev >>= fs ss
     
-        test :: Stage -> FilePath -> Either Core FilePath -> (Core -> IO (String,Core)) -> IO (Either Core FilePath)
-        test x out inp f | x `notElem` stages = return $ Right out
-                         | otherwise = do
-            putStrLn $ "Task: " ++ show x
-            core <- either return loadCore inp
-            (err,core2) <- f core
-            when (Text `elem` options) $ writeFile (out <.> "txt") (show core2)
-            when (Html `elem` options) $ writeFile (out <.> "html") (coreHtml core2)
-            saveCore out core2
-            when (not $ null err) $ error err
-            return $ Left core2
+        f stage prev | stage `notElem` stages = return Nothing
+                     | otherwise = do
+            core <- loadStage file prev (pred stage)
+            putStrLn $ "Task: " ++ show stage
+            (success,core) <- getTask stage core
+            
+            let out = whereStage file stage
+            when (Text `elem` options) $ writeFile (out <.> "txt" ) (show core)
+            when (Html `elem` options) $ writeFile (out <.> "html") (coreHtml core)
+            when (Yca  `elem` options) $ saveCore  (out <.> "yca" ) core
+            if success then return $ Just (stage,core) else error $ "Failed in stage " ++ show stage
 
 
 
-findFileHs :: String -> IO FilePath
-findFileHs file = do
-    b <- doesFileExist file
-    if b then return file else do
-        let files = ["../examples" </> s </> file <.> "hs" | s <- ["Example","Nofib"]]
-        bs <- mapM doesFileExist files
-        case [a | (a,b) <- zip files bs, b] of
-            (x:_) -> return x
-            _ -> error $ "File not found, " ++ file
+tasks = [(Overlay , liftM success . overlay)
+        ,(Firstify, return . firstify)
+        ,(LetElim , return . success . letElim)
+        ]
 
+getTask :: Stage -> (Core -> IO (Result Core))
+getTask x = fromJust $ lookup x tasks
+
+
+
+
+-- find the file that the user specified on the command line
+-- this file will be either a .hs file (to compile) or a .yca (already compiled)
+--
+-- file must be in <directory>/givenname.<extension>
+findStartFile :: String -> IO FilePath
+findStartFile file = f poss
+    where
+        f [] = error $ "File not found, " ++ file
+        f (x:xs) = do
+            b <- doesFileExist x
+            if b then return x else f xs
+    
+        dirs = "" : [".." </> "examples" </> s | s <- ["Example","Nofib"]]
+        exts = ["","hs","lhs","yca"]
+        poss = [d </> file <.> e | d <- dirs, e <- exts]
