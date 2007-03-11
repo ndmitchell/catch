@@ -154,10 +154,30 @@ conAnd :: Constraint -> Constraint -> Constraint
 conAnd x y = normalise [a `mergeVal` b | a <- x, b <- y]
 
 
+-- a \subseteq b
+valSubsetEq _ Any = True
+valSubsetEq Any _ = False
+valSubsetEq (a1 :* b1) (a2 :* b2) = matchesSubsetEq a1 b1 && matchesSubsetEq a2 b2
+
+matchesSubsetEq :: [Match] -> [Match] -> Bool
+matchesSubsetEq as bs = all (\a -> any (\b -> a `matchSubsetEq` b) bs) as
+
+matchSubsetEq :: Match -> Match -> Bool
+matchSubsetEq (Match a as) (Match b bs) = a == b && and (zipWith valSubsetEq as bs)
+
+
+
+
 ---------------------------------------------------------------------
 -- MultiPattern Normalise
 
 normalise :: Constraint -> Constraint
-normalise = snub
+normalise xs = snub xs
+    where
+        res = foldr add [] $ snub xs
+        
+        add x xs | any (x `valSubsetEq`) xs = xs
+                 | otherwise = x : filter (`valSubsetEq` x) xs
+
 
 
