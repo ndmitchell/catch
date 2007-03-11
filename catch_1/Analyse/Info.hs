@@ -2,11 +2,13 @@
 module Analyse.Info(
     initInfo, termInfo, getInfo,
     CoreField, Info,
-    ctors, arity, var, instantiate, isRec
+    ctors, arity, var, instantiate, function, isRec,
+    coreAlts
     ) where
 
 import Data.IORef
 import Data.Maybe
+import Data.List
 import Yhc.Core
 import Foreign
 import qualified Data.Map as Map
@@ -71,3 +73,16 @@ recursiveFields dat = [(coreCtorName ctr, i)
 pickVars :: CoreExpr -> CoreExpr -> [(CoreVarName, (CoreExpr, CoreField))]
 pickVars on (CoreApp (CoreCon name) args) = [(n, (on, (name, i))) | (i, CoreVar n) <- zip [0..] args]
 pickVars _ _ = []
+
+
+
+coreAlts :: [(CoreExpr, CoreExpr)] -> IO [([CoreCtorName], CoreExpr)]
+coreAlts alts = do
+        info <- getInfo
+        let seen = map (getCtor . fst) alts
+            cs = ctors info (head seen)
+        return [(if isCoreVar a then cs \\ seen else [getCtor a], b) | (a,b) <- alts]
+    where
+        getCtor (CoreCon c) = c
+        getCtor (CoreApp x _) = getCtor x
+
