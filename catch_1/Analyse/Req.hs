@@ -120,7 +120,8 @@ notin info c = [map (complete info) (cs \\ c) :* map (complete info) cs]
 
 mergeVal :: Val -> Val -> Val
 (a1 :* b1) `mergeVal` (a2 :* b2) = merge a1 a2 :* merge b1 b2
-
+Any `mergeVal` b = b
+a `mergeVal` Any = a
 
 merge :: [Match] -> [Match] -> [Match]
 merge  ms1 ms2 = [Match c1 (zipWith mergeVal vs1 vs2) |
