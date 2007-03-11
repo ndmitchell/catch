@@ -48,8 +48,8 @@ property func c = do
         compute :: Info -> (Map.Map Key Constraint) -> (Key -> IO Constraint) -> Key -> IO Constraint
         compute info done ask (func,c) = do
             let get func c = liftM lift $ ask (func,c)
-                expr = instantiate info func [CoreVar "?"]
+                CoreFunc _ [arg] expr = function info func
             res <- backs get (propLit $ expr :< c)
-            return $ propCon "?" res
+            return $ propCon arg res
 
         lift x = propLit $ 0 :< x
