@@ -19,7 +19,7 @@ data Info = Info
     {ctors        :: CoreCtorName  -> [CoreCtorName]
     ,arity        :: CoreCtorName  -> Int
     ,var          :: CoreVarName   -> Maybe (CoreExpr, CoreField)
-    ,body         :: CoreFuncName  -> CoreExpr
+    ,function     :: CoreFuncName  -> CoreFunc
     ,instantiate  :: CoreFuncName  -> [CoreExpr] -> CoreExpr
     ,isRec        :: CoreField     -> Bool
     }
@@ -44,7 +44,7 @@ initInfo core = writeIORef info res
             (\x -> fromJust $ Map.lookup x ctors_)
             (\x -> fromJust $ Map.lookup x arity_)
             (\x -> Map.lookup x vars_)
-            (coreFuncBody . coreFuncMap funcMap)
+            (coreFuncMap funcMap)
             inst
             (\x -> x `Set.member` recs_)
     
