@@ -19,29 +19,25 @@ backs prop x = do
     where
         fs info = propMapM (f info)
         f  info (CoreVar x :< k) | isNothing (var info x) = return $ propLit $ CoreVar x :< k
-        f  info x = back prop x >>= fs info
+        f  info x = back info prop x >>= fs info
 
 
 
-back :: Property -> Req CoreExpr -> IO (PropReq CoreExpr)
-back prop (CoreVar x :< k) = do
-        info <- getInfo
-        let Just (on, c) = var info x
+back :: Info -> Property -> Req CoreExpr -> IO (PropReq CoreExpr)
+back info prop (CoreVar x :< k) =
         return $ propLit $ on :< ((c |> k) info)
+    where
+        Just (on, c) = var info x
 
-back prop (CoreApp (CoreCon c) xs :< k) = do
-        info <- getInfo
+back info prop (CoreApp (CoreCon c) xs :< k) =
         return $ replaceVars xs ((c <| k) info)
 
-back prop (CoreCase on alts :< k) = do
-        info <- getInfo
-        return $ propAnds [f info (getCtor c) e | (c, e) <- alts]
+back info prop (CoreCase on alts :< k) = do
+        alts <- coreAlts alts
+        return $ propAnds [f c e | (c, e) <- alts]
     where
-        getCtor (CoreCon c) = c
-        getCtor (CoreApp x _) = getCtor x
-        
-        f info c e = propLit (on :< notin info c) `propOr` propLit (e :< k)
+        f c e = propLit (on :< notin info c) `propOr` propLit (e :< k)
 
-back prop (CoreApp (CoreFun f) xs :< k) = do
+back info prop (CoreApp (CoreFun f) xs :< k) = do
         c <- prop f k
         return $ replaceVars xs c

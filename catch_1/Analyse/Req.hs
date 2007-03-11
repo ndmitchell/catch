@@ -88,13 +88,13 @@ complete :: Info -> CoreCtorName -> Match
 complete info c = Match c (map (const Any) (nonRecs info c))
 
 
-notin :: Info -> CoreCtorName -> Constraint
-notin info c = [map (complete info) (delete c cs) :* map (complete info) cs]
-    where cs = ctors info c
+notin :: Info -> [CoreCtorName] -> Constraint
+notin info c = [map (complete info) (cs \\ c) :* map (complete info) cs]
+    where cs = ctors info (head c)
 
 
 (|>) :: CoreField -> Constraint -> Info -> Constraint
-(|>) (c,i) k info = normalise $ notin info c ++ map f k
+(|>) (c,i) k info = normalise $ notin info [c] ++ map f k
     where
     rec = isRec info (c,i)
     
