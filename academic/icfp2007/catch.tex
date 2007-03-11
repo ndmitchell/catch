@@ -726,7 +726,9 @@ c <| vs = or (map f vs)
                       and (map (:< [ms2 :* ms2]) rec)
 
 (`mergeVal`) :: Val -> Val -> Val
-(a1 :* b1) `mergeVal` (a2 :* b2) = merge a1 a2 :* merge b1 b2
+(a1 :* b1) `mergeVal` (a2 :* b2)  = merge a1 a2 :* merge b1 b2
+Any        `mergeVal` x           = x
+x          `mergeVal` Any         = x
 
 merge :: [Match] -> [Match] -> [Match]
 merge  ms1 ms2 = [Match c1 (zipWith (`mergeVal`) vs1 vs2) |
