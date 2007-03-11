@@ -24,6 +24,9 @@ backs prop x = do
 
 
 back :: Info -> Property -> Req CoreExpr -> IO (PropReq CoreExpr)
+back info prop (_ :< k) | isJust kb = return $ propBool $ fromJust kb
+    where kb = conBool k
+
 back info prop (CoreVar x :< k) =
         return $ propLit $ on :< ((c |> k) info)
     where
