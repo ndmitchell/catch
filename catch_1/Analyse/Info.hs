@@ -50,7 +50,7 @@ initInfo core = writeIORef info res
             inst
             (\x -> x `Set.member` recs_)
     
-        ctors_ = Map.fromList [(c,cs) | d <- coreDatas core, let cs = map coreCtorName $ coreDataCtors d, c <- cs]
+        ctors_ = Map.fromList [(c,cs) | d <- coreDatas core, let cs = sort $ map coreCtorName $ coreDataCtors d, c <- cs]
         arity_ = Map.fromList [(coreCtorName c,length (coreCtorFields c)) | d <- coreDatas core, c <- coreDataCtors d]
         vars_  = Map.fromList $ concat [concatMap (pickVars on . fst) alts | CoreCase on alts <- allCore core]
 
