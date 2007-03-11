@@ -21,7 +21,7 @@ type Key = (CoreFuncName, Constraint)
 
 
 props :: IORef (String -> IO (), Map.Map Key Constraint)
-props = unsafePerformIO undefined
+props = unsafePerformIO $ newIORef undefined
 
 
 initProperty :: (String -> IO ()) -> IO ()
