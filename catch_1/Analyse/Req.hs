@@ -9,6 +9,7 @@ module Analyse.Req(
 import Yhc.Core
 import Data.Proposition
 import Data.List
+import General.General
 import Analyse.Info
 
 
@@ -157,6 +158,6 @@ conAnd x y = normalise [a `mergeVal` b | a <- x, b <- y]
 -- MultiPattern Normalise
 
 normalise :: Constraint -> Constraint
-normalise = id
+normalise = snub
 
 
