@@ -64,7 +64,7 @@ data Match = Match CoreCtorName [Val]
 
 
 instance Show Val where
-    showList xs = showString $ "( " ++ concat (intersperse " | " $ map show xs) ++ " )"
+    showList xs = showString $ concat $ intersperse " | " $ map show xs
 
     show Any = "_"
     show (a :* b) = f a ++ " * " ++ f b
