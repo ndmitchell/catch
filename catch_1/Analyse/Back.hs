@@ -44,3 +44,9 @@ back info prop (CoreCase on alts :< k) = do
 back info prop (CoreApp (CoreFun f) xs :< k) = do
         c <- prop f k
         return $ replaceVars xs c
+
+back info prop (CoreApp (CorePrim prim) xs :< k)
+    | prim == "Prelude.error" = return propTrue
+    | otherwise = return propFalse
+
+back info prop x = error $ "Unhandled back, " ++ show x
