@@ -26,9 +26,10 @@ oneArg core = mapOverCore useTuples $ applyFuncCore mkTuples $ core{coreDatas = 
     
         mkTuples :: CoreFunc -> CoreFunc
         mkTuples (CoreFunc name [x] body) = CoreFunc name [x] body
-        mkTuples (CoreFunc name xs body) = CoreFunc name [free] $ replaceFreeVars reps body
+        mkTuples (CoreFunc name xs body) = CoreFunc name [free] body2
             where
-                reps = zip xs [CoreApp (CoreFun $ ".#" ++ show arity ++ "_" ++ show i) [CoreVar free] | i <- [1..]]
+                body2 = if arity == 0 then body else
+                        CoreCase (CoreVar free) [(CoreApp (CoreCon ('#':show arity)) (map CoreVar xs), body)]
                 arity = length xs
                 free = head $ variableSupply 'v' \\ collectAllVars body
 
