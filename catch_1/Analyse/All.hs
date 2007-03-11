@@ -4,6 +4,7 @@ module Analyse.All(analyse) where
 import Yhc.Core
 import Analyse.Info
 import Analyse.Property
+import Analyse.Precond
 
 
 -- given a logger and the core, do the work
@@ -12,7 +13,8 @@ analyse :: (Bool -> String -> IO ()) -> Core -> IO ()
 analyse logger core = do
     initInfo core
     initProperty (logger False)
-    error "analyse, to do"
+    res <- precond (logger True) (map coreFuncName $ coreFuncs core)
+    putStrLn $ "Answer: " ++ show res
     termInfo
     termProperty
 
