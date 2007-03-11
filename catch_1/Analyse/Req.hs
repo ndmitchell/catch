@@ -44,7 +44,7 @@ propCon :: (Show a, Ord a) => a -> PropReq a -> Constraint
 propCon x p = propFold (PropFold conOrs conAnds conNot conLit) p
     where
         conNot = error "Analyse.Req.propCon, no conNot exists"
-        conLit (a :< b) | a /= x = error "Analyse.Req.propCon, precondition failed"
+        conLit (a :< b) | a /= x = error $ "Analyse.Req.propCon, expected " ++ show x ++ ", found: " ++ show p
                         | otherwise = b
 
 
