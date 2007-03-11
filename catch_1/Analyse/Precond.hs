@@ -41,7 +41,11 @@ precond logger funcs = do
 
 pre :: (CoreFuncName -> IO (PropReq Int)) -> CoreExpr -> IO (PropReq CoreExpr)
 pre preFunc (CoreVar x) = return propTrue
-pre preFunc (CoreApp (CorePrim "error") _) = return propFalse
+pre preFunc x | isCoreConst x = return propTrue
+
+pre preFunc (CoreApp (CorePrim prim) xs)
+    | prim == "Prelude.error" = return propFalse
+    | otherwise = liftM propAnds $ mapM (pre preFunc) xs
 
 pre preFunc (CoreApp (CoreCon _) xs) = liftM propAnds $ mapM (pre preFunc) xs
 
@@ -61,3 +65,5 @@ pre preFunc (CoreCase on alts) = do
             x <- pre preFunc e
             return $ propOr (propLit $ on :< notin info c) x
 
+
+pre preFunc x = error $ "Analyse.Precond.pre, unhandled: " ++ show x
