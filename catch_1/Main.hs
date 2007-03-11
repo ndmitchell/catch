@@ -57,8 +57,12 @@ execFile stages options file = do
                                    return h
                 hPre  <- openLog "pre"
                 hProp <- openLog "prop"
-                return (\b -> hPutStrLn $ if b then hPre else hProp
-                       ,hClose hPre >> hClose hProp)
+                
+                let logger b msg = do when (Screen `elem` options) $
+                                          putStrLn $ (if b then "" else "    ") ++ msg
+                                      hPutStrLn (if b then hPre else hProp) msg
+                
+                return (logger, hClose hPre >> hClose hProp)
 
             analyse logger core
             close
