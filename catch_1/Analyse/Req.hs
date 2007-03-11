@@ -57,10 +57,22 @@ type Constraint = [Val]
 
 data Val = [Match] :* [Match]
          | Any
-           deriving (Eq, Ord, Show)
+           deriving (Eq, Ord)
 
 data Match = Match CoreCtorName [Val]
-             deriving (Eq, Ord, Show)
+             deriving (Eq, Ord)
+
+
+instance Show Val where
+    showList xs = showString $ "( " ++ concat (intersperse " | " $ map show xs) ++ " )"
+
+    show Any = "_"
+    show (a :* b) = f a ++ " * " ++ f b
+        where f xs = "{" ++ concat (intersperse "," $ map show xs) ++ "}"
+
+instance Show Match where
+    show (Match name vals) = unwords (name : map show vals)
+
 
 
 boolCon :: Bool -> Constraint
