@@ -8,7 +8,7 @@ import Data.Char
 import Data.List
 
 
-data Stage = Compile | Overlay | Firstify | LetElim | OneArg | UniqueVars | Analyse
+data Stage = Compile | Overlay | Firstify | LetElim | OneArg | UniqueVars | ShortCtors | Analyse
              deriving (Show, Enum, Bounded, Eq, Ord)
 
 data Option = Text | Html | Yca | NoLog

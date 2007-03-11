@@ -5,7 +5,8 @@ module Prepare.All(
     module Prepare.Firstify,
     module Prepare.LetElim,
     module Prepare.OneArg,
-    module Prepare.UniqueVars
+    module Prepare.UniqueVars,
+    module Prepare.ShortCtors
     ) where
 
 import Prepare.Compile
@@ -14,3 +15,4 @@ import Prepare.Firstify
 import Prepare.LetElim
 import Prepare.OneArg
 import Prepare.UniqueVars
+import Prepare.ShortCtors

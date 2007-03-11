@@ -100,6 +100,7 @@ tasks = [(Overlay   , liftM success . overlay)
         ,(LetElim   , return . success . letElim)
         ,(OneArg    , return . success . oneArg)
         ,(UniqueVars, return . success . uniqueVars)
+        ,(ShortCtors, return . success . shortCtors)
         ]
 
 getTask :: Stage -> (Core -> IO (Result Core))
