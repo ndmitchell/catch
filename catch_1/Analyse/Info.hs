@@ -2,7 +2,7 @@
 module Analyse.Info(
     initInfo, termInfo, getInfo,
     CoreField, Info,
-    ctors, arity, var, instantiate, function, isRec,
+    ctors, arity, var, function, isRec,
     coreAlts
     ) where
 
@@ -22,7 +22,6 @@ data Info = Info
     ,arity        :: CoreCtorName  -> Int
     ,var          :: CoreVarName   -> Maybe (CoreExpr, CoreField)
     ,function     :: CoreFuncName  -> CoreFunc
-    ,instantiate  :: CoreFuncName  -> [CoreExpr] -> CoreExpr
     ,isRec        :: CoreField     -> Bool
     }
 
@@ -47,7 +46,6 @@ initInfo core = writeIORef info res
             (\x -> fromJust $ Map.lookup x arity_)
             (\x -> Map.lookup x vars_)
             (coreFuncMap funcMap)
-            inst
             (\x -> x `Set.member` recs_)
     
         ctors_ = Map.fromList [(c,cs) | d <- coreDatas core, let cs = sort $ map coreCtorName $ coreDataCtors d, c <- cs]
@@ -57,8 +55,6 @@ initInfo core = writeIORef info res
         recs_ = Set.fromList $ concatMap recursiveFields $ coreDatas core
 
         funcMap = toCoreFuncMap core
-        inst name with = replaceFreeVars (zip args with) body
-            where CoreFunc _ args body = coreFuncMap funcMap name
 
 
 
