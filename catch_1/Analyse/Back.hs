@@ -28,12 +28,12 @@ back info prop (_ :< k) | isJust kb = return $ propBool $ fromJust kb
     where kb = conBool k
 
 back info prop (CoreVar x :< k) =
-        return $ propLit $ on :< ((c |> k) info)
+        return $ propLit $ on :< (c |> k)
     where
         Just (on, c) = var info x
 
 back info prop (CoreApp (CoreCon c) xs :< k) =
-        return $ replaceVars xs ((c <| k) info)
+        return $ replaceVars xs (c <| k)
 
 back info prop (CoreCase on alts :< k) = do
         alts <- coreAlts alts

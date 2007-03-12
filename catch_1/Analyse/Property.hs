@@ -41,7 +41,8 @@ property func c = do
     case Map.lookup key i of
         Just y -> return $ lift y
         Nothing -> do
-            res <- fix logger conTrue conAnd (compute info i) (Map.singleton key conTrue)
+            let true = conTrue info
+            res <- fix logger true conAnd (compute info i) (Map.singleton key true)
             writeIORef props (logger, i `Map.union` res)
             return $ lift $ fromJust $ Map.lookup key res
     where
@@ -50,6 +51,6 @@ property func c = do
             let get func c = liftM lift $ ask (func,c)
                 CoreFunc _ [arg] expr = function info func
             res <- backs get (propLit $ expr :< c)
-            return $ propCon arg res
+            return $ propCon info arg res
 
         lift x = propLit $ 0 :< x

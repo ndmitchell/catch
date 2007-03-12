@@ -17,13 +17,14 @@ import Analyse.Fix
 precond :: (String -> IO ()) -> [CoreFuncName] -> IO Constraint
 precond logger funcs = do
         info <- getInfo
-        res <- fix logger conTrue conAnd (compute info) (Map.fromList [(k,conTrue) | k <- funcs])
-        res <- return $ Map.filter (/= conTrue) res
+        let true = conTrue info
+        res <- fix logger true conAnd (compute info) (Map.fromList [(k,true) | k <- funcs])
+        res <- return $ Map.filter (/= true) res
         logger ""
         logger "FINAL PRECONDITIONS"
         when (Map.null res) $ logger "    None, program is safe"
         loggerMap res
-        return $ Map.findWithDefault conTrue "main" res
+        return $ Map.findWithDefault true "main" res
     where
         loggerLine k v = logger $ "    " ++ show k ++ " = " ++ show v
         loggerMap = mapM (uncurry loggerLine) . Map.toList
@@ -34,7 +35,7 @@ precond logger funcs = do
                 get name = ask name >>= return . propLit . (0 :<)
             res <- pre get body
             res <- backs property res
-            return $ propCon arg res
+            return $ propCon info arg res
 
 
 

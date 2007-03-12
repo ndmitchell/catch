@@ -40,8 +40,8 @@ conReduce (e :< c) = maybe (Value $ e :< c) Literal (conBool c)
 
 -- reduce a proposition to a single constraint
 -- demand that each element is the given type
-propCon :: (Show a, Ord a) => a -> PropReq a -> Constraint
-propCon x p = propFold (PropFold conOrs conAnds conNot conLit) p
+propCon :: (Show a, Ord a) => Info -> a -> PropReq a -> Constraint
+propCon info x p = propFold (PropFold (conOrs info) (conAnds info) conNot conLit) p
     where
         conNot = error "Analyse.Req.propCon, no conNot exists"
         conLit (a :< b) | a /= x = error $ "Analyse.Req.propCon, expected " ++ show x ++ ", found: " ++ show p
@@ -55,7 +55,17 @@ replaceVars xs = propChange (\(i:<k) -> propLit $ (xs!!i) :< k)
 ---------------------------------------------------------------------
 -- MultiPattern Constraint System
 
-type Constraint = [Val]
+data Constraint = Con {conInfo :: Info, conVals :: [Val]}
+
+instance Eq Constraint where
+    (Con _ x) == (Con _ y) = x == y
+
+instance Ord Constraint where
+    compare (Con _ x) (Con _ y) = compare x y
+
+instance Show Constraint where
+    show (Con _ x) = show x
+
 
 -- in any set of Matches, each constructor must occur at most once
 -- and must be in alphabetical order
@@ -64,7 +74,7 @@ data Val = [Match] :* (Maybe [Match])
          | Any
            deriving (Eq, Ord)
 
-data Match = Match CoreCtorName [Val]
+data Match = Match {matchName :: CoreCtorName, matchVals :: [Val]}
              deriving (Eq, Ord)
 
 
@@ -82,16 +92,16 @@ instance Show Match where
 
 
 
-boolCon :: Bool -> Constraint
-boolCon x = if x then conTrue else conFalse
+boolCon :: Info -> Bool -> Constraint
+boolCon info x = (if x then conTrue else conFalse) info
 
 
-conTrue  = [Any]
-conFalse = []
+conTrue  info = Con info [Any]
+conFalse info = Con info []
 
 
 conBool :: Constraint -> Maybe Bool
-conBool c
+conBool (Con _ c)
     | null c       = Just False
     | Any `elem` c = Just True
     | otherwise    = Nothing
@@ -118,13 +128,13 @@ complete info c = Match c (map (const Any) (nonRecs info c))
 
 
 notin :: Info -> [CoreCtorName] -> Constraint
-notin info c = [fillTail info $ map (complete info) $ sort valid]
+notin info c = Con info [fillTail info $ map (complete info) $ sort valid]
     where
         valid = ctors info (head c) \\ c
 
 
-(|>) :: CoreField -> Constraint -> Info -> Constraint
-(|>) (c,i) k info = normalise $ notin info [c] ++ map f k
+(|>) :: CoreField -> Constraint -> Constraint
+(|>) (c,i) (Con info k) = normalise $ Con info $ conVals (notin info [c]) ++ map f k
     where
     rec = isRec info (c,i)
     
@@ -133,8 +143,8 @@ notin info c = [fillTail info $ map (complete info) $ sort valid]
     f v =  fillTail info [Match c [if i == j then v else Any | j <- nonRecs info c]]
 
 
-(<|) :: CoreCtorName -> Constraint -> Info -> PropReq Int
-(<|) c vs info = propOrs (map f vs)
+(<|) :: CoreCtorName -> Constraint -> PropReq Int
+(<|) c (Con info vs) = propOrs (map f vs)
     where
     (rec,non) = partition (isRec info . (,) c) [0..arity info c-1]
 
@@ -143,8 +153,8 @@ notin info c = [fillTail info $ map (complete info) $ sort valid]
         where
             g :: [Val] -> PropReq Int
             g vs = propAnds $ map propLit $
-                        zipWith (:<) non (map (:[]) vs) ++
-                        map (:< [fromJust ms2 :* ms2]) rec
+                        zipWith (:<) non (map (Con info . (:[])) vs) ++
+                        map (:< Con info [fromJust ms2 :* ms2]) rec
 
 
 mergeVal :: Val -> Val -> Val
@@ -173,16 +183,16 @@ merge ms1 ms2 = catMaybes $ zipMatches f ms1 ms2
             return $ Match c1 (zipWith mergeVal vs1 vs2)
 
 
-conOrs  = foldr conOr  conFalse
-conAnds = foldr conAnd conTrue
+conOrs  info = foldr conOr  (conFalse info)
+conAnds info = foldr conAnd (conTrue  info)
 
 
 conOr :: Constraint -> Constraint -> Constraint
-conOr x y = normalise $ x ++ y
+conOr (Con info x) (Con _ y) = normalise $ Con info $ x ++ y
 
 
 conAnd :: Constraint -> Constraint -> Constraint
-conAnd x y = normalise [a `mergeVal` b | a <- x, b <- y]
+conAnd (Con info x) (Con _ y) = normalise $ Con info [a `mergeVal` b | a <- x, b <- y]
 
 
 
@@ -190,7 +200,7 @@ conAnd x y = normalise [a `mergeVal` b | a <- x, b <- y]
 -- MultiPattern Normalise
 
 normalise :: Constraint -> Constraint
-normalise xs = snub xs
+normalise (Con info xs) = Con info $ snub $ concatMap (valNorm info) xs
     where
         res = foldr add [] $ snub xs
         
@@ -198,7 +208,11 @@ normalise xs = snub xs
                  | otherwise = x : filter (`valSubsetEq` x) xs
 
 
-
+-- should do as much one item normalisation as possible
+-- currently very limited
+valNorm :: Info -> Val -> [Val]
+valNorm info ([] :* _) = []
+valNorm info x = [x]
 
 
 -- a \subseteq b
