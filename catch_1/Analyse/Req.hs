@@ -200,12 +200,17 @@ conAnd (Con info x) (Con _ y) = normalise $ Con info [a `mergeVal` b | a <- x, b
 -- MultiPattern Normalise
 
 normalise :: Constraint -> Constraint
-normalise (Con info xs) = Con info $ snub $ concatMap (valNorm info) xs
+normalise (Con info xs) = res
     where
-        res = foldr add [] $ snub xs
+        res = Con info $ snub $ foldr add [] $ snub $ concatMap (valNorm info) xs
         
-        add x xs | any (x `valSubsetEq`) xs = xs
-                 | otherwise = x : filter (`valSubsetEq` x) xs
+        add x [] = [x]
+        add x xs = old ++ new2
+            where
+                old = map (strengthen info x) xs
+                new = map (\y -> strengthen info y x) xs
+                new2 = filter (\n -> not $ any (\o -> n `valSubsetEq` o) old) new
+
 
 
 -- should do as much one item normalisation as possible
@@ -228,3 +233,21 @@ matchesSubsetEq as bs = all (\a -> any (\b -> a `matchSubsetEq` b) bs) as
 matchSubsetEq :: Match -> Match -> Bool
 matchSubsetEq (Match a as) (Match b bs) = a == b && and (zipWith valSubsetEq as bs)
 
+
+-- strengthen a b = c
+-- b `subsetEq` c
+-- a && b => c
+strengthen :: Info -> Val -> Val -> Val
+strengthen info Any _ = Any
+strengthen info _ Any = Any
+strengthen info (a1 :* b1) (a2 :* b2)
+    | isNothing $ do c1 <- b1; c2 <- b2; if c1 == c2 then Nothing else Just ()
+    = strengthenStart info a1 a2 :* listToMaybe (maybeToList b1 ++ maybeToList b2)
+strengthen info a b = b
+
+
+strengthenStart info a b = zipMatches f a b
+    where
+        f (Just a) Nothing  = a
+        f Nothing  (Just b) = b
+        f (Just a) (Just b) = b
