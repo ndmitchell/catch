@@ -149,11 +149,11 @@ notin info c = Con info [fillTail info $ map (complete info) $ sort valid]
     (rec,non) = partition (isRec info . (,) c) [0..arity info c-1]
 
     f Any = propTrue
-    f (ms1 :* ms2) = propOrs [g vs | Match c1 vs1 <- ms1, c1 == c]
+    f (ms1 :* ms2) = propOrs [g vs1 | Match c1 vs1 <- ms1, c1 == c]
         where
             g :: [Val] -> PropReq Int
             g vs = propAnds $ map propLit $
-                        zipWith (:<) non (map (Con info . (:[])) vs) ++
+                        map (\n -> n :< Con info [vs !! n]) non ++
                         map (:< Con info [fromJust ms2 :* ms2]) rec
 
 
