@@ -48,6 +48,8 @@ pre preFunc (CoreApp (CorePrim prim) xs)
     | prim == "Prelude.error" = return propFalse
     | otherwise = liftM propAnds $ mapM (pre preFunc) xs
 
+pre preFunc (CorePrim prim) = return propTrue
+
 pre preFunc (CoreApp (CoreCon _) xs) = liftM propAnds $ mapM (pre preFunc) xs
 
 pre preFunc (CoreApp (CoreFun f) xs) = do
