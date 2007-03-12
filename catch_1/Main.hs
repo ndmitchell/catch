@@ -41,8 +41,8 @@ execFile stages options file = do
                 return origfile_yha
             else do
                 b <- doesFileExist origfile_yha
-                if b then error $ "Compilation not specified, but file not compiled: " ++ origfile
-                     else return origfile_yha
+                if b then return origfile_yha
+                     else error $ "Compilation not specified, but file not compiled: " ++ origfile
 
         -- the middle bit
         res <- execMiddle stages options ycafile
