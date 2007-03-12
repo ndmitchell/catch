@@ -216,8 +216,17 @@ normalise (Con info xs) = res
 -- should do as much one item normalisation as possible
 -- currently very limited
 valNorm :: Info -> Val -> [Val]
+valNorm info Any = [Any]
 valNorm info ([] :* _) = []
-valNorm info x = [x]
+valNorm info x | isComps x = [Any]
+               | otherwise = [x]
+    where
+        isComps (x :* y) = isComp x && maybe True isComp y
+        isComps Any = True
+    
+        isComp [] = False
+        isComp xs = map matchName xs == cs && all isComps (concatMap matchVals xs)
+            where cs = ctors info (matchName $ head xs)
 
 
 -- a \subseteq b
