@@ -48,5 +48,6 @@ back info prop (CoreApp (CoreFun f) xs :< k) = do
 back info prop (CoreApp (CorePrim prim) xs :< k)
     | prim == "Prelude.error" = return propTrue
     | otherwise = return propFalse
+back info prop (CorePrim prim :< k) = return propFalse
 
 back info prop x = error $ "Unhandled back, " ++ show x
