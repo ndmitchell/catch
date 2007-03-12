@@ -82,7 +82,7 @@ instance Show Val where
     showList xs = showString $ concat $ intersperse " | " $ map show xs
 
     show Any = "_"
-    show (a :* b) = "{" ++ f a ++ " * " ++ maybe "_" f b ++ "}"
+    show (a :* b) = "{" ++ f a ++ maybe "" ((" * " ++) . f) b ++ "}"
         where
             f [] = "0"
             f xs = concat $ intersperse "," $ map show xs
