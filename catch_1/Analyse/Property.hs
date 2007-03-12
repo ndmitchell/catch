@@ -48,8 +48,11 @@ property func c = do
     where
         compute :: Info -> (Map.Map Key Constraint) -> (Key -> IO Constraint) -> Key -> IO Constraint
         compute info done ask (func,c) = do
-            let get func c = liftM lift $ ask (func,c)
+            let get func c = case Map.lookup (func,c) done of
+                                 Just res -> return $ lift res
+                                 Nothing -> liftM lift $ ask (func,c)
                 CoreFunc _ [arg] expr = function info func
+
             res <- backs get (propLit $ expr :< c)
             return $ propCon info arg res
 
