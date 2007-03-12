@@ -75,7 +75,7 @@ pickVars _ _ = []
 coreAlts :: [(CoreExpr, CoreExpr)] -> IO [([CoreCtorName], CoreExpr)]
 coreAlts alts = do
         info <- getInfo
-        let seen = map (getCtor . fst) alts
+        let seen = [getCtor a | (a,b) <- alts, not $ isCoreVar a]
             cs = ctors info (head seen)
         return [(if isCoreVar a then cs \\ seen else [getCtor a], b) | (a,b) <- alts]
     where
