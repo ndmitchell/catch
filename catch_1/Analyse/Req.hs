@@ -57,6 +57,9 @@ replaceVars xs = propChange (\(i:<k) -> propLit $ (xs!!i) :< k)
 
 type Constraint = [Val]
 
+-- in any set of Matches, each constructor must occur at most once
+-- and must be in alphabetical order
+-- note: ctors always returns alphabetical order
 data Val = [Match] :* (Maybe [Match])
          | Any
            deriving (Eq, Ord)
@@ -69,8 +72,10 @@ instance Show Val where
     showList xs = showString $ concat $ intersperse " | " $ map show xs
 
     show Any = "_"
-    show (a :* b) = f a ++ " * " ++ maybe "_" f b
-        where f xs = "{" ++ concat (intersperse "," $ map show xs) ++ "}"
+    show (a :* b) = "{" ++ f a ++ " * " ++ maybe "_" f b ++ "}"
+        where
+            f [] = "0"
+            f xs = concat $ intersperse "," $ map show xs
 
 instance Show Match where
     show (Match name vals) = unwords (name : map show vals)
@@ -113,10 +118,9 @@ complete info c = Match c (map (const Any) (nonRecs info c))
 
 
 notin :: Info -> [CoreCtorName] -> Constraint
-notin info c = [fillTail info $ map (complete info) valid]
+notin info c = [fillTail info $ map (complete info) $ sort valid]
     where
-        valid = cs \\ c
-        cs = ctors info (head c)
+        valid = ctors info (head c) \\ c
 
 
 (|>) :: CoreField -> Constraint -> Info -> Constraint
@@ -149,10 +153,24 @@ mergeVal :: Val -> Val -> Val
 Any `mergeVal` b = b
 a `mergeVal` Any = a
 
-merge :: [Match] -> [Match] -> [Match]
-merge  ms1 ms2 = [Match c1 (zipWith mergeVal vs1 vs2) |
-       Match c1 vs1 <- ms1, Match c2 vs2 <- ms2, c1 == c2]
 
+
+zipMatches :: (Maybe Match -> Maybe Match -> a) -> [Match] -> [Match] -> [a]
+zipMatches f [] xs = map (     f Nothing . Just) xs
+zipMatches f ys [] = map (flip f Nothing . Just) ys
+zipMatches f (x:xs) (y:ys) = case compare x y of
+    EQ -> f (Just x) (Just y) : zipMatches f xs ys
+    LT -> f (Just x) Nothing  : zipMatches f xs (y:ys)
+    GT -> f Nothing  (Just y) : zipMatches f (x:xs) ys
+
+
+merge :: [Match] -> [Match] -> [Match]
+merge ms1 ms2 = catMaybes $ zipMatches f ms1 ms2
+    where
+        f x y = do
+            Match c1 vs1 <- x
+            Match c2 vs2 <- y
+            return $ Match c1 (zipWith mergeVal vs1 vs2)
 
 
 conOrs  = foldr conOr  conFalse
@@ -165,21 +183,6 @@ conOr x y = normalise $ x ++ y
 
 conAnd :: Constraint -> Constraint -> Constraint
 conAnd x y = normalise [a `mergeVal` b | a <- x, b <- y]
-
-
--- a \subseteq b
-valSubsetEq _ Any = True
-valSubsetEq Any _ = False
-valSubsetEq (a1 :* a2) (b1 :* b2) = matchesSubsetEq a1 b1 &&
-    (isNothing a2 || isNothing b2 || matchesSubsetEq (fromJust a2) (fromJust b2))
-
-
-matchesSubsetEq :: [Match] -> [Match] -> Bool
-matchesSubsetEq as bs = all (\a -> any (\b -> a `matchSubsetEq` b) bs) as
-
-matchSubsetEq :: Match -> Match -> Bool
-matchSubsetEq (Match a as) (Match b bs) = a == b && and (zipWith valSubsetEq as bs)
-
 
 
 
@@ -195,4 +198,19 @@ normalise xs = snub xs
                  | otherwise = x : filter (`valSubsetEq` x) xs
 
 
+
+
+
+-- a \subseteq b
+valSubsetEq _ Any = True
+valSubsetEq Any _ = False
+valSubsetEq (a1 :* a2) (b1 :* b2) = matchesSubsetEq a1 b1 &&
+    (isNothing a2 || isNothing b2 || matchesSubsetEq (fromJust a2) (fromJust b2))
+
+
+matchesSubsetEq :: [Match] -> [Match] -> Bool
+matchesSubsetEq as bs = all (\a -> any (\b -> a `matchSubsetEq` b) bs) as
+
+matchSubsetEq :: Match -> Match -> Bool
+matchSubsetEq (Match a as) (Match b bs) = a == b && and (zipWith valSubsetEq as bs)
 
