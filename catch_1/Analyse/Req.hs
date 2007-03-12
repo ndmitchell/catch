@@ -168,7 +168,7 @@ a `mergeVal` Any = a
 zipMatches :: (Maybe Match -> Maybe Match -> a) -> [Match] -> [Match] -> [a]
 zipMatches f [] xs = map (     f Nothing . Just) xs
 zipMatches f ys [] = map (flip f Nothing . Just) ys
-zipMatches f (x:xs) (y:ys) = case compare x y of
+zipMatches f (x:xs) (y:ys) = case compare (matchName x) (matchName y) of
     EQ -> f (Just x) (Just y) : zipMatches f xs ys
     LT -> f (Just x) Nothing  : zipMatches f xs (y:ys)
     GT -> f Nothing  (Just y) : zipMatches f (x:xs) ys
