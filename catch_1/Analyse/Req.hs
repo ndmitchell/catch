@@ -205,6 +205,7 @@ normalise (Con info xs) = res
         res = Con info $ snub $ foldr add [] $ snub $ concatMap (valNorm info) xs
         
         add x [] = [x]
+        add x xs | any (x `valSubsetEq`) xs = xs
         add x xs = old ++ new2
             where
                 old = map (strengthen info x) xs
