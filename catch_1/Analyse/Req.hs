@@ -15,11 +15,10 @@ import Analyse.Info
 
 
 
-type PropReq a = Formula (Req a)
-
-
 ---------------------------------------------------------------------
--- Req definition
+-- Req definition, properties on Req
+
+type PropReq a = Formula (Req a)
 
 data Req a = a :< Constraint
              deriving (Eq, Show, Ord)
@@ -34,6 +33,7 @@ instance (Show a, Ord a) => PropLit (Req a) where
         | e1 == e2 = conReduce $ e1 :< conOr  a b
         | otherwise = None
 
+    simp (e :< a) = conBool a
 
 conReduce (e :< c) = maybe (Value $ e :< c) Literal (conBool c)
 
@@ -51,9 +51,9 @@ propCon info x p = propFold (PropFold (conOrs info) (conAnds info) conNot conLit
 replaceVars :: [CoreExpr] -> PropReq Int -> PropReq CoreExpr
 replaceVars xs = propChange (\(i:<k) -> propLit $ (xs!!i) :< k)
 
-                        
+
 ---------------------------------------------------------------------
--- MultiPattern Constraint System
+-- Type signature and instances
 
 data Constraint = Con {conInfo :: Info, conVals :: [Val]}
 
@@ -70,41 +70,65 @@ instance Show Constraint where
 -- in any set of Matches, each constructor must occur at most once
 -- and must be in alphabetical order
 -- note: ctors always returns alphabetical order
-data Val = [Match] :* (Maybe [Match])
-         | Any
+data Val = Match :* [Match]
            deriving (Eq, Ord)
 
+valFst (a :* b) = a
+valSnd (a :* b) = b
+
 data Match = Match {matchName :: CoreCtorName, matchVals :: [Val]}
+           | Any
              deriving (Eq, Ord)
 
 
 instance Show Val where
+    showList [] = showString "0"
     showList xs = showString $ concat $ intersperse " | " $ map show xs
 
-    show Any = "_"
-    show (a :* b) = "{" ++ f a ++ maybe "" ((" * " ++) . f) b ++ "}"
-        where
-            f [] = "0"
-            f xs = concat $ intersperse "," $ map show xs
+    show (Any :* []) = "_"
+    show (a :* b) = "{" ++ show a ++ (if null b then "" else " * " ++ f b) ++ "}"
+        where f = concat . intersperse "," . map show
 
 instance Show Match where
     show (Match name vals) = unwords (name : map show vals)
+    show Any = "_"
 
 
+---------------------------------------------------------------------
+-- Constraints as propositions
 
 boolCon :: Info -> Bool -> Constraint
 boolCon info x = (if x then conTrue else conFalse) info
 
 
-conTrue  info = Con info [Any]
+anyVal = Any :* []
+
+conTrue  info = Con info [anyVal]
 conFalse info = Con info []
 
 
 conBool :: Constraint -> Maybe Bool
 conBool (Con _ c)
-    | null c       = Just False
-    | Any `elem` c = Just True
-    | otherwise    = Nothing
+    | c == []       = Just False
+    | c == [anyVal] = Just True
+    | otherwise = Nothing
+
+
+conOrs  info = foldr conOr  (conFalse info)
+conAnds info = foldr conAnd (conTrue  info)
+
+
+conOr :: Constraint -> Constraint -> Constraint
+conOr (Con info x) (Con _ y) = normalise $ Con info $ normSubsets [x,y]
+
+
+conAnd :: Constraint -> Constraint -> Constraint
+conAnd (Con info x) (Con _ y) = normalise $ Con info $ normSubsets $ map (:[]) $
+                                catMaybes [a `mergeVal` b | a <- x, b <- y]
+
+
+---------------------------------------------------------------------
+-- The standard operations and useful auxiliaries
 
 
 -- useful auxiliaries, non recursive fields
@@ -114,93 +138,114 @@ nonRecs info c = [i | i <- [0..arity info c - 1], not $ isRec info (c,i)]
 hasRecs :: Info -> CoreCtorName -> Bool
 hasRecs info c = any (isRec info . (,) c) [0..arity info c - 1]
 
-fillTail :: Info -> [Match] -> Val
-fillTail info x = x :* if rec then Just tl else Nothing
-    where
-        tl = map (complete info) (ctors info (head cs))
-        cs = [c | Match c _ <- x]
-        rec = any (hasRecs info) cs
-
 
 -- a complete Match on |c|
-complete :: Info -> CoreCtorName -> Match
-complete info c = Match c (map (const Any) (nonRecs info c))
+completeVal :: Info -> CoreCtorName -> Val
+completeVal info c = completeMatch info c :* [Any | hasRecs info c]
+
+completeMatch :: Info -> CoreCtorName -> Match
+completeMatch info c = Match c (map (const anyVal) (nonRecs info c))
 
 
 notin :: Info -> [CoreCtorName] -> Constraint
-notin info c = Con info [fillTail info $ map (complete info) $ sort valid]
-    where
-        valid = ctors info (head c) \\ c
+notin info c = Con info $ map (completeVal info) (sort valid)
+    where valid = ctors info (head c) \\ c
 
 
 (|>) :: CoreField -> Constraint -> Constraint
-(|>) (c,i) (Con info k) = normalise $ Con info $ conVals (notin info [c]) ++ map f k
+(c,i) |> (Con info k) = res
     where
+    res = normalise $ Con info $ conVals (notin info [c]) ++ concatMap f k
+    
     rec = isRec info (c,i)
     
-    f Any = Any
-    f (ms1 :* ms2) | rec = [complete info c] :* (Just $ maybe ms1 (merge ms1) ms2)
-    f v =  fillTail info [Match c [if i == j then v else Any | j <- nonRecs info c]]
+    f (Any :* []) = [anyVal]
+    f (ms1 :* ms2) | rec = [res | not $ null ms2]
+        where
+          res = completeMatch info c :*
+                mergeMatches ms2 (snub $ ms1 : [a | a :* b <- k, b `subsetMatches` ms2])
+
+    f v = [Match c [if i == j then v else anyVal | j <- nonRecs info c] :*
+           [Any | hasRecs info c]]
 
 
 (<|) :: CoreCtorName -> Constraint -> PropReq Int
-(<|) c (Con info vs) = propOrs (map f vs)
+c <| (Con info vs) = propOrs (map f vs)
     where
     (rec,non) = partition (isRec info . (,) c) [0..arity info c-1]
 
-    f Any = propTrue
-    f (ms1 :* ms2) = propOrs [g vs1 | Match c1 vs1 <- ms1, c1 == c]
-        where
-            g :: [Val] -> PropReq Int
-            g vs = propAnds $ map propLit $
-                        map (\n -> n :< Con info [vs !! n]) non ++
-                        map (:< Con info [fromJust ms2 :* ms2]) rec
+    f (Any :* ms2) = propTrue
+    f (Match c2 ms1 :* ms2)
+        | c2 == c = propAnds $ map propLit $
+                               map (\n -> n :< Con info [ms1 !! n]) non ++
+                               if Any `elem` ms2 then [] else
+                                   map (:< Con info [m :* ms2 | m <- ms2]) rec
+    f _ = propFalse
 
 
-mergeVal :: Val -> Val -> Val
-(a1 :* b1) `mergeVal` (a2 :* b2) = merge a1 a2 :* f b1 b2
-    where f x y = do x2 <- x; y2 <- y; return $ merge x2 y2
-Any `mergeVal` b = b
-a `mergeVal` Any = a
+---------------------------------------------------------------------
+-- Merge items
+
+-- a `merge` b = c
+-- c `subset` a && c `subset` b
+-- Nothing == False
+
+mergeVal :: Val -> Val -> Maybe Val
+mergeVal (Any :* []) x = Just x
+mergeVal x (Any :* []) = Just x
+mergeVal (a1 :* b1) (a2 :* b2) = do
+    a3 <- mergeMatch a1 a2
+    return $ a3 :* mergeMatches b1 b2
 
 
-
-zipMatches :: (Maybe Match -> Maybe Match -> a) -> [Match] -> [Match] -> [a]
-zipMatches f [] xs = map (     f Nothing . Just) xs
-zipMatches f ys [] = map (flip f Nothing . Just) ys
-zipMatches f (x:xs) (y:ys) = case compare (matchName x) (matchName y) of
-    EQ -> f (Just x) (Just y) : zipMatches f xs ys
-    LT -> f (Just x) Nothing  : zipMatches f xs (y:ys)
-    GT -> f Nothing  (Just y) : zipMatches f (x:xs) ys
+mergeMatch :: Match -> Match -> Maybe Match
+mergeMatch Any x = Just x
+mergeMatch x Any = Just x
+mergeMatch (Match c1 vs1) (Match c2 vs2) | c1 == c2 && all isJust vs3 = Just $ Match c1 (map fromJust vs3)
+    where vs3 = zipWith mergeVal vs1 vs2
+mergeMatch _ _ = Nothing
 
 
-merge :: [Match] -> [Match] -> [Match]
-merge ms1 ms2 = catMaybes $ zipMatches f ms1 ms2
-    where
-        f x y = do
-            Match c1 vs1 <- x
-            Match c2 vs2 <- y
-            return $ Match c1 (zipWith mergeVal vs1 vs2)
+mergeMatches :: [Match] -> [Match] -> [Match]
+mergeMatches ms1 ms2 = catMaybes [mergeMatch a b | a <- ms1, b <- ms2]
 
 
-conOrs  info = foldr conOr  (conFalse info)
-conAnds info = foldr conAnd (conTrue  info)
+---------------------------------------------------------------------
+-- Subset items
 
+subsetMatches :: [Match] -> [Match] -> Bool
+subsetMatches as bs = all (\a -> any (\b -> a `subsetMatch` b) bs) as
 
-conOr :: Constraint -> Constraint -> Constraint
-conOr (Con info x) (Con _ y) = normalise $ Con info $ x ++ y
+subsetMatch :: Match -> Match -> Bool
+subsetMatch _ Any = True
+subsetMatch Any _ = False
+subsetMatch (Match a as) (Match b bs) = a == b && and (zipWith subsetVal as bs)
 
-
-conAnd :: Constraint -> Constraint -> Constraint
-conAnd (Con info x) (Con _ y) = normalise $ Con info [a `mergeVal` b | a <- x, b <- y]
-
+subsetVal :: Val -> Val -> Bool
+subsetVal (a1 :* b1) (a2 :* b2) = subsetMatch a1 a2 && subsetMatches b1 b2
 
 
 ---------------------------------------------------------------------
 -- MultiPattern Normalise
 
 normalise :: Constraint -> Constraint
-normalise (Con info xs) = res
+normalise (Con info xs) = Con info $ snub xs
+
+
+
+-- join two 
+normSubsets :: [[Val]] -> [Val]
+normSubsets xs = foldr f [] xs
+    where
+        f lhs rhs = g lhs rhs2 ++ g rhs2 lhs
+            where rhs2 = rhs \\ lhs
+
+        g xs ys = filter (\x -> not $ any (\y -> x `subsetVal` y) ys) xs
+
+
+
+
+{-
     where
         res = Con info $ snub $ foldr add [] $ snub $ concatMap (valNorm info) xs
         
@@ -261,3 +306,4 @@ strengthenStart info a b = zipMatches f a b
         f (Just a) Nothing  = a
         f Nothing  (Just b) = b
         f (Just a) (Just b) = b
+-}
