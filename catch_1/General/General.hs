@@ -23,5 +23,9 @@ groupKey = map f . groupBy ((==) `on` fst) . sortBy (compare `on` fst)
     where f xs = (fst $ head xs, map snd xs)
 
 
+ungroupKey :: [(key,[val])] -> [(key,val)]
+ungroupKey = concatMap (\(k,v) -> map ((,) k) v)
+
+
 on :: (new -> new -> res) -> (orig -> new) -> (orig -> orig -> res)
 on f g x y = f (g x) (g y)
