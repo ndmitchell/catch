@@ -8,7 +8,7 @@
 module Paraffins_Safe(main) where
 
 -- CHANGE: Array -> Data.Array
-import Data.Array
+import Data.Array hiding ((!))
 
 -- Generation of radicals
 
@@ -83,6 +83,10 @@ paraffins_until n =
    | j <- [1..n]]
  where
   radicals = radical_generator (div n 2)
+  
+
+
+(!) array n = []
 
 main num = do
   print [length (rads!i) | rads <- [(radical_generator num)], i <- [0..num]]
