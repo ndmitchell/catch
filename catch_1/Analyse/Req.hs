@@ -12,6 +12,7 @@ import Data.List
 import Data.Maybe
 import General.General
 import Analyse.Info
+import Analyse.Factorise
 
 
 
@@ -170,9 +171,29 @@ notin info c = Con info $ map (completeVal info) (sort valid)
 
 
 (<|) :: CoreCtorName -> Constraint -> PropReq Int
-c <| (Con info vs) = propOrs (map f vs)
+c <| (Con info vs) | anyVal `elem` vs = propTrue
+                   | otherwise = propOrs $ map f res
     where
     (rec,non) = partition (isRec info . (,) c) [0..arity info c-1]
+    
+    res :: [([Match],[[Val]])]
+    res = ungroupKey $ factors $ groupKey [(ms2, ms1) | Match c2 ms1 :* ms2 <- vs, c2 == c]
+    
+    factors xs = [(a, factorise b) | (a,b) <- xs]
+    
+    f (cont,now) = propAnds $ map propLit $
+        (if Any `elem` cont then [] else map (:< Con info [m :* cont | m <- cont]) rec) ++
+        (zipWith g non now)
+    
+    g n xs = n :< conOrs info (map (Con info . (:[])) xs)
+
+{-
+    = propOrs (map f vs)
+    
+    
+    
+    ans2 :: [([Match],[[Val]])]
+    ans2 = groupBy ((==) `on` fst) $ sort (compare `on` fst) ans1
 
     f (Any :* ms2) = propTrue
     f (Match c2 ms1 :* ms2)
@@ -181,7 +202,7 @@ c <| (Con info vs) = propOrs (map f vs)
                                if Any `elem` ms2 then [] else
                                    map (:< Con info [m :* ms2 | m <- ms2]) rec
     f _ = propFalse
-
+-}
 
 ---------------------------------------------------------------------
 -- Merge items
