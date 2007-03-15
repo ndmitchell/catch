@@ -722,7 +722,7 @@ c <| vs = or (map f vs)
 
     f Any = propTrue
     f (ms1 :* ms2) = or [g vs1 | Match c1 vs1 <- ms1, c1 == c]
-        where g vs =  and (map (\n -> n :< [vs !! n]) non) &&
+        where g vs =  and (zipWith (:<) non (map (:[]) vs)) &&
                       and (map (:< [ms2 :* ms2]) rec)
 
 (`mergeVal`) :: Val -> Val -> Val
