@@ -115,7 +115,9 @@ conBool (Con _ c)
     | otherwise = Nothing
 
 
-conOrs  info = foldr conOr  (conFalse info)
+conOrs  info xs = if isComplete res then conTrue info else res
+    where res = foldr conOr  (conFalse info) xs
+
 conAnds info = foldr conAnd (conTrue  info)
 
 
@@ -262,6 +264,16 @@ normSubsets xs = foldr f [] xs
             where rhs2 = rhs \\ lhs
 
         g xs ys = filter (\x -> not $ any (\y -> x `subsetVal` y) ys) xs
+
+
+isComplete :: Constraint -> Bool
+isComplete (Con info xs) = not (null cs) && ctors info (head cs) == cs && all f (concat vs)
+    where
+        (cs,vs) = unzip [(c,vs) | Match c vs :* ms <- xs, ms == [] || ms == [Any]]
+        
+        f (Any :* []) = True
+        f (Any :* [Any]) = True
+        f _ = False
 
 
 
