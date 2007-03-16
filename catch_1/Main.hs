@@ -64,8 +64,19 @@ execFile stages options file = do
                 
                 return (logger, hClose hPre >> hClose hProp)
 
-            analyse logger core
+            result <- analyse logger core
+            putStrLn $ "Answer: " ++ result
             close
+            when (Regress `elem` options) $ do
+                src <- readFile origfile
+                let line0 = takeWhile (/= '\n') src
+                    start = "-- #CATCH"
+                if not $ start `isPrefixOf` line0 then
+                    error "ERROR: Regression statement not found"
+                 else if result /= dropWhile isSpace (drop (length start) line0) then
+                    error "ERROR: Regression statement differs from answer"
+                 else
+                    putStrLn "Regression statement matches"
 
 
 
