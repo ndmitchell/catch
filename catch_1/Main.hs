@@ -4,6 +4,7 @@ module Main where
 import System.Environment
 import System.FilePath
 import System.Directory
+import System.CPUTime
 import System.IO
 import Control.Monad
 import Data.Char
@@ -30,6 +31,7 @@ main = do
 
 execFile :: [Stage] -> [Option] -> String -> IO ()
 execFile stages options origfile = do
+        startTime <- getCPUTime
         putStrLn $ "Executing: " ++ origfile
         let origfile_yha = dropFileName origfile </> "ycr" </> replaceExtension (takeFileName origfile) "yca"
         
@@ -79,6 +81,13 @@ execFile stages options origfile = do
                  else
                     putStrLn "Regression statement matches"
 
+        when (Time `elem` options) $ do
+            endTime <- getCPUTime
+            let diff = round (fromInteger (endTime - startTime) * 1e-12 * 100)
+                s = show diff
+                ss = replicate (3 - length s) '0' ++ s
+                (pre,post) = splitAt (length ss - 2) ss 
+            putStrLn $ "Time taken: " ++ pre ++ "." ++ post ++ " seconds"
 
 
 -- load the result of doing a particular stage
