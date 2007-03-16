@@ -2,6 +2,7 @@
 module General.General(module General.General, trace) where
 
 import Data.List
+import Control.Monad
 import Debug.Trace
 
 
@@ -29,3 +30,6 @@ ungroupKey = concatMap (\(k,v) -> map ((,) k) v)
 
 on :: (new -> new -> res) -> (orig -> new) -> (orig -> orig -> res)
 on f g x y = f (g x) (g y)
+
+
+concatMapM f xs = liftM concat $ mapM f xs
