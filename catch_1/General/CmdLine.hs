@@ -1,7 +1,7 @@
 
 module General.CmdLine(
     Stage(..), Option(..),
-    parseCommandLine, helpMessage
+    parseCommandLine, unparseCommandLine, helpMessage
     ) where
 
 import Data.Char
@@ -36,6 +36,12 @@ parseCommandLine xs = (files, let s = f a in if null s then allStages else s, f 
         (a,b) = unzip $ map (parseCommandItem . tail) flags
         (flags, files) = partition ("-" `isPrefixOf`) xs
 
+
+unparseCommandLine :: [String] -> [Stage] -> [Option] -> String
+unparseCommandLine files stages options = unwords $ map f files ++ map g stages ++ map g options
+    where
+        f x = "\"" ++ x ++ "\""
+        g x = '-' : map toLower (show x)
 
 
 helpMessage = putStr $ unlines
