@@ -65,7 +65,7 @@ instance Ord Constraint where
     compare (Con _ x) (Con _ y) = compare x y
 
 instance Show Constraint where
-    show (Con _ x) = show x
+    show (Con _ x) = showVals x
 
 
 -- in any set of Matches, each constructor must occur at most once
@@ -83,12 +83,15 @@ data Match = Match {matchName :: CoreCtorName, matchVals :: [Val]}
 
 
 instance Show Val where
-    showList [] = showString "0"
-    showList xs = showString $ concat $ intersperse " | " $ map show xs
-
     show (Any :* []) = "_"
     show (a :* b) = "{" ++ show a ++ (if null b then "" else " * " ++ f b) ++ "}"
         where f = concat . intersperse "," . map show
+
+showVals [] = "0"
+showVals xs = concat $ intersperse " | " $ map show xs
+
+
+
 
 instance Show Match where
     show (Match name vals) = unwords (name : map show vals)
