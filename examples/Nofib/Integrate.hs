@@ -1,3 +1,4 @@
+-- #CATCH _
 
 module Integrate where
 

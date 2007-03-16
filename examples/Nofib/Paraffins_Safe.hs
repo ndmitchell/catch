@@ -1,3 +1,4 @@
+-- #CATCH _
 {-
  - Id Example Program
  - Ensnaffled by SLPJ from MIT via

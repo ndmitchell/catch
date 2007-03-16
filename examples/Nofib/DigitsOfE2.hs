@@ -1,3 +1,4 @@
+-- #CATCH _
 --Compute digits of e
 --Due to John Hughes, Aug 2001
 

@@ -1,3 +1,4 @@
+-- #CATCH _
 --Compute the digits of "e" using continued fractions.
 --Original program due to Dale Thurston, Aug 2001
 

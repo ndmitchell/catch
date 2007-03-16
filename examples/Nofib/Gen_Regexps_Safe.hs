@@ -1,3 +1,4 @@
+-- #CATCH _
 -- !!! Wentworth's version of a program to generate
 -- !!! all the expansions of a generalised regular expression
 -- !!!

@@ -1,3 +1,4 @@
+-- #CATCH {One} | {Pos} | {Zero}
 
 module Primes where
 

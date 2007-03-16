@@ -1,3 +1,4 @@
+-- #CATCH _
 {-
 Date: Tue, 15 Dec 92 14:39:56 +0100
 From: Lennart Augustsson <augustss@cs.chalmers.se>
