@@ -16,7 +16,6 @@ foreign import primitive anyEval3 :: a -> b -> c -> d
 
 any2 a b = if any0 then a else b
 any3 a b c = any2 a (any2 b c)
-any4 a b c d = any2 a (any2 b (any2 c d))
 
 
 ---------------------------------------------------------------------

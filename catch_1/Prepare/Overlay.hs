@@ -48,7 +48,7 @@ caseAbstract core = mapUnderCore f core
         
         
         anys [x] = x
-        anys xs = CoreApp (CoreFun $ "Primitive.any" ++ show (length xs)) xs
+        anys (x:xs) = CoreApp (CoreFun "Primitive.any2") [x, anys xs]
    
 
 ---------------------------------------------------------------------
