@@ -36,7 +36,7 @@ execFile stages options file = do
         ycafile <-
             if takeExtension origfile == ".yca" then return origfile
             else if Compile `elem` stages then do
-                putStrLn "Compiling"
+                when (Quiet `notElem` options) $ putStrLn "Compiling"
                 compile origfile
                 return origfile_yha
             else do
@@ -49,7 +49,7 @@ execFile stages options file = do
         
         -- analysis
         when (Analyse `elem` stages) $ do
-            putStrLn "Analysing"
+            when (Quiet `notElem` options) $ putStrLn "Analysing"
             core <- loadStage ycafile res (pred Analyse)
             (logger, close) <- if NoLog `elem` options then return (\a b -> return (), return ()) else do
                 let openLog x = do h <- openFile (replaceExtension ycafile (x <.> "log")) WriteMode
@@ -88,7 +88,7 @@ execMiddle stages options file = fs [succ Compile .. pred Analyse] Nothing
         f stage prev | stage `notElem` stages = return Nothing
                      | otherwise = do
             core <- loadStage file prev (pred stage)
-            putStrLn $ "Task: " ++ show stage
+            when (Quiet `notElem` options) $ putStrLn $ "Task: " ++ show stage
             (success,core) <- getTask stage core
             
             let out = whereStage file stage
