@@ -132,7 +132,7 @@ getTask x = fromJust $ lookup x tasks
 findStartFiles :: String -> IO [FilePath]
 findStartFiles file = do
         dirs <- findStartDirs
-        let exts = ["","hs","lhs","yca"]
+        let exts = ["","hs","lhs","yca","txt"]
             poss = [d </> file <.> e | d <- dirs, e <- exts]
         f poss
     where
@@ -140,7 +140,12 @@ findStartFiles file = do
         f (x:xs) = do
             bFile <- doesFileExist x
             bDir  <- doesDirectoryExist x
-            if bFile then return [x]
+            if bFile then (
+                if takeExtension x == ".txt" then
+                    readFile x >>= concatMapM findStartFiles . lines
+                else
+                    return [x]
+             )
              else if bDir then do
                 items <- getDirectoryContents x
                 items <- return $ map (x </>) $ filter (\x -> takeExtension x `elem` [".hs",".lhs"]) items
