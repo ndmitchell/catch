@@ -83,11 +83,8 @@ execFile stages options origfile = do
 
         when (Time `elem` options) $ do
             endTime <- getCPUTime
-            let diff = round (fromInteger (endTime - startTime) * 1e-12 * 100)
-                s = show diff
-                ss = replicate (3 - length s) '0' ++ s
-                (pre,post) = splitAt (length ss - 2) ss 
-            putStrLn $ "Time taken: " ++ pre ++ "." ++ post ++ " seconds"
+            let diff = fromInteger (endTime - startTime) * 1e-12
+            putStrLn $ "Time taken: " ++ twoDp diff ++ " seconds"
 
 
 -- load the result of doing a particular stage
