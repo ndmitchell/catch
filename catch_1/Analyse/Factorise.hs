@@ -11,43 +11,48 @@ type Vec a = [a]
 -- where multiple ones exist, give more than one
 --
 -- [[a,b],[a,c]] == [[[a],[b,c]]]
-factorise :: Ord a => [Vec a] -> [Vec [a]]
-factorise [] = []
-factorise (x:xs) = f [map (:[]) x] (map (map (:[])) xs)
+--
+-- top is the "highest" element, such that all others are subsets
+-- [top] is the only permissable value, since [top,*] == [top]
+-- in Catch this is likely to be Any
+factorise :: (Show a, Ord a) => a -> [Vec a] -> [Vec [a]]
+factorise top xs = f top [] (map (map (:[])) xs)
     where
-        f :: Ord a => [Vec [a]] -> [Vec [a]] -> [Vec [a]]
-        f done [] = done
-        f done (t:odo) = f (subsetAdd t done) odo
-            where t2 = strengthen t (done++odo)
+        f :: (Show a, Ord a) => a -> [Vec [a]] -> [Vec [a]] -> [Vec [a]]
+        f top done [] = done
+        f top done (t:odo) = f top (subsetAdd top t2 done) odo
+            where t2 = strengthen top t (done++odo)
 
 
-subsetAdd :: Ord a => Vec [a] -> [Vec [a]] -> [Vec [a]]
-subsetAdd x [] = [x]
-subsetAdd x (y:ys) | x `subset` y = y:ys
-                   | y `subset` x = subsetAdd x ys
-                   | otherwise = y : subsetAdd x ys
+subsetAdd :: (Show a, Ord a) => a -> Vec [a] -> [Vec [a]] -> [Vec [a]]
+subsetAdd top x [] = [x]
+subsetAdd top x (y:ys)
+    | subset top x y = y:ys
+    | subset top y x = subsetAdd top x ys
+    | otherwise = y : subsetAdd top x ys
 
 
-subset :: Ord a => Vec [a] -> Vec [a] -> Bool
-subset a b = and $ zipWith subsetList a b
+subset :: (Show a, Ord a) => a -> Vec [a] -> Vec [a] -> Bool
+subset top a b = and $ zipWith (subsetList top) a b
 
 -- is the first sorted list less than the second
-subsetList :: Ord a => [a] -> [a] -> Bool
-subsetList [] _ = True
-subsetList _ [] = False
-subsetList (x:xs) (y:ys) =
+subsetList :: Ord a => a -> [a] -> [a] -> Bool
+subsetList top [] _ = True
+subsetList top _ [] = False
+subsetList top _ [t] | t == top = True
+subsetList top (x:xs) (y:ys) =
     case compare x y of
-        EQ -> subsetList xs ys
+        EQ -> subsetList top xs ys
         LT -> False
-        GT -> subsetList (x:xs) ys
+        GT -> subsetList top (x:xs) ys
 
 
-strengthen :: Ord a => Vec [a] -> [Vec [a]] -> Vec [a]
-strengthen x given = foldl f x given
+strengthen :: (Show a, Ord a) => a -> Vec [a] -> [Vec [a]] -> Vec [a]
+strengthen top x given = foldl (f top) x given
     where
-        f :: Ord a => Vec [a] -> Vec [a] -> Vec [a]
-        f [] [] = []
-        f (x:xs) (y:ys)
-            | x `subsetList` y = x : f xs ys
-            | and (zipWith subsetList xs ys) = snub (x++y) : xs
+        f :: (Show a, Ord a) => a -> Vec [a] -> Vec [a] -> Vec [a]
+        f top [] [] = []
+        f top (x:xs) (y:ys)
+            | subsetList top x y = x : f top xs ys
+            | and (zipWith (subsetList top) xs ys) = snub (x++y) : xs
             | otherwise = x:xs

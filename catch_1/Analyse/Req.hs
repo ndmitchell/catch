@@ -184,7 +184,7 @@ c <| (Con info vs) | anyVal `elem` vs = propTrue
     res :: [([Match],[[Val]])]
     res = ungroupKey $ factors $ groupKey [(ms2, ms1) | Match c2 ms1 :* ms2 <- vs, c2 == c]
     
-    factors xs = [(a, factorise b) | (a,b) <- xs]
+    factors xs = [(a, factorise anyVal b) | (a,b) <- xs]
     
     f (cont,now) = propAnds $ map propLit $
         (if Any `elem` cont then [] else map (:< Con info [m :* cont | m <- cont]) rec) ++
