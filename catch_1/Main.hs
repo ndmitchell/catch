@@ -5,6 +5,7 @@ import System.Environment
 import System.FilePath
 import System.Directory
 import System.CPUTime
+import System.Cmd
 import System.IO
 import Control.Monad
 import Data.Char
@@ -26,7 +27,26 @@ main = do
         then helpMessage
         else do
             files <- concatMapM findStartFiles files
-            mapM_ (execFile stages options) files
+            if Memory `elem` options then
+                mapM_ (execFileMemory stages (delete Memory options)) files
+             else
+                mapM_ (execFile stages options) files
+
+
+execFileMemory :: [Stage] -> [Option] -> String -> IO ()
+execFileMemory stages options file = do
+    progName <- getProgName
+    if not $ "catch" `isPrefixOf` progName then do
+        execFile stages options file
+        putStrLn "Memory used: unknown (use GHC)"
+     else do
+        let stat = progName <.> "stat"
+        b <- doesFileExist stat
+        when b $ removeFile stat
+        system $ progName ++ " " ++ unparseCommandLine [file] stages options ++ " +RTS -t"
+        src <- readFileStrict stat
+        let res = takeWhile (/= ' ') $ drop 1 $ dropWhile (/= '/') $ lines src !! 1
+        putStrLn $ "Memory used: " ++ (twoDp $ fromInteger (read res) / 1024) ++ " Kb"
 
 
 execFile :: [Stage] -> [Option] -> String -> IO ()
