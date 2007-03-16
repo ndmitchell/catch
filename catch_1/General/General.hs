@@ -3,6 +3,7 @@ module General.General(module General.General, trace) where
 
 import Data.List
 import Control.Monad
+import System.IO
 import Debug.Trace
 
 
@@ -33,3 +34,21 @@ on f g x y = f (g x) (g y)
 
 
 concatMapM f xs = liftM concat $ mapM f xs
+
+
+
+twoDp :: Float -> String
+twoDp x = pre ++ "." ++ post
+    where
+        x2 = round (x * 100)
+        s = show x2
+        ss = replicate (3 - length s) '0' ++ s
+        (pre,post) = splitAt (length ss - 2) ss 
+
+
+readFileStrict :: FilePath -> IO String
+readFileStrict file = do
+    h <- openFile file ReadMode
+    src <- hGetContents h
+    length src `seq` hClose h
+    return src
