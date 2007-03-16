@@ -14,7 +14,7 @@ snub x = sort (nub x)
 
 -- dumb version of fix, does not do smart dependancies
 fixDumb
-    :: (Eq v, Ord k)
+    :: (Show v, Eq v, Show k, Ord k)
     => v                            -- default value
     -> (v -> v -> v)                -- combine
     -> ((k -> IO v) -> k -> IO v)   -- compute
@@ -114,7 +114,7 @@ fix logger def combine compute initial = do
 -- do a one step execution
 -- return the new value, and all the items used
 execute
-    :: (Eq v, Ord k)
+    :: (Eq v, Ord k, Show k)
     => (k -> v)                     -- query
     -> ((k -> IO v) -> k -> IO v)   -- compute
     -> k                            -- initial
