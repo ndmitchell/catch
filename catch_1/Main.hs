@@ -23,13 +23,14 @@ main = do
     let (files,stages,options) = parseCommandLine xs
     if null files
         then helpMessage
-        else mapM_ (execFile stages options) files
+        else do
+            files <- concatMapM findStartFiles files
+            mapM_ (execFile stages options) files
 
 
 execFile :: [Stage] -> [Option] -> String -> IO ()
-execFile stages options file = do
-        putStrLn $ "Executing: " ++ file
-        origfile <- findStartFile file
+execFile stages options origfile = do
+        putStrLn $ "Executing: " ++ origfile
         let origfile_yha = dropFileName origfile </> "ycr" </> replaceExtension (takeFileName origfile) "yca"
         
         -- compile
@@ -128,8 +129,8 @@ getTask x = fromJust $ lookup x tasks
 -- this file will be either a .hs file (to compile) or a .yca (already compiled)
 --
 -- file must be in <directory>/givenname.<extension>
-findStartFile :: String -> IO FilePath
-findStartFile file = do
+findStartFiles :: String -> IO [FilePath]
+findStartFiles file = do
         dirs <- findStartDirs
         let exts = ["","hs","lhs","yca"]
             poss = [d </> file <.> e | d <- dirs, e <- exts]
@@ -137,8 +138,15 @@ findStartFile file = do
     where
         f [] = error $ "File not found, " ++ file
         f (x:xs) = do
-            b <- doesFileExist x
-            if b then return x else f xs
+            bFile <- doesFileExist x
+            bDir  <- doesDirectoryExist x
+            if bFile then return [x]
+             else if bDir then do
+                items <- getDirectoryContents x
+                items <- return $ map (x </>) $ filter (\x -> takeExtension x `elem` [".hs",".lhs"]) items
+                if null items then error $ "No files found within, " ++ x
+                              else return items
+            else f xs
 
 
 findStartDirs :: IO [FilePath]
@@ -149,4 +157,4 @@ findStartDirs = do
         items <- getDirectoryContents examples
         items <- return $ map (examples </>) $ filter (not . isPrefixOf ".") items
         items <- filterM doesDirectoryExist items
-        return ("" : items)
+        return ("" : examples : items)
