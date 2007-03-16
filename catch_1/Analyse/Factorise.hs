@@ -54,5 +54,10 @@ strengthen top x given = foldl (f top) x given
         f top [] [] = []
         f top (x:xs) (y:ys)
             | subsetList top x y = x : f top xs ys
-            | and (zipWith (subsetList top) xs ys) = snub (x++y) : xs
+            | and (zipWith (subsetList top) xs ys) = union top x y : xs
             | otherwise = x:xs
+
+
+union :: (Show a, Ord a) => a -> [a] -> [a] -> [a]
+union top x y | x == [top] || y == [top] = [top]
+              | otherwise = snub (x ++ y)
