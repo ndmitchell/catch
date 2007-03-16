@@ -118,13 +118,24 @@ getTask x = fromJust $ lookup x tasks
 --
 -- file must be in <directory>/givenname.<extension>
 findStartFile :: String -> IO FilePath
-findStartFile file = f poss
+findStartFile file = do
+        dirs <- findStartDirs
+        let exts = ["","hs","lhs","yca"]
+            poss = [d </> file <.> e | d <- dirs, e <- exts]
+        f poss
     where
         f [] = error $ "File not found, " ++ file
         f (x:xs) = do
             b <- doesFileExist x
             if b then return x else f xs
-    
-        dirs = "" : [".." </> "examples" </> s | s <- ["Example","Nofib"]]
-        exts = ["","hs","lhs","yca"]
-        poss = [d </> file <.> e | d <- dirs, e <- exts]
+
+
+findStartDirs :: IO [FilePath]
+findStartDirs = do
+    let examples = ".." </> "examples"
+    b <- doesDirectoryExist examples
+    if not b then return [""] else do
+        items <- getDirectoryContents examples
+        items <- return $ map (examples </>) $ filter (not . isPrefixOf ".") items
+        items <- filterM doesDirectoryExist items
+        return ("" : items)
