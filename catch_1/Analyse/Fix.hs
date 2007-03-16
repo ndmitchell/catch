@@ -73,26 +73,28 @@ fix logger def combine compute initial = do
                        | otherwise = do
             -- calculate
             let k = next x pending
-            item <- return $ fromJust $ Map.lookup k x
+            Item{value=oldValue,dependsOn=oldDepends} <- return $ fromJust $ Map.lookup k x
             pending <- return $ Set.delete k pending
             (v,depends) <- execute (\k -> value $ Map.findWithDefault def2 k x) compute k
-            v <- return $ combine (value item) v
+            v <- return $ combine oldValue v
             depends <- return $ Set.fromList depends
+
+            -- add new items
             new <- return $ Set.filter (`Map.notMember` x) depends
-            
-            -- update pending and add new items to x
-            pending <- return $ if value item == v then pending else Set.union pending (requiredBy item)
-            pending <- return $ Set.union pending new
             x <- return $ Map.union x (Map.fromAscList [(k, def2) | k <- Set.toAscList new])
-            
-            -- update the depends/requires
-            delReq <- return $ Set.toList $ dependsOn item `Set.difference` depends
-            addReq <- return $ Set.toList $ depends `Set.difference` dependsOn item
+            pending <- return $ Set.union pending new
+
+            -- update the depends/requires, add new items
+            delReq <- return $ Set.toList $ oldDepends `Set.difference` depends
+            addReq <- return $ Set.toList $ depends `Set.difference` oldDepends
             x <- return $ apply x addReq (\y -> y{requiredBy = Set.insert k (requiredBy y)})
             x <- return $ apply x delReq (\y -> y{requiredBy = Set.delete k (requiredBy y)})
             
+            -- update pending
+            pending <- return $ if oldValue == v then pending
+                                else Set.union pending (requiredBy $ fromJust $ Map.lookup k x)
+
             -- add the new item to the map
-            -- cached item may be out of date due to requiredBy computation
             x <- return $ Map.adjust (\i -> i{dependsOn=depends, value=v}) k x
             loggerLine k v
             cont x pending
