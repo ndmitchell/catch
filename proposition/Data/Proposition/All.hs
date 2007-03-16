@@ -6,11 +6,14 @@ import Data.Proposition.Simple
 import Data.Proposition.Formula
 import Data.Proposition.BDD
 
-import Safe
 import Control.Monad
 
 
 data PropAll a = PropAll {propSimple :: PropSimple a, propFormula :: Formula a, propBDD :: BDD a}
+
+
+assertNote msg True  y = y
+assertNote msg False y = error $ "Assertion failed: " ++ msg
 
 
 instance Show a => Show (PropAll a) where
