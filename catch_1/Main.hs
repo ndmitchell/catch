@@ -146,7 +146,7 @@ findStartFiles file = do
                 items <- return $ map (x </>) $ filter (\x -> takeExtension x `elem` [".hs",".lhs"]) items
                 if null items then error $ "No files found within, " ++ x
                               else return items
-            else f xs
+             else f xs
 
 
 findStartDirs :: IO [FilePath]
