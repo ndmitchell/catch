@@ -13,11 +13,12 @@ type Vec a = [a]
 -- [[a,b],[a,c]] == [[[a],[b,c]]]
 factorise :: Ord a => [Vec a] -> [Vec [a]]
 factorise [] = []
-factorise (x:xs) = foldr f [map (:[]) x] xs
+factorise (x:xs) = f [map (:[]) x] (map (map (:[])) xs)
     where
-        f :: Ord a => Vec a -> [Vec [a]] -> [Vec [a]]
-        f x xs = subsetAdd x2 xs
-            where x2 = strengthen (map (:[]) x) xs
+        f :: Ord a => [Vec [a]] -> [Vec [a]] -> [Vec [a]]
+        f done [] = done
+        f done (t:odo) = f (subsetAdd t done) odo
+            where t2 = strengthen t (done++odo)
 
 
 subsetAdd :: Ord a => Vec [a] -> [Vec [a]] -> [Vec [a]]
