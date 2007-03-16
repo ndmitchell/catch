@@ -4,12 +4,10 @@ module Analyse.Fix(fix) where
 import Data.IORef
 import Data.List
 import Data.Maybe
+import General.General
 import Control.Monad
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-
-
-snub x = sort (nub x)
 
 
 -- dumb version of fix, does not do smart dependancies
