@@ -138,7 +138,7 @@ execMiddle stages options file = fs [succ Compile .. pred Analyse] Nothing
 
 
 tasks = [(Overlay   , liftM success . overlay)
-        ,(Firstify  , return . firstify)
+        ,(Firstify  , return . firstify2)
         ,(LetElim   , return . success . letElim)
         ,(OneArg    , return . success . oneArg)
         ,(UniqueVars, return . success . uniqueVars)
