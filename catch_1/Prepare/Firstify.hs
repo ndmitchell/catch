@@ -4,20 +4,17 @@ module Prepare.Firstify(firstify) where
 import Yhc.Core hiding (collectAllVars,collectFreeVars,uniqueBoundVars,replaceFreeVars)
 import Yhc.Core.FreeVar2
 
-import Data.Maybe
+import Prepare.Firstify.Template
+import Prepare.Firstify.Prepare
+
 import Data.List
 import Data.Char
-import Debug.Trace
+import Data.Maybe
 import General.General
 
 import Control.Monad.State
 import qualified Data.Set as Set
 import qualified Data.Map as Map
-
-
-debugMode = False
-debug msg x = if debugMode then trace msg x else x
-
 
 {-
 SPECIALISE ALGORITHM
@@ -44,189 +41,115 @@ firstify core = (if ans then success else failure) $
     where (ans,res) = transform $ prepare core
 
 
-arity :: CoreFuncMap -> CoreFuncName -> Int
-arity fm = length . coreFuncArgs . fromMaybe (error "arity") . coreFuncMapMaybe fm
 
-
----------------------------------------------------------------------
--- PREPARATION
-
-prepare :: Core -> CoreFuncMap
-prepare = lambdas . zeroApp . toCoreFuncMap . removeRecursiveLet . mapUnderCore remCorePos
-
-
--- insert explicit lambdas
-lambdas :: CoreFuncMap -> CoreFuncMap
-lambdas fm = Map.map (applyBodyFunc $ letInlineHO . mapUnderCore f) fm
-    where
-        f orig@(CoreApp (CoreFun name) args) | extra > 0 =
-                CoreLam new (CoreApp (CoreFun name) (args ++ map CoreVar new))
-            where
-                extra = arity fm name - length args
-                new = take extra $ freeVars 'v' \\ collectAllVars orig
-        f x = x
-
-
--- make sure all applications are explicit
-zeroApp :: CoreFuncMap -> CoreFuncMap
-zeroApp = Map.map $ applyBodyFunc $ mapUnderCore f
-    where
-        f (CoreFun x) = CoreApp (CoreFun x) []
-        f (CoreApp (CoreApp x ys) zs) = CoreApp x (ys++zs)
-        f x = x
-
----------------------------------------------------------------------
--- TRANSFORMATION
-
-
--- return True if you succeed, False if you fail
-transform :: CoreFuncMap -> (Bool, CoreFuncMap)
-transform fm = evalState (f 10 fm) newSpec
-    where
-        f 0 fm = return (False, fm)
-        
-        f n fm = do
-            res <- specialise fm
-            case inline res of
-                Nothing -> return (True, res)
-                Just res2 -> f (n-1) res2
-
-
-isHO :: CoreExpr -> Bool
-isHO (CoreLet _ x) = isHO x
-isHO (CoreLam _ _) = True
-isHO (CoreCase x ys) = any (isHO . snd) ys
-isHO (CoreApp (CoreCon _) args) = any isHO args
-isHO _ = False
-
-
----------------------------------------------------------------------
--- INLINE
-
--- return Nothing to say the transformation has finished (no higher order found)
--- return Just x to say that you did some inlining
-inline :: CoreFuncMap -> Maybe CoreFuncMap
-inline fm | Map.null inline = Nothing
-          | otherwise = debug ("Inlining: " ++ concat (intersperse ", " $ Map.keys inline)) $
-                        Just $ coreReachableMap ["main"] $
-                               Map.map (applyBodyFunc $ letInlineHO . coreSimplifyExpr . mapUnderCore f) $
-                               zeroApp fm
-    where
-        inline = Map.filter (isHO . coreFuncBody) fm
-        
-        f x@(CoreApp (CoreFun name) args) = case Map.lookup name inline of
-                Nothing -> x
-                Just func -> uncurry coreLam $ coreInlineFuncLambda func args
-        f x = x
-
-
--- inline all let's which are higher order
-letInlineHO :: CoreExpr -> CoreExpr
-letInlineHO (CoreLet bind x) | not $ null ho = coreLet fo $ letInlineHO $ replaceFreeVars ho x
-    where (ho,fo) = partition (isHO . snd) bind
-letInlineHO x = setChildrenCore x $ map letInlineHO $ getChildrenCore x
-
-
----------------------------------------------------------------------
--- SPECIALISE
-
-
--- TYPES
--- the specialised data
-type Template = (CoreFuncName,[CoreExpr])
 data Spec = Spec {specId :: Int
-                 ,specMap :: Map.Map Template CoreFuncName
-                 ,specPromises :: [Promise]
+                 ,specCore :: CoreFuncMap
+                 ,specMap :: Map.Map (CoreFuncName,Template) CoreFuncName
+                 -- the list of items which are currently under evaluation
+                 ,specActive :: Set.Set CoreFuncName
+                 -- the functions which got finished
+                 ,specDone :: Set.Set CoreFuncName
+                 -- those which were asked for while in active
+                 ,specMissed :: Set.Set CoreFuncName
                  }
 
--- functions that need to exist by the end
-type Promise = (CoreFuncName, Template)
+type SpecM a = State Spec a
 
 
--- DRIVER OPERATIONS
 
-newSpec = Spec 0 Map.empty []
-
-specialise :: CoreFuncMap -> State Spec CoreFuncMap
-specialise fm = f fm (Map.keys fm)
+transform :: CoreFuncMap -> (Bool, CoreFuncMap)
+transform fm = (True, evalState f newSpec)
     where
-        f :: CoreFuncMap -> [CoreFuncName] -> State Spec CoreFuncMap
-        f fm [] = return fm
-        f fm (x:xs) = do
-            func <- specRequest fm (coreFuncMap fm x)
+        newSpec = Spec 1 fm Map.empty Set.empty Set.empty Set.empty
+        
+        mainArgs = take (length $ coreFuncArgs $ coreFuncMap fm "main") $ freeVars 'v'
+        
+        f = do lam (CoreApp (CoreFun "main") (map CoreVar mainArgs))
+               s <- get
+               if any (isHO . coreFuncBody . coreFuncMap (specCore s)) $ Set.toList (specMissed s)
+                   then put s{specActive=Set.empty, specDone=Set.empty, specMissed=Set.empty} >> f
+                   else return $ specCore s
+
+
+
+lam :: CoreExpr -> SpecM CoreExpr
+lam (CoreApp (CoreFun f) xs) = do
+    xs <- mapM lam xs
+    s <- get
+    let func = coreFuncMap (specCore s) f
+
+    -- make sure that the templating is done
+    (f,xs) <- case useTemplate func xs of
+        Nothing -> return (f,xs)
+        Just (template,args) -> do
             s <- get
-            put s{specPromises=[]}
-            let fs = map (specFulfil fm) $ filter (not . (`Map.member` fm) . fst) $ nub $ reverse $ specPromises s
-                fm2 = foldl (\m x -> Map.insert (coreFuncName x) x m) fm fs
-            f (Map.insert x func fm2) (map coreFuncName fs ++ xs)
+            case Map.lookup (f,template) (specMap s) of
+                Just f2 -> return (f2,args)
+                Nothing -> do
+                    let newname = dropDollar f ++ "$" ++ show (specId s)
+                    put s{specId = specId s + 1
+                         ,specCore = Map.insert newname (genTemplate template func newname) (specCore s)
+                         ,specMap = Map.insert (f,template) newname (specMap s)}
+                    return (newname,args)
 
-
-
--- if we specialise this function, we will requires the
--- functions listed as promises to be generated
-specRequest :: CoreFuncMap -> CoreFunc -> State Spec CoreFunc
-specRequest fm func = do
-    x <- mapUnderCoreM (specRequestExpr fm) (coreFuncBody func)
-    return func{coreFuncBody=x}
-
-
-specRequestExpr :: CoreFuncMap -> CoreExpr -> State Spec CoreExpr
-specRequestExpr fm (CoreApp (CoreFun x) xs)
-        | nxs >= ar && (nxs > ar || any isHO xs) = do
-        let template = (x, map f xs)
+    -- now try and do the transformation on it if required
+    when (not (Set.member f (specDone s)) && not (Set.member f (specActive s))) $ do
         s <- get
-        name <- case Map.lookup template (specMap s) of
-            Just name -> do
-                put s{specPromises = (name,template) : specPromises s}
-                return name
-            Nothing -> do
-                let name = dropDollar x ++ "$" ++ show (specId s)
-                put s{specId = specId s + 1
-                     ,specMap = Map.insert template name (specMap s)
-                     ,specPromises = (name,template) : specPromises s}
-                return name
-        s <- get
-        return $ CoreApp (CoreFun name) (concatMap g xs)
-    where
-        nxs = length xs
-        ar = arity fm x
-        
-        f x = if isHO x then normVars x else CoreVar "v1"
-        g x = if isHO x then map CoreVar $ collectFreeVars x else [x]
-        
-        -- for all equivalent expressions
-        -- irrelevant of free or bound var names, alpha rename to the same thing
-        normVars x = normFree 'f' [] $ normBound 'b' [] $ normFree 'F' seen $ normBound 'B' seen x
-            where seen = collectAllVars x
+        put s{specActive = Set.insert f (specActive s)}
+        let func = coreFuncMap (specCore s) f
+        res <- lam (coreFuncBody func)
+        modify $ \s -> s{specCore = Map.insert f func{coreFuncBody = res} (specCore s)
+                        ,specActive = Set.delete f (specActive s)
+                        ,specDone = Set.insert f (specDone s)}
 
-        normBound c seen x = runFreeVars $ do
-            putVars (freeVars c \\ seen)
-            uniqueBoundVars x
-        
-        normFree c seen x = replaceFreeVars
-            (zip (collectFreeVars x) (map CoreVar $ freeVars c \\ seen))
-            x
-        
-        dropDollar xs = if not (null nums) && not (null dol) then reverse (tail dol) else xs
-            where (nums,dol) = span isDigit $ reverse xs
+    -- now inline the function if required
+    s <- get
+    when (not $ Set.member f $ specDone s) $ put s{specMissed = Set.insert f (specMissed s)}
+    s <- get
+    put s{specDone = Set.insert f (specDone s)}
+    
+    let func = coreFuncMap (specCore s) f
+    if not $ isHO $ coreFuncBody func then
+        return $ CoreApp (CoreFun f) xs
+     else
+        lam (fromJust $ coreInlineFunc func xs)
 
-specRequestExpr _ x = return x
+lam (CoreApp (CoreVar x) xs)  = liftM (CoreApp (CoreVar  x)) (mapM lam xs)
+lam (CoreApp (CoreCon  x) xs) = liftM (CoreApp (CoreCon  x)) (mapM lam xs)
+lam (CoreApp (CorePrim x) xs) = liftM (CoreApp (CorePrim x)) (mapM lam xs)
+
+lam (CoreApp (CoreLam xs body) ys) =
+        lam $ coreApp (coreLam (drop n xs) (replaceFreeVars (zip xs ys) body)) (drop n ys)
+    where n = min (length xs) (length ys)
+
+lam (CoreApp (CoreCase on alts) xs) = lam $ CoreCase on [(a, CoreApp b xs) | (a,b) <- alts]
+
+lam (CoreApp (CoreApp x ys) zs) = lam $ CoreApp x (ys++zs)
+
+lam (CoreLet binds x) = do
+    rhs <- mapM (lam . snd) binds
+    let (ho,fo) = partition (isHO . snd) (zip (map fst binds) rhs)
+    x2 <- lam $ replaceFreeVars ho x
+    return $ CoreLet fo x2
+
+lam (CoreCase on alts) = do
+    on2 <- lam on
+    case on2 of
+        CoreApp (CoreCon c) xs ->
+            lam $ head $ 
+                 [replaceFreeVars (zip (map fromCoreVar xs2) xs) rhs
+                    | (CoreApp (CoreCon c2) xs2, rhs) <- alts, c2 == c] ++
+                 [replaceFreeVars [(lhs,on2)] rhs | (CoreVar lhs,rhs) <- alts]
+        _ -> do
+            rhs <- mapM (lam . snd) alts
+            return $ CoreCase on2 (zip (map fst alts) rhs)
+
+lam x | isCoreLam x || isCoreVar x || isCoreConst x = return x
+
+lam x = error $ show x
 
 
 
--- generate a function that uses a promise
-specFulfil :: CoreFuncMap -> Promise -> CoreFunc
-specFulfil fm (name,(func,args)) = 
-        debug ("Specialise: " ++ name ++ " = " ++ show (CoreApp (CoreFun func) args)) $
-        CoreFunc name (concat args2) (coreSimplifyExpr body2)
-    where
-        CoreFunc _ args1 body = fromMaybe (error "here") $ coreFuncMapMaybe fm func
-        body2 = coreApp (replaceFreeVars (zip args1 params) body) (drop (length args1) params)
+dropDollar xs = if not (null nums) && not (null dol) then reverse (tail dol) else xs
+    where (nums,dol) = span isDigit $ reverse xs
 
-        (args2,params) = unzip $ f (freeVars 'v' \\ (args1 ++ collectAllVars body)) args
-        
-        f vars [] = []
-        f vars (x:xs) = (used, replaceFreeVars (zip free (map CoreVar used)) x) : f left xs
-            where
-                (used,left) = splitAt (length free) $ vars \\ free
-                free = collectFreeVars x
