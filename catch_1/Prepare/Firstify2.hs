@@ -58,7 +58,7 @@ type SpecM a = State Spec a
 
 
 transform :: CoreFuncMap -> (Bool, CoreFuncMap)
-transform fm = (True, specCore $ execState f newSpec)
+transform fm = (True, evalState f newSpec)
     where
         newSpec = Spec 1 fm Map.empty Set.empty Set.empty Set.empty
         
@@ -66,9 +66,9 @@ transform fm = (True, specCore $ execState f newSpec)
         
         f = do lam (CoreApp (CoreFun "main") (map CoreVar mainArgs))
                s <- get
-               when (any (isHO . coreFuncBody . coreFuncMap (specCore s)) $ Set.toList (specMissed s)) $ do
-                   put s{specActive=Set.empty, specDone=Set.empty, specMissed=Set.empty}
-                   f
+               if any (isHO . coreFuncBody . coreFuncMap (specCore s)) $ Set.toList (specMissed s)
+                   then put s{specActive=Set.empty, specDone=Set.empty, specMissed=Set.empty} >> f
+                   else return $ specCore s
 
 
 
