@@ -28,6 +28,7 @@ isHO _ = False
 
 
 data Template = Template [CoreExpr]
+                deriving (Eq,Ord)
 
 
 -- given a call to this function, with the given arguments
