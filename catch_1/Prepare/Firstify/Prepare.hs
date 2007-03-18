@@ -29,7 +29,8 @@ lambdas fm = Map.map (applyBodyFunc $ mapUnderCore f) fm
 zeroApp :: CoreFuncMap -> CoreFuncMap
 zeroApp = Map.map $ applyBodyFunc $ mapUnderCore f
     where
-        f (CoreFun x) = CoreApp (CoreFun x) []
+        f (CoreFun  x) = CoreApp (CoreFun  x) []
+        f (CorePrim x) = CoreApp (CorePrim x) []
         f (CoreApp (CoreApp x ys) zs) = CoreApp x (ys++zs)
         f x = x
 

@@ -121,6 +121,8 @@ lam (CoreApp (CoreLam xs body) ys) =
 
 lam (CoreApp (CoreCase on alts) xs) = lam $ CoreCase on [(a, CoreApp b xs) | (a,b) <- alts]
 
+lam (CoreApp (CoreApp x ys) zs) = lam $ CoreApp x (ys++zs)
+
 lam (CoreLet binds x) = do
     rhs <- mapM (lam . snd) binds
     let (ho,fo) = partition (isHO . snd) (zip (map fst binds) rhs)
