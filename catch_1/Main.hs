@@ -23,14 +23,30 @@ main :: IO ()
 main = do
     xs <- getArgs
     let (files,stages,options) = parseCommandLine xs
-    if null files
-        then helpMessage
-        else do
-            files <- concatMapM findStartFiles files
-            if Memory `elem` options then
-                mapM_ (execFileMemory stages (delete Memory options)) files
-             else
-                mapM_ (execFile stages options) files
+    if null files then helpMessage
+     else if Prof `elem` options then execProfile stages (delete Prof options) files
+     else execNormal stages options files
+     
+
+
+execNormal :: [Stage] -> [Option] -> [String] -> IO ()
+execNormal stages options files = do
+    files <- concatMapM findStartFiles files
+    if Memory `elem` options then
+        mapM_ (execFileMemory stages (delete Memory options)) files
+     else
+        mapM_ (execFile stages options) files
+
+
+execProfile :: [Stage] -> [Option] -> [String] -> IO ()
+execProfile stages options files = do
+    progName <- getProgName
+    if not $ "catch" `isPrefixOf` progName then do
+        putStrLn "Profiling is unavailable (use GHC)"
+        execNormal stages options files
+     else do
+        system $ dropExtension progName ++ "_prof " ++ unparseCommandLine files stages options ++ " +RTS -p"
+        return ()
 
 
 execFileMemory :: [Stage] -> [Option] -> String -> IO ()

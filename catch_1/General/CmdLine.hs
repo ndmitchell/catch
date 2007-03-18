@@ -11,7 +11,7 @@ import Data.List
 data Stage = Compile | Overlay | Firstify | LetElim | OneArg | UniqueVars | ShortCtors | Analyse
              deriving (Show, Enum, Bounded, Eq, Ord)
 
-data Option = Text | Html | Yca | NoLog | Screen | Quiet | Regress | Time | Memory
+data Option = Text | Html | Yca | NoLog | Screen | Quiet | Regress | Time | Memory | Prof
               deriving (Show, Enum, Bounded, Eq, Ord)
 
 
