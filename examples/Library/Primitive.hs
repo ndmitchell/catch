@@ -42,6 +42,10 @@ global_Prelude'_read a b = any2 (error "Prelude.read") (anyEval1 b)
 global_Prelude'_Prelude'_Show'_Prelude'_Int'_showsPrec a b c = any0 : anyEval1 b ++ c
 global_Prelude'_Prelude'_Show'_Prelude'_Integer'_showsPrec a b c = any0 : anyEval1 b ++ c
 
+-- catch/throw stuff - only allow IO errors to be caught
+global_Prelude'_catch action handler = any2 action (handler any0)
+global_System'_Exit'_exitWith a = anyEval1 a
+
 ---------------------------------------------------------------------
 -- System.IO
 
@@ -56,6 +60,11 @@ global_System'_IO'_throwIOError x = anyEval1 x
 global_System'_IO'_openFile x y = anyEval2 x y
 global_System'_IO'_hGetContents x = anyEval1 x
 global_System'_IO'_hSetBuffering x y = anyEval2 x y
+global_System'_IO'_hFlush x = anyEval1 x
+global_System'_Environment'_getEnv x = anyEval1 x
+global_System'_Environment'_getArgs x = anyEval1 x
+global_System'_Environment'_getProgName x = anyEval1 x
+
 
 -- IO stuff
 data IO a = IO a
@@ -78,6 +87,11 @@ data Char = Char
 global_Data'_Char'_showLitChar x y = anyEval1 x : anyEval1 x ++ y
 global_Data'_Char'_lexLitChar x = anyEval1 x
 global_Data'_Char'_intToDigit x = anyEval1 x
+global_Data'_Char'_isAlpha x = anyEval1 x
+global_Data'_Char'_isAlphaNum x = anyEval1 x
+global_Data'_Char'_isLower x = anyEval1 x
+global_Data'_Char'_isSpace x = anyEval1 x
+global_Data'_Char'_isUpper x = anyEval1 x
 
 ---------------------------------------------------------------------
 -- Data.Array
