@@ -74,6 +74,7 @@ transform fm = (True, specCore $ execState f newSpec)
 
 lam :: CoreExpr -> SpecM CoreExpr
 lam (CoreApp (CoreFun f) xs) = do
+    xs <- mapM lam xs
     s <- get
     let func = coreFuncMap (specCore s) f
 
@@ -128,13 +129,17 @@ lam (CoreLet binds x) = do
 
 lam (CoreCase on alts) = do
     on2 <- lam on
-    if isHO on2 then
-        error "ho case"
-     else do
-        rhs <- mapM (lam . snd) alts
-        return $ CoreCase on2 (zip (map fst alts) rhs)
+    case on2 of
+        CoreApp (CoreCon c) xs ->
+            lam $ head $ 
+                 [replaceFreeVars (zip (map fromCoreVar xs2) xs) rhs
+                    | (CoreApp (CoreCon c2) xs2, rhs) <- alts, c2 == c] ++
+                 [replaceFreeVars [(lhs,on2)] rhs | (CoreVar lhs,rhs) <- alts]
+        _ -> do
+            rhs <- mapM (lam . snd) alts
+            return $ CoreCase on2 (zip (map fst alts) rhs)
 
-lam x | isCoreVar x || isCoreConst x = return x
+lam x | isCoreLam x || isCoreVar x || isCoreConst x = return x
 
 lam x = error $ show x
 
