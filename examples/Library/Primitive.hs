@@ -47,15 +47,15 @@ global_Prelude'_Prelude'_Show'_Prelude'_Integer'_showsPrec a b c = any0 : anyEva
 
 
 -- ones which have a too concrete implementation
-foreign import primitive global_System'_IO'_hGetChar :: Handle -> IO Prelude.Char
-foreign import primitive global_System'_IO'_hPutChar :: a -> b -> c
-foreign import primitive global_System'_IO'_stdin :: a
-foreign import primitive global_System'_IO'_stdout :: a
-foreign import primitive global_System'_IO'_stderr :: a
-foreign import primitive global_System'_IO'_throwIOError :: a -> b
-foreign import primitive global_System'_IO'_openFile :: a -> b -> c
-foreign import primitive global_System'_IO'_hGetContents :: Handle -> IO String
-
+global_System'_IO'_hGetChar x = anyEval1 x
+global_System'_IO'_hPutChar x y = anyEval2 x y
+global_System'_IO'_stdin  = any0
+global_System'_IO'_stdout = any0
+global_System'_IO'_stderr = any0
+global_System'_IO'_throwIOError x = anyEval1 x
+global_System'_IO'_openFile x y = anyEval2 x y
+global_System'_IO'_hGetContents x = anyEval1 x
+global_System'_IO'_hSetBuffering x y = anyEval2 x y
 
 -- IO stuff
 data IO a = IO a
@@ -75,9 +75,8 @@ data Char = Char
 
 -- generates too much data
 -- abstractly it generates 1..n characters
-global_Data'_Char'_showLitChar :: Char -> ShowS
 global_Data'_Char'_showLitChar x y = anyEval1 x : anyEval1 x ++ y
-
+global_Data'_Char'_lexLitChar x = anyEval1 x
 global_Data'_Char'_intToDigit x = anyEval1 x
 
 ---------------------------------------------------------------------
