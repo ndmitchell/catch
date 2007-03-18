@@ -6,6 +6,9 @@ import Yhc.Core.FreeVar2
 
 import Data.List
 import Control.Monad
+import General.General
+import Control.Monad.State
+import qualified Data.Map as Map
 
 {-
 SPECIALISE ALGORITHM
@@ -70,14 +73,41 @@ genTemplate (Template xs) (CoreFunc _ args body) newname = CoreFunc newname (con
 -- for all equivalent expressions
 -- irrelevant of free or bound var names, alpha rename to the same thing
 normVars :: CoreExpr -> CoreExpr
-normVars x = normFree 'f' [] $ normBound 'b' [] $ normFree 'F' seen $ normBound 'B' seen x
+normVars x = evalState (f Map.empty x) (1,1)
     where
-        seen = collectAllVars x
+        getF = do (fv,bv) <- get; put (fv+1,bv); return ('f':show fv)
+        getB = do (fv,bv) <- get; put (fv,bv+1); return ('b':show bv)
+    
+        f mp (CoreVar x) =
+            case Map.lookup x mp of
+                Nothing -> liftM CoreVar getF
+                Just y -> return $ CoreVar y
+        
+        f mp (CoreCase on alts) = do
+                on2 <- f mp on
+                alts2 <- mapM g alts
+                return $ CoreCase on2 alts2
+            where
+                g (CoreVar lhs,rhs) = do
+                    l <- getB
+                    r <- f (Map.insert lhs l mp) rhs
+                    return (CoreVar l, r)
+                
+                g (CoreApp c lhs,rhs) = do
+                    l <- replicateM (length lhs) getB
+                    r <- f (Map.union mp (Map.fromList $ zip (map fromCoreVar lhs) l)) rhs
+                    return (CoreApp c (map CoreVar l), r)
 
-        normBound c seen x = runFreeVars $ do
-            putVars (freeVars c \\ seen)
-            uniqueBoundVars x
+        f mp (CoreLet bind xs) = do
+                bs <- replicateM (length bind) getB
+                xs2 <- f (Map.union mp (Map.fromList $ zip (map fst bind) bs)) xs
+                return $ CoreLet (zip bs $ map snd bind) xs2
 
-        normFree c seen x = replaceFreeVars
-            (zip (collectFreeVars x) (map CoreVar $ freeVars c \\ seen))
-            x
+        f mp (CoreLam x xs) = do
+                bs <- replicateM (length x) getB
+                xs2 <- f (Map.union mp (Map.fromList $ zip x bs)) xs
+                return $ CoreLam bs xs2
+        
+        f mp x = do
+            xs2 <- mapM (f mp) (getChildrenCore x)
+            return $ setChildrenCore x xs2
