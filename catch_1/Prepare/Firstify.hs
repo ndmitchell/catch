@@ -107,8 +107,12 @@ lam (CoreApp (CoreFun f) xs) = do
     when (not $ Set.member f $ specDone s) $ put s{specMissed = Set.insert f (specMissed s)}
 
     let func = coreFuncMap (specCore s) f
-    if isHO $ coreFuncBody func then
+        body = coreFuncBody func
+    if isConLambda body then
         return $ uncurry coreLam $ coreInlineFuncLambda func xs
+     else if isLambda body then
+        let fresh = take (lamArity body) $ freeVars 'v' \\ concatMap collectAllVars xs
+        in return $ CoreLam fresh $ CoreApp (CoreFun f) (xs ++ map CoreVar fresh)
      else
         return $ CoreApp (CoreFun f) xs
 
