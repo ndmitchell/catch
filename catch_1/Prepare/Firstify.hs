@@ -107,10 +107,10 @@ lam (CoreApp (CoreFun f) xs) = do
     when (not $ Set.member f $ specDone s) $ put s{specMissed = Set.insert f (specMissed s)}
 
     let func = coreFuncMap (specCore s) f
-    if not $ isHO $ coreFuncBody func then
-        return $ CoreApp (CoreFun f) xs
+    if isHO $ coreFuncBody func then
+        return $ uncurry coreLam $ coreInlineFuncLambda func xs
      else
-        lam $ uncurry coreLam $ coreInlineFuncLambda func xs
+        return $ CoreApp (CoreFun f) xs
 
 lam (CoreApp (CoreVar x) xs)  = liftM (CoreApp (CoreVar  x)) (mapM lam xs)
 lam (CoreApp (CoreCon  x) xs) = liftM (CoreApp (CoreCon  x)) (mapM lam xs)
