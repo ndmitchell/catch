@@ -112,7 +112,7 @@ lam (CoreApp (CoreFun f) xs) = do
     if not $ isHO $ coreFuncBody func then
         return $ CoreApp (CoreFun f) xs
      else
-        lam (fromJust $ coreInlineFunc func xs)
+        lam $ uncurry coreLam $ coreInlineFuncLambda func xs
 
 lam (CoreApp (CoreVar x) xs)  = liftM (CoreApp (CoreVar  x)) (mapM lam xs)
 lam (CoreApp (CoreCon  x) xs) = liftM (CoreApp (CoreCon  x)) (mapM lam xs)
