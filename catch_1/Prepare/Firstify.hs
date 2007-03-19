@@ -130,7 +130,7 @@ lam (CoreLet binds x) = do
     rhs <- mapM (lam . snd) binds
     let (ho,fo) = partition (isHO . snd) (zip (map fst binds) rhs)
     x2 <- lam $ replaceFreeVars ho x
-    return $ CoreLet fo x2
+    return $ coreLet fo x2
 
 lam (CoreCase on alts) = do
     on2 <- lam on
