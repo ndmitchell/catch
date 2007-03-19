@@ -37,7 +37,7 @@ The specialised version has:
 -- the second result is how far you got
 firstify :: Core -> Result Core
 firstify core = (if ans then success else failure) $
-                coreReachable ["main"] $ fromCoreFuncMap core res
+                coreReachable ["main"] $ coreSimplify $ fromCoreFuncMap core res
     where (ans,res) = transform $ prepare core
 
 
