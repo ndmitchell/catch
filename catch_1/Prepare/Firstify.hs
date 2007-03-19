@@ -116,7 +116,9 @@ lam (CoreApp (CoreFun f) xs) = do
 
 lam (CoreApp (CoreVar x) xs)  = liftM (CoreApp (CoreVar  x)) (mapM lam xs)
 lam (CoreApp (CoreCon  x) xs) = liftM (CoreApp (CoreCon  x)) (mapM lam xs)
-lam (CoreApp (CorePrim x) xs) = liftM (CoreApp (CorePrim x)) (mapM lam xs)
+lam (CoreApp (CorePrim x) xs)
+    | x `elem` ["Prelude.error","error"] = liftM (CoreApp (CorePrim x)) (mapM lam $ take 1 xs)
+    | otherwise = liftM (CoreApp (CorePrim x)) (mapM lam xs)
 
 lam (CoreApp (CoreLam xs body) ys) =
         lam $ coreApp (coreLam (drop n xs) (replaceFreeVars (zip xs ys) body)) (drop n ys)
