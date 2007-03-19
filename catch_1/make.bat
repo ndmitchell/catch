@@ -6,6 +6,7 @@ if exist D:\sources\yhc\current set comp=D:\sources\yhc\current
 
 if "%1" == "prof" goto make_prof
 if "%1" == "opt" goto make_opt
+if "%1" == "opt2" goto make_opt2
 
 
 :make_norm
@@ -22,6 +23,13 @@ set exe=catch
 set msg=
 goto make
 
+:make_opt2
+set flags=-O2
+set objdir=obj\opt2
+set exe=catch
+set msg=
+goto make
+
 :make_prof
 set flags=-prof -auto-all
 set objdir=obj\prof
@@ -33,7 +41,9 @@ goto make
 :make
 mkdir obj 2> nul
 mkdir %objdir% 2> nul
+@echo on
 ghc %flags% --make Main -o %exe%.exe -odir %objdir% -hidir %objdir% -i%comp%\src\libraries\core -i%comp%\src\libraries\general -i..\proposition
+@echo off
 
 
 echo Message: %msg%
