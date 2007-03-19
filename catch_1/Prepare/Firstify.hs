@@ -105,9 +105,7 @@ lam (CoreApp (CoreFun f) xs) = do
     -- now inline the function if required
     s <- get
     when (not $ Set.member f $ specDone s) $ put s{specMissed = Set.insert f (specMissed s)}
-    s <- get
-    put s{specDone = Set.insert f (specDone s)}
-    
+
     let func = coreFuncMap (specCore s) f
     if not $ isHO $ coreFuncBody func then
         return $ CoreApp (CoreFun f) xs
