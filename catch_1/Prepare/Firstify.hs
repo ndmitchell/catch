@@ -126,6 +126,15 @@ lam (CoreApp (CoreCase on alts) xs) = lam $ CoreCase on [(a, CoreApp b xs) | (a,
 
 lam (CoreApp (CoreApp x ys) zs) = lam $ CoreApp x (ys++zs)
 
+lam (CoreApp (CoreLet bind x) xs)
+    | null (map fst bind `intersect` vxs) = lam $ CoreLet bind (CoreApp x xs)
+    | otherwise = lam $ CoreLet (zip fresh (map snd bind)) (CoreApp x2 xs)
+        where
+            x2 = replaceFreeVars (zip (map fst bind) (map CoreVar fresh)) x
+            fresh = freeVars 'v' \\ (vl ++ vxs)
+            vl = collectAllVars (CoreLet bind x)
+            vxs = nub $ concatMap collectAllVars xs
+
 lam (CoreLet binds x) = do
     rhs <- mapM (lam . snd) binds
     let (ho,fo) = partition (isHO . snd) (zip (map fst binds) rhs)
