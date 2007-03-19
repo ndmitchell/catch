@@ -1,5 +1,8 @@
 
-module Prepare.Firstify.Template(Template, genTemplate, useTemplate, isHO) where
+module Prepare.Firstify.Template(
+    isHO, isLambda, isConLambda,
+    Template, genTemplate, useTemplate
+    ) where
 
 import Yhc.Core hiding (collectAllVars,collectFreeVars,uniqueBoundVars,replaceFreeVars)
 import Yhc.Core.FreeVar2
@@ -23,11 +26,22 @@ The specialised version has:
 -}
 
 isHO :: CoreExpr -> Bool
-isHO (CoreLet _ x) = isHO x
-isHO (CoreLam _ _) = True
-isHO (CoreCase x ys) = any (isHO . snd) ys
-isHO (CoreApp (CoreCon _) args) = any isHO args
-isHO _ = False
+isHO x = isLambda x || isConLambda x
+
+
+isLambda :: CoreExpr -> Bool
+isLambda (CoreLet _ x) = isLambda x
+isLambda (CoreLam _ _) = True
+isLambda (CoreCase x ys) = any (isLambda . snd) ys
+isLambda _ = False
+
+
+isConLambda :: CoreExpr -> Bool
+isConLambda (CoreLet _ x) = isConLambda x
+isConLambda (CoreCase x ys) = any (isConLambda . snd) ys
+isConLambda (CoreApp (CoreCon _) args) = any isLambda args
+isConLambda _ = False
+
 
 
 data Template = Template [CoreExpr]
