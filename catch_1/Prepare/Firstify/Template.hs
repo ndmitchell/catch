@@ -1,6 +1,6 @@
 
 module Prepare.Firstify.Template(
-    isHO, isLambda, isConLambda,
+    isHO, isLambda, isConLambda, lamArity,
     Template, genTemplate, useTemplate
     ) where
 
@@ -42,6 +42,12 @@ isConLambda (CoreCase x ys) = any (isConLambda . snd) ys
 isConLambda (CoreApp (CoreCon _) args) = any isLambda args
 isConLambda _ = False
 
+
+lamArity :: CoreExpr -> Int
+lamArity (CoreLet _ x) = lamArity x
+lamArity (CoreLam xs x) = length xs + lamArity x
+lamArity (CoreCase x ys) = maximum $ map (lamArity . snd) ys
+lamArity _ = 0
 
 
 data Template = Template [CoreExpr]
