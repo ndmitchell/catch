@@ -101,13 +101,20 @@ fix logger def combine compute initial = do
         apply mp ks f = foldl (\mp k -> Map.adjust f k mp) mp ks
 
 
-        -- calculate the next key, ideally optimal
-        -- pick the item which has the most requiredBy items already in the pending
-        -- since otherwise you'd be likely to add these anyway
-        -- HEURISTIC, requires experimentation
-        next x pending = snd $ maximum [(f k, k) | k <- Set.toList pending]
-            where
-                f k = Set.size $ pending `Set.intersection` (requiredBy $ fromJust $ Map.lookup k x)
+-- calculate the next key, ideally optimal
+-- pick the item which has the most requiredBy items already in the pending
+-- since otherwise you'd be likely to add these anyway
+-- HEURISTIC, requires experimentation
+--
+-- turns out bigger programs (HsColour) spend most of their time doing this
+-- either find a way to only recompute the changed bit, or drop this to head
+next :: Ord k => Map.Map k (Item k v) -> Set.Set k -> k
+-- dead heuristic
+next x pending | False = snd $ maximum [(f k, k) | k <- Set.toList pending]
+    where f k = Set.size $ pending `Set.intersection` (requiredBy $ fromJust $ Map.lookup k x)
+
+-- simple heuristic
+next x pending = head $ Set.toList pending
 
 
 
