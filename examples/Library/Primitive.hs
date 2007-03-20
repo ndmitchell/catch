@@ -39,6 +39,7 @@ global_Prelude'_reverse x = f x []
 -- may return an error, or a demonic value
 -- cannot use read in a safe program!
 global_Prelude'_read a b = any2 (error "Prelude.read") (anyEval1 b)
+global_Prelude'_reads a b = anyEval1 b
 global_Prelude'_lex a = anyEval1 a
 global_Prelude'_Prelude'_Show'_Prelude'_Int'_showsPrec a b c = any0 : anyEval1 b ++ c
 global_Prelude'_Prelude'_Show'_Prelude'_Integer'_showsPrec a b c = any0 : anyEval1 b ++ c
