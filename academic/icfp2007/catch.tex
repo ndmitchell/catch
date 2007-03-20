@@ -1044,7 +1044,7 @@ This pattern requires functions to be placed in a recursive data structure, and 
 \section{Results and Evaluation}
 \label{sec:results}
 
-The best way to see the power of Catch is by example. While introducing the constraints in \S\ref{sec:small_examples} I gave a few micro-examples. \S\ref{sec:safety} discusses some of the general issues when modifying programs to obtain provable safety. \S\ref{sec:imaginary} investigates all the examples from the Imaginary section of Nofib, \S\ref{sec:spectral} gives results from a few larger examples chosen from the Spectral section of Nofib.
+The best way to see the power of Catch is by example. While introducing the constraints in \S\ref{sec:small_examples} I gave a few micro-examples. \S\ref{sec:safety} discusses some of the general issues when modifying programs to obtain provable safety. \S\ref{sec:imaginary} investigates all the examples from the Imaginary section of Nofib, \S\ref{sec:hscolour} investigates one larger real-world program (HsColour), and \S\ref{sec:filepath} investigates a library (System.FilePath).
 
 \subsection{The Price of Safety}
 \label{sec:safety}
@@ -1235,14 +1235,48 @@ e =  ("2."++) $
 
 There are two calls to \C{tail}, and one to \C{head}. They are mixed in a relatively complex manner, including as a higher order functional pipeline in the case of \C{iterate} and \C{map}. \catch{} is able to prove that no pattern match fails, and that \C{head} and \C{tail} have their preconditions respected.
 
-\subsection{The Spectral Nofib Benchmark}
-\label{sec:spectral}
+\subsection{The HsColour Program}
+\label{sec:hscolour}
 
-\todo{Write this section, get some results}
+The disadvantage of working with artificial benchmarks is that they are not designed to be total. When it comes to a real program, with real users, a crash is a much more serious issue -- and eliminating them a desirable goal. We have taken the HsColour program and analysed it using \catch07. We have contributed patches back to the author of HsColour, with the result that the development version can be proved free from pattern match errors.
 
-The `Spectral' section of the Nofib benchmark contains the computational kernels from real program.
+HsColour is written in Haskell, being both a library and a program -- for the purposes of the checker we have focused on the program. HsColour comprises of 12 modules, 823 lines, is 4 years old and has had patches from 6 different people.
 
-The Mandel2 program has 5 divisions, some of which are by the constant 2, others are by a global variable. Scc and Atom both have 0 pattern match errors.
+Catch required 4 small patches to successfully check the entire program. Of these 4 patches, 3 were genuine pattern match errors which could be tripped by constructing unexpected input. The three issues were:
+
+\begin{enumerate}
+\item \C{read} was called on a preferences file from the user, this could crash by specifying a malformed preferences file.
+\item By giving the document consisting of the a single double quote character \T{"}, and passing the ``-latex'' flag, a crash occurred.
+\item By giving the document \T{(`)}, namely open bracket, backtick, close bracket, and passing ``-html -anchor'' a crash occurred.
+\end{enumerate}
+
+The one patch which did not (as far as we are able to ascertain) fix a real bug could still be considered an improvement in the code base, and was minor in nature (a single line).
+
+The entire process requires 2.1 seconds to run, and uses 2.7Mb of memory.
+
+\subsection{The System.FilePath library}
+\label{sec:filepath}
+
+The filepath library is a relatively new library which has been proposed for inclusion into the Haskell base libraries. It comprises 810 lines, of which 352 are non-blank and non-comment lines, and exports 51 functions in its interface.
+
+The initial challenge to checking a library is that there is no \C{main} function, but wrappers are provided such that:
+
+\begin{code}
+main = function1 ||| function2 ||| function3
+\end{code}
+
+The |(||||||)| operator takes two functions, and using some Haskell type classes saturates them with enough arguments, then checks that a crash does not result. This operator is provided in an additional library by \catch{}.
+
+Only one change was required to the library:
+
+\begin{code}
+f x  | isPosix    = dropTrailSlash $ normalise x
+     | isWindows  = dropTrailSlash $ map toLower $ normalise x
+\end{code}
+
+Here \catch{} is unable to prove that this function is safe. By changing \C{isWindows} to \C{otherwise}, this code can be proven safe. The function is safe, but relies on the CAF \C{System.Info.os} being constant through the run of the program -- something \catch{} does not currently do.
+
+The one unfortunate restriction when checking libraries is that all interfaces must be first order and have no outstanding context, this is often quite restrictive.
 
 
 \section{Related Work}
