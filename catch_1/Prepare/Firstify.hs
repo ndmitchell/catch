@@ -36,9 +36,10 @@ The specialised version has:
 -- if the first result is not null, an error occurred
 -- the second result is how far you got
 firstify :: Core -> Result Core
-firstify core = (if ans then success else failure) $
-                coreReachable ["main"] $ coreSimplify $ fromCoreFuncMap core res
-    where (ans,res) = transform $ prepare core
+firstify core = (if any isCoreLam (allCore res) then success else failure) $
+                coreReachable ["main"] $ coreSimplify res
+    where res = fromCoreFuncMap core $ transform $ prepare core
+        
 
 
 
@@ -57,8 +58,8 @@ type SpecM a = State Spec a
 
 
 
-transform :: CoreFuncMap -> (Bool, CoreFuncMap)
-transform fm = (True, evalState f newSpec)
+transform :: CoreFuncMap -> CoreFuncMap
+transform fm = evalState f newSpec
     where
         newSpec = Spec 1 fm Map.empty Set.empty Set.empty Set.empty
         
