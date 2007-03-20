@@ -125,7 +125,7 @@ conAnds info = foldr conAnd (conTrue  info)
 
 
 conOr :: Constraint -> Constraint -> Constraint
-conOr (Con info x) (Con _ y) = normalise $ Con info $ normSubsets [x,y]
+conOr (Con info x) (Con _ y) = normalise $ makeComplete $ Con info $ normSubsets [x,y]
 
 
 conAnd :: Constraint -> Constraint -> Constraint
@@ -269,12 +269,19 @@ normSubsets xs = foldr f [] xs
         g xs ys = filter (\x -> not $ any (\y -> x `subsetVal` y) ys) xs
 
 
+
+-- this could be done much better by combining makeComplete and isComplete
+-- would make both faster and more general
+makeComplete :: Constraint -> Constraint
+makeComplete x@(Con info xs) | isComplete x = conTrue info
+                             | otherwise = x
+
+
 isComplete :: Constraint -> Bool
 isComplete (Con info xs) = compList xs
     where
         compVal (Any :* x) = compSnd x
         compVal _ = False
-        
     
         compList [] = False
         compList [Any :* x] = compSnd x
@@ -283,7 +290,15 @@ isComplete (Con info xs) = compList xs
                 groups = groupBy ((==) `on` (matchName . valFst)) $ snub xs
                 cs = map (matchName . valFst . head) groups
 
-        compCtor xs = all (compSnd . valSnd) xs && all (all compVal . matchVals . valFst) xs
+        compCtor xs = all (compSnd . valSnd) xs && compRest (dropComp (map (matchVals . valFst) xs))
+
+        dropComp ([]:_) = []
+        dropComp xs = [x1 | not $ all compVal x1] ++ dropComp (map tail xs)
+            where x1 = map head xs
+
+        compRest [] = True
+        compRest [x] = compList x
+        compRest _ = False -- conservative
        
         compSnd [Any] = True
         compSnd [] = True
