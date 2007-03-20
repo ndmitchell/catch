@@ -60,13 +60,14 @@ global_System'_IO'_stdout = any0
 global_System'_IO'_stderr = any0
 global_System'_IO'_throwIOError x = anyEval1 x
 global_System'_IO'_openFile x y = anyEval2 x y
+global_System'_IO'_hClose x = anyEval1 x
 global_System'_IO'_hGetContents x = anyEval1 x
 global_System'_IO'_hSetBuffering x y = anyEval2 x y
 global_System'_IO'_hFlush x = anyEval1 x
 global_System'_Environment'_getEnv x = anyEval1 x
 global_System'_Environment'_getArgs = any0
 global_System'_Environment'_getProgName = any0
-
+global_System'_Directory'_doesFileExist x = anyEval1 x
 
 -- IO stuff
 data IO a = IO a
