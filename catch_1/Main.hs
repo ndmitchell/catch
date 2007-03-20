@@ -110,9 +110,12 @@ execFile stages options origfile = do
                 src <- readFile origfile
                 let line0 = takeWhile (/= '\n') src
                     start = "-- #CATCH"
-                if not $ start `isPrefixOf` line0 then
-                    error "ERROR: Regression statement not found"
-                 else if result /= dropWhile isSpace (drop (length start) line0) then
+                    valid = start `isPrefixOf` line0
+                    demand = if valid then drop (length start) line0 else "_"
+                    
+                when (not valid) $ putStrLn "WARNING: Regression statement not found (assuming _)"
+
+                if result /= dropWhile isSpace demand then
                     error "ERROR: Regression statement differs from answer"
                  else
                     putStrLn "Regression statement matches"
