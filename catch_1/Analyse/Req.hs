@@ -270,15 +270,24 @@ normSubsets xs = foldr f [] xs
 
 
 isComplete :: Constraint -> Bool
-isComplete (Con info xs) = not (null cs) && ctors info (head cs) == cs && all f (concat vs)
+isComplete (Con info xs) = compList xs
     where
-        (cs,vs) = unzip [(c,vs) | Match c vs :* ms <- xs, ms == [] || ms == [Any]]
+        compVal (Any :* x) = compSnd x
+        compVal _ = False
         
-        f (Any :* []) = True
-        f (Any :* [Any]) = True
-        f _ = False
+    
+        compList [] = False
+        compList [Any :* x] = compSnd x
+        compList xs = ctors info (head cs) == cs && all compCtor groups
+            where
+                groups = groupBy ((==) `on` (matchName . valFst)) $ snub xs
+                cs = map (matchName . valFst . head) groups
 
-
+        compCtor xs = all (compSnd . valSnd) xs && all (all compVal . matchVals . valFst) xs
+       
+        compSnd [Any] = True
+        compSnd [] = True
+        compSnd _ =False
 
 
 {-
