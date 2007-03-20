@@ -36,9 +36,10 @@ The specialised version has:
 -- if the first result is not null, an error occurred
 -- the second result is how far you got
 firstify :: Core -> Result Core
-firstify core = (if any isCoreLam (allCore res) then success else failure) $
-                coreReachable ["main"] $ coreSimplify res
-    where res = fromCoreFuncMap core $ transform $ prepare core
+firstify core = (if null lams then success else failure) res
+    where
+        res = coreReachable ["main"] $ coreSimplify $ fromCoreFuncMap core $ transform $ prepare core
+        lams = filter isCoreLam $ allCore res
         
 
 
