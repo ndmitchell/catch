@@ -68,6 +68,7 @@ global_System'_Environment'_getEnv x = anyEval1 x
 global_System'_Environment'_getArgs = any0
 global_System'_Environment'_getProgName = any0
 global_System'_Directory'_doesFileExist x = anyEval1 x
+global_System'_Directory'_getCurrentDirectory = any0
 
 -- IO stuff
 data IO a = IO a
@@ -95,6 +96,8 @@ global_Data'_Char'_isAlphaNum x = anyEval1 x
 global_Data'_Char'_isLower x = anyEval1 x
 global_Data'_Char'_isSpace x = anyEval1 x
 global_Data'_Char'_isUpper x = anyEval1 x
+global_Data'_Char'_toUpper x = anyEval1 x
+global_Data'_Char'_toUpper x = anyEval1 x
 
 ---------------------------------------------------------------------
 -- Data.Array
