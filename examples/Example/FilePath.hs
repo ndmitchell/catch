@@ -663,7 +663,7 @@ equalFilePath :: FilePath -> FilePath -> Bool
 equalFilePath a b = f a == f b
     where
         f x | isPosix   = dropTrailSlash $ normalise x
-            | isWindows = dropTrailSlash $ map toLower $ normalise x
+            | otherwise = dropTrailSlash $ map toLower $ normalise x
         
         dropTrailSlash "" = ""
         dropTrailSlash x | isPathSeparator (last x) = init x
