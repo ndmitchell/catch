@@ -52,7 +52,7 @@ fix
     -> IO (Map.Map k v)             -- result
 fix logger def combine compute initial = do
         logger "BEGIN FIXED POINT"
-        loggerMap initial
+        loggerMayMap initial
         logger "COMPUTE FIXED POINT"
         res <- cont (Map.map blankItem initial) (Map.keysSet initial)
         logger "FOUND FIXED POINT"
@@ -62,7 +62,9 @@ fix logger def combine compute initial = do
         return res
     where
         loggerLine k v = logger $ "    " ++ show k ++ " = " ++ show v
-        loggerMap = mapM (uncurry loggerLine) . Map.toList
+        loggerMap = mapM_ (uncurry loggerLine) . Map.toList
+        loggerMayMap x | Map.size x > 5 = logger $ "    " ++ show (Map.size x) ++ " items"
+                       | otherwise = loggerMap x
     
         def2 = blankItem def
         blankItem v = Item v Set.empty Set.empty
