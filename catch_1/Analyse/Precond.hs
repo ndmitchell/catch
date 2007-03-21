@@ -14,8 +14,10 @@ import Analyse.Fix
 
 
 -- given a list of all functions, return the constraint on "main"
-precond :: (String -> IO ()) -> [CoreFuncName] -> IO Constraint
-precond logger funcs = do
+-- first argument logs stuff
+-- second argument says if an error should fail (True == error)
+precond :: (String -> IO ()) -> (CoreExpr -> Bool) -> [CoreFuncName] -> IO Constraint
+precond logger errcheck funcs = do
         info <- getInfo
         let true = conTrue info
         res <- fix logger true conAnd (compute info) (Map.fromList [(k,true) | k <- funcs])
@@ -33,42 +35,42 @@ precond logger funcs = do
         compute info ask func = do
             let CoreFunc _ [arg] body = function info func
                 get name = ask name >>= return . propLit . (0 :<)
-            res <- pre get body
+            res <- pre errcheck get body
             res <- backs property res
             return $ propCon info arg res
 
 
 
 
-pre :: (CoreFuncName -> IO (PropReq Int)) -> CoreExpr -> IO (PropReq CoreExpr)
-pre preFunc (CoreVar x) = return propTrue
-pre preFunc x | isCoreConst x = return propTrue
+pre :: (CoreExpr -> Bool) -> (CoreFuncName -> IO (PropReq Int)) -> CoreExpr -> IO (PropReq CoreExpr)
+pre errcheck preFunc (CoreVar x) = return propTrue
+pre errcheck preFunc x | isCoreConst x = return propTrue
 
-pre preFunc (CoreApp (CorePrim prim) xs)
-    | prim == "Prelude.error" = return propFalse
-    | otherwise = liftM propAnds $ mapM (pre preFunc) xs
+pre errcheck preFunc (CoreApp (CorePrim prim) xs)
+    | prim == "Prelude.error" = return $ propBool $ not $ errcheck $ head xs
+    | otherwise = liftM propAnds $ mapM (pre errcheck preFunc) xs
 
-pre preFunc (CorePrim prim) = return propTrue
+pre errcheck preFunc (CorePrim prim) = return propTrue
 
-pre preFunc (CoreApp (CoreCon _) xs) = liftM propAnds $ mapM (pre preFunc) xs
+pre errcheck preFunc (CoreApp (CoreCon _) xs) = liftM propAnds $ mapM (pre errcheck preFunc) xs
 
-pre preFunc (CoreApp (CoreVar _) xs) = liftM propAnds $ mapM (pre preFunc) xs
+pre errcheck preFunc (CoreApp (CoreVar _) xs) = liftM propAnds $ mapM (pre errcheck preFunc) xs
 
-pre preFunc (CoreApp (CoreFun f) xs) = do
+pre errcheck preFunc (CoreApp (CoreFun f) xs) = do
     p <- preFunc f
-    xs2 <- mapM (pre preFunc) xs
+    xs2 <- mapM (pre errcheck preFunc) xs
     return $ propAnds $ replaceVars xs p : xs2
 
-pre preFunc (CoreCase on alts) = do
+pre errcheck preFunc (CoreCase on alts) = do
         info <- getInfo
         alts <- coreAlts alts
-        on2 <- pre preFunc on
+        on2 <- pre errcheck preFunc on
         alts2 <- mapM (f info) alts
         return $ propAnds $ on2 : alts2
     where
         f info (c,e) = do
-            x <- pre preFunc e
+            x <- pre errcheck preFunc e
             return $ propOr (propLit $ on :< notin info c) x
 
 
-pre preFunc x = error $ "Analyse.Precond.pre, unhandled: " ++ show x
+pre errcheck preFunc x = error $ "Analyse.Precond.pre, unhandled: " ++ show x

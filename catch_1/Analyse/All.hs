@@ -13,7 +13,7 @@ analyse :: (Bool -> String -> IO ()) -> Core -> IO String
 analyse logger core = do
     initInfo core
     initProperty (logger False)
-    res <- precond (logger True) (map coreFuncName $ coreFuncs core)
+    res <- precond (logger True) (const True) (map coreFuncName $ coreFuncs core)
     termInfo
     termProperty
     return $ show res
