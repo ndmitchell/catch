@@ -78,7 +78,7 @@ primAbstract = mapUnderCore f
                           return $ CoreFun $ "Primitive." ++ func
 -}
 
-numPrims = [("ADD_W","numAdd"),("SUB_W","numSub")
+numPrims = [("ADD_W","numAdd"),("SUB_W","numSub"),("MUL_W","numMul")
            ,("LT_W","numLt"),("GT_W","numGt")
            ,("QUOT","numQuot"),("REM","numRem"),("SLASH_D","numDiv")
            ,("YHC.Primitive.primIntegerEq","numEq")
