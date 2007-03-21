@@ -52,6 +52,8 @@ pre preFunc (CorePrim prim) = return propTrue
 
 pre preFunc (CoreApp (CoreCon _) xs) = liftM propAnds $ mapM (pre preFunc) xs
 
+pre preFunc (CoreApp (CoreVar _) xs) = liftM propAnds $ mapM (pre preFunc) xs
+
 pre preFunc (CoreApp (CoreFun f) xs) = do
     p <- preFunc f
     xs2 <- mapM (pre preFunc) xs
