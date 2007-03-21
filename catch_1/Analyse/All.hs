@@ -11,8 +11,9 @@ import Control.Monad.State
 -- given a logger and the core, do the work
 -- with logger, True = precondition, False = property
 -- should you split up the errors separately, True=yes, False=no
-analyse :: (Bool -> String -> IO ()) -> Bool -> Core -> IO String
-analyse logger split core = do
+-- should you do partial function listined
+analyse :: (Bool -> String -> IO ()) -> Bool -> Bool -> Core -> IO String
+analyse logger split partials core = do
     let (msgs,core2) = if split then labelErrors core else ([],core)
         funcs = map coreFuncName $ coreFuncs core2
     
@@ -20,14 +21,13 @@ analyse logger split core = do
     initProperty (logger False)
     
     res <- if split then do
-               res <- preconds (logger True) msgs funcs
+               res <- preconds (logger True) partials msgs funcs
                putStrLn "Checking whole program"
                return res
            else do
                putStrLn "Checking whole program"
-               precond (logger True) (const True) funcs
+               precond (logger True) partials (const True) funcs
 
-    res <- precond (logger True) (const True) (map coreFuncName $ coreFuncs core)
     termInfo
     termProperty
     return $ show res

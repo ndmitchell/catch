@@ -103,7 +103,7 @@ execFile stages options origfile = do
                 
                 return (logger, hClose hPre >> hClose hProp)
 
-            result <- analyse logger (Errors `elem` options) core
+            result <- analyse logger (Errors `elem` options) (Partial `elem` options) core
             putStrLn $ "Answer: " ++ result
             close
             when (Regress `elem` options) $ do

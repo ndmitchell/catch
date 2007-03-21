@@ -45,16 +45,17 @@ data Item k v = Item {value :: v, dependsOn :: Set.Set k, requiredBy :: Set.Set 
 fix
     :: (Show v, Eq v, Show k, Ord k)
     => (String -> IO ())            -- logger
+    -> (v -> Bool)                  -- partial function listing
     -> v                            -- default value
     -> (v -> v -> v)                -- combine
     -> ((k -> IO v) -> k -> IO v)   -- compute
     -> Map.Map k v                  -- initial
     -> IO (Map.Map k v)             -- result
-fix logger def combine compute initial = do
+fix logger listing def combine compute initial = do
         logger "BEGIN FIXED POINT"
         loggerMayMap initial
         logger "COMPUTE FIXED POINT"
-        res <- cont (Map.map blankItem initial) (Map.keysSet initial)
+        res <- cont Set.empty (Map.map blankItem initial) (Map.keysSet initial)
         logger "FOUND FIXED POINT"
         loggerMap res
         logger "END FIXED POINT"
@@ -69,8 +70,8 @@ fix logger def combine compute initial = do
         def2 = blankItem def
         blankItem v = Item v Set.empty Set.empty
     
-        cont x pending | Set.null pending = return $ Map.map value x
-                       | otherwise = do
+        cont listed x pending | Set.null pending = return $ Map.map value x
+                              | otherwise = do
             -- calculate
             let k = next x pending
             Item{value=oldValue,dependsOn=oldDepends} <- return $ fromJust $ Map.lookup k x
@@ -94,10 +95,15 @@ fix logger def combine compute initial = do
             pending <- return $ if oldValue == v then pending
                                 else Set.union pending (requiredBy $ fromJust $ Map.lookup k x)
 
+            listed <- if listing v && not (k `Set.member` listed) then do
+                          putStrLn $ "Partial: " ++ show k
+                          return $ Set.insert k listed
+                      else return listed
+
             -- add the new item to the map
             x <- return $ Map.adjust (\i -> i{dependsOn=depends, value=v}) k x
             loggerLine k v
-            cont x pending
+            cont listed x pending
 
 
         apply mp ks f = foldl (\mp k -> Map.adjust f k mp) mp ks

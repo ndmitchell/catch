@@ -14,15 +14,15 @@ import Analyse.Fix
 
 
 
-preconds :: (String -> IO ()) -> [String] -> [CoreFuncName] -> IO Constraint
-preconds logger errmsgs funcs = do
+preconds :: (String -> IO ()) -> Bool -> [String] -> [CoreFuncName] -> IO Constraint
+preconds logger partials errmsgs funcs = do
         cs <- zipWithM f [0..] errmsgs
         info <- getInfo
         return $ conAnds info cs
     where
         f n msg = do
             putStrLn $ "Checking: " ++ msg
-            res <- precond logger (g n) funcs
+            res <- precond logger partials (g n) funcs
             putStrLn $ "Answer: " ++ show res
             return res
 
@@ -33,11 +33,11 @@ preconds logger errmsgs funcs = do
 -- given a list of all functions, return the constraint on "main"
 -- first argument logs stuff
 -- second argument says if an error should fail (True == error)
-precond :: (String -> IO ()) -> (CoreExpr -> Bool) -> [CoreFuncName] -> IO Constraint
-precond logger errcheck funcs = do
+precond :: (String -> IO ()) -> Bool -> (CoreExpr -> Bool) -> [CoreFuncName] -> IO Constraint
+precond logger partials errcheck funcs = do
         info <- getInfo
         let true = conTrue info
-        res <- fix logger true conAnd (compute info) (Map.fromList [(k,true) | k <- funcs])
+        res <- fix logger partCheck true conAnd (compute info) (Map.fromList [(k,true) | k <- funcs])
         res <- return $ Map.filter (/= true) res
         logger ""
         logger "FINAL PRECONDITIONS"
@@ -45,6 +45,8 @@ precond logger errcheck funcs = do
         loggerMap res
         return $ Map.findWithDefault true "main" res
     where
+        partCheck x = partials && conBool x /= Just True
+    
         loggerLine k v = logger $ "    " ++ show k ++ " = " ++ show v
         loggerMap = mapM (uncurry loggerLine) . Map.toList
         
