@@ -1259,13 +1259,13 @@ The entire process requires 2.1 seconds to run, and uses 2.7Mb of memory.
 
 The filepath library is a relatively new library which has been proposed for inclusion into the Haskell base libraries. It comprises 810 lines, of which 352 are non-blank and non-comment lines, and exports 51 functions in its interface.
 
-The initial challenge to checking a library is that there is no \C{main} function, but wrappers are provided such that:
+The initial challenge to checking a library is that there is no \C{main} function. \catch{} provides the |(||||||)| operate to remove this issue. A \C{main} function can be constructed as follows:
 
 \begin{code}
 main = function1 ||| function2 ||| function3
 \end{code}
 
-The |(||||||)| operator takes two functions, and using some Haskell type classes saturates them with enough arguments, then checks that a crash does not result. This operator is provided in an additional library by \catch{}.
+The |(||||||)| operator takes two functions, and using Haskell type classes saturates them with enough arguments, then checks that a crash does not result. This operator is provided in an additional library by \catch{}.
 
 Only one change was required to the library:
 
@@ -1274,10 +1274,11 @@ f x  | isPosix    = dropTrailSlash $ normalise x
      | isWindows  = dropTrailSlash $ map toLower $ normalise x
 \end{code}
 
-Here \catch{} is unable to prove that this function is safe. By changing \C{isWindows} to \C{otherwise}, this code can be proven safe. The function is safe, but relies on the CAF \C{System.Info.os} being constant through the run of the program -- something \catch{} does not currently do.
+Here \catch{} is unable to prove that this function is safe. By changing \C{isWindows} to \C{otherwise}, this code can be proven safe. The function is safe, but relies on the CAF \C{System.Info.os} being constant through the run of the program -- something \catch{} does not take account of.
 
-The one unfortunate restriction when checking libraries is that all interfaces must be first order and have no outstanding context, this is often quite restrictive.
+With this single modification \catch{} requires 1.6 seconds and 1.6Mb of memory to prove all library functions are free from pattern match errors.
 
+The one unfortunate restriction when checking libraries is that all interfaces must be first order and have no outstanding context, which is often quite restrictive. We leave it as future work to extend the tool in this direction.
 
 \section{Related Work}
 \label{sec:related}
