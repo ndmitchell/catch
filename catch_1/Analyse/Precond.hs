@@ -43,34 +43,33 @@ precond logger errcheck funcs = do
 
 
 pre :: (CoreExpr -> Bool) -> (CoreFuncName -> IO (PropReq Int)) -> CoreExpr -> IO (PropReq CoreExpr)
-pre errcheck preFunc (CoreVar x) = return propTrue
-pre errcheck preFunc x | isCoreConst x = return propTrue
-
-pre errcheck preFunc (CoreApp (CorePrim prim) xs)
-    | prim == "Prelude.error" = return $ propBool $ not $ errcheck $ head xs
-    | otherwise = liftM propAnds $ mapM (pre errcheck preFunc) xs
-
-pre errcheck preFunc (CorePrim prim) = return propTrue
-
-pre errcheck preFunc (CoreApp (CoreCon _) xs) = liftM propAnds $ mapM (pre errcheck preFunc) xs
-
-pre errcheck preFunc (CoreApp (CoreVar _) xs) = liftM propAnds $ mapM (pre errcheck preFunc) xs
-
-pre errcheck preFunc (CoreApp (CoreFun f) xs) = do
-    p <- preFunc f
-    xs2 <- mapM (pre errcheck preFunc) xs
-    return $ propAnds $ replaceVars xs p : xs2
-
-pre errcheck preFunc (CoreCase on alts) = do
-        info <- getInfo
-        alts <- coreAlts alts
-        on2 <- pre errcheck preFunc on
-        alts2 <- mapM (f info) alts
-        return $ propAnds $ on2 : alts2
+pre errcheck preFunc x = f x
     where
-        f info (c,e) = do
-            x <- pre errcheck preFunc e
-            return $ propOr (propLit $ on :< notin info c) x
+        f x | isCoreVar x || isCoreConst x = return propTrue
+        
+        f (CoreApp (CorePrim prim) xs)
+            | prim == "Prelude.error" = return $ propBool $ not $ errcheck $ head xs
+            | otherwise = liftM propAnds $ mapM f xs
 
+        f (CorePrim prim) = return propTrue
 
-pre errcheck preFunc x = error $ "Analyse.Precond.pre, unhandled: " ++ show x
+        f (CoreApp (CoreCon _) xs) = liftM propAnds $ mapM f xs
+        f (CoreApp (CoreVar _) xs) = liftM propAnds $ mapM f xs
+
+        f (CoreApp (CoreFun fn) xs) = do
+            p <- preFunc fn
+            xs2 <- mapM (pre errcheck preFunc) xs
+            return $ propAnds $ replaceVars xs p : xs2
+
+        f (CoreCase on alts) = do
+            info <- getInfo
+            alts <- coreAlts alts
+            on2 <- f on
+            alts2 <- mapM (g info) alts
+            return $ propAnds $ on2 : alts2
+            where
+            g info (c,e) = do
+                x <- f e
+                return $ propOr (propLit $ on :< notin info c) x
+
+        f x = error $ "Analyse.Precond.pre, unhandled: " ++ show x
