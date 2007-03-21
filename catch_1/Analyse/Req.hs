@@ -1,7 +1,7 @@
 
 module Analyse.Req(
     PropReq, Req(..), Constraint,
-    propCon, conTrue, conAnd, conBool,
+    propCon, conTrue, conAnd, conAnds, conBool,
     notin, (|>), (<|),
     replaceVars
     ) where
