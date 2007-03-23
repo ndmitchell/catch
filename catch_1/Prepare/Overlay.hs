@@ -17,7 +17,7 @@ overlay core = do
     res <- system $ "yhc -hide -core " ++ base </> "examples/Library/Primitive.hs"
     when (res /= ExitSuccess) $ error "Failed to compile the overlay"
 
-    over <- loadCore "../examples/Library/ycr/Primitive.ycr"
+    over <- loadCore $ base </> "examples/Library/ycr/Primitive.ycr"
     return $ coreReachable ["main"] $ coreOverlay (abstract core) over
 
 
