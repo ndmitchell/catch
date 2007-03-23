@@ -22,6 +22,8 @@ traceStrict msg res | length msg >= 0 = trace msg res
 
 traceS msg res = trace (show msg) res
 
+traceThis res = traceS res res
+
 
 groupKey :: Ord key => [(key,val)] -> [(key,[val])]
 groupKey = map f . groupBy ((==) `on` fst) . sortBy (compare `on` fst)
