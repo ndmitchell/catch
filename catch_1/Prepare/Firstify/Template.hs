@@ -129,17 +129,17 @@ normVars x = evalState (f Map.empty x) (Stat 1 1 Map.empty)
                 
                 g (CoreApp c lhs,rhs) = do
                     l <- replicateM (length lhs) getB
-                    r <- f (Map.union mp (Map.fromList $ zip (map fromCoreVar lhs) l)) rhs
+                    r <- f (Map.union (Map.fromList $ zip (map fromCoreVar lhs) l) mp) rhs
                     return (CoreApp c (map CoreVar l), r)
 
         f mp (CoreLet bind xs) = do
                 bs <- replicateM (length bind) getB
-                xs2 <- f (Map.union mp (Map.fromList $ zip (map fst bind) bs)) xs
+                xs2 <- f (Map.union (Map.fromList $ zip (map fst bind) bs) mp) xs
                 return $ CoreLet (zip bs $ map snd bind) xs2
 
         f mp (CoreLam x xs) = do
                 bs <- replicateM (length x) getB
-                xs2 <- f (Map.union mp (Map.fromList $ zip x bs)) xs
+                xs2 <- f (Map.union (Map.fromList $ zip x bs) mp) xs
                 return $ CoreLam bs xs2
         
         f mp x = do
