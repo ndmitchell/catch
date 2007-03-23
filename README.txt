@@ -1,38 +1,77 @@
-NOTE: Catch is a work in progress.
+Welcome to Catch
+================
 
-It might eat your hard drive, use your credit card to buy expensive stuff on the internet or start a war with a nearby super-power.
+You are privilaged to be one of the first alpha testers for Catch.
 
-It will NOT work reliably.
-
-
-
-
-CATCH
-=====
-
-Overview
---------
-
-Catch is a Case and Termination Checker for Haskell (that currently has no support for termination checking). The web page of Catch is located at http://www.cs.york.ac.uk/~ndm/projects/catch.php. Catch is written by Neil Mitchell as part of his PhD, at the University of York.
+Catch has now been installed in /grp/haskell (at York), and provided you use the standard bash-paths script on your system, you can run Catch.
 
 
-Tutorial
---------
+A walk through of Risers
+------------------------
 
-Follow these steps to check a simple program.
+Open the command line and type
 
-* Install Yhc (http://www-users.cs.york.ac.uk/~ndm/yhc/) and build it. Place it somewhere so that typing yhc will run it.
+> catch Risers
 
-* Build Catch, with GHC thats a case of "cd src && ghc --make -o catch"
+Note that it goes through various stages, and comes to the answer at the end
 
-* Create your test file in src/Example, for an example see Risers.hs. Make sure this file compiles correctly with Yhc, and only requires the Prelude.
+> Answer: _
 
-* Make sure the current directory is src
+Think of this answer as a pattern match, _ means that regardless of the inputs to Risers, it will not crash.
 
-* Type at the command line "catch Risers -case"
 
-* Wait while Catch builds Risers, and the Prelude, and transforms them, then checks them.
+Preparing your code
+-------------------
 
-* See the answer, safe :-)
+To prepare your code for analysis, make sure there is a main function. If the main function is a standard one (i.e. :: IO ()) then any module name will do. If you want to make any function the root of Catch checking, name it as main and change the module name to something other than Main - so Haskell does not attempt to make it Main.main.
 
-* For more details see src/Risers.log which is created.
+If your code does not compile with Yhc, it will not compile with Catch.
+
+One often used technique is to add arguments to main, and then pass them to the function under test. I strongly recommend that main does not have any classes on it, and does not take any higher order functions - although this restriction is being relaxed currently.
+
+
+Reading constraints
+-------------------
+
+Here are some sample constraints, and their meanings:
+
+_ = anything is safe
+
+0 = nothing is safe
+
+{True} = must be the constructor True
+
+{[]} = must be the constructor []
+
+{Just {True}} | {Nothing} = must be Just True or Nothing
+
+{#2 _ {True}} = main takes 2 arguments, the second must be True
+
+{: _ * _} = must be the constructor (:). The first _ is the restriction on the head, the * is merely a separator, and the second _ is the restriction on all tails.
+
+{: {True} * {: {True} | []}} | [] = must be a list of any size, with True for all elements
+
+
+
+Some useful flags
+-----------------
+
+-errors = check each error separately, I recommend including this one
+
+-partial = give a record of each partial function found, this is useful if your program is unsafe
+
+-screen = view the logs of what is happening, not that useful (unless you are me), until it gets to the end where it gives all the preconditions
+
+-quiet = remove the Task: messages
+
+-nolog = can make the program go faster, by turning off disk logging
+
+-text = output intermediate stages, see ycr/<file>.shortctors.txt to see the final code just before analysis
+
+
+Bugs and comments
+---------------------
+
+If you would like the added humiliation of watching me cry, call me over once you have managed to break Catch. If not, feel free to email me the code that doesn't work.
+
+
