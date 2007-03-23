@@ -51,7 +51,7 @@ lamArity _ = 0
 
 
 data Template = Template [CoreExpr]
-                deriving (Eq,Ord)
+                deriving (Eq,Ord,Show)
 
 
 -- given a call to this function, with the given arguments
