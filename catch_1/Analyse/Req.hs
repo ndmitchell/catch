@@ -169,7 +169,7 @@ notin info c = Con info $ map (completeVal info) (sort valid)
     f (ms1 :* ms2) | rec = [res | not $ null ms2]
         where
           res = completeMatch info c :*
-                mergeMatches ms2 (snub $ ms1 : [a | a :* b <- k, b `subsetMatches` ms2])
+                mergeMatches ms2 (snub $ ms1 : [a | a :* b <- k, ms2 `subsetMatches` b || null b])
 
     f v = [Match c [if i == j then v else anyVal | j <- nonRecs info c] :*
            [Any | hasRecs info c]]
