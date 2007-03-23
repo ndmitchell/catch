@@ -3,6 +3,7 @@ module General.General(module General.General, trace) where
 
 import Data.List
 import Control.Monad
+import System.Environment
 import System.IO
 import Debug.Trace
 
@@ -54,3 +55,8 @@ readFileStrict file = do
     src <- hGetContents h
     length src `seq` hClose h
     return src
+
+
+baseDir :: IO FilePath
+baseDir = catch (getEnv "CATCH_BASE_PATH")
+                (\_ -> return "..")

@@ -201,7 +201,8 @@ findStartFiles file = do
 
 findStartDirs :: IO [FilePath]
 findStartDirs = do
-    let examples = ".." </> "examples"
+    base <- baseDir
+    let examples = base </> "examples"
     b <- doesDirectoryExist examples
     if not b then return [""] else do
         items <- getDirectoryContents examples

@@ -6,12 +6,15 @@ import System.Exit
 import Data.Maybe
 import Control.Monad
 import Yhc.Core
+import General.General
+import System.FilePath
 
 
 
 overlay :: Core -> IO Core
 overlay core = do
-    res <- system "yhc -hide -core ../examples/Library/Primitive.hs"
+    base <- baseDir
+    res <- system $ "yhc -hide -core " ++ base </> "examples/Library/Primitive.hs"
     when (res /= ExitSuccess) $ error "Failed to compile the overlay"
 
     over <- loadCore "../examples/Library/ycr/Primitive.ycr"
