@@ -92,15 +92,29 @@ genTemplate (Template xs) (CoreFunc _ args body) newname = CoreFunc newname (con
 
 -- for all equivalent expressions
 -- irrelevant of free or bound var names, alpha rename to the same thing
+
+
+data Stat = Stat {statFree :: Int, statBound :: Int, seenFree :: Map.Map String String}
+
 normVars :: CoreExpr -> CoreExpr
-normVars x = evalState (f Map.empty x) (1,1)
+normVars x = evalState (f Map.empty x) (Stat 1 1 Map.empty)
     where
-        getF = do (fv,bv) <- get; put (fv+1,bv); return ('f':show fv)
-        getB = do (fv,bv) <- get; put (fv,bv+1); return ('b':show bv)
-    
+        getF x = do s <- get
+                    case Map.lookup x (seenFree s)  of
+                        Nothing -> do
+                            let new = 'f' : show (statFree s)
+                            put s{statFree = statFree s + 1
+                                 ,seenFree = Map.insert x new (seenFree s)}
+                            return new
+                        Just y -> return y
+
+        getB = do s <- get
+                  put s{statBound = statBound s + 1}
+                  return $ 'b':show (statBound s)
+
         f mp (CoreVar x) =
             case Map.lookup x mp of
-                Nothing -> liftM CoreVar getF
+                Nothing -> liftM CoreVar (getF x)
                 Just y -> return $ CoreVar y
         
         f mp (CoreCase on alts) = do
