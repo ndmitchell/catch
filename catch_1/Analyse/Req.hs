@@ -192,22 +192,6 @@ c <| (Con info vs) | anyVal `elem` vs = propTrue
     
     g n xs = n :< conOrs info (map (Con info . (:[])) xs)
 
-{-
-    = propOrs (map f vs)
-    
-    
-    
-    ans2 :: [([Match],[[Val]])]
-    ans2 = groupBy ((==) `on` fst) $ sort (compare `on` fst) ans1
-
-    f (Any :* ms2) = propTrue
-    f (Match c2 ms1 :* ms2)
-        | c2 == c = propAnds $ map propLit $
-                               map (\n -> n :< Con info [ms1 !! n]) non ++
-                               if Any `elem` ms2 then [] else
-                                   map (:< Con info [m :* ms2 | m <- ms2]) rec
-    f _ = propFalse
--}
 
 ---------------------------------------------------------------------
 -- Merge items
@@ -304,66 +288,3 @@ isComplete (Con info xs) = compList xs
         compSnd [] = True
         compSnd _ =False
 
-
-{-
-    where
-        res = Con info $ snub $ foldr add [] $ snub $ concatMap (valNorm info) xs
-        
-        add x [] = [x]
-        add x xs | any (x `valSubsetEq`) xs = xs
-        add x xs = old ++ new2
-            where
-                old = map (strengthen info x) xs
-                new = map (\y -> strengthen info y x) xs
-                new2 = filter (\n -> not $ any (\o -> n `valSubsetEq` o) old) new
-
-
-
--- should do as much one item normalisation as possible
--- currently very limited
-valNorm :: Info -> Val -> [Val]
-valNorm info Any = [Any]
-valNorm info ([] :* _) = []
-valNorm info x | isComps x = [Any]
-               | otherwise = [x]
-    where
-        isComps (x :* y) = isComp x && maybe True isComp y
-        isComps Any = True
-    
-        isComp [] = False
-        isComp xs = map matchName xs == cs && all isComps (concatMap matchVals xs)
-            where cs = ctors info (matchName $ head xs)
-
-
--- a \subseteq b
-valSubsetEq _ Any = True
-valSubsetEq Any _ = False
-valSubsetEq (a1 :* a2) (b1 :* b2) = matchesSubsetEq a1 b1 &&
-    (isNothing a2 || isNothing b2 || matchesSubsetEq (fromJust a2) (fromJust b2))
-
-
-matchesSubsetEq :: [Match] -> [Match] -> Bool
-matchesSubsetEq as bs = all (\a -> any (\b -> a `matchSubsetEq` b) bs) as
-
-matchSubsetEq :: Match -> Match -> Bool
-matchSubsetEq (Match a as) (Match b bs) = a == b && and (zipWith valSubsetEq as bs)
-
-
--- strengthen a b = c
--- b `subsetEq` c
--- a && b => c
-strengthen :: Info -> Val -> Val -> Val
-strengthen info Any _ = Any
-strengthen info _ Any = Any
-strengthen info (a1 :* b1) (a2 :* b2)
-    | isNothing $ do c1 <- b1; c2 <- b2; if c1 == c2 then Nothing else Just ()
-    = strengthenStart info a1 a2 :* listToMaybe (maybeToList b1 ++ maybeToList b2)
-strengthen info a b = b
-
-
-strengthenStart info a b = zipMatches f a b
-    where
-        f (Just a) Nothing  = a
-        f Nothing  (Just b) = b
-        f (Just a) (Just b) = b
--}
