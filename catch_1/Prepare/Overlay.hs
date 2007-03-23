@@ -82,7 +82,7 @@ primAbstract = mapUnderCore f
 -}
 
 numPrims = [("ADD_W","numAdd"),("SUB_W","numSub"),("MUL_W","numMul")
-           ,("LT_W","numLt"),("GT_W","numGt"),("EQ_W","numEq")
+           ,("LT_W","numLt"),("LE_W","numLe"),("GT_W","numGt"),("EQ_W","numEq")
            ,("QUOT","numQuot"),("REM","numRem"),("SLASH_D","numDiv")
            ,("YHC.Primitive.primIntegerEq","numEq")
            ,("YHC.Primitive.primIntegerQuot","numQuot")
