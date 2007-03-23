@@ -6,15 +6,18 @@ import Analyse.Info
 import Analyse.Property
 import Analyse.Precond
 import Control.Monad.State
+import General.CmdLine
 
 
 -- given a logger and the core, do the work
 -- with logger, True = precondition, False = property
 -- should you split up the errors separately, True=yes, False=no
 -- should you do partial function listined
-analyse :: (Bool -> String -> IO ()) -> Bool -> Bool -> Core -> IO String
-analyse logger split partials core = do
-    let (msgs,core2) = if split then labelErrors core else ([],core)
+analyse :: (Bool -> String -> IO ()) -> [Option] -> Core -> IO String
+analyse logger options core = do
+    let split = Errors `elem` options
+        partials = Partial `elem` options
+        (msgs,core2) = if split then labelErrors core else ([],core)
         funcs = map coreFuncName $ coreFuncs core2
     
     initInfo core2
