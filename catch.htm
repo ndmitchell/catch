@@ -1,0 +1,104 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+        <title>Catch: A User Manual</title>
+        <style type="text/css">
+pre {
+    border: 2px solid gray;
+    padding: 1px;
+    padding-left: 5px;
+    margin-left: 10px;
+    background-color: #eee;
+}
+
+pre.define {
+    background-color: #ffb;
+    border-color: #cc0;
+}
+
+body {
+    font-family: sans-serif;
+}
+
+h1, h2, h3 {
+    font-family: serif;
+}
+
+h1 {
+    color: rgb(23,54,93);
+    border-bottom: 1px solid rgb(79,129,189);
+    padding-bottom: 2px;
+    font-variant: small-caps;
+    text-align: center;
+}
+
+a {
+    color: rgb(54,95,145);
+}
+
+h2 {
+    color: rgb(54,95,145);
+}
+
+h3 {
+    color: rgb(79,129,189);
+}
+        </style>
+    </head>
+    <body>
+
+<h1>Catch: A User Manual</h1>
+
+<p style="text-align:right;margin-bottom:25px;">
+    by <a href="http://www.cs.york.ac.uk/~ndm/">Neil Mitchell</a>
+</p>
+
+<p>
+    Catch is a tool for checking that a piece of Haskell code does not have any inexhaustive pattern matches, and will not fail at runtime with a pattern match error. For the purposes of Catch, the includes things like passing the empty list to <tt>head</tt>, or division by zero.
+</p>
+<p>
+    This document proceeds as follows:
+</p>
+<ol>
+    <li>Obtaining and Installing Catch</li>
+    <li>A Walkthrough of Risers</li>
+    <li>Preparing Your Code</li>
+    <li>Reading Constraints</li>
+    <li>Flag Reference</li>
+</ol>
+
+<h3>Acknowledgements</h3>
+
+<p>
+    Thanks to Colin Runciman, Malcolm Walace, Matt Naylor, Tom Shackell and everyone in PLASMA for useful feedback.
+</p>
+
+
+<h2>Obtaining and Installing Catch</h2>
+
+<p>
+    Catch has Yhc as a dependency, so before installing Catch you must first install Yhc. See <a href="http://haskell.org/haskellwiki/Yhc">this page</a> for details of installation. Once you have installed Yhc, add it to your search path so that the <tt>yhc</tt> command is available and can compile files.
+</p>
+<p>
+    Once you have Yhc installed, obtain a release of Catch using <a href="http://darcs.net/">darcs</a>:
+</p>
+<pre>
+darcs get --partial <a href="http://www.cs.york.ac.uk/fp/darcs/catch">http://www.cs.york.ac.uk/fp/darcs/catch</a>
+</pre>
+<p>
+    Change to the directory <tt>catch_1</tt> and compile the program Main. This will require the FilePath module, and will require you to add -I flags to the various required bits. A file <tt>make.bat</tt> is provided which should give a hint of what will be required, although will not work on any machines but mine.
+</p>
+
+
+<h2>A Walkthrough of Risers</h2>
+
+
+<h2>Preparing Your Code</h2>
+<h2>Reading Constraints</h2>
+<h2>Flag Reference</h2>
+
+
+    </body>
+</html>
