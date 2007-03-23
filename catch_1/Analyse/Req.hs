@@ -217,7 +217,7 @@ mergeMatch _ _ = Nothing
 
 
 mergeMatches :: [Match] -> [Match] -> [Match]
-mergeMatches ms1 ms2 = catMaybes [mergeMatch a b | a <- ms1, b <- ms2]
+mergeMatches ms1 ms2 = snub $ catMaybes [mergeMatch a b | a <- ms1, b <- ms2]
 
 
 ---------------------------------------------------------------------
