@@ -33,7 +33,6 @@
 \newcommand{\todo}[1]{\textbf{\textsc{Todo:} #1}}
 
 % code blocks
-\newenvironment{code}{\begin{alltt}\small}{\end{alltt}}
 \newenvironment{codepage}
     {\begin{minipage}[h]{\textwidth}\begin{code}}
     {\end{code}\end{minipage}}
@@ -63,7 +62,7 @@
 \titlebanner{\today{} - \currenttime{}}        % These are ignored unless
 \preprintfooter{}   % 'preprint' option specified.
 
-\title{Safe Pattern Matching}
+\title{Partial Patterns -- Preconditions and Proofs}
 \subtitle{A Static Checker for Haskell}
 
 \authorinfo{Neil Mitchell}
@@ -76,9 +75,9 @@
 \maketitle
 
 \begin{abstract}
-A Haskell program may fail at runtime with a pattern-match error if the program has any incomplete (non-exhaustive) patterns in definitions or case alternatives. This paper describes a static checker that allows non-exhaustive patterns to exist, yet ensures that a pattern-match error does not occur. It describes a constraint language that can be used to reason about pattern matches, along with mechanisms to propagate these constraints between program components.
+A Haskell program may fail at runtime with a pattern-match error if the program has any incomplete (non-exhaustive) patterns in definitions or case alternatives. This paper describes a static checker that allows non-exhaustive patterns to exist, yet can verify that a pattern-match error does not occur. We describe a constraint language that can be used to express requirements for safe pattern matches, along with mechanisms to propagate and reason about these constraints between program components.
 
-The checker obtains minimal preconditions for 10 out of 14 programs in the Imaginary section of the Nofib suite\citep{nofib}. With minor modifications a further 3 are proven safe.
+The checker we develop using these methods obtains minimal preconditions for 10 out of 14 programs in the Imaginary section of the Nofib suite\citep{nofib}. With minor modifications a further 3 are proven safe. We also check two larger example programs with success, finding several previously unknown errors.
 \end{abstract}
 
 % \category{CR-number}{subcategory}{third-level}
@@ -92,9 +91,9 @@ The checker obtains minimal preconditions for 10 out of 14 programs in the Imagi
 \section{Introduction}
 \label{sec:introduction}
 
-Often it is useful to define pattern matches which are incomplete, for example \C{head} fails on the empty list. Unfortunately programs with incomplete pattern matches may fail at runtime.
+Often it is useful to define selector functions, which are defined only for arguments matching a specific constructor pattern, for example \C{head} fails on the empty list. Unfortunately programs with incomplete pattern matches may fail at runtime.
 
-The problem of pattern match failures in Haskell is a serious one. The darcs \citep{darcs} project is one of the most successful large scale programs written in Haskell. Taking a look at their bug tracker, 13 problems are errors related to \C{fromJust} and 19 are direct pattern match failures.
+The problem of pattern match failures in Haskell is a serious one. The darcs \citep{darcs} project is one of the most successful large scale programs written in Haskell. Taking a look at the darcs bug tracker, 13 problems are errors related to the selector function \C{fromJust} and 19 are direct pattern match failures.
 
 Consider the following example:
 
@@ -106,48 +105,40 @@ risers (x:y:etc) = if x <= y then (x:s):ss else [x]:(s:ss)
     where (s:ss) = risers (y:etc)
 \end{code}
 
-A sample execution of this function would be:
+A sample application of this function is:
 
 \begin{code}
 > risers [1,2,3,1,2]
 [[1,2,3],[1,2]]
 \end{code}
 
-In the last line of the definition, |(s:ss)| is matched against the output of \C{risers}. If |risers (y:etc)| returns an empty list a pattern match error will be raised. It takes a few moments to check this program manually -- and a few more to be sure one has not made a mistake!
+In the last line of the definition, |(s:ss)| is matched against the result of |risers (y:etc)|. If the result is in fact an empty list a pattern match error will be raised. It takes a few moments to check manually that no pattern-match failure can occur -- and a few more to be sure one has not made a mistake!
 
 Turning the \C{risers} function over to the checker developed in this paper, the output is:
 
-\begin{code}
+\begin{verbatim}
 > Incomplete pattern on line 5, proven safe
 > Program is Safe
-\end{code}
+\end{verbatim}
 
-In addition the checker produces a set of properties it has proved about Risers, along with an outline of the proof. Fuller details of how the checking is performed follow in \S\ref{sec:walkthrough}.
+In addition the checker produces a set of properties it has proved about Risers, along with an outline of the proofs. Fuller details of how the checking is performed follow in \S\ref{sec:walkthrough}.
 
 \subsection{Contributions}
 
 The contributions of this paper include:
 
 \begin{itemize}
-\item Two constraint languages to reason about pattern match failures.
+\item Two constraint languages to reason about pattern-match failures.
 \item A mechanism for generating and solving appropriate constraints.
 \item Details of an implementation which handles the complete Haskell 98 language \citep{haskell}.
-\item An implementation of the checker, referred to as \catch07.
-\item Results, showing success on a number of unmodified examples.
-\item Some larger examples, investigating the scalability of the checker.
+\item Results showing success on a number of small examples drawn from the Nofib suite \citep{nofib}, and for a couple of complete programs, investigating the scalability of the checker.
 \end{itemize}
 
-In \citet{me:catch_tfp} a pattern match checker was described with similar aims, which we will refer to as \catch05. All the issues listed in the future work section of that paper have been addressed in this paper. \catch07 is robust enough to handle real Haskell programs, with no restriction on the recursion patterns, higher order function use or type classes. Many scalability problems have been addressed -- \catch07 is able to check much larger programs.
-
-The underlying mechanism of \catch07 is radically different from \catch05 -- particularly in relation to the constraints and fixed points. Perhaps the introductory risers example is most clearly illustrates the differences -- for \catch05 risers was towards the boundary of what was possible, for \catch07 it is trivial.
+In \citet{me:catch_tfp} a pattern match checker was described with similar aims, which we will refer to as \catch05. All the issues listed in the future work section of that paper have been addressed in this paper. \catch07 is robust enough to handle real Haskell programs, with no restriction on the recursion patterns, higher-order functions or type classes. Scalability problems have been addressed and \catch07 is able to check much larger programs than \catch05: for \catch05 risers was towards the boundary of what was possible, for \catch07 it is trivial. The underlying mechanism of \catch07 is radically different from \catch05 -- particularly in relation to the constraints and fixed points.
 
 \subsection{Road map}
 
-All data structures and equations are presented in Haskell, although should be accessible to all readers.
-
-\S\ref{sec:walkthrough} gives an overview of the checking process for the \C{risers} function. \S\ref{sec:manipulate} introduces a small core functional language and a mechanism for reasoning about this language, \S\ref{sec:constraint} covers a constraint language. \S\ref{sec:transform} discusses how to transform Haskell to this core language.
-
-\S\ref{sec:results} evaluates Catch on various sample programs -- including the Nofib benchmark suite. \S\ref{sec:related} compares our work to other work before \S\ref{sec:conclusion} presents concluding remarks.
+\S\ref{sec:walkthrough} gives an overview of the checking process for the \C{risers} function. \S\ref{sec:manipulate} introduces a small core functional language and a mechanism for reasoning about this language, \S\ref{sec:constraint} covers a constraint language. \S\ref{sec:transform} discusses how to transform Haskell to this core language. \S\ref{sec:results} evaluates Catch on various sample programs -- including the Nofib benchmark suite. \S\ref{sec:related} compares our work to other work before \S\ref{sec:conclusion} presents concluding remarks.
 
 \section{Walkthrough of Risers}
 \label{sec:walkthrough}
