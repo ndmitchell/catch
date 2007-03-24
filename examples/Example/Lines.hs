@@ -1,7 +1,12 @@
 
 module Lines where
 
-main x = inlines x
+main x = f x id
+
+f [] acc = acc []
+f (x:xs) acc = f xs (acc . (x:))
+
+
 
 inlines s = lines2 s id
   where
