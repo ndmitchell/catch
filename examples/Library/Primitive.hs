@@ -99,6 +99,12 @@ global_Data'_Char'_isUpper x = anyEval1 x
 global_Data'_Char'_toUpper x = anyEval1 x
 global_Data'_Char'_toUpper x = anyEval1 x
 
+global_Data'__CharNumeric'_readOct x y = anyEval1 y
+global_Data'__CharNumeric'_readHex x y = anyEval1 y
+global_Data'__CharNumeric'_readDec x y = anyEval1 y
+global_Data'__CharNumeric'_digitToInt x = anyEval2 x (error "Numeric.digitToInt is not able to be proven")
+
+
 ---------------------------------------------------------------------
 -- Data.Array
 
