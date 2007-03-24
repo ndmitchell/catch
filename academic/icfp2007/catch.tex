@@ -143,26 +143,15 @@ In \citet{me:catch_tfp} a pattern match checker was described with similar aims,
 \section{Walkthrough of Risers}
 \label{sec:walkthrough}
 
-This section details the process of checking that the \C{risers} function in the Introduction does not crash with a pattern match error.
+This section sketches the process of checking that the \C{risers} function in the Introduction does not crash with a pattern-match error.
 
-\subsection{Modifying Risers for analysis}
-
-In order to check \C{risers}, a \C{main} function must be provided, where \catch{} will begin checking:
-
-\begin{code}
-main :: [Int] -> [[Int]]
-main x = risers x
-\end{code}
-
-\catch imposes a restriction on \C{main}, it must not have any argument of functional type, or any type classes. The reason for this restriction is to reduce the complexity of analysis. In \C{main} the type signature is more restrictive than \C{risers}, removing the type class.
-
-In Haskell, type classes are typically implemented as dictionaries \citep{wadler:type_classes}. All functions with type classes have one or more dictionaries of class methods as auxiliary arguments. This implementation results in type classes being converted to arguments of functional type, hence the restriction on type classes.
+The type of \C{risers} includes a type class of |Ord|. \catch{} will check \C{risers} assuming that all the |Ord| methods do not raise pattern match errors, and may return any value. If there is a desire to check a particular variant of \C{risers}, such as operating on |Int|, this can be achieved with a type signature.
 
 \subsection{Conversion to a Core Language}
 
 Rather than analyse full Haskell, \catch{} analyses a first-order Core language, without lambda expressions, partial application or let bindings. A convertor is provided from the full Haskell 98 language to this restricted language. Full details are provided in \S\ref{sec:transform}.
 
-After converting the \C{risers} program to Core Haskell, and renaming the identifiers for ease of human reading, the resulting Core is as shown in Figure \ref{fig:risers_core}. The case expressions in the functions \C{risers4} and \C{risers2} correspond to the pattern match in the |where|. The function |<=| in this example has been specialised to the Int data type, unlike the standard |(<=)| operator which is a member of the \C{Num} class.
+After converting the \C{risers} program to Core Haskell, and renaming the identifiers for ease of human reading, the resulting Core is as shown in Figure \ref{fig:risers_core}. The function |(<=)| in this example has been specialised to the Int data type, unlike the standard |(<=)| operator which is a member of the \C{Num} class.
 
 \begin{figure}
 \begin{code}
@@ -188,27 +177,27 @@ risers2 x y z =  case y of
 
 \subsection{Analysis}
 
-In the Core language every pattern match covers all possible constructors of the appropriate type. The alternatives for constructor cases not originally given are calls to \C{error}. The analysis first starts by finding calls to \C{error}, then tries to prove that these calls will not be reached. In the \C{risers} example there is only one \C{error} call, corresponding to the |where| pattern match.
+In the Core language every pattern match covers all possible constructors of the appropriate type. The alternatives for constructor cases not originally given are calls to \C{error}. The analysis starts by finding calls to \C{error}, then tries to prove that these calls will not be reached. In the \C{risers} example there is only one \C{error} call, corresponding to the |where| pattern match.
 
-Only one precondition is required for this example (see \S\ref{sec:precond}):
+Only one precondition is generated for this example (see \S\ref{sec:precond}):
 
 \begin{code}
 risers4, x :< (:)
 \end{code}
 
-This condition states that all callers of \C{risers4} must supply an argument which is a |(:)| constructed value. To construct a proof, two properties are required (see \S\ref{sec:template}):
+This condition states that all callers of \C{risers4} must supply an argument which is a |(:)|-constructed value. For the proof that this precondition suffices, two properties are required (see \S\ref{sec:backward}):
 
 \begin{code}
 x :< (:)  => (risers x       ) :< (:)
 True      => (risers2 x y z  ) :< (:)
 \end{code}
 
-The first property says that provided the input to \C{risers} is a |(:)| constructed value, the output will be. The second states that the output from \C{risers2} is always a |(:)|. Given the precondition, and the properties, a proof \C{risers} does not reach \C{error} can be constructed.
+The first property says that if the argument to \C{risers} is a |(:)|-constructed value, the result will be. The second states that the result from \C{risers2} is always |(:)|-constructed.
 
 \section{Pattern Match Analysis}
 \label{sec:manipulate}
 
-This section explains the underlying constraint system in Catch, focusing on how the constraints are put together to express properties of expressions and the data structures they evaluate to.
+This section explains the methods used to calculate preconditions for functions. A basic constraint language is introduced, along with operations upon it.
 
 \subsection{Reduced expression language}
 \label{sec:core}
@@ -233,9 +222,36 @@ data Alt   =  Alt CtorName [VarName] Expr
 \label{fig:core}
 \end{figure}
 
-Syntax for the core language is given in Figure \ref{fig:core}. Our Core language is a little more restrictive than the core languages used in other compilers \citep{ghc_core}. The language is first order, has only simple case statements, and only algebraic data types. All case statements are syntactically complete, with error being introduced where a pattern match error would occur. An \C{Alt} data type has the constructor to match, a list of variables to bind to and an expression to execute.
+\begin{figure}
+\begin{code}
+data Value = Bottom | Value CtorName [Value]
 
-The evaluation strategy is lazy. \todo{Colin wants semantics}
+eval :: Expr -> Value
+eval x = case  hnf x of
+               Nothing      -> Bottom
+               Just (c,cs)  -> Value c (map eval cs)
+
+-- Nothing corresponds to bottom
+hnf :: Expr -> Maybe (CtorName, [Expr])
+hnf (Make  x   xs    )  =  Just (x, xs)
+hnf (Call  x   xs    )  |  x == "error"  = Nothing 
+                        |  otherwise     = hnf (instantiate x xs)
+hnf (Case  on  alts  )  =  listToMaybe [hnf (bind (zip vs cs) e)
+       | Just (c,cs) <- [hnf on], Alt n vs e <- alts, c == n]
+
+bind :: [(VarName, Expr)] -> Expr -> Expr
+bind r (Var   x     ) = fromJust (lookup x r)
+bind r (Make  x xs  ) = Make  x (map (bind r) xs)
+bind r (Call  x xs  ) = Call  x (map (bind r) xs)
+bind r (Case  x xs  ) = Case (bind r x) (map (bind r) xs)
+\end{code}
+\caption{Semantics for Core expressions.}
+\label{fig:semantics}
+\end{figure}
+
+Syntax for the core language is given in Figure \ref{fig:core}. Our Core language is a little more restrictive than the core languages typically used in compilers \citep{ghc_core}. The language is first order, has only simple case statements, and only algebraic data types. All case statements have alternatives for all constructors of a particular type, with error being introduced where a pattern-match error would otherwise occur. An \C{Alt} represents a constructor to match, a list of variables to bind to and an expression to execute.
+
+The evaluation strategy is lazy. A semantics is presented in Figure \ref{fig:semantics}. The |hnf| function evaluates an expression to head normal form. The |bind| function replaces free variables that are the result of a |Case| expression.
 
 \subsubsection{Operations on Core}
 
@@ -251,31 +267,20 @@ isRec        :: Field     -> Bool
 \label{fig:core_operations}
 \end{figure}
 
-Figure \ref{fig:core_operations} gives functions which the checker uses to operate over the core data type. Every constructor has an arity, which can be obtained with the \C{arity} function. To determine all constructors in a set the \C{ctors} function can be used, for example |ctors True = {False, True}| and |ctors [] = {[], :}|. The \C{var} function returns \C{Nothing} for variables which are arguments, and \C{Just} with the expression on the \C{Case} expression and the field. The function \C{instantiate} corresponds to $\beta$ reduction.
+Figure \ref{fig:core_operations} gives the signatures for helper functions over the core data type. Every constructor has an arity, which can be obtained with the \C{arity} function. To determine the constructors for a type the \C{ctors} function can be used, for example |ctors True = {False, True}| and |ctors [] = {[], :}|. The \C{var} function returns \C{Nothing} for a variable bound as an argument of a top-level function, and |Just (e,(c,i))| for a variable bound as teh |i|th component in the |c|-constructed alternative of case-expression |e|. The function \C{instantiate} corresponds to $\beta$ reduction.
 
-The |isRec (c,n)| function returns true if the constructor |c| has a recursive element at position |n|. This function is used to bound the size of constraints. Taking the example of a \C{List}:
+The |isRec (c,n)| function returns true if the constructor |c| has a recursive element at position |n|. This function is used to limit the size of constraints. Taking the example of a \C{List}:
 
 \begin{code}
 data List alpha = Nil | Cons alpha (List alpha)
 \end{code}
 
-The type of the definition is |List alpha|, all fields of this type are said to be recursive. \C{Cons} has two fields, the first is of type |alpha| and is not recursive, the second is of type |List alpha| and is considered recursive.
-
-This approach works provided no fields have a type that is structurally greater than the defined type, and no higher kinded type variables are used. If the presence of definitions involving these features, either a translation can be made to a permitted form, or \C{isRec} can conservatively return True.
-
-More formally, there exists a function |bounded t| such that the number of non-recursive fields in any path of any value of type |t| is less than this value.
-
-\begin{code}
-forall x,t,p `o`  x :: t && p `elem` paths x =>
-                  length (filter (not . isRec) p) < bounded t
-\end{code}
-
-A path is a list of fields, the \C{paths} function returns all possible paths in a given data structure -- a potentially infinite number.
+All fields of type |List alpha| are said to be recursive. \C{Cons} has two fields, the first is of type |alpha| and is not recursive, the second is of type |List alpha| and is recursive.
 
 \subsubsection{Abstraction}
 \label{sec:abstraction}
 
-The Core language only has algebraic data types. So what about primitive types such as text characters, integers (bounded and unbounded) and floating point numbers? \catch{} allows for these types by abstracting them into algebraic data types.
+The Core language only has algebraic data types. \catch{} allows for primitive types such as text characters, integers (bounded and unbounded) and floating point numbers by abstracting them into algebraic data types.
 
 Natural numbers are often encoded by Peano numerals, and this idea can easily be extended to integers:
 
@@ -284,7 +289,7 @@ data Pos  = One | Succ Pos
 data Int  = Minus Pos | Zero | Plus Pos
 \end{code}
 
-Although this abstraction of \C{Int} captures all the underlying detail of the number system, the underlying constraint systems discussed in \S\ref{sec:constraint} would be unable to distinguishing between any pair of numbers both greater than 2, or both less than -2. The actual abstraction used in \catch{} is:
+Although this abstraction of \C{Int} captures all the underlying detail of the number system, the underlying constraint systems discussed in \S\ref{sec:constraint} would be unable to distinguishing between any pair of numbers both greater than 2, or both less than -2. The integer abstraction used in \catch{} much simpler:
 
 \begin{code}
 data Int = Neg | Zero | One | Pos
@@ -292,7 +297,7 @@ data Int = Neg | Zero | One | Pos
 
 In our experience, most constraints on numeric systems require a number to be a natural, or to be non-zero. Similarly, the addition or subtraction of one is the most common operation. These trends stem from the common treatment of integers as inductive natural numbers in a functional language \citep{runciman:naturals}. This abstraction models the common properties and operations well, while remaining simple.
 
-The abstraction of characters is often more practically interesting. The Haskell language standard calls for Unicode character literals. In practice, depending on the compiler, the number of distinct characters varies between 256 and 1114111. There are several possible abstractions of characters:
+The abstraction chosen for characters is of importance to some programs. The Haskell language standard calls for Unicode character literals. In practice, depending on the compiler, the number of distinct characters varies between 256 and 1114111. There are several possible abstractions of characters:
 
 \begin{code}
 data Char = Char
@@ -305,29 +310,50 @@ The simplest abstraction is that all characters are the same. A slightly more re
 
 \catch{} employs the first abstraction by default, but provides a flag to allow alternative abstractions to be selected. This choice is motivated by simplicity -- few additional programs are proven safe with a more specific character abstraction.
 
-The final issue of abstraction relates to primitive functions in the \C{IO} monad, for example the \C{getArgs} function which returns the command line arguments, or the \C{readFile} which reads from the underlying filesystem. In most cases the function is modelled as returning any value of the correct type.
+The final issue of abstraction relates to primitive functions in the \C{IO} monad, for example the \C{getArgs} function which returns the command-line arguments, or the \C{readFile} which reads from the file-system. In most cases a IO function is modelled as returning \textit{any} value of the correct type, using a function primitive to the checker.
 
 
 \subsection{Constraints}
+\label{sec:constraints}
 
-An expression in our first-order core language either evaluates to a (potentially infinite) data structure, or to $\bot{}$ caused by either non-termination of pattern match error. If an expression does evaluate to a data structure, then a constraint states the possible forms of data value it may take. A constraint describes a set of data structures that a value may match.
+An expression in our first-order core language evaluates to a (potentially infinite) data structure, possibly containing $\bot{}$ caused by either non-termination or pattern match error. For all parts of an expression that do not evaluate to $\bot{}$, a constraint states the possible forms of data value it may take. A constraint describes a set of data structures to which a value may belong.
 
-If |x| is an expression and |c| is a constraint we write |x :< c| to assert that expression |x| must, when evaluated, be a member of the set defined by |c|. Since the Core language is typed, the constraint |c| will only refer to a set of well typed terms. These atomic constraints can be built up into a proposition of constraints, each possibly on different variables.
+If |x| is an expression and |c| is a constraint we write |x :< c| to assert that the value of expression |x| must be a member of the set defined by |c|. Since the Core language is typed, the constraint |c| will only refer to a set of well-typed terms. These atomic constraints can be combined using loigcal operators $\wedge{}$ and $\vee{}$ to form propositional constraints.
 
-Free variables are bound by function calls. It is therefore convenient to have a notation for constraints upon named arguments of named functions: |f, x :< c| states that the argument |x| of |f| must be in the set |c|.
+Free variables can be bound by function calls. It is therefore convenient to have a notation for constraints upon named arguments of named functions: we write |f, x :< c| to assert that argument |x| of |f| must be in the set described by |c|.
 
-We require that for any type, there are only a finite number of constraints. This property is used for termination proofs. Several underlying models are possible, as discussed in \S\ref{sec:basic}, \S\ref{sec:regexp} and \S\ref{sec:multipattern}.
+Several underlying constraint models are possible. To keep the introduction of the algorithms simple we use basic pattern constraints which are described in \S\ref{sec:basic}. We then describe regular expression constraints in \S\ref{sec:regexp}, based on the \catch05 tool. Finally we present multi-pattern constraints in \S\ref{sec:multipattern} -- used in \catch07 to enable scaling to much larger problems.
+
+\subsection{Bounded Constraints}
+\label{sec:bounded}
+
+We require that for any type, there are only a finite number of constraints. This property is used for termination proofs. 
+
+\todo NOT CLEAR HERE
+
+Mention that this lemma is required for termination.
+
+This approach works provided no fields have a type that is structurally greater than the defined type, and no higher-kinded type variables are used. If the presence of definitions involving these features, either a translation can be made to a permitted form, or \C{isRec} can conservatively return True.
+
+More formally, there exists a function |bounded t| such that the number of non-recursive fields in any path of any value of type |t| is less than this value.
+
+\begin{code}
+forall x,t,p `o`  x :: t && p `elem` paths x =>
+                  length (filter (not . isRec) p) < bounded t
+\end{code}
+
+A path is a list of fields, the \C{paths} function returns all paths in a given data structure -- a potentially infinite number.
 
 
-\subsection{Basic Constraints and Pattern Matching}
+\subsection{Basic Pattern (BP) Constraints}
 \label{sec:basic}
 
 \begin{figure}
 \begin{code}
-type Constraint = [Match]
+type Constraint = [Pattern]
 
-data Match  =  Match CtorName [Match]
-            |  Any
+data Pattern  =  Con CtorName [Pattern]
+              |  Any
 \end{code}
 \caption{Basic pattern constraints.}
 \label{fig:basic}
@@ -347,18 +373,20 @@ notin :: CtorName -> Constraint
 
 \todo{COLIN QUESTION: Propositions are never introduced, and things like |(||||)| and |(&&)| etc are assumed to work over propositions and booleans equally. Is this wrong? Should this be fixed? What about \C{propLit}?}
 
-A basic constraint directly corresponds to Haskell pattern matching. A constraint is a finite set of patterns represented in Figure \ref{fig:basic}. A given data structure |d| satisfies a constraint |ms| if |d| matches at least one pattern in |ms|. True and false can be represented as |[Any]| and |[]| respectively.
+For simplicity, our analysis framework will be introduced using basic pattern constraints (BP-constraints). In  reality more powerful constraints are used, see \S\ref{sec:regexp} and \S\ref{sec:multipattern}.
+ 
+A BP-constraint directly corresponds to Haskell pattern matching. A constraint is a finite set of patterns represented in Figure \ref{fig:basic}. A given data structure |d| satisfies a constraint |ps| if |d| matches at least one pattern in |ps|. True and false constraints can be represented as |[Any]| and |[]| respectively.
 
-This constraint language is limited in expressivity -- for example it is impossible to state that all the elements of a list are True. However, even with this limited constraint language the Risers example can be proven safe. For simplicity, the analysis framework will be introduced using these basic constraints. In  reality more powerful constraints are used, see \S\ref{sec:regexp} and \S\ref{sec:multipattern}.
+The BP-constraint language is limited in expressivity. For example it is impossible to state that all the elements of a boolean list are True. However, even with this limited constraint language the Risers example can be proven safe.
 
-There are 3 operations which must be provided on every constraint implementation, whose signatures are given in figure \ref{fig:constraint}. \C{Req} is the type of the |(:<)| condition, introduced previously. The operators |(||>)| and |(<||)| are discussed in \S\ref{sec:backward}. The \C{notin} function generates a constraint which does \textit{not} match the constructor given. For example, an implementation for the simple constraint language would be:
+Some operations must be provided in every constraint implementation. Signatures are given in Figure \ref{fig:constraint}. \C{Req} is the type of the |(:<)| condition, introduced in \ref{sec:constraints}. The operators |(||>)| and |(<||)| are discussed in \S\ref{sec:backward}. The \C{notin} function generates a constraint which does \textit{not} match the constructor given. For example, for the BP-constraint language:
 
 \begin{code}
 notin c = map f (delete c (ctors c))
    where f x = Match x (replicate (arity c) Any)
 \end{code}
 
-This constraint language violates the property of having a finite number of constraints a type. Consider a list: an infinite number of type-correct patterns are possible. This issue could be resolved by limiting the depth of the patterns, but would obscure the simplicity of the constraints.
+The BP-constraint language does not meet our requirement that any type has only a finite number of constraints. Consider the type |[Bool]|: an infinite number of type-correct patterns are possible, following the pattern |Any|, |Match ":" [Any, Any]|, |Match ":" [Any, Match ":" [Any, Any]]|. This issue could be resolved by limiting the depth of the patterns, for the presentation of the algorithms we do not do this. If these constraints were to be used in the real tool, depth limiting would be necessary.
 
 \subsection{Safety Preconditions}
 \label{sec:precond}
