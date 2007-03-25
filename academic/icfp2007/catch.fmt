@@ -11,6 +11,7 @@
 %format `o` = "\bullet{}"
 %format ^. = "\!\cdot{}\!"
 %format ^* = "^\ast{}\!"
+%format ^ = "\;\hat{}\;"
 %format <=> = "\Leftrightarrow{}"
 %format `subseteq` = "\subseteq{}"
 %format `union` = "\cup{}"
