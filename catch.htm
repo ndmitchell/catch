@@ -67,12 +67,13 @@ h3 {
     <li>Preparing Your Code</li>
     <li>Reading Constraints</li>
     <li>Flag Reference</li>
+    <li>Limitations</li>
 </ol>
 
 <h3>Acknowledgements</h3>
 
 <p>
-    Thanks to Colin Runciman, Malcolm Walace, Matt Naylor, Tom Shackell and everyone in PLASMA for useful feedback.
+    Thanks to Colin Runciman, Malcolm Wallace, Matt Naylor, Tom Shackell and everyone in PLASMA for useful feedback.
 </p>
 
 
@@ -90,15 +91,103 @@ darcs get --partial <a href="http://www.cs.york.ac.uk/fp/darcs/catch">http://www
 <p>
     Change to the directory <tt>catch_1</tt> and compile the program Main. This will require the FilePath module, and will require you to add -I flags to the various required bits. A file <tt>make.bat</tt> is provided which should give a hint of what will be required, although will not work on any machines but mine.
 </p>
-
+<p>
+	If you wish to simply test Catch quickly, then <tt>catch Risers</tt> should do something. If you want to add Catch to your path, you will also need to set <tt>CATCH_BASE_PATH</tt> to point at the root of the darcs repo. This is to ensure that Catch can find the necessary support files.
+</p>
 
 <h2>A Walkthrough of Risers</h2>
 
 
 <h2>Preparing Your Code</h2>
 <h2>Reading Constraints</h2>
-<h2>Flag Reference</h2>
 
+
+<h2>Command Line Reference</h2>
+
+<p>
+	The command line structure for Catch interprets any argument begining with a - (hyphen) as an argument, and any others as a file. Arguments may occur in any order.
+</p>
+
+<h3>Specifying Files</h3>
+
+<p>
+	You may specify any one of:
+</p>
+<ul>
+	<li><b>.hs/.lhs</b> Treated as a Haskell file, and compiled using Yhc. If no extension is given, this extension is infered.</li>
+	<li><b>.yca</b> A linked Core file generated using Yhc with -linkcore.</li>
+	<li><b>.txt</b> A text file, listing files to analyse one per line.</li>
+	<li><b>Directory</b> Treated as a list of all the .hs/.lhs files within it.</li>
+</ul>
+<p>
+	Files are searched for in the current directory and in <tt>$CATCH_BASE_PATH/examples/*/</tt>. This allows the standard examples to be executed by Catch without worrying about directories etc.
+</p>
+
+<h3>Stages</h3>
+
+<p>
+	Catch runs through several stages. By specifying a stage, that causes the stage to be executed. If no stages are specified (the common case) then all are executed.
+</p>
+<ul>
+	<li><b>-all</b> All stages, the default.</li>
+	<li><b>-compile</b> Compile the program.</li>
+	<li><b>-overlay</b> Replace primitives and library functions with special versions if necessary.</li>
+	<li><b>-firstify</b> Make the program first order.</li>
+	<li><b>-letelim</b> Eliminate let expressions.</li>
+	<li><b>-onearg</b> Make all functions have arity of one.</li>
+	<li><b>-uniquevars</b> Make all free variables unique throughout the program.</li>
+	<li><b>-shortctors</b> Shorten all constructor names, by dropping module qualifiers.</li>
+	<li><b>-analyse</b> Run the analysis.</li>
+</ul>
+
+<h3>Options</h3>
+
+<p>
+	For most users, <tt>-partial -errors</tt> is probably a good choice of flags. The flags are given in order of their usefulness to an average user.
+</p>
+<ul>
+	<li><b>-errors</b> Check each call to <tt>error</tt> separately, runs slower but gives more useable results.</li>
+	<li><b>-partial</b> Give a record of each partial function found, this is useful if your program is unsafe. Also useful if your program takes too much time and needs killing, to get useful results.</li>
+	<li><b>-screen</b> View the logs of what is happening, not that useful (unless you are me), until it gets to the end where it gives all the preconditions.</li>
+	<li><b>-quiet</b> Remove the Task: messages.</li>
+	<li><b>-nolog</b> Do not write any disk logs, can make the program run faster, especially if the log file is on a network drive.</li>
+	<li><b>-text</b> Output the Core at the intermediate stages, see <tt>ycr/<i>file</i>.shortctors.txt</tt> to see the final code just before analysis.</li>
+	<li><b>-html</b> Output the same information as -text, but in a pretty HTML page with hyperlinks and colouring.</li>
+	<li><b>-yca</b> Output the Core files directly, required if you specify stages.</li>
+	<li><b>-regress</b> After execution compare the result to a regression statement. If the first line of the file is <tt>-- #CATCH <i>str</i></tt>, then <tt><i>str</i></tt> must match the result, or an error will be given.</li>
+	<li><b>-time</b> Output CPU time consumed on each program.</li>
+	<li><b>-memory</b> Output maximum residency statistics, requires GHC compiled Catch.</li>
+	<li><b>-prof</b> Run with profiling. Requires <tt>catch_prof</tt> to be built with profiling information.</li>
+</ul>
+
+
+<h2>Limitations</h2>
+
+<p>
+	Catch is still very much alpha software, and may be delicate from time to time.
+</p>
+
+<ul>
+	<li>
+		<b>IO errors</b> Several IO operations can raise "errors", which semantically are _|_, Catch will not detect these. Examples include <tt>readFile</tt>, <tt>getEnv</tt>, <tt>createDirectory</tt> etc.
+	</li>
+	<li>
+		<b>Missing libraries</b> Some programs may import libraries that Catch does not support. In actual fact, these are missing from Yhc which Catch requires - adding them to Yhc will fix your problem.
+	</li>
+	<li>
+		<b>Firstifier non-terminates</b> Some programs will not terminate in the firstifier. If the program has this behaviour, email it to me. There are a few known cases of this, which are being investigated.
+	</li>
+	<li>
+		<b>Firstifier fails</b> Some programs cannot currently be firstified. First check that your <tt>main</tt> function is first order, and is given all the required arguments.
+	</li>
+	<li>
+		<b>Analysis takes forever</b> This is unlikely, but it may well take a very long time. I recommend -partial -errors and then Ctrl+C after a short while. This is likely to pinpoint the pattern Catch fails on.
+	</li>
+</ul>
+
+<p>
+	If you run into any of the last three of these problems, please email me the sample code. The larger the program, the more likely that Catch will run into one of these issues - however a large program in itself will not cause any issues.
+</p>
 
     </body>
 </html>
