@@ -909,9 +909,7 @@ The full Haskell language is unwieldy for analysis. As noted in \S\ref{sec:core}
 
 To generate core representations of programs, it is natural to start with a full Haskell compiler, and we chose Yhc \citep{Yhc}, a fork of nhc \citep{nhc}. The internal language of Yhc is called PosLambda -- a simple variant of lambda calculus without types, but with source position information. Yhc works by applying basic desugaring transformations, without optimisation. This simplicity ensures the generated PosLambda is close to the original Haskell in its structure. Each top-level function in a source file maps to a top-level function in the generated PosLambda, retaining the same name.
 
-However, PosLambda has constructs that have no direct representation in Haskell. For example, there is a FatBar construct \cite{spj:implementation}, used for compiling pattern matches which require fall through behaviour. The PosLambda language was intended only as an internal representation, and exposes certain details that are specific to the compiler. We have therefore introduced a new Core language to Yhc on to which PosLambda can easily be mapped. This Core language is not explicitly typed, and has few constructs. We have also written a library, Yhc.Core, which is used by Yhc to generate these Core files, and by external programs to load and manipulate the generated Core.
-
-The importance of this Core language is not what remains, but what has been removed.
+However, PosLambda has constructs that have no direct representation in Haskell. For example, there is a FatBar construct \cite{spj:implementation}, used for compiling pattern matches which require fall through behaviour. The PosLambda language was intended only as an internal representation, and exposes certain details that are specific to the compiler. We have therefore introduced a new Core language to Yhc to which PosLambda can easily be translated. This Core language is not explicitly typed, and has few constructs:
 
 \begin{itemize}
 \item No syntactic sugar such as list comprehensions, |do| notation etc.
@@ -929,8 +927,6 @@ The importance of this Core language is not what remains, but what has been remo
 Most of the transformations in Yhc operate at a local level, within a single function definition. The only analysis/transformation phases which require information about more than one function are type checking and the dictionary transformation, used to implement type classes \citep{wadler:type_classes}.
 
 \begin{example}
-The definition
-
 \begin{code}
 f :: Eq alpha => alpha -> alpha -> Bool
 f x y = x == y || x /= y
@@ -946,20 +942,20 @@ f dict x y = (||) (((==) dict) x y) (((/=) dict) x y)
 (/=) (a,b) = b
 \end{code}
 
-The \C{Eq} class consists of two functions, |(==)| and |(/=)|. Depending on the type of the |alpha| variable in the function \C{f}, different code will be executed for the two functions.
+The \C{Eq} class is implemented as two selector functions, |(==)| and |(/=)|, acting on a method table. For different types of |alpha|, different method tables are provided.
 \end{example}
 
 The dictionary transformation generates a tuple, containing the functions to use for the type class, and passes this structure into all functions requiring this type class. The additional argument is the dictionary, with functions being looked up in the dictionary to obtain the correct behaviour at runtime.
 
-The dictionary transformation is a global transformation. In Example \lastexample{} the \C{Eq} context in \C{f} not only requires a dictionary to be accepted by \C{f}; it requires all the callers of \C{f} to pass a dictionary as well.
+The dictionary transformation is a global transformation. In Example \lastexample{} the \C{Eq} context in \C{f} not only requires a dictionary to be accepted by \C{f}; it requires all the callers of \C{f} to pass a dictionary as first argument.
 
 The type class mechanism in Haskell allows certain classes to require other classes. For example, \C{Ord} requires \C{Eq} for the same type. In such cases the dictionary transformation generates a nested tuple, the \C{Eq} dictionary is a component of the \C{Ord} dictionary.
 
-An alternative approach to implementing type classes is given in \cite{jones:dictionary_free}, which does not rely on higher order functions. While this approach would probably suit \catch{} better, it is not the method implemented in Yhc, which already does the dictionary transformation. The dictionary transformation along with the higher order removal performed by \catch{} is similar to this approach.
+An alternative approach to implementing type classes is given in \cite{jones:dictionary_free}, which does not rely on higher order functions. While this approach would probably suit \catch{} better, it is not the method implemented in Yhc, which already does the dictionary transformation.
 
-\subsection{First Order Haskell}
+\subsection{First-Order Haskell}
 
-Two further features of Haskell may complicate analysis: laziness and higher-order functions. It is possible to convert Haskell programs to strict equivalents by using continuation passing, and to first-order equivalents by defunctionalization, both are detailed in \citet{reynolds:defunc}. For the purposes of this checker, laziness is a nice property, as it allows $\beta$-reduction to be performed. Higher order functions are not handled by \catch{} -- their removal is required.
+The analysis presented in \ref{sec:manipulate} operates on a first-order language. In order to analyse full Haskell, it is necessary to either transform Haskell to a first-order language, or to extend the analysis -- we choose the former. It is possible to convert Haskell programs to a first-order equivalent by defunctionalization, detailed in \citet{reynolds:defunc}.
 
 \subsection{Reynold's style defunctionalization}
 
@@ -972,7 +968,7 @@ map fn x = case  x of
                  (a:as)  -> fn a : map fn as
 \end{code}
 
-Defunctionalization works by creating a data type to represent all values that |fn| may take.
+Defunctionalization works by creating a data type to represent all values that |fn| may take anywhere in the whole program.
 
 \begin{code}
 data Functions = Head | Tail
@@ -989,7 +985,7 @@ Now all calls to |map head| are replaced by |map Head|, and \C{Head} is a first 
 \end{example}
 
 \begin{example}
-The scheme easily extendeds to currying. Take the \C{add} function, which adds two \C{Int}'s:
+The scheme easily extends to currying. Take the \C{add} function, which adds two \C{Int}'s:
 
 \begin{code}
 data Functions = Head | Tail | Add0 | Add1 Int
@@ -999,9 +995,10 @@ apply (Add1 a)  b  = add a b
 \end{code}
 \end{example}
 
-Although defunctionalized code is still type safe, to do type checking would require a dependently typed language. This presents no problem for \catch{}, which does not use type information. The unacceptable aspect is the creation of an \C{apply} function, whose meaning is excessively general. This transformation introduces a bottleneck through which various properties must be proven. Asking questions, such as is the result of \C{apply} a |[]| value, require a lot of computation.
+Although defunctionalized code is still type safe, to do type checking would require a dependently typed language. This presents no problem for \catch{}, which does not use type information. The unacceptable aspect is the creation of an \C{apply} function, whose meaning is excessively general. The effect of this kind of transformation is to introduce a bottleneck through which various properties must be proven. Asking questions such as \textit{``Is the result of \C{apply} an empty-list?''}, requires a lot of computation.
 
-Reynold's style defunctionalization is suitable for use by \catch{}, but the introduction of \C{apply} means that defunctionalization is not the preferred method.
+\catch{} uses Reynold's style defunctionalization, but only if all other methods fail.
+
 
 \subsection{Specialisation}
 
@@ -1029,11 +1026,11 @@ adds x n = map_adds n x
 \end{code}
 \end{example}
 
-Although specialisation is not complete by any means, it is sufficient for a large range of examples. This approach has the unfortunate effect of specialising more than just higher order functions, which can lead to obscured code. It also cannot cope with point-free code, and does not deal with many forms of dictionaries.
+Although specialisation is not complete, it is sufficient for a large range of examples. It cannot cope with point-free code, and does not deal with many forms of dictionaries.
 
 \subsection{Specialisation with Inlining}
 
-The power of specialisation is greatly increased if it is combined with inlining, and restricted to only target higher order functions. Although this technique is not complete, in practice we have yet to encounter an example where it fails, excluding nonsense examples created specifically to break this approach.
+The power of specialisation is greatly increased if it is combined with inlining, and restricted to only target higher-order functions. Although this technique is not complete, in practice we have yet to encounter an example where it fails, excluding nonsense examples created specifically to break this approach.
 
 \begin{figure}
 \begin{code}
@@ -1048,7 +1045,7 @@ Apply (Part n fn xs) ys == Part (n - length ys) fn (xs ++ ys)
 \label{fig:core_ho}
 \end{figure}
 
-In order to permit a higher order program to be represented, the Core language is augmented with additional constructs, as shown in Figure \ref{fig:core_ho}, along with two identities. The \C{Apply} allows an unsaturated function call, or a variable to be used as the function. The \C{Part} constructor is used to represent unsaturated function calls, leaving the normal \C{Call} constructor to represent saturated calls. A \C{Part} construction records how many arguments are needed.
+In order to permit a higher-order program to be represented, the Core language is augmented with additional constructs, as shown in Figure \ref{fig:core_ho}, along with two identities. The \C{Apply} constructor represents an unsaturated function call, or a variable to be used as the function. The \C{Part} constructor is used to represent unsaturated function calls, leaving the normal \C{Call} constructor to represent saturated calls. A \C{Part} construction records how many arguments are needed.
 
 \begin{figure}
 \begin{code}
@@ -1062,7 +1059,7 @@ isHO _               = False
 \label{fig:isHO}
 \end{figure}
 
-The algorithm has two components, specialisation and inlining. The algorithm applies the specialise rule until a fixed point is reached, then applies the inline rule once. The algorithm repeats these two steps until a fixed point is reached. Given an appropriate \C{fix} function, \C{firstify} can be implemented as:
+The algorithm for removing higher-order functions has two components, specialisation and inlining. The algorithm applies the specialise rule until a fixed point is reached, then applies the inline rule once. The algorithm repeats these two steps until a fixed point is reached. Given an appropriate \C{fix} function, \C{firstify} can be implemented as:
 
 \begin{code}
 firstify :: Program -> Program
@@ -1070,9 +1067,9 @@ firstify = fix (inline . fix specialise)
 \end{code}
 
 \begin{description}
-\item[The \C{inline}] stage of the algorithm is simple. A function call is inlined if the body of the called function passes the \C{isHO} test, defined in Figure \ref{fig:isHO}. If this process causes a function to no longer be called from the root of the program, then the function is removed after inlining.
+\item[The \C{inline}] stage of the algorithm is simple. Each function call is inlined if the body of the called function passes the \C{isHO} test, defined in Figure \ref{fig:isHO}. If this process causes a function to no longer be called from the root of the program, then the function is removed after inlining.
 
-\item[The \C{specialise}] stage of the algorithm takes expressions of the form |Call fn xs| where |any isHO xs|, and generates a specialised version of the function |fn| where all the function arguments in |xs| are frozen in, and all the others are passed normally.
+\item[The \C{specialise}] stage of the algorithm takes every expression of the form |Call fn xs| where |any isHO xs|, and generates a specialised version of the function |fn| where all the function arguments in |xs| are frozen in, and all the others are passed normally.
 
     Assuming that a function |fn| results in the specialised version |fn2|, then the translation would be:
 
@@ -1086,24 +1083,15 @@ firstify = fix (inline . fix specialise)
     \end{code}
 \end{description}
 
-This technique is powerful. The fact that functional arguments have ``nowhere to hide'' can be seen easily. Eiether the entire body is an application of the functional argument (in which case it will be inlined), or it must occur as the argument to a function (in which case it is specialised). There are only two places left for functional arguments to be used:
+This technique is powerful, and has cases to remove most functional arguments. Either the entire body is an application of the functional argument (in which case it will be inlined), or it must occur as the argument to a function (in which case it is specialised). There are only two places left for functional arguments to be used:
 
 \begin{enumerate}
 \item As the subject of a |case| expression. This situation is not possible due to static typing -- all |case| expressions must choose over a data value.
 
-\item Inside an \C{Apply} with another argument variable as the function. This situation does not happen if all other functional arguments have been removed. \todo{Mutual application, circular reasoning, non-terminating proof!}
+\item Inside an \C{Apply} with another argument variable as the function. This situation does not happen if all other functional arguments have been removed -- and is rare.
 \end{enumerate}
 
-One tricky issue is \C{undefined}, consider the program:
-
-\begin{code}
-main = f undefined
-f x = x 1
-\end{code}
-
-This program passes \C{undefined} as a function, which is allowable as \C{undefined} has a fully polymorphic result. This problem can be worked around by modifying \C{isHO} to treat \C{undefined} (and by extension, \C{error}) as higher order functions, ensuring they are specialised and inlined.
-
-Finally, it is possible to construct a program with an infinite number of specialisations:
+It is possible to construct a program with an infinite number of specialisations:
 
 \begin{code}
 data Wrap alpha = Wrap (Wrap alpha) | Value alpha
