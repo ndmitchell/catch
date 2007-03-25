@@ -1106,7 +1106,7 @@ This pattern requires functions to be placed in a recursive data structure, and 
 \section{Results and Evaluation}
 \label{sec:results}
 
-The best way to see the power of Catch is by example. While introducing the constraints in \S\ref{sec:small_examples} I gave a few micro-examples. \S\ref{sec:safety} discusses some of the general issues when modifying programs to obtain provable safety. \S\ref{sec:imaginary} investigates all the examples from the Imaginary section of Nofib, \S\ref{sec:hscolour} investigates one larger real-world program (HsColour), and \S\ref{sec:filepath} investigates a library (System.FilePath).
+The best way to see the power of Catch is by example. \S\ref{sec:safety} discusses some of the general issues when modifying programs to obtain provable safety. \S\ref{sec:imaginary} investigates all the examples from the Imaginary section of Nofib, \S\ref{sec:hscolour} investigates one larger real-world program (HsColour), and \S\ref{sec:filepath} investigates a library (System.FilePath).
 
 \subsection{The Price of Safety}
 \label{sec:safety}
@@ -1117,7 +1117,7 @@ Take the following example:
 average xs = sum xs / length xs
 \end{code}
 
-In \C{average}, if |xs| is |[]| then a division by zero would occur. In \catch{}, division by zero is modelled as a pattern match error. One small local change could be made which would remove this pattern match error:
+If |xs| is |[]| then a division by zero occurs. In \catch{}, division by zero is modelled as a pattern-match error. One small local change could be made which would remove this pattern match error:
 
 \begin{code}
 average xs = if null xs then 0 else sum xs / length xs
@@ -1125,36 +1125,20 @@ average xs = if null xs then 0 else sum xs / length xs
 
 In this modified version, if |x| is |[]|, then the program will simply return 0, and no pattern match error will occur. While this program is now safe, this safety has come at a cost -- the code no longer behaves as it did before -- replacing $\bot{}$ with the non-sensical value 0.
 
-In general pattern match errors can be handled in two manners:
+In general pattern-match errors can be avoided in two ways:
 
 \begin{description}
-\item [Locally:] The above example shows a local fix, in the same function that calls the division, add a special test. This fix is fairly simple, and requires only small code changes.
+\item [Widden the domain of definition:] The above example shows a local fix: in the same function that calls the division, add a special test. This fix is fairly simple, and requires only small code changes in the definition.
 
-\item [Globally:] By investigating the code that calls \C{average}, and ensuring that |[]| is not passed as the first argument. This fix requires a deeper understanding of the flow of the program, and depending on the overall design, may require substantial work. The end result is likely to be a cleaner body of code.
+\item [Narrow the domain of application:] Investigate the code that calls \C{average}, and ensuring that |[]| is not passed as the first argument. This fix requires a deeper understanding of the flow of the program, and depending on the overall design, may require substantial work at each application. The end result is likely to be a cleaner body of code.
 \end{description}
 
-For programs which were not design with pattern match safety in mind (see Gen-Regexps in \S\ref{sec:imaginary}), the global changes may constitute an entire reimplementation. In the following sections, where modifications were required, we have attempted to make the minimum number of changes. Consequently, we have used local fixes.
+For programs which were not design with pattern match safety in mind (see Gen-Regexps in \S\ref{sec:imaginary}), the global changes may constitute an entire reimplementation. In the following sections, where modifications were required, we have attempted to make the minimum number of changes. Consequently, we have widened the domain of application.
 
 \subsection{The Imaginary Nofib Benchmark}
+\label{sec:imaginary}
 
-The whole Nofib benchmark \citep{nofib} is too large for the authors to take the time to investigate all the programs, so instead the `Imaginary' section has been chosen as our primary focus. These programs are all under a page of text, and particularly stress list operations and numeric computations. All the benchmark code is available online\footnote{\texttt{http://darcs.haskell.org/nofib/imaginary/}, as of February 2007}.
-
-To take a typical benchmark, Primes, the \C{main} function is:
-
-\begin{code}
-main = do  [arg] <- getArgs
-           print $ primes !! (read arg)
-\end{code} % $
-
-The first unsafe pattern here is |[arg] <- getArgs|, as \C{getArgs} is a primitive whose implementation is opaque to the system. With this expression, \catch{} will always return False as the precondition to \C{main}.
-
-The next step that may fail is when \C{read} is applied to an argument extracted from getArgs. This argument is entirely unknown, and \C{read} is a sufficiently complicated function that although it can be modelled by Catch, there is no possibility for getting an appropriate abstraction which models the failure case. As a result, any program which calls \C{read} is unsafe, according to \catch{}!. Using \C{reads}, which indicates failure properly, can allow a program to still be checked.
-
-As a result the program have been rewritten, and \catch{} is directed to check from the \C{compute} function:
-
-\begin{code}
-compute x = print $ primes !! x
-\end{code}
+The whole Nofib benchmark \citep{nofib} is too large to present results for, so instead the `Imaginary' section has been chosen as our primary focus. These programs are all under a page of text (excluding any Prelude or library definitions used), and particularly stress list operations and numeric computations. All the benchmark code is available online\footnote{\texttt{http://darcs.haskell.org/nofib/imaginary/}, as of March 2007}.
 
 \begin{table}
 \begin{tabular}{lrrrrrrlll}
@@ -1177,29 +1161,46 @@ Wheel Sieve 1         & 37 & 1221 &  570 \\
 Wheel Sieve 2         & 45 & 1397 &  636 \\
 X2n1                  & 10 & 2637 &  331 & 2 &  5 & 2.5 & 1.9 \\
 \end{tabular}
-\caption{Table of results}
-\label{tab:results}
-\end{table}
-
-Catch additionally produces a log containing the entire program in Core form before analysis begins, including the effect of abstraction and firstification, a list of all the template axioms calculated and the preconditions on every function.
-
-Results are given in Table \ref{tab:results}. Where changes were required to obtain the correct precondition, the name of the program is in bold, and will be discussed separately. \catch{} produces a log containing the entire program in Core form before analysis begins, including the effect of abstraction and firstification, a list of all the properties calculated and the preconditions on every function -- this information gives the other statistics.
 
 \begin{description}
-\item[Source] is the number of lines in the original source code.
+\item[Src] is the number of lines in the original source code.
 \item[Core] is the total number of lines of Yhc Core, including all functions used from libraries, when pretty printed.
-\item[First-order] is the number of lines after firstification, just before analysis.
+\item[First] is the number of lines after firstification, just before analysis.
 \item[\C{error}] is the number of calls to error.
 \item[Pre] is the number of functions which have a precondition which is not True.
 \item[Sec] is the time in seconds taken for transformations and analysis, excluding the standard Yhc compilation time. No great effort has been put into the optimisation of the analysis code.
 \item[Mb] is the maximum residency of the program at garbage collection time, in Mb. Typically a program will consume twice this size in system memory.
 \end{description}
+\caption{Table of results}
+\label{tab:results}
+\end{table}
 
-Four programs use the |(!!)| function, which requires the index to be non-negative and less than the length of the list. \catch{} can only prove this condition if the list being indexed on is infinite. Eight programs include applications of either \C{head} or \C{tail}, most of which can be proven safe. Seven programs have incomplete patterns, often in a |where| binding -- Catch performs well on these. Nine programs use division, with the precondition that the divisor must not be zero. Most of these can be proven safe. Only four programs contain no calls to \C{error}.
+Results are given in Table \ref{tab:results}. Where changes were required, the name of the program is in bold, and will be discussed separately. \catch{} produces a log containing the entire program in Core form before analysis begins, including the effect of abstraction and firstification, a list of all the properties calculated and the preconditions on every function -- this information gives the other statistics.
 
-Three programs have preconditions on the \C{main} function, all of which state that the argument must be a natural number. In all cases the generated precondition is minimal -- if the input violates the precondition then pattern match failure will occur.
+To take a typical benchmark, Primes, the \C{main} function is:
 
-We will now discuss the four programs which required changes, along with the Digits of E2 program -- a program with complex pattern matching that \catch{} is able to prove safe.
+\begin{code}
+main = do  [arg] <- getArgs
+           print $ primes !! (read arg)
+\end{code} % $
+
+The first unsafe pattern here is |[arg] <- getArgs|, as \C{getArgs} is a primitive which may return any value. Given this expression, \catch{} will return False as the precondition to \C{main}.
+
+The next step that may fail is when \C{read} is applied to an argument extracted from getArgs. This argument is entirely unknown, and \C{read} is a sufficiently complicated function that although it can be modelled by Catch, there is no possibility for getting an appropriate abstraction which models the failure case. As a result, any program which calls \C{read} is unsafe, according to \catch{}! Using \C{reads}, which indicates failure properly, a program may still be checked  successfully.
+
+As a result the programs have been rewritten, and \catch{} is directed to check from the \C{compute} function:
+
+\begin{code}
+compute x = print $ primes !! x
+\end{code}
+
+Four programs use the list-indexing operator |(!!)|, which requires the index to be non-negative and less than the length of the list. \catch{} can only prove this condition if the list being indexed on is infinite. Eight programs include applications of either \C{head} or \C{tail}, most of which can be proven safe. Seven programs have incomplete patterns, often in a |where| binding and \catch{} performs well on these. Nine programs use division, with the precondition that the divisor must not be zero. Most of these can be proven safe. Only four programs contain no calls to \C{error}.
+
+Three programs have preconditions on the \C{main} function, all of which state that the argument must be a natural number. In all cases the generated precondition is a necessary one -- if the input violates the precondition then pattern-match failure will occur.
+
+We now discuss the four programs which required changes, along with the Digits of E2 program -- a program with complex pattern matching that \catch{} is able to prove safe.
+
+\todo{here}
 
 \paragraph{Bernoulli}
 
