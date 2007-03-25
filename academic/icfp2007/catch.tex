@@ -406,7 +406,7 @@ preFunc :: FuncName -> [Expr] -> Prop (Req Expr)
 \label{fig:precondition}
 \end{figure}
 
-For every function, constraints on the arguments form a precondition for pattern safety. This precondition implies that all function calls made will have their preconditions met. The precondition on \C{error} is False. The process of analysis can be seen as deriving these preconditions.
+Our intention is that for every function, constraints on the arguments form a precondition for pattern safety. This precondition implies that all function calls made will have their preconditions met. The precondition for \C{error} is False. The process of analysis can be seen as deriving these preconditions.
 
 A program is safe if the precondition on \C{main} is True. Given a function that returns the precondition on a function's arguments \C{preFunc}, a function to determine the precondition on an expression can be specified as \C{pre} in figure \ref{fig:precondition}.
 
