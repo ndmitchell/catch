@@ -25,8 +25,8 @@
 
 % examples
 \newcounter{exmp}
-\setcounter{exmp}{1}
-\newcommand{\yesexample}{\subsubsection*{Example \arabic{exmp}}\addtocounter{exmp}{1}}
+\setcounter{exmp}{0}
+\newcommand{\yesexample}{\addtocounter{exmp}{1}\subsubsection*{Example \arabic{exmp}}}
 \newcommand{\noexample}{\hfill$\Box$}
 \newcommand{\lastexample}{\arabic{exmp}}
 
@@ -38,6 +38,8 @@
     {\end{code}\end{minipage}}
 
 \newenvironment{example}{\yesexample}{\noexample}
+\newenvironment{revisit}[1]{\subsubsection*{Example #1 (revisited)}}{\noexample}
+
 
 \newcommand{\K}{\ensuremath{^\ast}} % kleene star
 \newcommand{\D}{\ensuremath{\cdot}} % central dot
@@ -713,7 +715,8 @@ count t = 2 ^ rec * (2 ^ ctor + sum (map count nonrec))
 The |2^rec| term corresponds to the number of possible constraints under \C{Star}. The |2^ctor| term accounts for the case where the path is empty, and a constructor of this type is given. The final term adds all the possible subsequent paths.
 
 
-\subsection{Constraint Propositions}
+\subsection{RE-Constraint Propositions}
+\label{sec:re-propositions}
 
 Catch computes over propositional formulae with constraints as atomic propositions. These propositions are compared for equality to obtain a fixed point, and are variously manipulated by the system. Since the complexity of performing an operation is often proportional to the number of atomic constraints in the proposition, we apply simplification rules to reduce this number. There are approximately twenty rules implemented in the current checker. Three particularly useful ones are:
 
@@ -785,38 +788,47 @@ Although RE-constraints are capable of solving many problems, they suffer from a
 
 MP-constraints are defined in Figure \ref{fig:enumeration}. They are similar to BP-constraints, but can constrain an infinite number of items, and can be represented in a finite space.
 
-Given a constraint |p1 :* p2|, |p1| is the restricts the current value, while |p2| restricts all the recursive selectors. Each part is given as a set of matches -- much like the simple pattern language in \S\ref{sec:basic}. The difference is that each \C{Match} only specifies the values for the non-recursive selectors, all recursive selectors are handled by |p2|. The proof that there are finitely many multipattern constraint for a given type is relatively easy.
+A value |v| satisfies a constraint |p1 :* p2| if |v| itself satisfies |p1| and all its recursive selectors satisfy |p2|. Each of |p1| and |p2| are given as a set of matches -- much like the simple pattern language in \S\ref{sec:basic}. The difference is that each \C{Pattern} only specifies the values for the non-recursive selectors, all recursive selectors are handled by |p2|.
 
-Revisiting the examples from the RE-constraints in \S\ref{sec:small_examples}:
+\begin{revisit}{1}
+|(head xs)| requires |xs| to be a non-empty list.
 
+\begin{code}
+{(:) Any} :* {[], (:) Any}
+\end{code}
+
+This constraint is longer than the corresponding RE-constraint, partly because it is more explicit. It is explicitly stated that the \C{hd} field is unrestricted.
+\end{revisit}
+
+\begin{revisit}{2}
+|(map head xs)| requires |xs| to be a list of non-empty lists.
+
+\begin{code}
+{[], (:) ({(:) Any} :* {[], (:) Any})}
+:*
+{[], (:) ({(:) Any} :* {[], (:) Any})}
+\end{code}
+\end{revisit}
+
+\begin{revisit}{3}
+|(map head (reverse x))| requires |xs| to be a list of non-empty lists \textit{or} infinite. The restriction to an infinite list is expressed as:
+
+\begin{code}
+{(:) Any} :* {(:) Any}
+\end{code}
+\end{revisit}
+
+As we saw in \S\ref{sec:re-propositions}, RE-constraints have simplification rules.  MP-constraints have a \textit{normalisation procedure}. Normalisation takes a single MP-constraint and returns one which is equivalent, but preferably simpler. Some of the rules in the normalisation procedure include:
+ 
 \begin{description}
-\item[|(head x)|] requires |x| to be a non-empty list.
+\item[|[Val]| normalisation:] Given a list of |Val|, if the value |Any| is in this list, the list is equal to |[Any]|. If a value occurs more than once in the list, one copy can be removed.
 
-    \begin{code}
-    {(:) Any} :* {[], (:) Any}
-    \end{code}
-
-    This constraint is longer than the corresponding RE-constraint, partly because it is more explicit. Although no restriction is given on the \C{hd} selector, it is still stated.
-
-\item[|(map head x)|] requires |x| to be a list of non-empty lists.
-
-    \begin{code}
-    {[], (:) ({(:) Any} :* {[], (:) Any})}
-    :*
-    {[], (:) ({(:) Any} :* {[], (:) Any})}
-    \end{code}
-
-\item[|(map head (reverse x))|] requires |x| to be a list of non-empty lists, or infinite. The restriction to an infinite list is expressed as:
-
-    \begin{code}
-    {(:) Any} :* {(:) Any}
-    \end{code}
+\item[|Val| normalisation:] Given the value |p1 :* p2|, if both |p1| and |p2| cover all constructors and all their selectors have |Any| as their constraint, this value can be replaced with |Any|.
 \end{description}
 
-While RE-constraints have simplification rules, MP-constraints have a normalisation procedure. Normalisation takes an MP-constraint and returns one which is equivalent, but in a more standard form -- for example in some cases multiple matches can be collapsed into one. In a similar manner to the RE-constraints, these allow a fixed point to be found faster.
+\subsubsection{Finite Number of MP-Constraints}
 
-\subsubsection{MP termination}
-
+In a similar way to \S\ref{sec:finite_re}, we define \C{count} to determine the number of different functions constraints for a type. This function shows that their are a finite number of constraints, as required for the termination proofs.
 
 \begin{code}
 count :: Type -> Integer
@@ -828,18 +840,21 @@ pattern t = sum (map f t)
     where f c = product [count t2 | Just t2 <- c]
 \end{code}
 
+The \C{val} function counts the number of possible \C{Val} constructions. The \C{pattern} function performs a similar role for \C{Pattern} constructions.
 
-\subsection{Multipattern Propositions}
 
-The MP-constraints have different power to the RE-constraints, but their primary advantage comes when they are combined into propositions. The advantage is that two constraints on the same expression are combined at the proposition level, they can be reduced into one constraint:
+\subsection{MP-Constraint Propositions}
+
+MP-constraints have different power to the RE-constraints, but their primary advantage comes when they are combined into propositions. If two constraints on the same expression are combined at the proposition level, they can be reduced into one constraint:
 
 \begin{code}
 (e :< v1) || (e :< v2) = e :< (v1 ++ v2)
 (e :< v1) && (e :< v2) = e :< [a `mergeVal` b | a <- v1, b <- v2]
 \end{code}
 
-This ability to combine constraints on equal expressions can be exploited further by translating the program to be analysed. After the \C{backs} function has operated, all constraints will be in terms of the arguments to a function -- if all functions took exactly one argument then all expressions could be collapsed. By placing all the arguments to a function into a tuple, a function can be reduced to one with only a single argument. Taking an example:
+This ability to combine constraints on equal expressions can be exploited further by translating the program to be analysed. After applying \C{backs}, all constraints will be in terms of the arguments to a function. So if all functions took exactly one argument then \textit{all} the constraints associated with a function body could be collapsed into one. By placing all the arguments to a function into a tuple, a function can be reduced to one with only a single argument -- known as uncurrying.
 
+\begin{example}
 \begin{code}
 (||) x y = case  x of
                  True   -> True
@@ -854,21 +869,23 @@ This ability to combine constraints on equal expressions can be exploited furthe
                               True    -> True
                               False   -> y
 \end{code}
+\end{example}
 
-Combining the MP-constraint reduction rules, along with the tupling transformation, a \C{Prop (Req VarName)} is now equivalent in power to \C{Req VarName}. This simplification reduces the number of different propositional values, and obtains a fixed point faster.
+Combining MP-constraint reduction rules, with the uncurrying transformation, a \C{Prop (Req VarName)} is now equivalent in power to \C{Req VarName}. This simplification reduces the number of different propositional values, with the result that fixed point computations are faster.
 
-In the RE-constraint system the tupling transformation would do no harm, but would be of no benefit either. None of the simplification rules are able to optimise between discrete components in a tuple.
+In the RE-constraint system the tupling transformation would do no harm, but it would be of no use. None of the RE simplification rules is able to reduce distinct components in a tuple.
 
-\subsection{Comparison of Constraints}
+\subsection{Comparison of Constraint Systems}
 
-Both RE-constraints and MP-constraints are capable of expressing a wide range of values, but neither subsumes the other. We give examples where one constraint language can differentiate between a pair of values, and the other cannot.
+Both RE-constraints and MP-constraints are capable of expressing a wide range of value-sets, but neither subsumes the other. We give examples where one constraint language can differentiate between a pair of values, and the other cannot.
 
 \begin{example}
-Take the following two values: |(T:[])| and |(T:T:[])|, using the enumeration based constraint of |{(:) Any} :* {[]}| the first matches but the second does not. Using propositions over RE-constraints there is no way to differentiate between these two values.
+
+Consider the values |v1 = (T:[])| and |v2 = (T:T:[])| and the MP-constraint |{(:) Any} :* {[]}|. This constraint is satisfied by |v1| but not by |v2|. No proposition over RE-constraints can separate these two values.
 \end{example}
 
 \begin{example}
-Taking a tree data structure:
+Consider a tree data structure:
 
 \begin{code}
 data Tree alpha  =  Branch {left :: Tree alpha, right :: Tree alpha}
@@ -878,7 +895,7 @@ v1 = Branch (Leaf True   ) (Leaf False  )
 v2 = Branch (Leaf False  ) (Leaf True   )
 \end{code}
 
-The RE-constraint |(left^* :- True)| matches |v1| but not |v2|. Using enumeration based constraints, there is no way to differentiate between these two values.
+The RE-constraint |(left^* :- True)| is satisfied by |v1| but not |v2|. No MP-constraint separates the two values.
 \end{example}
 
 \catch07 uses MP-constraints, as they scale to much larger examples.
