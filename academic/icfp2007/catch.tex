@@ -1213,7 +1213,7 @@ main x = tail (tail x)
 
 The MP-constraints are unable to express that a list must be of at least length two, so conservatively strengthens this to the condition that the list must be infinite -- a condition that Bernoulli does not satisfy.
 
-Replacing |tail (tail x)| with |drop 2 x| allows all other pattern matches to be proven. Even with this change, the program still has a high level of non-exhaustive pattern matches -- all of which can be proven safe.
+Our remedy is to replace |tail (tail x)| with |drop 2 x|. Even with this change, the program still has a high level of non-exhaustive pattern matches. But all are proven safe.
 
 
 \paragraph{Digits of E1}
@@ -1228,13 +1228,11 @@ ratTrans (a,b,c,d) xs |
   where q = b `div` d
 \end{code}
 
-Catch is able to prove that the division by |d| is only unsafe if both |c| and |d| are zero. Proving that this invariant is maintained is beyond the capabilities of either Catch, or the authors of this paper. A slight modification is possible:
+Catch is able to prove that the division by |d| is only unsafe if both |c| and |d| are zero, but it is not able to prove that this invariant is maintained. Using the domain widening tactic, a slight modification is possible:
 
 \begin{code}
   where q = if d == 0 then 0 else b `div` d
 \end{code}
-
-This expression gives the same behavior where the previous program would have, but $\bot{}$ is now replaced by a defined (although potentially nonsensical) value.
 
 \paragraph{Gen-Regexps}
 
@@ -1253,11 +1251,11 @@ safeSpan p x = (a, drop 1 b)
 
 While at first glance this pattern looks like a simple pattern match against |(:)|, much in the same way as \C{head}, the reality is much more complex. The pattern is only safe if for one of the elements in the list |x|, |f| returns True. In the particular example of Gen-Regexps, the test |f| is actually |(/= '-')|. Using the abstraction for |Char| as detailed in \S\ref{sec:abstraction}, |(/=)| over |Char| always has an unknown result, making this pattern impossible to prove safe.
 
-This example shows that a program written with no regard for pattern match safety can be made safe using local fixes, without excessive code alterations.
+This example shows that a program written with no regard for pattern-match safety can be made safe using local fixes, without excessive code alterations.
 
 \paragraph{Paraffins}
 
-The Paraffins program cannot be validated by Catch, without significant modification. There are two reasons for this:
+The Paraffins program can only be validated by Catch after significant modification. There are two reasons:
 
 \begin{description}
 \item[Laziness] The first error, which can be fixed easily, is the use of \C{undefined} to prevent a space leak:
