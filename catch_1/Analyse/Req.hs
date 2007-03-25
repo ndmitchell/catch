@@ -169,7 +169,7 @@ notin info c = Con info $ map (completeVal info) (sort valid)
     f (ms1 :* ms2) | rec = [res | not $ null ms2]
         where
           res = completeMatch info c :*
-                mergeMatches ms2 (snub $ ms1 : [a | a :* b <- k, ms2 `subsetMatches` b || null b])
+                mergeMatches ms2 (snub $ ms1 : [a | a :* b <- k, ms2 `subsetMatches` b])
 
     f v = [Match c [if i == j then v else anyVal | j <- nonRecs info c] :*
            [Any | hasRecs info c]]
@@ -224,6 +224,7 @@ mergeMatches ms1 ms2 = snub $ catMaybes [mergeMatch a b | a <- ms1, b <- ms2]
 -- Subset items
 
 subsetMatches :: [Match] -> [Match] -> Bool
+subsetMatches _ [] = True
 subsetMatches as bs = all (\a -> any (\b -> a `subsetMatch` b) bs) as
 
 subsetMatch :: Match -> Match -> Bool
