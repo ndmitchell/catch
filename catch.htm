@@ -114,6 +114,9 @@ catch Risers
 <pre>
 Answer: _
 </pre>
+<p>
+	Think of this answer as a pattern match, _ means that regardless of the inputs to Risers, it will not crash.
+</p>
 
 
 <h2>Running Your Example</h2>
@@ -236,7 +239,7 @@ Main.Main.Prelude.311.useDefault$93.1 v3 v10 v2 v8 v9 v1 =
 	<li><b>.hs/.lhs</b> Treated as a Haskell file, and compiled using Yhc. If no extension is given, this extension is infered.</li>
 	<li><b>.yca</b> A linked Core file generated using Yhc with -linkcore.</li>
 	<li><b>.txt</b> A text file, listing files to analyse one per line.</li>
-	<li><b>Directory</b> Treated as a list of all the .hs/.lhs files within it.</li>
+	<li><b>Directory</b> A directory of .hs/.lhs files, all which be analysed separately.</li>
 </ul>
 <p>
 	Files are searched for in the current directory and in <tt>$CATCH_BASE_PATH/examples/*/</tt>. This allows the standard examples to be executed by Catch without worrying about directories etc.
