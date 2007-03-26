@@ -21,7 +21,7 @@ preconds logger partials errmsgs funcs = do
         return $ conAnds info cs
     where
         f n msg = do
-            putStrLn $ "Checking: " ++ msg
+            putStrLn $ "Checking [" ++ show (n+1) ++ "/" ++ show (length errmsgs) ++ "]: " ++ msg
             res <- precond logger partials (g n) funcs
             putStrLn $ "Answer: " ++ show res
             return res
