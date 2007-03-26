@@ -84,6 +84,7 @@ letAdd = applyBodyCore f
 -- And entirely unique free variables
 --
 -- let a = b in (let c = d in ...) => let a = b ; c = d in ...
+-- let a = b in (case x of ...) => case x of (let a = b in ...)
 letMove :: Core -> Core
 letMove = applyBodyCore (mapUnderCore f)
     where
@@ -94,6 +95,15 @@ letMove = applyBodyCore (mapUnderCore f)
                 
                 isSafe x = disjoint (collectFreeVars x) vars
                 disjoint x y = length x == length (x \\ y)
+
+        f (CoreLet bind (CoreCase on alts)) = coreLet stay $ CoreCase on (if null move then alts else map g alts)
+            where
+                (stay,move) = partition ((`elem` collectFreeVars on) . fst) bind
+                
+                g (lhs,rhs) = (lhs, f $ coreLet (filter ((`elem` free) . fst) move) rhs)
+                    where
+                        free = collectFreeVars rhs \\ collectFreeVars lhs
+                
 
         f x = x
 
