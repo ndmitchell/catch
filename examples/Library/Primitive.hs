@@ -184,6 +184,8 @@ numGt x y = case y of
 
 numLe x y = not (numGt x y)
 
+numGe x y = not (numLt x y)
+
 global_Prelude'_Prelude'_Num'_Prelude'_Integer'_signum a = case a of {Pos -> One; _ -> a}
 
 global_Prelude'_Prelude'_Num'_Prelude'_Integer'_abs a = case a of {Neg -> any2 One Pos; _ -> a}
