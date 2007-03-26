@@ -819,7 +819,7 @@ This constraint is longer than the corresponding RE-constraint, partly because i
 \end{revisit}
 
 As we saw in \S\ref{sec:re-propositions}, RE-constraints have simplification rules.  MP-constraints have a \textit{normalisation procedure}. Normalisation takes a single MP-constraint and returns one which is equivalent, but preferably simpler. Some of the rules in the normalisation procedure include:
- 
+
 \begin{description}
 \item[|[Val]| normalisation:] Given a list of |Val|, if the value |Any| is in this list, the list is equal to |[Any]|. If a value occurs more than once in the list, one copy can be removed.
 
@@ -1433,7 +1433,7 @@ fromList (x:xs)  fn = fromList xs (\sl -> fn (Cons x sl))
 \label{fig:gadt}
 \end{figure}
 
-Another method of encoding addition type information which is becoming increasingly popular in Haskell is the use of GADT's \citep{gadt}. Using this technique, sometimes referred to as first class Phantom Types, an encoding of lists can be written as in Figure \ref{fig:gadt}. Unlike the first method, the \C{fromList} method requires the complexity of existential types.
+Another method of encoding addition type information which is becoming increasingly popular in Haskell is the use of GADT's \citep{spj:gadt}. Using this technique, sometimes referred to as first class Phantom Types, an encoding of lists can be written as in Figure \ref{fig:gadt}. Unlike the first method, the \C{fromList} method requires the complexity of existential types.
 
 The type directed method can be pushed much further with dependant types, which allow types to depend on values. This approach allows safe versions of \C{head} and \C{tail} to be written. There has been much work on type systems, using undecidable type systems \citep{cayenne, epigram}, using extensible kinds \citep{omega} and using type systems restricted to a decidable fragment \citep{xi:dependent_practical}.
 
