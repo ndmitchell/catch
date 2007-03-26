@@ -131,7 +131,7 @@ Answer: _
 	To prepare your code for analysis, make sure there is a <tt>main</tt> function. If the main function is a standard one (i.e. :: IO ()) then any module name will do. If you want to make any function the root of Catch checking, name it as <tt>main</tt> and change the module name to something other than Main - so Haskell does not attempt to make it <tt>Main.main</tt>.
 </p>
 <p>
-	Next check that Yhc is able to compiler your code, if it cannot then fix either the code or Yhc until you have success.
+	Next check that Yhc is able to compile your code, if it cannot then fix either the code or Yhc until you have success.
 </p>
 <p>
 	Now check the program by typing <tt>catch <i>testname</i> -partial -errors</tt>. The flags are discussed later, but these two give useful help. To take a program such as <a href="http://www.cs.york.ac.uk/fp/darcs/hscolour/">HsColour</a>, we would get:
