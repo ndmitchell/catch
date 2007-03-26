@@ -1146,20 +1146,20 @@ Program               & Src & Core & First & \C{error} & Pre & sec & Mb \\
 \vspace{-2.2ex} \\
 \hline
 \vspace{-1.8ex} \\
-\textbf{Bernoulli}    & 35 & 1616 &  652 & 5 & 11 & 1.3 & 0.8 \\
-\textbf{Digits of E1} & 44 &  957 &  377 & 3 &  8 & 1.2 & 0.6 \\
-Digits of E2          & 54 & 1179 &  455 & 5 & 19 & 0.9 & 0.8 \\
-Exp3-8                & 29 &  220 &  163 & 0 &  0 & 0.1 & 0.1 \\
-\textbf{Gen-Regexps}  & 41 & 1006 &  776 & 1 &  1 & 0.5 & 0.4 \\
-Integrate             & 39 & 2466 &  364 & 3 &  3 & 0.3 & 1.9 \\
-\textbf{Paraffins}    & 91 & 2627 & 1153 & 2 &  2 & 1.6 & 1.9 \\
-Primes                & 16 &  302 &  241 & 6 & 13 & 1.9 & 0.1 \\
-Queens                & 16 &  648 &  283 & 0 &  0 & 0.2 & 0.2 \\
-Rfib                  &  9 & 1918 &  100 & 0 &  0 & 0.1 & 1.7 \\
-Tak                   & 12 &  209 &  155 & 0 &  0 & 0.1 & 0.1 \\
-Wheel Sieve 1         & 37 & 1221 &  570 \\
-Wheel Sieve 2         & 45 & 1397 &  636 \\
-X2n1                  & 10 & 2637 &  331 & 2 &  5 & 2.5 & 1.9 \\
+\textbf{Bernoulli}     & 35 & 1616 &  652 & 5 & 11 & 4.1 & 0.8 \\
+\textbf{Digits of E1}  & 44 &  957 &  377 & 3 &  8 & 0.3 & 0.6 \\
+Digits of E2           & 54 & 1179 &  455 & 5 & 19 & 0.5 & 0.8 \\
+Exp3-8                 & 29 &  220 &  163 & 0 &  0 & 0.1 & 0.1 \\
+\textbf{Gen-Regexps}   & 41 & 1006 &  776 & 1 &  1 & 0.3 & 0.4 \\
+Integrate              & 39 & 2466 &  364 & 3 &  3 & 0.3 & 1.9 \\
+\textbf{Paraffins}     & 91 & 2627 & 1153 & 2 &  2 & 0.8 & 1.9 \\
+Primes                 & 16 &  302 &  241 & 6 & 13 & 0.2 & 0.1 \\
+Queens                 & 16 &  648 &  283 & 0 &  0 & 0.2 & 0.2 \\
+Rfib                   &  9 & 1918 &  100 & 0 &  0 & 0.1 & 1.7 \\
+Tak                    & 12 &  209 &  155 & 0 &  0 & 0.1 & 0.1 \\
+\textbf{Wheel Sieve 1} & 37 & 1221 &  570 & 7 & 10 & 7.5 & 0.9 \\
+\textbf{Wheel Sieve 2} & 45 & 1397 &  636 & 2 &  2 & 0.3 & 0.6 \\
+X2n1                   & 10 & 2637 &  331 & 2 &  5 & 1.8 & 1.9 \\
 \end{tabular}
 
 \begin{description}
@@ -1253,6 +1253,30 @@ While at first glance this pattern looks like a simple pattern match against |(:
 
 This example shows that a program written with no regard for pattern-match safety can be made safe using local fixes, without excessive code alterations.
 
+\paragraph{Wheel Sieve 1}
+
+The program Wheel Sieve 1 defines a data structure, and a function \C{sieve}:
+
+\begin{code}
+data Wheel = Wheel Int [Int]
+
+sieve :: [Wheel] -> [Int] -> [Int] -> [Int]
+\end{code}
+
+The invariant on all these types is that all the lists are infinite, and all the Int's are strictly positive numbers. Unfortunately the program is written in a manner that makes these invariants too complex for \catch{} to infer them all, but \catch{} can manage some.
+
+Two modifications are required to prove safety. A safe variant of \C{mod} is required which does not raise division by zero -- to allow for \catch{} failing to infer that all numbers are positive. A pattern in \C{notDivBy} has to be completed -- to allow for \catch{} failing to infer two particular lists are both infinite.
+
+Even with these two modifications, \catch{} has to perform a lot of computation to check the other possible pattern matches. This significant amount of computation results in a runtime just over 10 seconds, more than double the second most expensive computation.
+
+
+\paragraph{Wheel Sieve 2}
+
+The program Wheel Sieve 2 is based on Wheel Sieve 1, with the same data and invariants, but has much greater complexity. In this particular case \catch{} is able to prove very few of the necessary invariants -- so we resort to completing the patterns.
+
+By widening the domain of application to several functions -- replacing |tail| with |drop 1|, |head| with a version returning a default on the empty list, |mod| with a safe variant -- \catch{} is able to prove safety.
+
+
 \paragraph{Paraffins}
 
 The Paraffins program can only be validated by Catch after significant modification. There are two reasons:
@@ -1299,7 +1323,7 @@ There are two calls to \C{tail}, and one to \C{head}. They are mixed in a relati
 \subsection{The HsColour Program}
 \label{sec:hscolour}
 
-The disadvantage of working with artificial benchmarks is that they are not designed to be total. When it comes to a real program, with real users, a crash is a much more serious issue -- and eliminating them a desirable goal. We have taken the HsColour program and analysed it using \catch07. We have contributed patches back to the author of HsColour, with the result that the development version can be proved free from pattern match errors.
+The disadvantage of working with artificial benchmarks is that they are not designed to be total. When it comes to a real program, with real users, a crash is a much more serious issue -- and eliminating them a desirable goal. We have taken the HsColour program \footnote{http://www.cs.york.ac.uk/fp/darcs/hscolour/} and analysed it using \catch07. We have contributed patches back to the author of HsColour, with the result that the development version can be proved free from pattern match errors.
 
 HsColour is written in Haskell, being both a library and a program -- for the purposes of the checker we have focused on the program. HsColour comprises of 12 modules, 823 lines, is 4 years old and has had patches from 6 different people.
 
@@ -1318,9 +1342,9 @@ The entire process requires 2.1 seconds to run, and uses 2.7Mb of memory.
 \subsection{The System.FilePath library}
 \label{sec:filepath}
 
-The filepath library is a relatively new library which has been proposed for inclusion into the Haskell base libraries. It comprises 810 lines, of which 352 are non-blank and non-comment lines, and exports 51 functions in its interface.
+The System.FilePath library \footnote{http://www-users.cs.york.ac.uk/~ndm/projects/libraries.php} is a relatively new library which has been proposed for inclusion into the Haskell base libraries. It comprises 810 lines, of which 352 are non-blank and non-comment lines, and exports 51 functions in its interface.
 
-The initial challenge to checking a library is that there is no \C{main} function. \catch{} provides the |(||||||)| operate to remove this issue. A \C{main} function can be constructed as follows:
+The initial challenge to checking a library is that there is no \C{main} function. \catch{} provides the |(||||||)| operator to remove this issue. A \C{main} function can be constructed as follows:
 
 \begin{code}
 main = function1 ||| function2 ||| function3
@@ -1335,11 +1359,9 @@ f x  | isPosix    = dropTrailSlash $ normalise x
      | isWindows  = dropTrailSlash $ map toLower $ normalise x
 \end{code}
 
-Here \catch{} is unable to prove that this function is safe. By changing \C{isWindows} to \C{otherwise}, this code can be proven safe. The function is safe, but relies on the CAF \C{System.Info.os} being constant through the run of the program -- something \catch{} does not take account of.
+Here \catch{} is unable to prove that this function is safe. By changing \C{isWindows} to \C{otherwise}, this code can be proven safe. The function is safe, but relies on the CAF \C{System.Info.os} being a constant string through the run of the program -- something \catch{} does not take account of.
 
 With this single modification \catch{} requires 1.6 seconds and 1.6Mb of memory to prove all library functions are free from pattern match errors.
-
-The one unfortunate restriction when checking libraries is that all interfaces must be first order and have no outstanding context, which is often quite restrictive. We leave it as future work to extend the tool in this direction.
 
 \section{Related Work}
 \label{sec:related}
@@ -1348,9 +1370,10 @@ This paper follows very much the same spirit as \cite{me:catch_tfp} -- the goals
 
 \subsection{Proving Incomplete Patterns Safe}
 
-Despite the seriousness of the problem of pattern matching, the topic of pattern-match error detection and elimination has not been studied extensively. The other paper that covers this issue most directly is \citep{esc_haskell}, where ESC/Haskell is introduced. The ESC/Haskell approach requires the programmer to give explicit preconditions and contracts which the program obeys. This approach is intended to result in a checker with more expressive power -- one of the examples involves an invariant on an ordered list, something beyond Catch -- but it requires the programmer to spend more time doing the validation.
+Despite the seriousness of the problem of pattern matching, the topic of pattern-match error detection and elimination has not been studied extensively. The other paper that covers this issue most directly is \citep{esc_haskell}, where ESC/Haskell is introduced. The ESC/Haskell approach requires the programmer to give explicit preconditions and contracts which the program obeys. This approach is intended to result in a checker with more expressive power -- one of the examples involves an invariant on an ordered list, something beyond \catch{} -- but it requires the programmer to spend more time doing the validation. The preconditions and properties derived by \catch{} could be turned into ESC/Haskell annotations, allowing both tools to be used together.
 
-Preconditions and other properties derived by Catch could perhaps be turned into ESC/Haskell annotations, allowing both tools to be used together.
+The version of ESC/Haskell presented in the paper is only a prototype, there is currently no publicly available version. ESC/Haskell does not yet support full Haskell, lacks essential features such as type classes, and is has only examples of limited size -- the largest example given is 9 lines long, and none require additional library functions. We hope that a future version of ESC/Haskell will address these limitations, and allow a fuller comparison to \catch{} to be made.
+
 
 \subsection{Eliminating Incomplete Patterns}
 
