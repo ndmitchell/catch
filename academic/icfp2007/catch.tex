@@ -1200,8 +1200,6 @@ Three programs have preconditions on the \C{main} function, all of which state t
 
 We now discuss the four programs which required changes, along with the Digits of E2 program -- a program with complex pattern matching that \catch{} is able to prove safe.
 
-\todo{here}
-
 \paragraph{Bernoulli}
 
 This program has one instance of |tail (tail x)|, which is beyond the capabilities of \catch{}. Consider the example program and generated condition:
@@ -1323,7 +1321,7 @@ There are two calls to \C{tail}, and one to \C{head}. They are mixed in a relati
 \subsection{The HsColour Program}
 \label{sec:hscolour}
 
-The disadvantage of working with artificial benchmarks is that they are not designed to be total. When it comes to a real program, with real users, a crash is a much more serious issue -- and eliminating them a desirable goal. We have taken the HsColour program \footnote{http://www.cs.york.ac.uk/fp/darcs/hscolour/} and analysed it using \catch07. We have contributed patches back to the author of HsColour, with the result that the development version can be proved free from pattern match errors.
+The disadvantage of working with artificial benchmarks is that they are not designed to be total. When it comes to a real program, with real users, a crash is a much more serious issue -- and eliminating them a desirable goal. We have taken the HsColour program\footnote{http://www.cs.york.ac.uk/fp/darcs/hscolour/} and analysed it using \catch07. We have contributed patches back to the author of HsColour, with the result that the development version can be proved free from pattern match errors.
 
 HsColour is written in Haskell, being both a library and a program -- for the purposes of the checker we have focused on the program. HsColour comprises of 12 modules, 823 lines, is 4 years old and has had patches from 6 different people.
 
@@ -1342,7 +1340,7 @@ The entire process requires 2.1 seconds to run, and uses 2.7Mb of memory.
 \subsection{The System.FilePath library}
 \label{sec:filepath}
 
-The System.FilePath library \footnote{http://www-users.cs.york.ac.uk/~ndm/projects/libraries.php} is a relatively new library which has been proposed for inclusion into the Haskell base libraries. It comprises 810 lines, of which 352 are non-blank and non-comment lines, and exports 51 functions in its interface.
+The System.FilePath library\footnote{http://www-users.cs.york.ac.uk/$\sim$ndm/projects/libraries.php} is a relatively new library which has been proposed for inclusion into the Haskell base libraries. It comprises 810 lines, of which 352 are non-blank and non-comment lines, and exports 51 functions in its interface.
 
 The initial challenge to checking a library is that there is no \C{main} function. \catch{} provides the |(||||||)| operator to remove this issue. A \C{main} function can be constructed as follows:
 
