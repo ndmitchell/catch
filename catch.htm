@@ -64,7 +64,7 @@ h3 {
 <ol>
     <li>Obtaining and Installing Catch</li>
     <li>A Walkthrough of Risers</li>
-    <li>Preparing Your Code</li>
+    <li>Running Your Example</li>
     <li>Reading Constraints</li>
     <li>Flag Reference</li>
     <li>Limitations</li>
@@ -79,6 +79,8 @@ h3 {
 
 <h2>Obtaining and Installing Catch</h2>
 
+<p>
+	Users at York University who use <tt>/grp/haskell</tt> have Catch already installed. This section is for everyone else. Catch is not yet polished for easy installation, but with a little effort can be installed.
 <p>
     Catch has Yhc as a dependency, so before installing Catch you must first install Yhc. See <a href="http://haskell.org/haskellwiki/Yhc">this page</a> for details of installation. Once you have installed Yhc, add it to your search path so that the <tt>yhc</tt> command is available and can compile files.
 </p>
@@ -97,9 +99,126 @@ darcs get --partial <a href="http://www.cs.york.ac.uk/fp/darcs/catch">http://www
 
 <h2>A Walkthrough of Risers</h2>
 
+<p>
+	This section describes how to run the example Risers program.
+</p>
+<p>
+	Open the command line and type:
+</p>
+<pre>
+catch Risers
+</pre>
+<p>
+	Note that it goes through various stages, and comes to the answer at the end
+</p>
+<pre>
+Answer: _
+</pre>
 
-<h2>Preparing Your Code</h2>
+
+<h2>Running Your Example</h2>
+
+<p>
+	This is intended to be a basic overview of the recommended best practice for trying a new example with Catch.
+</p>
+<p>
+	First find your code, something under 500 lines is probably best - start small (10 lines) and work your way up. Remember that even a 2 line program may pull in 1000's of lines of libraries, so do not think of program size as an absolute.
+</p>
+<p>
+	To prepare your code for analysis, make sure there is a <tt>main</tt> function. If the main function is a standard one (i.e. :: IO ()) then any module name will do. If you want to make any function the root of Catch checking, name it as <tt>main</tt> and change the module name to something other than Main - so Haskell does not attempt to make it <tt>Main.main</tt>.
+</p>
+<p>
+	Next check that Yhc is able to compiler your code, if it cannot then fix either the code or Yhc until you have success.
+</p>
+<p>
+	Now check the program by typing <tt>catch <i>testname</i> -partial -errors</tt>. The flags are discussed later, but these two give useful help. To take a program such as <a href="http://www.cs.york.ac.uk/fp/darcs/hscolour/">HsColour</a>, we would get:
+</p>
+<pre>
+Checking: PreludeList.foldr1: empty list
+Partial: "Prelude.fold$30"
+Answer: _
+Checking: PreludeList.head: empty list
+Partial: "Prelude.head"
+Partial: "Main.Main.Prelude.311.useDefault$24.1"
+Partial: "Main.Main.Prelude.311.useDefault$93.1"
+Answer: _
+Checking: PreludeList.tail: empty list
+Partial: "Prelude.tail"
+Answer: _
+Checking whole program
+Answer: _
+</pre>
+<p>
+	Each "Checking" output corresponds to the error message the user would see at runtime if this pattern was invoked. For example, the first would give an error message about foldr1 being on an empty list - which clearly shows where the problem is. Functions often have specialised variants generated, Prelude.fold$30 is one of these - which comes from foldr originally.
+</p>
+<p>
+	The "Partial" list are all the functions which have a precondition from the given pattern match error, the second pattern most clearly illustates this. Here the function <tt>head</tt> has transmitted a precondition to <tt>useDefault</tt>, which is defined in module <tt>Main</tt>. The precondition extends no further than this though, so will never occur in practice.
+</p>
+<p>
+	We can examine the <tt>useDefault</tt> function more closely, we can find its original definition in HsColour:
+</p>
+<pre>
+useDefault d f list | null list = d
+                    | otherwise = f (head list)
+</pre>
+<p>
+	And if we turn on the <tt>-text</tt> flag to Catch, we can take a look at <tt>ycr/HsColour.shortctors.txt</tt>, which gives the functions relating to <tt>useDefault</tt> just before analysis. Another option is to look at the <tt>letelim</tt> file, which is a close match to the original code:
+</p>
+<pre>
+Main.Main.Prelude.311.useDefault$24 v1 v4 =
+    Main.Main.Prelude.311.useDefault$24.1 (Prelude.null v4) v1 v4
+
+Main.Main.Prelude.311.useDefault$24.1 v2 v1 v4 =
+    case v2 of
+        Prelude.True -> v1
+        Prelude.False -> Prelude.head v4
+
+Main.Main.Prelude.311.useDefault$93 v1 v2 v8 v9 v10 =
+    Main.Main.Prelude.311.useDefault$93.1
+      (Prelude.null v1)
+      v10
+      v2
+      v8
+      v9
+      v1
+
+Main.Main.Prelude.311.useDefault$93.1 v3 v10 v2 v8 v9 v1 =
+    case v3 of
+        Prelude.True -> Main.Main.Prelude.307.ttyInteract$94 v2 v8 v9 v10
+        Prelude.False ->
+            Main.Main.Prelude.306.fileInteract$262
+              (Prelude.head v1)
+              v2
+              v8
+              v9
+              v10
+</pre>
+<p>
+	Both versions have been specialised, with functional arguments frozen in - <tt>id</tt> for <tt>useDefault$24</tt> and <tt>fileInteract</tt> for <tt>useDefault$93</tt>. Focusing on the simpler of these two (<tt>$24</tt>), we can see that <tt>useDefault$24.1</tt> is potentially unsafe, as Catch told us. We can also see that its call is safe, as Catch also said.
+</p>
+<p>
+	When tracking down an error, I typically look at the partial list, find the first function in that list that should not be there, and go there to find where the error is likely to be.
+</p>
+
+
 <h2>Reading Constraints</h2>
+
+<p>
+	Here are some sample constraints, and their meanings. This section could probably do with being expanded.
+</p>
+<ul>
+	<li><b>_</b> Anything is safe.</li>
+	<li><b>0</b> Nothing is safe.</li>
+	<li><b>{True}</b> Must be the constructor True.</li>
+	<li><b>{[]}</b> Must be the constructor [].</li>
+	<li><b>{Just {True}} | {Nothing}</b> Must be Just True or Nothing.</li>
+	<li><b>{#2 _ {True}}</b> The function takes 2 arguments, the second must be True.</li>
+	<li><b>{: _ * _}</b> Must be the constructor (:). The first _ is the restriction on the head, the * is merely a separator, and the second _ is the restriction on all tails.</li>
+	<li><b>_{: {True} * {: {True} | []}} | []</b> Must be a list of any size, with True for all elements.</li>
+</ul>
+<p>
+	Catch could probably do with writing its constraints in some human friendly way - although quite what form this would take is still unclear. Counter example generation is likely to be useful, and is on the todo list.
+</p>
 
 
 <h2>Command Line Reference</h2>
