@@ -137,16 +137,24 @@ Answer: _
 	Now check the program by typing <tt>catch <i>testname</i> -partial -errors</tt>. The flags are discussed later, but these two give useful help. To take a program such as <a href="http://www.cs.york.ac.uk/fp/darcs/hscolour/">HsColour</a>, we would get:
 </p>
 <pre>
-Checking: PreludeList.foldr1: empty list
+Checking [1/4]: Language.Haskell.HsColour.Classify: Pattern match failure in fun
+ction at 49:1-56:26.
+Partial: "Language.Haskell.HsColour.Classify.nestcomment.4"
+Partial: "Language.Haskell.HsColour.Classify.nestcomment"
+Partial: "Language.Haskell.HsColour.Classify.nestcomment.5"
+Answer: _
+Checking [2/4]: PreludeList.foldr1: empty list
 Partial: "Prelude.fold$30"
 Answer: _
-Checking: PreludeList.head: empty list
+Checking [3/4]: PreludeList.head: empty list
 Partial: "Prelude.head"
-Partial: "Main.Main.Prelude.311.useDefault$24.1"
-Partial: "Main.Main.Prelude.311.useDefault$93.1"
+Partial: "Language.Haskell.HsColour.Classify.chunk.6"
+Partial: "Main.Main.Prelude.312.useDefault$24.1"
+Partial: "Main.Main.Prelude.312.useDefault$93.1"
 Answer: _
-Checking: PreludeList.tail: empty list
+Checking [4/4]: PreludeList.tail: empty list
 Partial: "Prelude.tail"
+Partial: "Language.Haskell.HsColour.Classify.chunk.6"
 Answer: _
 Checking whole program
 Answer: _
