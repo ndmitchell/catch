@@ -1019,9 +1019,9 @@ adds x n = map_adds n x
 
 Specialisation is sufficient for many examples, but it cannot cope with point-free code, and does not deal with many forms of dictionaries.
 
-\subsection{Specialisation with Inlining}
+\subsubsection{Specialisation with Inlining}
 
-The power of specialisation is greatly increased if it is combined with inlining, and restricted to only target higher-order functions. Although this technique is not complete, in practice we have yet to encounter an example where it fails, excluding nonsense examples created specifically to break this approach.
+The power of specialisation is greatly increased if it is combined with inlining, and applied selectively to higher-order functions. Although this technique is not complete, we have yet to encounter an example where it fails, apart from artificial tests which we created specifically to break the approach!
 
 \begin{figure}
 \begin{code}
@@ -1036,7 +1036,7 @@ Apply (Part n fn xs) ys == Part (n - length ys) fn (xs ++ ys)
 \label{fig:core_ho}
 \end{figure}
 
-In order to permit a higher-order program to be represented, the Core language is augmented with additional constructs, as shown in Figure \ref{fig:core_ho}, along with two identities. The \C{Apply} constructor represents an unsaturated function call, or a variable to be used as the function. The \C{Part} constructor is used to represent unsaturated function calls, leaving the normal \C{Call} constructor to represent saturated calls. A \C{Part} construction records how many arguments are needed.
+In order to permit a higher-order program to be represented, the Core language is augmented with additional constructs, as shown in Figure \ref{fig:core_ho}. The \C{Apply} constructor represents an unsaturated function call, or a variable to be used as the function. The \C{Part} constructor is used to represent unsaturated function calls, leaving the normal \C{Call} constructor to represent saturated calls. A \C{Part} construction records how many arguments are needed.
 
 \begin{figure}
 \begin{code}
@@ -1050,39 +1050,35 @@ isHO _               = False
 \label{fig:isHO}
 \end{figure}
 
-The algorithm for removing higher-order functions has two components, specialisation and inlining. The algorithm applies the specialise rule until a fixed point is reached, then applies the inline rule once. The algorithm repeats these two steps until a fixed point is reached. Given an appropriate \C{fix} function, \C{firstify} can be implemented as:
+The algorithm for removing higher-order functions has two components, specialisation and inlining. We apply the specialise rule until a fixed point is reached, then apply the inline rule once. We repeat these two steps until a fixed point is reached. Given an appropriate \C{fix} function, \C{firstify} can be implemented as:
 
 \begin{code}
 firstify :: Program -> Program
 firstify = fix (inline . fix specialise)
 \end{code}
 
-\begin{description}
-\item[The \C{inline}] stage of the algorithm is simple. Each function call is inlined if the body of the called function passes the \C{isHO} test, defined in Figure \ref{fig:isHO}. If this process causes a function to no longer be called from the root of the program, then the function is removed after inlining.
+\para{The \C{inline}} stage is simple. Each function call is inlined if the body of the called function passes the \C{isHO} test, defined in Figure \ref{fig:isHO}. If this process causes a function to no longer be called from the root of the program, then the function is removed after inlining.
 
-\item[The \C{specialise}] stage of the algorithm takes every expression of the form |Call fn xs| where |any isHO xs|, and generates a specialised version of the function |fn| where all the function arguments in |xs| are frozen in, and all the others are passed normally.
+\para{The \C{specialise}} stage takes every expression of the form |Call fn xs| where |any isHO xs|, and generates a specialised version of the function |fn| with all functional arguments in |xs| frozen in, and all others passed normally. Assuming that a function |fn| results in the specialised version |fn2|, then the translation would be:
 
-    Assuming that a function |fn| results in the specialised version |fn2|, then the translation would be:
+\begin{code}
+transform (Call fn xs) | any isHO xs =
+    Call fn2 (concatMap f xs)
+    where
+    fn2 = generate fn xs
 
-    \begin{code}
-    transform (Call fn xs) | any isHO xs =
-        Call fn' (concatMap f xs)
-        where
-        fn' = generate fn xs
+    f x = if isHO x then freeVars x else [x]
+\end{code}
 
-        f x = if isHO x then freeVars x else [x]
-    \end{code}
-\end{description}
-
-This technique is powerful, and has cases to remove most functional arguments. Either the entire body is an application of the functional argument (in which case it will be inlined), or it must occur as the argument to a function (in which case it is specialised). There are only two places left for functional arguments to be used:
+The combination of specialisation and inlining is power, and removes most functional arguments. Either the entire body is an application of the functional argument (in which case it will be inlined), or it must occur as the argument to a function (in which case it is specialised). There are only two places left for functional arguments to be used:
 
 \begin{enumerate}
-\item As the subject of a |case| expression. This situation is not possible due to static typing -- all |case| expressions must choose over a data value.
+\item As the subject of a |case| expression. But this situation is impossible as all |case| expressions must choose over a data value.
 
-\item Inside an \C{Apply} with another argument variable as the function. This situation does not happen if all other functional arguments have been removed -- and is rare.
+\item Inside an \C{Apply} with another functional argument variable as the function. This situation is very rare in practice.
 \end{enumerate}
 
-It is possible to construct a program with an infinite number of specialisations:
+If functions are placed in a recursive data structure, and an accumulating function operates over them a program may have an infinite number of specialisations. For example:
 
 \begin{code}
 data Wrap alpha = Wrap (Wrap alpha) | Value alpha
@@ -1092,7 +1088,7 @@ main = f head
 f x = f (Wrap x)
 \end{code}
 
-This pattern requires functions to be placed in a recursive data structure, and an accumulating function to operate over them. In reality, functions are rarely placed in any data structure other than a tuple. This situation can be detected, and a fallback to Reynold's style defunctionalization is possible.
+In reality, functions are rarely placed in any data structure other than a tuple. But if necessary we revert to Reynold's style defunctionalization.
 
 \section{Results and Evaluation}
 \label{sec:results}
