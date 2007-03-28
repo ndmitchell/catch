@@ -104,6 +104,7 @@ global_Data'__CharNumeric'_readHex x y = anyEval1 y
 global_Data'__CharNumeric'_readDec x y = anyEval1 y
 global_Data'__CharNumeric'_digitToInt x = anyEval2 x (error "Numeric.digitToInt is not able to be proven")
 
+global_Prelude'_Prelude'_Eq'_Prelude'_Char'_'eq'eq x y = anyEval2 x y
 
 ---------------------------------------------------------------------
 -- Data.Array
