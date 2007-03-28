@@ -1128,38 +1128,42 @@ For programs which were not design with pattern match safety in mind (see Gen-Re
 The whole Nofib benchmark \citep{nofib} is too large to present results for, so instead the `Imaginary' section has been chosen as our primary focus. These programs are all under a page of text (excluding any Prelude or library definitions used), and particularly stress list operations and numeric computations. All the benchmark code is available online\footnote{\texttt{http://darcs.haskell.org/nofib/imaginary/}, as of March 2007}.
 
 \begin{table}
-\begin{tabular}{lrrrrrrlll}
-Program               & Src & Core & First & \C{error} & Pre & sec & Mb \\
+\caption{Table of results}
+\label{tab:results}
+
+\smallskip
+
+\textbf{Src} is the number of lines in the original source code.
+\textbf{Core} is the total number of lines of Yhc Core, including all functions used from libraries, when pretty printed.
+\textbf{First} is the number of lines after firstification, just before analysis.
+\textbf{Err} is the number of calls to \C{error}.
+\textbf{Pre} is the number of functions which have a precondition which is not True.
+\textbf{Sec} is the time in seconds taken for transformations and analysis, excluding the standard Yhc compilation time. No great effort has been put into the optimisation of the analysis code.
+\textbf{Mb} is the maximum residency of the program at garbage collection time, in Mb. Typically a program will consume twice this size in system memory.
+
+\smallskip
+
+\begin{tabular*}{\linewidth}{lrrrrrrlll}
+Program               & Src & Core & First & Err & Pre & Sec & Mb \\
 \vspace{-2.2ex} \\
 \hline
 \vspace{-1.8ex} \\
-\textbf{Bernoulli}     & 35 & 1616 &  652 & 5 & 11 & 4.1 & 0.8 \\
-\textbf{Digits of E1}  & 44 &  957 &  377 & 3 &  8 & 0.3 & 0.6 \\
-Digits of E2           & 54 & 1179 &  455 & 5 & 19 & 0.5 & 0.8 \\
-Exp3-8                 & 29 &  220 &  163 & 0 &  0 & 0.1 & 0.1 \\
-\textbf{Gen-Regexps}   & 41 & 1006 &  776 & 1 &  1 & 0.3 & 0.4 \\
-Integrate              & 39 & 2466 &  364 & 3 &  3 & 0.3 & 1.9 \\
-\textbf{Paraffins}     & 91 & 2627 & 1153 & 2 &  2 & 0.8 & 1.9 \\
-Primes                 & 16 &  302 &  241 & 6 & 13 & 0.2 & 0.1 \\
-Queens                 & 16 &  648 &  283 & 0 &  0 & 0.2 & 0.2 \\
-Rfib                   &  9 & 1918 &  100 & 0 &  0 & 0.1 & 1.7 \\
-Tak                    & 12 &  209 &  155 & 0 &  0 & 0.1 & 0.1 \\
-\textbf{Wheel Sieve 1} & 37 & 1221 &  570 & 7 & 10 & 7.5 & 0.9 \\
-\textbf{Wheel Sieve 2} & 45 & 1397 &  636 & 2 &  2 & 0.3 & 0.6 \\
-X2n1                   & 10 & 2637 &  331 & 2 &  5 & 1.8 & 1.9 \\
-\end{tabular}
-
-\begin{description}
-\item[Src] is the number of lines in the original source code.
-\item[Core] is the total number of lines of Yhc Core, including all functions used from libraries, when pretty printed.
-\item[First] is the number of lines after firstification, just before analysis.
-\item[\C{error}] is the number of calls to error.
-\item[Pre] is the number of functions which have a precondition which is not True.
-\item[Sec] is the time in seconds taken for transformations and analysis, excluding the standard Yhc compilation time. No great effort has been put into the optimisation of the analysis code.
-\item[Mb] is the maximum residency of the program at garbage collection time, in Mb. Typically a program will consume twice this size in system memory.
-\end{description}
-\caption{Table of results}
-\label{tab:results}
+Bernoulli*                   & 35 & 1616 &  652 & 5 & 11 & 4.1 & 0.8 \\
+Digits of E1*  \hspace{-3mm} & 44 &  957 &  377 & 3 &  8 & 0.3 & 0.6 \\
+Digits of E2   \hspace{-3mm} & 54 & 1179 &  455 & 5 & 19 & 0.5 & 0.8 \\
+Exp3-8                       & 29 &  220 &  163 & 0 &  0 & 0.1 & 0.1 \\
+Gen-Regexps*   \hspace{-3mm} & 41 & 1006 &  776 & 1 &  1 & 0.3 & 0.4 \\
+Integrate                    & 39 & 2466 &  364 & 3 &  3 & 0.3 & 1.9 \\
+Paraffins*                   & 91 & 2627 & 1153 & 2 &  2 & 0.8 & 1.9 \\
+Primes                       & 16 &  302 &  241 & 6 & 13 & 0.2 & 0.1 \\
+Queens                       & 16 &  648 &  283 & 0 &  0 & 0.2 & 0.2 \\
+Rfib                         &  9 & 1918 &  100 & 0 &  0 & 0.1 & 1.7 \\
+Tak                          & 12 &  209 &  155 & 0 &  0 & 0.1 & 0.1 \\
+Wheel Sieve 1* \hspace{-3mm} & 37 & 1221 &  570 & 7 & 10 & 7.5 & 0.9 \\
+Wheel Sieve 2* \hspace{-3mm} & 45 & 1397 &  636 & 2 &  2 & 0.3 & 0.6 \\
+X2n1                         & 10 & 2637 &  331 & 2 &  5 & 1.8 & 1.9 \\
+\hline
+\end{tabular*}
 \end{table}
 
 Results are given in Table \ref{tab:results}. Where changes were required, the name of the program is in bold, and will be discussed separately. \catch{} produces a log containing the entire program in Core form before analysis begins, including the effect of abstraction and firstification, a list of all the properties calculated and the preconditions on every function -- this information gives the other statistics.
