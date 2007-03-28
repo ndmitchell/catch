@@ -88,16 +88,16 @@
 \begin{abstract}
 A Haskell program may fail at runtime with a pattern-match error if the program has any incomplete (non-exhaustive) patterns in definitions or case alternatives. This paper describes a static checker that allows non-exhaustive patterns to exist, yet can verify that a pattern-match error does not occur. We describe a constraint language that can be used to express requirements for safe pattern matches, along with mechanisms to propagate and reason about these constraints between program components.
 
-The checker we develop using these methods obtains minimal preconditions for 10 out of 14 programs in the Imaginary section of the Nofib suite\citep{nofib}. With minor modifications a further 3 are proven safe. We also check two larger example programs with success, finding several previously unknown errors.
+The checker we develop using these methods obtains minimal preconditions for 8 out of 14 programs in the Imaginary section of the Nofib suite\citep{nofib}. With minor modifications a further 5 are proven safe. We also check two larger example programs with success, finding several previously unknown errors.
 \end{abstract}
 
-% \category{CR-number}{subcategory}{third-level}
+\category{D.3}{Software}{Programming Languages}
 
-% \terms
-% term1, term2
+\terms
+languages, verification
 
-% \keywords
-% keyword1, keyword2
+\keywords
+automatic verification, functional programming, pattern-match errors, preconditions
 
 \section{Introduction}
 \label{sec:introduction}
@@ -161,7 +161,7 @@ This section sketches the process of checking that the \C{risers} function in th
 \subsection{Conversion to a Core Language}
 
 Rather than analyse full Haskell, \catch{} analyses a first-order Core language, without lambda expressions, partial application or let bindings. A convertor is provided from the full Haskell 98 language to this restricted language. Full details are provided in \S\ref{sec:transform}. After converting the \C{risers} program to Core Haskell, and renaming the identifiers for ease of human reading, the resulting Core is as shown in Figure \ref{fig:risers_core}.
- 
+
 The type of \C{risers} is polymorphic over types in |Ord|. \catch{} could check \C{risers} assuming that |Ord| methods do not raise pattern match errors, and may return any value. A type instance such as |Int| can be specified with a type signature.
 
 \begin{figure}
