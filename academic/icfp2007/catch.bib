@@ -60,11 +60,11 @@
 % References to tools or programs
 % All of which I would know by name
 
-@inproceedings{ghc,
-    title =         "{T}he {G}lasgow {H}askell {C}ompiler: {A} {T}echnical {O}verview",
-    author =        "S L {Peyton Jones} and C V Hall and K Hammond and W Partain and P Wadler",
-    year =          "1993",
-    booktitle =     "Proc. UK Joint Framework for Information Technology (JFIT) Technical Conference",
+@unpublished{ghc,
+    title =         "The {GHC} Compiler, Version 6.6",
+    author =        "The GHC Team",
+    year =          "2006",
+    month =         oct,
     note =          "\url{http://www.haskell.org/ghc/}",
 }
 
@@ -73,7 +73,7 @@
     author =        "Andrew Tolmach",
     year =          "2001",
     month =         sep,
-    howpublished =  "\url{http://www.haskell/org/ghc/documentation.html}",
+    note  =          "\url{http://www.haskell.org/ghc/docs/papers/core.ps.gz}",
 }
 
 @misc{ghc_manual,
@@ -116,12 +116,17 @@
     publisher =     "ACM Press",
 }
 
-@manual{epigram,
-    title =         "{E}pigram: {P}ractical {P}rogramming with {D}ependent {T}ypes",
-    author =        "Conor McBride",
-    year =          "2005",
-    month =         apr,
+@article{epigram,
+    author =        "Conor McBride and James McKinna",
+    title =         "The view from the left",
+    journal =       "Journal of Functional Programming",
+    volume =        "14",
+    number =        "1",
+    year =          "2004",
+    pages =         "69--111",
+    _doi =          "http://dx.doi.org/10.1017/S0956796803004829",
 }
+
 
 @inproceedings{cayenne,
     author =        "Lennart Augustsson",
@@ -135,8 +140,6 @@
     publisher =     "ACM Press",
 }
 
-
-
 @inproceedings{quickcheck,
     title =         "{Q}uick{C}heck: {A} {L}ightweight {T}ool for {R}andom {T}esting of {H}askell {P}rograms",
     author =        "Koen Claessen and John Hughes",
@@ -146,14 +149,11 @@
     publisher =     "{ACM} Press",
 }
 
-@inproceedings{nofib,
+@misc{nofib,
     title =         "{T}he \texttt{nofib} {B}enchmark {S}uite of {H}askell {P}rograms",
     author =        "Will Partain",
-    year =          "1992",
-    booktitle =     "Functional Programming, Glasgow 1992",
-    pages =         "195--202",
-    publisher =     "Springer-Verlag Workshops in Computing",
-    editor =        "J Launchbury and PM Sansom",
+    year =          "2007",
+    howpublished =  "\url{http://darcs.haskell.org/nofib/}"m
 }
 
 @inproceedings{esc_haskell,
@@ -192,7 +192,7 @@
 @article{omega,
     author =        "Tim Sheard",
     title =         "Languages of the future",
-    journal =       "SIGPLAN Not.",
+    journal =       "ACM Conference on Object Orientated Programming Systems, Languages and Applications (OOPSLA'04)",
     volume =        "39",
     number =        "12",
     year =          "2004",
@@ -261,17 +261,16 @@
 
 @article{spj:gadt,
     author =        "Simon {Peyton Jones} and Dimitrios Vytiniotis and Stephanie Weirich and Geoffrey Washburn",
-    title =         "Simple unification-based type inference for GADTs",
-    journal =       "SIGPLAN Not.",
-    volume =        "41",
-    number =        "9",
+    title =         "Simple unification-based type inference for {GADT}s",
+    journal =       "ICFP '06: Proceedings of the eleventh ACM SIGPLAN international conference on Functional Programming",
     year =          "2006",
-    _issn =         "0362-1340",
+    _isbn =         "1595933093",
     pages =         "50--61",
     _doi =          "http://doi.acm.org/10.1145/1160074.1159811",
     publisher =     "ACM Press",
     address =       "New York, NY, USA",
 }
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -289,15 +288,15 @@
 }
 
 @inproceedings{me:catch_tfp,
-	author = 		"Neil Mitchell and Colin Runciman",
-	title = 		"A Static Checker for Safe Pattern Matching in {H}askell",
-	booktitle = 	"Trends in Functional Programming",
-	editor = 		"Marko van Eekelen",
-	volume = 		"6",
-	publisher = 	"Intellect",
-	isbn = 			"9781841501765",
-	pages = 		"15--30",
-	year = 			"2007",
+    author =        "Neil Mitchell and Colin Runciman",
+    title =         "A Static Checker for Safe Pattern Matching in {H}askell",
+    booktitle =     "Trends in Functional Programming",
+    editor =        "Marko van Eekelen",
+    volume =        "6",
+    publisher =     "Intellect",
+    isbn =          "9781841501765",
+    pages =         "15--30",
+    year =          "2007",
 }
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -319,14 +318,15 @@
 }
 
 @inproceedings{jones:dictionary_free,
-  author =          "Mark P. Jones",
-  title =           "{D}ictionary-free {O}verloading by {P}artial {E}valuation",
-  booktitle =       "ACM SIGPLAN Workshop on Partial Evaluation and Semantics-Based Program Manipulation",
-  year =            "1994",
-  month =           jun,
-  location =        "Orlando, Florida, United States",
-  publisher =       "ACM Press",
-  comment =         "How to remove dictionaries by partial evaluation/specialisation"
+    author =        "Mark P. Jones",
+    title =         "{D}ictionary-free {O}verloading by {P}artial {E}valuation",
+    booktitle =     "ACM SIGPLAN Workshop on Partial Evaluation and Semantics-Based Program Manipulation",
+    year =          "1994",
+    month =         jun,
+    location =      "Orlando, Florida, United States",
+    publisher =     "ACM Press",
+    pages =         "107--117",
+    comment =       "How to remove dictionaries by partial evaluation/specialisation"
 }
 
 @unpublished{maranget:pattern_warnings,
@@ -394,6 +394,23 @@
     year =          "1987",
 }
 
+@inproceedings{spj:ghc_overview,
+    title =         "{T}he {G}lasgow {H}askell {C}ompiler: {A} {T}echnical {O}verview",
+    author =        "S L {Peyton Jones} and C V Hall and K Hammond and W Partain and P Wadler",
+    year =          "1993",
+    booktitle =     "Proc. UK Joint Framework for Information Technology (JFIT) Technical Conference",
+    note =          "\url{http://www.haskell.org/ghc/}",
+}
+
+@inproceedings{partain:nofib,
+    title =         "{T}he \texttt{nofib} {B}enchmark {S}uite of {H}askell {P}rograms",
+    author =        "Will Partain",
+    year =          "1992",
+    booktitle =     "Functional Programming, Glasgow 1992",
+    pages =         "195--202",
+    publisher =     "Springer-Verlag Workshops in Computing",
+    editor =        "J Launchbury and PM Sansom",
+}
 
 
 

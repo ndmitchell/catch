@@ -86,9 +86,11 @@
 \maketitle
 
 \begin{abstract}
+\begin{discuss}
 A Haskell program may fail at runtime with a pattern-match error if the program has any incomplete (non-exhaustive) patterns in definitions or case alternatives. This paper describes a static checker that allows non-exhaustive patterns to exist, yet can verify that a pattern-match error does not occur. We describe a constraint language that can be used to express requirements for safe pattern matches, along with mechanisms to propagate and reason about these constraints between program components.
 
 The checker we develop using these methods obtains minimal preconditions for 8 out of 14 programs in the Imaginary section of the Nofib suite\citep{nofib}. With minor modifications a further 5 are proven safe. We also check two larger example programs with success, finding several previously unknown errors.
+\end{discuss}
 \end{abstract}
 
 \category{D.3}{Software}{Programming Languages}
@@ -1352,7 +1354,7 @@ At the time of writing there is no publicly available version of ESC/Haskell. So
 
 \subsection{Eliminating Incomplete Patterns}
 
-One way to guarantee that a program does not crash with an incomplete pattern is to ensure that all pattern matching is exhaustive. The GHC compiler \citep{ghc} has an option flag to warn of any incomplete patterns. Unfortunately the Bugs (12.2.1) section of the manual notes that the checks are sometimes wrong, particularly with string patterns or guards, and that this part of the compiler ``needs an overhaul really'' \citep{ghc_manual}. Also the GHC checks are only local. Using an incomplete function from a library, such as \C{head}, gives no warning. If the function \C{head} is defined, then it raises a warning.
+One way to guarantee that a program does not crash with an incomplete pattern is to ensure that all pattern matching is exhaustive. The GHC compiler \citep{ghc} has an option flag to warn of any incomplete patterns. Unfortunately the Bugs (12.2.1) section of the manual notes that the checks are sometimes wrong, particularly with string patterns or guards, and that this part of the compiler ``needs an overhaul really'' \citep{ghc}. Also the GHC checks are only local. Using an incomplete function from a library, such as \C{head}, gives no warning. If the function \C{head} is defined, then it raises a warning.
 
 A more radical approach is to design a \textit{total} functional language without pattern-match errors (or non-termination) \citep{turner:total}. Incomplete pattern matches are banned. But as we have seen in \S\ref{sec:imaginary}, Haskell programs have a reasonably high number of incomplete pattern matches, but may still be safe.
 
