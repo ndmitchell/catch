@@ -1093,7 +1093,25 @@ In reality, functions are rarely placed in any data structure other than a tuple
 \section{Results and Evaluation}
 \label{sec:results}
 
-The best way to see the power of Catch is by example. \S\ref{sec:safety} discusses some of the general issues when modifying programs to obtain provable safety. \S\ref{sec:imaginary} investigates all the examples from the Imaginary section of Nofib, \S\ref{sec:hscolour} investigates one larger real-world program (HsColour), and \S\ref{sec:filepath} investigates a library (System.FilePath).
+The best way to see the power of Catch is by example. \S\ref{sec:safety} discusses in general how some programs may need to be modified to obtain provable safety. \S\ref{sec:imaginary} investigates all the examples from the Imaginary section of Nofib, \S\ref{sec:filepath} investigates a library (System.FilePath) and \S\ref{sec:hscolour} investigates a larger real-world program (HsColour).
+
+Take a typical benchmark, Primes. The \C{main} function is:
+
+\begin{code}
+main = do  [arg] <- getArgs
+           print $ primes !! (read arg)
+\end{code} % $
+
+The first unsafe pattern here is |[arg] <- getArgs|, as \C{getArgs} is a primitive which may return any value. Given this expression, \catch{} will return False as the precondition to \C{main}.
+
+The next step that may fail is when \C{read} is applied to an argument extracted from getArgs. This argument is entirely unknown, and \C{read} is a sufficiently complicated function that although it can be modelled by Catch, there is no possibility for getting an appropriate abstraction which models the failure case. As a result, any program which calls \C{read} is unsafe, according to \catch{}! Using \C{reads}, which indicates failure properly, a program may still be checked  successfully.
+
+As a result the programs have been rewritten, and \catch{} is directed to check the function:
+
+\begin{code}
+compute x = print $ primes !! x
+\end{code}
+
 
 \subsection{The Price of Safety}
 \label{sec:safety}
@@ -1104,28 +1122,32 @@ Take the following example:
 average xs = sum xs / length xs
 \end{code}
 
-If |xs| is |[]| then a division by zero occurs. In \catch{}, division by zero is modelled as a pattern-match error. One small local change could be made which would remove this pattern match error:
+If |xs| is |[]| then a division by zero occurs, modelled in  In \catch{} as a pattern-match error. One small local change could be made which would remove this pattern match error:
 
 \begin{code}
 average xs = if null xs then 0 else sum xs / length xs
 \end{code}
 
-In this modified version, if |x| is |[]|, then the program will simply return 0, and no pattern match error will occur. While this program is now safe, this safety has come at a cost -- the code no longer behaves as it did before -- replacing $\bot{}$ with the non-sensical value 0.
+Now if |xs| is |[]|, the program simply returns 0, and no pattern match error occurs. While this program is now safe, this safety has come at a cost -- the code no longer behaves as it did before -- replacing $\bot{}$ with the non-sensical value 0.
 
-In general pattern-match errors can be avoided in two ways:
+Pattern-match errors can be avoided in two ways:
 
 \begin{description}
-\item [Widden the domain of definition:] The above example shows a local fix: in the same function that calls the division, add a special test. This fix is fairly simple, and requires only small code changes in the definition.
+\item [Widen the domain of definition:] In the example, we widen the domain of \C{average}, adding a special test guarding the division. This fix is local and fairly simple, and requires only small code changes in the definition.
 
-\item [Narrow the domain of application:] Investigate the code that calls \C{average}, and ensuring that |[]| is not passed as the first argument. This fix requires a deeper understanding of the flow of the program, and depending on the overall design, may require substantial work at each application. The end result is likely to be a cleaner body of code.
+\item [Narrow the domain of application:] In the example, we have narrowed the domain of application of division. To narrow the domain of \C{average} we would investigate the code that calls \C{average}, ensuring that |[]| is not passed as the first argument. This fix requires a deeper understanding of the flow of the program, and depending on the overall design, may require substantial work at each application. The end result is likely to be a cleaner body of code.
 \end{description}
 
-For programs which were not design with pattern match safety in mind (see Gen-Regexps in \S\ref{sec:imaginary}), the global changes may constitute an entire reimplementation. In the following sections, where modifications were required, we have attempted to make the minimum number of changes. Consequently, we have widened the domain of application.
+Another alternative to prove the example is to widen the domain of division, using a safe variant:
+
+\begin{code}
+safeDiv x y = if y == 0 then 0 else x / y
+\end{code}
+
+In the following sections, where modifications were required, we prefer to make the minimum number of changes. Consequently, we have widened the domain of definition.
 
 \subsection{The Imaginary Nofib Benchmark}
 \label{sec:imaginary}
-
-The whole Nofib benchmark \citep{nofib} is too large to present results for, so instead the `Imaginary' section has been chosen as our primary focus. These programs are all under a page of text (excluding any Prelude or library definitions used), and particularly stress list operations and numeric computations. All the benchmark code is available online\footnote{\texttt{http://darcs.haskell.org/nofib/imaginary/}, as of March 2007}.
 
 \begin{table}
 \caption{Table of results}
@@ -1133,21 +1155,20 @@ The whole Nofib benchmark \citep{nofib} is too large to present results for, so 
 
 \smallskip
 
-\textbf{Src} is the number of lines in the original source code.
-\textbf{Core} is the total number of lines of Yhc Core, including all functions used from libraries, when pretty printed.
-\textbf{First} is the number of lines after firstification, just before analysis.
-\textbf{Err} is the number of calls to \C{error}.
-\textbf{Pre} is the number of functions which have a precondition which is not True.
-\textbf{Sec} is the time in seconds taken for transformations and analysis, excluding the standard Yhc compilation time. No great effort has been put into the optimisation of the analysis code.
-\textbf{Mb} is the maximum residency of the program at garbage collection time, in Mb. Typically a program will consume twice this size in system memory.
+\textbf{Name} is the name of a program in the nofib suite (a starred name indicates that changes were needed before safe pattern-matching could be verified);
+\textbf{Src} is the number of lines in the original source code;
+\textbf{Core} is the total number of lines of Yhc Core, including all functions used from libraries, when pretty printed;
+\textbf{First} is the number of lines after firstification, just before analysis;
+\textbf{Err} is the number of calls to \C{error} (including missing pattern cases);
+\textbf{Pre} is the number of functions which have a precondition which is not simply `True';
+\textbf{Sec} is the time in seconds taken for transformations and analysis;
+\textbf{Mb} is the maximum residency of the program at garbage collection time, in Mb.
 
-\smallskip
+\smallskip\smallskip
 
 \begin{tabular*}{\linewidth}{lrrrrrrlll}
-Program               & Src & Core & First & Err & Pre & Sec & Mb \\
-\vspace{-2.2ex} \\
-\hline
-\vspace{-1.8ex} \\
+\textbf{Name} & \textbf{Src} & \textbf{Core} & \textbf{First} & \textbf{Err} & \textbf{Pre} & \textbf{Sec} & \textbf{Mb} \\
+\vspace{-1ex} \\
 Bernoulli*                   & 35 & 1616 &  652 & 5 & 11 & 4.1 & 0.8 \\
 Digits of E1*  \hspace{-3mm} & 44 &  957 &  377 & 3 &  8 & 0.3 & 0.6 \\
 Digits of E2   \hspace{-3mm} & 54 & 1179 &  455 & 5 & 19 & 0.5 & 0.8 \\
@@ -1162,30 +1183,17 @@ Tak                          & 12 &  209 &  155 & 0 &  0 & 0.1 & 0.1 \\
 Wheel Sieve 1* \hspace{-3mm} & 37 & 1221 &  570 & 7 & 10 & 7.5 & 0.9 \\
 Wheel Sieve 2* \hspace{-3mm} & 45 & 1397 &  636 & 2 &  2 & 0.3 & 0.6 \\
 X2n1                         & 10 & 2637 &  331 & 2 &  5 & 1.8 & 1.9 \\
+\vspace{-1ex} \\
+FilePath      \hspace{-3mm} & 352 & 2278 & 2653 & 5 & 15 & 1.6 & 1.6 \\
+HsColour      \hspace{-3mm} & 823 & 5379 & 5060 & 4 &  9 & 2.1 & 2.7 \\
 \hline
 \end{tabular*}
 \end{table}
 
-Results are given in Table \ref{tab:results}. Where changes were required, the name of the program is in bold, and will be discussed separately. \catch{} produces a log containing the entire program in Core form before analysis begins, including the effect of abstraction and firstification, a list of all the properties calculated and the preconditions on every function -- this information gives the other statistics.
+The whole Nofib benchmark \citep{nofib} is too large to present results for, so we concentrate on the `Imaginary' section. These programs are all under a page of text (excluding any Prelude or library definitions used), and particularly stress list operations and numeric computations.
+Results are given in Table \ref{tab:results}.
 
-To take a typical benchmark, Primes, the \C{main} function is:
-
-\begin{code}
-main = do  [arg] <- getArgs
-           print $ primes !! (read arg)
-\end{code} % $
-
-The first unsafe pattern here is |[arg] <- getArgs|, as \C{getArgs} is a primitive which may return any value. Given this expression, \catch{} will return False as the precondition to \C{main}.
-
-The next step that may fail is when \C{read} is applied to an argument extracted from getArgs. This argument is entirely unknown, and \C{read} is a sufficiently complicated function that although it can be modelled by Catch, there is no possibility for getting an appropriate abstraction which models the failure case. As a result, any program which calls \C{read} is unsafe, according to \catch{}! Using \C{reads}, which indicates failure properly, a program may still be checked  successfully.
-
-As a result the programs have been rewritten, and \catch{} is directed to check from the \C{compute} function:
-
-\begin{code}
-compute x = print $ primes !! x
-\end{code}
-
-Four programs use the list-indexing operator |(!!)|, which requires the index to be non-negative and less than the length of the list. \catch{} can only prove this condition if the list being indexed on is infinite. Eight programs include applications of either \C{head} or \C{tail}, most of which can be proven safe. Seven programs have incomplete patterns, often in a |where| binding and \catch{} performs well on these. Nine programs use division, with the precondition that the divisor must not be zero. Most of these can be proven safe. Only four programs contain no calls to \C{error}.
+Only four programs contain no calls to \C{error} as all pattern-matches are exhaustive. Four programs use the list-indexing operator |(!!)|, which requires the index to be non-negative and less than the length of the list. \catch{} can only prove this condition if the list is infinite. Eight programs include applications of either \C{head} or \C{tail}, most of which can be proven safe. Seven programs have incomplete patterns, often in a |where| binding and \catch{} performs well on these. Nine programs use division, with the precondition that the divisor must not be zero. Most of these can be proven safe.
 
 Three programs have preconditions on the \C{main} function, all of which state that the argument must be a natural number. In all cases the generated precondition is a necessary one -- if the input violates the precondition then pattern-match failure will occur.
 
@@ -1193,16 +1201,7 @@ We now discuss the four programs which required changes, along with the Digits o
 
 \paragraph{Bernoulli}
 
-This program has one instance of |tail (tail x)|, which is beyond the capabilities of \catch{}. Consider the example program and generated condition:
-
-\begin{code}
-main x = tail (tail x)
-> main, x :< {(:) Any} :* {(:) Any}
-\end{code}
-
-The MP-constraints are unable to express that a list must be of at least length two, so conservatively strengthens this to the condition that the list must be infinite -- a condition that Bernoulli does not satisfy.
-
-Our remedy is to replace |tail (tail x)| with |drop 2 x|. Even with this change, the program still has a high level of non-exhaustive pattern matches. But all are proven safe.
+This program has one instance of |tail (tail x)|. MP-constraints are unable to express that a list must be of at least length two, so conservatively strengthens this to the condition that the list must be infinite -- a condition that Bernoulli does not satisfy. One remedy is to replace |tail (tail x)| with |drop 2 x|. After this change, the program still has several non-exhaustive pattern matches. But all are proven safe.
 
 
 \paragraph{Digits of E1}
@@ -1217,34 +1216,24 @@ ratTrans (a,b,c,d) xs |
   where q = b `div` d
 \end{code}
 
-Catch is able to prove that the division by |d| is only unsafe if both |c| and |d| are zero, but it is not able to prove that this invariant is maintained. Using the domain widening tactic, a slight modification is possible:
-
-\begin{code}
-  where q = if d == 0 then 0 else b `div` d
-\end{code}
+\catch{} is able to prove that the division by |d| is only unsafe if both |c| and |d| are zero, but it is not able to prove that this invariant is maintained. Using \C{safeDiv} from \S\ref{sec:safety} the program is proved safe.
 
 \paragraph{Gen-Regexps}
 
-This program expects valid regular expressions as input. Ways of crashing the program include entering |""|, |"["|, |"<"| and lots of other inputs.
+This program expects valid regular expressions as input. Ways of crashing the program include entering |""|, |"["|, |"<"| and lots of other inputs. One potential error comes from |head . lines|, which can be replaced by |takeWhile (/= '\n')| to have the same effect, apart from on the empty list, where it returns |""|.
 
-One potential error comes from |head . lines|, which can be replaced by |takeWhile (/= '\n')| to have the same effect, apart from on the empty list, where it returns |""|.
-
-One pattern match error is can be fixed by adding a default clause.
-
-Two errors of the form |(a,_:b) = span f x| can be fixed by changing them to |(a,b) = safeSpan f x|, where \C{safeSpan} is defined as:
+Two potential errors take the form |(a,_:b) = span f x|. These can be fixed by changing them to |(a,b) = safeSpan f x|, where \C{safeSpan} is defined as:
 
 \begin{code}
 safeSpan p x = (a, drop 1 b)
     where (a,b) = span p x
 \end{code}
 
-While at first glance this pattern looks like a simple pattern match against |(:)|, much in the same way as \C{head}, the reality is much more complex. The pattern is only safe if for one of the elements in the list |x|, |f| returns True. In the particular example of Gen-Regexps, the test |f| is actually |(/= '-')|. Using the abstraction for |Char| as detailed in \S\ref{sec:abstraction}, |(/=)| over |Char| always has an unknown result, making this pattern impossible to prove safe.
-
-This example shows that a program written with no regard for pattern-match safety can be made safe using local fixes, without excessive code alterations.
+At first glance this pattern definition is similar to the one in \C{risers}. But here the pattern is only safe if for one of the elements in the list |x|, |f| returns True. In the particular example of Gen-Regexps, the test |f| is actually |(/= '-')|. Using the abstraction for |Char| as detailed in \S\ref{sec:abstraction}, |(/=)| over |Char| always has an unknown result, making this pattern impossible to prove safe.
 
 \paragraph{Wheel Sieve 1}
 
-The program Wheel Sieve 1 defines a data structure, and a function \C{sieve}:
+This program defines a data type \C{Wheel}, and a function \C{sieve}:
 
 \begin{code}
 data Wheel = Wheel Int [Int]
@@ -1252,44 +1241,42 @@ data Wheel = Wheel Int [Int]
 sieve :: [Wheel] -> [Int] -> [Int] -> [Int]
 \end{code}
 
-The invariant on all these types is that all the lists are infinite, and all the Int's are strictly positive numbers. Unfortunately the program is written in a manner that makes these invariants too complex for \catch{} to infer them all, but \catch{} can manage some.
+All these lists are infinite, and all the Int's are strictly positive numbers. Unfortunately the program is written in a manner that makes these invariants too complex for \catch{} to infer them all, but \catch{} can manage some.
 
-Two modifications are required to prove safety. A safe variant of \C{mod} is required which does not raise division by zero -- to allow for \catch{} failing to infer that all numbers are positive. A pattern in \C{notDivBy} has to be completed -- to allow for \catch{} failing to infer two particular lists are both infinite.
+To prove safety as safe variant of \C{mod} is required which does not raise division by zero -- to allow for \catch{} failing to infer that all numbers are positive. A pattern in \C{notDivBy} has to be completed -- to allow for \catch{} failing to infer two particular lists are both infinite.
 
-Even with these two modifications, \catch{} has to perform a lot of computation to check the other possible pattern matches. This significant amount of computation results in a runtime just over 10 seconds, more than double the second most expensive computation.
+Even with these two modifications, \catch{} has to perform a lot of computation to check the other possible pattern matches. This significant amount of computation results in a runtime of 7.5 seconds, the most expensive computation.
 
 
 \paragraph{Wheel Sieve 2}
 
-The program Wheel Sieve 2 is based on Wheel Sieve 1, with the same data and invariants, but has much greater complexity. In this particular case \catch{} is able to prove very few of the necessary invariants -- so we resort to completing the patterns.
+This program has similar datatypes and invariants, but much greater complexity. \catch{} is able to prove very few of the necessary invariants.
 
-By widening the domain of application to several functions -- replacing |tail| with |drop 1|, |head| with a version returning a default on the empty list, |mod| with a safe variant -- \catch{} is able to prove safety.
+Only by widening the domain of definition in three places -- replacing |tail| with |drop 1|, |head| with a version returning a default on the empty list, and |mod| with a safe variant -- \catch{} is able to prove safety.
 
 
 \paragraph{Paraffins}
 
-The Paraffins program can only be validated by Catch after significant modification. There are two reasons:
+The Paraffins program can only be validated by Catch after significant modification. There are two reasons: laziness and arrays.
 
-\begin{description}
-\item[Laziness] The first error, which can be fixed easily, is the use of \C{undefined} to prevent a space leak:
+\textit{Laziness} causes the first error, which can be fixed easily. The function \C{undefined} is used to prevent a space leak:
 
-    \begin{code}
-    radical_generator n = radicals undefined
-      where radicals unused = big_memory_computation
-    \end{code}
+\begin{code}
+radical_generator n = radicals undefined
+  where radicals unused = big_memory_computation
+\end{code}
 
-    In Haskell if a function is defined with no arguments it is considered a constant applicative form (CAF), and has its results computed only once in the program. To prevent something which allocates a lot of memory from having this behaviour, a dummy argument can be passed. The \C{undefined} is merely serving as a dummy argument, but if evaluated would result in a pattern match error. If the analysis was lazy (as discussed in \S\ref{sec:precond}) then this example would succeed using \catch{}. As it is, simply changing \C{undefined} to |()| removes the potential error.
+In Haskell a named constant data structure with a zero arity definition is computed once and retained as long as there are references to it. To prevent something which allocates a lot of memory from having this behaviour, a dummy argument (e.g. \C{undefined}) can be passed. If the analysis was more lazy (as discussed in \S\ref{sec:precond}) then this example would succeed using \catch{}. As it is, simply changing \C{undefined} to |()| removes the potential error.
 
-\item[Arrays] The Paraffins program uses arrays. The function |array :: Ix a => (a, a) -> [(a, b)] -> Array a b| takes a list of index/value pairs and builds an array. The precondition on this function is that all indexes must be in the range specified and all arguments must be valid. This precondition is too complex for Catch. But simply using \C{listArray}, which takes a list of elements one after another, the program can be validated. (Also, the use of \C{listArray} makes the program shorter and more readable.)
+\textit{Arrays} are used by the Paraffins program. The function |array :: Ix a => (a, a) -> [(a, b)] -> Array a b| takes a list of index/value pairs and builds an array. The precondition on this function is that all indexes must be in the range specified. This precondition is too complex for Catch, but simply using \C{listArray}, which takes a list of elements one after another, the program can be validated. Use of \C{listArray} actually makes the program shorter and more readable.
 
-    Use of the array indexing operator |(!)| is also troublesome. The precondition requires that the index is in the bounds given when the array was constructed, something \catch{} does not currently model.
-\end{description}
+Use of the array indexing operator |(!)| is also troublesome. The precondition requires that the index is in the bounds given when the array was constructed, something \catch{} does not currently model.
 
 The Paraffins program does highlight that one weak area of \catch{} is code that uses arrays.
 
 \paragraph{Digits of E2}
 
-This program is quite complex, featuring a number of possible pattern match errors. To illustrate, consider the following fragment:
+This program is quite complex, featuring a number of possible pattern-match errors. To illustrate, consider the following fragment:
 
 \begin{code}
   where  carryguess = d `div` base
@@ -1297,7 +1284,7 @@ This program is quite complex, featuring a number of possible pattern match erro
          nextcarry:fraction = carryPropagate (base+1) ds
 \end{code}
 
-Here there are three potential pattern match errors in as many lines. Two of these are the calls to |div| and |mod|, both requiring |base| to be non-zero. A possibly more subtle pattern match error is the |nextcarry:fraction| left-hand side of the third line. \catch{} is able to prove that no pattern match fails.
+\noindent Here there are three potential pattern-match errors in as many lines. Two of these are the calls to |div| and |mod|, both requiring |base| to be non-zero. A possibly more subtle pattern match error is the |nextcarry:fraction| left-hand side of the third line. \catch{} is able to prove that none of these pattern matches fail.
 
 \begin{code}
 e =  ("2."++) $
@@ -1307,80 +1294,79 @@ e =  ("2."++) $
      2:[1,1..]
 \end{code}
 
-There are two calls to \C{tail}, and one to \C{head}. They are mixed in a relatively complex manner, including as a higher order functional pipeline in the case of \C{iterate} and \C{map}. \catch{} is able to prove that no pattern match fails, and that \C{head} and \C{tail} have their preconditions respected.
-
-\subsection{The HsColour Program}
-\label{sec:hscolour}
-
-The disadvantage of working with artificial benchmarks is that they are not designed to be total. When it comes to a real program, with real users, a crash is a much more serious issue -- and eliminating them a desirable goal. We have taken the HsColour program\footnote{http://www.cs.york.ac.uk/fp/darcs/hscolour/} and analysed it using \catch07. We have contributed patches back to the author of HsColour, with the result that the development version can be proved free from pattern match errors.
-
-HsColour is written in Haskell, being both a library and a program -- for the purposes of the checker we have focused on the program. HsColour comprises of 12 modules, 823 lines, is 4 years old and has had patches from 6 different people.
-
-Catch required 4 small patches to successfully check the entire program. Of these 4 patches, 3 were genuine pattern match errors which could be tripped by constructing unexpected input. The three issues were:
-
-\begin{enumerate}
-\item \C{read} was called on a preferences file from the user, this could crash by specifying a malformed preferences file.
-\item By giving the document consisting of the a single double quote character \T{"}, and passing the ``-latex'' flag, a crash occurred.
-\item By giving the document \T{(`)}, namely open bracket, backtick, close bracket, and passing ``-html -anchor'' a crash occurred.
-\end{enumerate}
-
-The one patch which did not (as far as we are able to ascertain) fix a real bug could still be considered an improvement in the code base, and was minor in nature (a single line).
-
-The entire process requires 2.1 seconds to run, and uses 2.7Mb of memory.
+\noindent Two uses of \C{tail} and one of \C{head} occur in quite complex functional pipelines. \catch{} is again able to prove that no pattern-match fails.
 
 \subsection{The System.FilePath library}
 \label{sec:filepath}
 
-The System.FilePath library\footnote{http://www-users.cs.york.ac.uk/$\sim$ndm/projects/libraries.php} is a relatively new library which has been proposed for inclusion into the Haskell base libraries. It comprises 810 lines, of which 352 are non-blank and non-comment lines, and exports 51 functions in its interface.
+The System.FilePath library\footnote{http://darcs.haskell.org/packages/filepath/} is a new library which is being distributed with GHC 6.6.1. It comprises 352 non-blank and non-comment lines, and exports 51 functions.
 
-The initial challenge to checking a library is that there is no \C{main} function. \catch{} provides the |(||||||)| operator to remove this issue. A \C{main} function can be constructed as follows:
+The initial challenge to checking a library is that there is no \C{main} function. \catch{} provides the |(||||||)| operator to resolve this issue. A \C{main} function can be constructed as follows:
 
 \begin{code}
 main = function1 ||| function2 ||| function3
 \end{code}
 
-The |(||||||)| operator takes two functions, and using Haskell type classes saturates them with enough arguments, then checks that a crash does not result. This operator is provided in an additional library by \catch{}.
+The |(||||||)| operator takes two functions, and using Haskell type classes saturates them with enough arguments, then checks that a crash does not result.
 
-Only one change was required to the library:
+Only one change was required to the library. \catch{} is unable to prove the following definition safe:
 
 \begin{code}
 f x  | isPosix    = dropTrailSlash $ normalise x
      | isWindows  = dropTrailSlash $ map toLower $ normalise x
 \end{code}
 
-Here \catch{} is unable to prove that this function is safe. By changing \C{isWindows} to \C{otherwise}, this code can be proven safe. The function is safe, but relies on the CAF \C{System.Info.os} being a constant string through the run of the program -- something \catch{} does not take account of.
+By changing \C{isWindows} to \C{otherwise}, this code can be proven safe. The function is safe, but relies on the CAF \C{System.Info.os} being a constant string through the run of the program -- something \catch{} does not take account of.
 
-With this single modification \catch{} requires 1.6 seconds and 1.6Mb of memory to prove all library functions are free from pattern match errors.
+With this single modification \catch{} requires 1.6 seconds and 1.6Mb of memory to prove all library functions are free from pattern-match errors.
+
+\subsection{The HsColour Program}
+\label{sec:hscolour}
+
+The disadvantage of working with artificial benchmarks is that they are not designed to be total. But a real program, with real users, should \textit{never} fail with a matter-match error. We have taken the HsColour program\footnote{http://www.cs.york.ac.uk/fp/darcs/hscolour/} and analysed it using \catch07. We have contributed patches back to the author of HsColour, with the result that the development version can be proved free from pattern-match errors.
+
+HsColour is both a library and a program. For the purposes of the checker we have focused on the program. HsColour comprises of 12 modules, 823 lines, is 4 years old and has had patches from 6 different people.
+
+\catch{} required 4 small patches to successfully check the entire program, details are given in Table \ref{tab:results}. Of the 4 patches, 3 were genuine pattern-match errors which could be tripped by constructing unexpected input. The three issues were:
+
+\begin{enumerate}
+\item \C{read} was called on a preferences file from the user, this could crash by specifying a malformed preferences file;
+\item by giving the document consisting of the a single double quote character \T{"}, and passing the ``-latex'' flag, a crash occurred;
+\item by giving the document \T{(`)}, namely open bracket, backtick, close bracket, and passing ``-html -anchor'' a crash occurred.
+\end{enumerate}
+
+The one patch which did not (as far as we are able to ascertain) fix a real bug could still be considered an improvement in the code base, and was minor in nature (a single line).
+
 
 \section{Related Work}
 \label{sec:related}
 
-This paper follows very much the same spirit as \cite{me:catch_tfp} -- the goals are the same and some of the approach has similarities. The comparison to the previous paper has been made throughout the this paper, but the two main improvements are support for full Haskell, and scalability.
+This paper follows very much the same spirit as \cite{me:catch_tfp} -- the goals are the same and the approach is similar. The comparison to the previous paper has been made throughout , but the two main improvements are support for full Haskell, and scalability.
 
 \subsection{Proving Incomplete Patterns Safe}
 
-Despite the seriousness of the problem of pattern matching, the topic of pattern-match error detection and elimination has not been studied extensively. The other paper that covers this issue most directly is \citep{esc_haskell}, where ESC/Haskell is introduced. The ESC/Haskell approach requires the programmer to give explicit preconditions and contracts which the program obeys. This approach is intended to result in a checker with more expressive power -- one of the examples involves an invariant on an ordered list, something beyond \catch{} -- but it requires the programmer to spend more time doing the validation. The preconditions and properties derived by \catch{} could be turned into ESC/Haskell annotations, allowing both tools to be used together.
+Despite the seriousness of the problem of pattern matching, there are very few tools checking pattern-match safety. The closest work we are aware of is \citep{esc_haskell}, where ESC/Haskell is introduced. The ESC/Haskell approach requires the programmer to give explicit preconditions and contracts which the program obeys. This approach is intended to result in a checker with more expressive power -- one of the examples involves an invariant on an ordered list, something beyond \catch{} -- but it requires the programmer to spend more time doing the validation. The preconditions and properties derived by \catch{} could be turned into ESC/Haskell annotations, allowing both tools to be used together.
 
-The version of ESC/Haskell presented in the paper is only a prototype, there is currently no publicly available version. ESC/Haskell does not yet support full Haskell, lacks essential features such as type classes, and is has only examples of limited size -- the largest example given is 9 lines long, and none require additional library functions. We hope that a future version of ESC/Haskell will address these limitations, and allow a fuller comparison to \catch{} to be made.
+At the time of writing there is no publicly available version of ESC/Haskell. So far as we know, it does not yet support full Haskell, lacks essential features such as type classes, and handles only very small examples. We hope that a future version of ESC/Haskell will address these limitations, and allow a fuller comparison to be made.
 
 
 \subsection{Eliminating Incomplete Patterns}
 
-One simple way to guarantee that a program does not crash with an incomplete pattern is to ensure that all pattern matching is exhaustive. The GHC compiler \citep{ghc} has a warning flag to detect incomplete patterns, named \T{-fwarn-incomplete-patterns}. Adding this flag when compiling risers results in a message that ``Pattern matches are non-exhaustive''. Unfortunately the Bugs (12.2.1) section of the manual notes that the checks are sometimes wrong, particularly with string patterns or guards, and that this part of the compiler ``needs an overhaul really'' \citep{ghc_manual}. But the GHC checks are only local. Using an incomplete function from a library, such as \C{head}, gives no warning. If the function \C{head} is defined, then it raises a warning.
+One way to guarantee that a program does not crash with an incomplete pattern is to ensure that all pattern matching is exhaustive. The GHC compiler \citep{ghc} has an option flag to warn of any incomplete patterns. Unfortunately the Bugs (12.2.1) section of the manual notes that the checks are sometimes wrong, particularly with string patterns or guards, and that this part of the compiler ``needs an overhaul really'' \citep{ghc_manual}. Also the GHC checks are only local. Using an incomplete function from a library, such as \C{head}, gives no warning. If the function \C{head} is defined, then it raises a warning.
 
-There have been attempts at defining what it means for a program to be complete with regard to pattern matches \citep{maranget:pattern_warnings}, along with associated implementations.
-
-A more radical approach is to design a \textit{total} functional language without pattern match errors (or non-termination) \citep{turner:total}. In this approach incomplete pattern matches are banned, suggesting this restriction will ``force you to pay attention to exactly those corner cases which are likely to cause trouble''. The results in \S\ref{sec:imaginary} show that in sample Haskell programs there are a reasonably high number of incomplete pattern matches, which are still safe.
+A more radical approach is to design a \textit{total} functional language without pattern-match errors (or non-termination) \citep{turner:total}. Incomplete pattern matches are banned. But as we have seen in \S\ref{sec:imaginary}, Haskell programs have a reasonably high number of incomplete pattern matches, but may still be safe.
 
 The \catch{} tool could perhaps allow the exhaustive pattern matching restriction to be lifted somewhat. The \catch{} tool will always report success if there are no inexhaustive patterns, so a more generous requirement would be for the \catch{} tool to succeed on the program.
 
 \subsection{A Mistake Detector}
 
-There has been a long history of writing tools to analyse programs to detect potential bugs, going back to the classic C Lint tool \citep{lint}. In the functional arena the Dialyzer tool \citep{dialyzer} for Erlang \citep{erlang} performs a similar function. The aim is to have a static checker that works on unmodified code, with no additional annotations. However, a key difference is that in Dialyzer all warnings indicate a genuine problem that needs to be fixed. Because Erlang is a dynamically typed language, a large proportion of Dialyzer's warnings relate to mistakes a type checker would have detected.
+There has been a long history of writing tools to analyse programs to detect potential bugs, going back to the classic C Lint tool \citep{lint}. In the functional arena there is the Dialyzer tool \citep{dialyzer} for Erlang \citep{erlang}. The aim is to have a static checker that works on unmodified code, with no additional annotations. However, a key difference is that in Dialyzer all warnings indicate a genuine problem that needs to be fixed. Because Erlang is a dynamically typed language, a large proportion of Dialyzer's warnings relate to mistakes a type checker would have detected.
 
 \subsection{Type System Safety}
 
-One way of checking pattern matching is to define a slightly more precise type system. In this light the checker can be compared to the tree automata work done on XML and XSL \citep{static_xslt}, which can be seen as an algebraic data type and a functional language. Another soft typing system with similarities is by \citet{aiken:type_infer}, on the functional language FL. This system tries to assign a type to each function using a set of constructors, for example \T{head} is given just \T{Cons} and not \T{Nil}.
+\begin{discuss}
+Another way of checking pattern matching is to define a slightly more precise type system. In this light the checker can be compared to the tree automata work done on XML and XSL \citep{static_xslt}, which can be seen as an algebraic data type and a functional language. Another soft typing system with similarities is by \citet{aiken:type_infer}, on the functional language FL. This system tries to assign a type to each function using a set of constructors, for example \C{head} takes the type \C{Cons} and not \C{Nil}.
+\end{discuss}
 
 \begin{figure}
 \begin{code}
@@ -1424,7 +1410,7 @@ fromList (x:xs)  fn = fromList xs (\sl -> fn (Cons x sl))
 \label{fig:gadt}
 \end{figure}
 
-Another method of encoding addition type information which is becoming increasingly popular in Haskell is the use of GADT's \citep{spj:gadt}. Using this technique, sometimes referred to as first class Phantom Types, an encoding of lists can be written as in Figure \ref{fig:gadt}. Unlike the first method, the \C{fromList} method requires the complexity of existential types.
+Another method of encoding addition type information which is becoming increasingly popular in Haskell is the use of GADT's \citep{spj:gadt}. Using this technique, sometimes referred to as first class Phantom Types, an encoding of lists can be written as in Figure \ref{fig:gadt}. Notice that the \C{fromList} method requires a locally quantified type.
 
 The type directed method can be pushed much further with dependant types, which allow types to depend on values. This approach allows safe versions of \C{head} and \C{tail} to be written. There has been much work on type systems, using undecidable type systems \citep{cayenne, epigram}, using extensible kinds \citep{omega} and using type systems restricted to a decidable fragment \citep{xi:dependent_practical}.
 
@@ -1434,13 +1420,13 @@ The downside to all these type systems is that they require the programmer to ma
 \section{Conclusions and Future Work}
 \label{sec:conclusion}
 
-A static checker for potential pattern-match errors in Haskell has been specified and implemented. This checker is capable of determining preconditions under which a program with non-exhaustive patterns executes without failing due to a pattern-match error. A section of the Nofib suite has been tested, with encouraging results -- all but one program can be proved safe, many without modification. Two larger real-world examples have been checked, and new bugs have been discovered in one existing program.
+A static checker for potential pattern-match errors in Haskell has been specified and implemented. This checker is capable of determining preconditions under which a program with non-exhaustive patterns executes without failing due to a pattern-match error. A section of the Nofib suite has been tested, with encouraging results -- all but one program can be proved safe, many without modification. Two larger real-world examples have been checked: new bugs were discovered and fixed in one of them, which is now verified to be pattern safe.
 
-There are two main avenues of future work. First is to extend the power of the checker. Possible directions to increase the power include the addition of explicit annotations of properties, or a more powerful constraint language. The constraint languages introduced could be augmented with special purpose constraints, designed to tackle particular problems. One particular constraint system that may prove fruitful is a linear inequality constraint system \todo{Colin wants citation}.
+There are two main avenues of future work. (1) \textit{Extend the power of the checker.} Possible ways to increase power include the addition of explicit annotations of properties, or a more powerful constraint language, with special purpose constraints (e.g. a linear constraint system \todo{Colin wants citation}). If the programmer was able to specify more restrictive preconditions, or properties, or invariants, then these may be able checked with \catch{}. If the power of the constraint system was increased then richer program annotations could be used.
 
-The next direction for future work would be using the \catch{} tool to solve other problems. The direct result of the absence of pattern match failure could be used to feed information to an optimising compiler. The properties generated could also be used to generate more efficient code. If the programmer was able to specify more restrictive preconditions, or properties, or invariants, then these may be able checked with Catch. If the power of the constraint system was increased then richer program annotations could be used.
+(2) \textit{Use \catch{} to solve other problems.} Absence of pattern-match failure could be used to inform an optimising compiler. The properties generated could also be used to generate more efficient code.
 
-As the Catch tool stands, it is already capable of detecting and proving the absence of pattern match failures in sample programs. We hope this tool will become a part of the standard arsenal of Haskell programmers.
+\todo{Punchier ending}
 
 
 % \appendix
