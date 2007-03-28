@@ -19,6 +19,8 @@
 %format not = "\mathsf{not}"
 %format undefined   = "\mathsf{undefined}"
 %format `mergeVal` = "\sqcap{}"
+%format user_and = "\textsf{\&\&}"
+%format user_or = "||"
 
 \newcommand{\keyword}[1]{\hspace{-1mm}\text{\textsf{\textbf{ #1}}}}
 
