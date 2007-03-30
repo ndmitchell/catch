@@ -329,26 +329,6 @@ If |x| is an expression and |c| is a constraint we write |x :< c| to assert that
 
 Several underlying constraint models are possible. To keep the introduction of the algorithms simple we first use \textit{basic pattern constraints} (\S\ref{sec:basic}). We then describe \textit{regular expression constraints} in \S\ref{sec:regexp} -- a variant of the constraints used in \oldtool{}. Finally we present \textit{multi-pattern constraints} in \S\ref{sec:multipattern} -- used in \newtool{} to enable scaling to much larger problems.
 
-\subsection{Bounded Constraints}
-\label{sec:bounded}
-
-\begin{discuss}
-We require that for any type, there are finitely many constraints. This property is used for termination proofs.
-
-Mention that this lemma is required for termination.
-
-This approach works provided no selectors have a type that is structurally greater than the defined type, and no higher-kinded type variables are used. If the presence of definitions involving these features, either a translation can be made to a permitted form, or \C{isRec} can conservatively return True.
-
-More formally, there exists a function |bounded t| such that the number of non-recursive selectors in any path of any value of type |t| is less than this value.
-
-\begin{code}
-forall x,t,p `o`  x :: t && p `elem` paths x =>
-                  length (filter (not . isRec) p) < bounded t
-\end{code}
-
-A path is a list of selectors, the \C{paths} function returns all paths in a given data structure -- a potentially infinite number.
-\end{discuss}
-
 
 \subsection{Basic Pattern (BP) Constraints}
 \label{sec:basic}
@@ -385,7 +365,6 @@ notin c = map f (delete c (ctors c))
    where f x = Pattern x (replicate (arity c) Any)
 \end{code}
 
-With unbounded recursion in patterns, the BP-constraint language does \textit{not} have finitely many constraints per type. We could limit the depth of patterns, but instead ignore the issue for now. Both constraint systems in \ref{sec:constraint} have the finiteness property.
 
 \subsection{Preconditions for Pattern Safety}
 \label{sec:precond}
@@ -409,24 +388,22 @@ Our intention is that for every function, constraints on the arguments form a pr
 
 \subsubsection{Stable Preconditions}
 
-\begin{discuss}
-The preconditions given by |preFunc| should have the following property:
+The precondition to each function must be at least as restrictive as the precondition to the body of that function:
 
 \begin{code}
 forall fn, xs `o` preFunc fn xs => pre (instantiate fn xs)
 \end{code}
 
-That is, the preconditions assigned to each function by \C{preFunc} must imply the preconditions calculated on the instantiation of that function with its arguments. One conservative implementation is that all calls to \C{preFunc} return False. A perfect precondition would be such that |preFunc f xs == pre (instantiate f xs)|.
-\end{discuss}
+One conservative implementation of \C{preFunc} is to always return False. A perfect precondition would be such that |preFunc f xs == pre (instantiate f xs)|.
 
 \begin{figure}
 \begin{code}
-for fn `elem` funcs do conds(fn) <- (fn /= "error")
+for fn `elem` funcs do conds(fn) := (fn /= "error")
 loop
     for fn `elem` funcs do
-        conds'(fn) <- conds(fn) && pre (instantiate fn vs)
+        conds'(fn) := conds(fn) && pre (instantiate fn vs)
     if conds' == conds then break
-    conds <- conds'
+    conds := conds'
 end loop
     where
         preFunc fn xs = cond(fn)[vs1/xs1 .. vs_n/xs_n]
@@ -436,7 +413,8 @@ end loop
 \label{fig:precond_fixp}
 \end{figure}
 
-The iterative algorithm for calculating preconditions is given in Figure~\ref{fig:precond_fixp}. Initially all preconditions are assumed to be True, apart from the \C{error} precondition, which is False. New preconditions are calculated for every function, until no condition changes. In each iteration the preconditions become more restrictive, so given a constraint model with a finite number of terms, termination is guaranteed. A more efficient algorithm tracks dependencies between preconditions, and performs the minimum amount of recalculation. Finding strongly connected components in the static call graph of a program would allow parts of the program to be checked separately.
+The iterative algorithm for calculating preconditions is given in Figure~\ref{fig:precond_fixp}. 
+Initially all preconditions are assumed to be True, apart from the \C{error} precondition, which is False. New preconditions are calculated for every function, until no condition changes. In each iteration the preconditions become more restrictive, so \textit{given a constraint in which all chains of increasingly restrictive constraints are finite}, termination is guaranteed (we return to the finiteness in \ref{sec:bounded}). A more efficient algorithm tracks dependencies between preconditions, and performs the minimum amount of recalculation. Finding strongly connected components in the static call graph of a program would allow parts of the program to be checked separately.
 
 \subsubsection{Preconditions and Laziness}
 
@@ -488,9 +466,7 @@ c <| k = propOr (map f k)
         and (zipWith (:<) [0..] (map (:[]) xs))
 \end{code}
 
-\begin{discuss}
-\para{The \C{Case} rule} generates a conjunct for each alternative. The generated condition says either the subject of the case analysis has a different constructor (so this particular alternative is not executed in this circumstance), or the right hand side of the alternative is safe given the conditions for this expression.
-\end{discuss}
+\para{The \C{Case} rule} generates a conjunct for each alternative. An alternative is safe if either it is never taken, or meets the constraint when taken. The \C{notin} function is used to assert a particular alternative never matches.
 
 \para{The \C{Call} rule} relies on the key property:
 
@@ -503,13 +479,13 @@ That is, the result is at least as restrictive as if the function was inlined at
 
 \begin{figure}
 \begin{code}
-ps <- [(fn,k) | fn <- funcs, k <- constraints]
+prop := [(fn,k) | fn <- funcs, k <- constraints]
 for (fn,k) `elem` ps do prop(fn,k) := True
 loop
     for (fn,k) `elem` p do
         prop'(fn,k) := prop(fn,k) && backs (instantiate fn vs :< k)
     if prop' == prop then break
-    prop <- prop'
+    prop := prop'
 end loop
     where
         property fn k = prop(fn,k)
@@ -546,6 +522,28 @@ forall v, c `o` satisfies v (notin c) => (valueCtor v /= c)
 \end{code}
 
 \noindent Note that both properties are implications, not equivalences, as constraints may be more restrictive than necessary.
+
+\subsection{Bounded Constraints}
+\label{sec:bounded}
+
+\begin{discuss}
+We require that for any type, there are finitely many constraints. This property is used for termination proofs.
+
+Mention that this lemma is required for termination.
+
+This approach works provided no selectors have a type that is structurally greater than the defined type, and no higher-kinded type variables are used. If the presence of definitions involving these features, either a translation can be made to a permitted form, or \C{isRec} can conservatively return True.
+
+More formally, there exists a function |bounded t| such that the number of non-recursive selectors in any path of any value of type |t| is less than this value.
+
+\begin{code}
+forall x,t,p `o`  x :: t && p `elem` paths x =>
+                  length (filter (not . isRec) p) < bounded t
+\end{code}
+
+A path is a list of selectors, the \C{paths} function returns all paths in a given data structure -- a potentially infinite number.
+\end{discuss}
+
+With unbounded recursion in patterns, the BP-constraint language does \textit{not} have finitely many constraints per type. We could limit the depth of patterns, but instead ignore the issue for now. Both constraint systems in \ref{sec:constraint} have the finiteness property.
 
 \section{Richer Constraint Systems}
 \label{sec:constraint}
