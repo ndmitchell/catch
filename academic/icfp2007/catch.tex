@@ -74,7 +74,7 @@
 \preprintfooter{}   % 'preprint' option specified.
 
 \title{Not All Patterns, But Enough}
-\subtitle{ -- an automatic verifier for partial but sufficient pattern matching in Haskell}
+\subtitle{ -- an automatic verifier for partial but sufficient pattern matching}
 
 \authorinfo{Neil Mitchell}
            {University of York, UK}
@@ -89,7 +89,7 @@
 \begin{discuss}
 A Haskell program may fail at runtime with a pattern-match error if the program has any incomplete (non-exhaustive) patterns in definitions or case alternatives. This paper describes a static checker that allows non-exhaustive patterns to exist, yet can verify that a pattern-match error does not occur. We describe a constraint language that can be used to express requirements for safe pattern matches, along with mechanisms to propagate and reason about these constraints between program components.
 
-The checker we develop using these methods obtains minimal preconditions for 8 out of 14 programs in the Imaginary section of the Nofib suite\citep{nofib}. With minor modifications a further 5 are proven safe. We also check two larger example programs with success, finding several previously unknown errors.
+The checker we develop using these methods obtains minimal preconditions for 8 out of 14 programs in the Imaginary section of the Nofib suite. With minor modifications a further 5 are proven safe. We also check two larger example programs with success, finding several previously unknown errors.
 \end{discuss}
 \end{abstract}
 
@@ -99,7 +99,7 @@ The checker we develop using these methods obtains minimal preconditions for 8 o
 languages, verification
 
 \keywords
-automatic verification, functional programming, pattern-match errors, preconditions
+Haskell, automatic verification, functional programming, pattern-match errors, preconditions
 
 \section{Introduction}
 \label{sec:introduction}
@@ -108,7 +108,7 @@ automatic verification, functional programming, pattern-match errors, preconditi
 Often it is useful to define selector functions, which are defined only for arguments matching a specific constructor pattern, for example \C{head} fails on the empty list. Unfortunately programs with incomplete pattern matches may fail at runtime.
 \end{discuss}
 
-The problem of pattern match failures in Haskell is a serious one. The darcs \citep{darcs} project is one of the most successful large scale programs written in Haskell. Taking a look at the darcs bug tracker, 13 problems are errors related to the selector function \C{fromJust} and 19 are direct pattern match failures.
+The problem of pattern match failures is a serious one. The darcs \citep{darcs} project is one of the most successful large scale programs written in Haskell. Taking a look at the darcs bug tracker, 13 problems are errors related to the selector function \C{fromJust} and 19 are direct pattern match failures.
 
 Consider the following example:
 
@@ -150,7 +150,7 @@ In \citet{me:catch_tfp} a pattern match checker was described with similar aims,
 
 \subsection{Road map}
 
-\S\ref{sec:walkthrough} gives an overview of the checking process for the \C{risers} function. \S\ref{sec:manipulate} introduces a small core functional language and a mechanism for reasoning about this language, \S\ref{sec:constraint} covers a constraint language. \S\ref{sec:transform} discusses how to transform Haskell to this core language. \S\ref{sec:results} evaluates Catch on various sample programs -- including the Nofib benchmark suite. \S\ref{sec:related} compares our work to other work before \S\ref{sec:conclusion} presents concluding remarks.
+\S\ref{sec:walkthrough} gives an overview of the checking process for the \C{risers} function. \S\ref{sec:manipulate} introduces a small core functional language and a mechanism for reasoning about this language, \S\ref{sec:constraint} describes two constraint languages. \S\ref{sec:transform} discusses how to transform Haskell to a first-order core language. \S\ref{sec:results} evaluates \catch{} on various sample programs -- including the Nofib benchmark suite. \S\ref{sec:related} compares our work to other work before \S\ref{sec:conclusion} presents concluding remarks.
 
 \section{Walkthrough of Risers}
 \label{sec:walkthrough}
@@ -842,7 +842,7 @@ v2 = Branch (Leaf False  ) (Leaf True   )
 \catch07 uses MP-constraints, as they scale to much larger examples.
 \end{discuss}
 
-\section{Converting Haskell to Core}
+\section{Converting Haskell to a First-order Core}
 \label{sec:transform}
 
 The full Haskell language is unwieldy for analysis. As noted in \S\ref{sec:core}, the checker works instead on a simplified language, a core to which other Haskell programs can be reduced.
@@ -1006,7 +1006,7 @@ In some circumstances a program may have an infinite number of specialisations. 
 \section{Results and Evaluation}
 \label{sec:results}
 
-The best way to see the power of Catch is by example. \S\ref{sec:safety} discusses in general how some programs may need to be modified to obtain provable safety. \S\ref{sec:imaginary} investigates all the examples from the Imaginary section of Nofib, \S\ref{sec:filepath} investigates a library (System.FilePath) and \S\ref{sec:hscolour} investigates a larger real-world program (HsColour).
+The best way to see the power of Catch is by example. \S\ref{sec:safety} discusses in general how some programs may need to be modified to obtain provable safety. \S\ref{sec:imaginary} investigates all the examples from the Imaginary section of Nofib, \S\ref{sec:filepath} investigates a library (FiniteMap) and \S\ref{sec:hscolour} investigates a larger real-world program (HsColour).
 
 
 \subsection{Modifications for Verifiable Safety}
@@ -1082,25 +1082,25 @@ In the following sections, where modifications were required, we prefer to make 
 \smallskip\smallskip
 
 \begin{tabular*}{\linewidth}{lrrrrrrlll}
-\textbf{Name} & \textbf{Src} & \textbf{Core} & \textbf{First} & \textbf{Err} & \textbf{Pre} & \textbf{Sec} & \textbf{Mb} \\
+\hspace{-2mm} \textbf{Name} & \textbf{Src} & \textbf{Core} & \textbf{First} & \textbf{Err} & \textbf{Pre} & \textbf{Sec} & \textbf{Mb} \\
 \vspace{-1ex} \\
-Bernoulli*                   & 35 & 1616 &  652 & 5 & 11 & 4.1 & 0.8 \\
-Digits of E1*  \hspace{-3mm} & 44 &  957 &  377 & 3 &  8 & 0.3 & 0.6 \\
-Digits of E2   \hspace{-3mm} & 54 & 1179 &  455 & 5 & 19 & 0.5 & 0.8 \\
-Exp3-8                       & 29 &  220 &  163 & 0 &  0 & 0.1 & 0.1 \\
-Gen-Regexps*   \hspace{-3mm} & 41 & 1006 &  776 & 1 &  1 & 0.3 & 0.4 \\
-Integrate                    & 39 & 2466 &  364 & 3 &  3 & 0.3 & 1.9 \\
-Paraffins*                   & 91 & 2627 & 1153 & 2 &  2 & 0.8 & 1.9 \\
-Primes                       & 16 &  302 &  241 & 6 & 13 & 0.2 & 0.1 \\
-Queens                       & 16 &  648 &  283 & 0 &  0 & 0.2 & 0.2 \\
-Rfib                         &  9 & 1918 &  100 & 0 &  0 & 0.1 & 1.7 \\
-Tak                          & 12 &  209 &  155 & 0 &  0 & 0.1 & 0.1 \\
-Wheel Sieve 1* \hspace{-3mm} & 37 & 1221 &  570 & 7 & 10 & 7.5 & 0.9 \\
-Wheel Sieve 2* \hspace{-3mm} & 45 & 1397 &  636 & 2 &  2 & 0.3 & 0.6 \\
-X2n1                         & 10 & 2637 &  331 & 2 &  5 & 1.8 & 1.9 \\
+\hspace{-2mm} Bernoulli*                   & 35 & 1616 &  652 & 5 & 11 & 4.1 & 0.8 \\
+\hspace{-2mm} Digits of E1*  \hspace{-3mm} & 44 &  957 &  377 & 3 &  8 & 0.3 & 0.6 \\
+\hspace{-2mm} Digits of E2   \hspace{-3mm} & 54 & 1179 &  455 & 5 & 19 & 0.5 & 0.8 \\
+\hspace{-2mm} Exp3-8                       & 29 &  220 &  163 & 0 &  0 & 0.1 & 0.1 \\
+\hspace{-2mm} Gen-Regexps*   \hspace{-3mm} & 41 & 1006 &  776 & 1 &  1 & 0.3 & 0.4 \\
+\hspace{-2mm} Integrate                    & 39 & 2466 &  364 & 3 &  3 & 0.3 & 1.9 \\
+\hspace{-2mm} Paraffins*                   & 91 & 2627 & 1153 & 2 &  2 & 0.8 & 1.9 \\
+\hspace{-2mm} Primes                       & 16 &  302 &  241 & 6 & 13 & 0.2 & 0.1 \\
+\hspace{-2mm} Queens                       & 16 &  648 &  283 & 0 &  0 & 0.2 & 0.2 \\
+\hspace{-2mm} Rfib                         &  9 & 1918 &  100 & 0 &  0 & 0.1 & 1.7 \\
+\hspace{-2mm} Tak                          & 12 &  209 &  155 & 0 &  0 & 0.1 & 0.1 \\
+\hspace{-2mm} Wheel Sieve 1* \hspace{-3mm} & 37 & 1221 &  570 & 7 & 10 & 7.5 & 0.9 \\
+\hspace{-2mm} Wheel Sieve 2* \hspace{-3mm} & 45 & 1397 &  636 & 2 &  2 & 0.3 & 0.6 \\
+\hspace{-2mm} X2n1                         & 10 & 2637 &  331 & 2 &  5 & 1.8 & 1.9 \\
 \vspace{-1ex} \\
-FilePath*     \hspace{-3mm} & 462 & 2278 & 2653 & 5 & 15 & 1.6 & 1.6 \\
-HsColour*     \hspace{-3mm} & 823 & 5379 & 5060 & 4 &  9 & 2.1 & 2.7 \\
+\hspace{-2mm} FiniteMap*    \hspace{-3mm} & 670 & 1484 & 1829 & 13 & 17 & 1.6 & 1.0 \\
+\hspace{-2mm} HsColour*     \hspace{-3mm} & 823 & 5379 & 5060 & 4 &  9 & 2.1 & 2.7 \\
 \hline
 \end{tabular*}
 \end{table}
@@ -1196,29 +1196,31 @@ e =  ("2."++) $
 
 \noindent Two uses of \C{tail} and one of \C{head} occur in quite complex functional pipelines. \catch{} is again able to prove that no pattern-match fails.
 
-\subsection{The System.FilePath library}
+\subsection{The FiniteMap library}
 \label{sec:filepath}
 
-The System.FilePath library\footnote{http://darcs.haskell.org/packages/filepath/} is a new library of 51 functions distributed with GHC 6.6.1. The initial challenge to checking a library is that there is no \C{main} function. \catch{} provides the |(||||||)| operator to resolve this issue. A \C{main} function can be constructed as follows:
+The FiniteMap library is based on \citep{adams:sets}, and was included in the Haskell standard libraries for many years.The initial challenge to checking a library is that there is no \C{main} function. \catch{} provides the |(||||||)| operator to resolve this issue. A \C{main} function can be constructed as follows:
 
 \begin{code}
-main = function1 ||| function2 ||| function3
+main = emptyFM ||| unitFM ||| listToFM ||| ...
 \end{code}
 
 \begin{discuss}
 The |(||||||)| operator takes two functions, and using Haskell type classes saturates them with enough arguments, then checks that a crash does not result.
 \end{discuss}
 
-Only one change was required to the library. \catch{} is unable to prove the following definition safe:
+The library manipulates trees, and has 14 distinct possible pattern match errors. Of these \catch{} is able to prove that 13 are unreachable. The final issue detected stems from the code:
 
 \begin{code}
-f x  | isPosix    = dropTrailSlash $ normalise x
-     | isWindows  = dropTrailSlash $ map toLower $ normalise x
+delFromFM (Branch key ...) del_key  | del_key  >   key = ...
+                                    | del_key  <   key = ...
+                                    | del_key  ==  key = ....
 \end{code}
 
-\begin{discuss}
-The function is safe, but relies on the CAF \C{System.Info.os} being a constant string through the run of the program -- something \catch{} does not take account of. Changing \C{isWindows} to \C{otherwise}, \catch{} succeeds taking 1.6 seconds and 1.6Mb of memory to prove all library functions are free from pattern-match errors.
-\end{discuss}
+At first glance this appears to be a complete pattern, the law of trichotomy states that one of these patterns must hold. Unfortunately, the Haskell \C{Ord} class does not have these restrictions. By writing a dubious \C{Ord} class, a crash can be provoked. This issue is not necessarily a coding problem -- authors are allowed to assume that \C{Ord} is indeed an ordering, but perhaps a more defensive approach should have been taken. By moving to the \C{compare} function, the code becomes faster and does not suffer a potential pattern match error.
+
+The paper on which this library is based does not contain such a pattern, leaving the deletion function as homework for the reader.
+
 
 \subsection{The HsColour Program}
 \label{sec:hscolour}
