@@ -475,7 +475,7 @@ forall fn, xs, k `o`  backs (Call fn xs :< k) =>
                       backs (instantiate fn xs :< k)
 \end{code}
 
-That is, the result is at least as restrictive as if the function was inlined at this point. Two instantiation strategies can be used: (1) Use $\beta$ substitution (\C{instantiate}) replacing the call with the body of |fn|. (2) Create fresh variables for each element in |xs|, solve this new problem, and then instantiate the results. \oldtool{} used method 1. \newtool{} uses method 2, as it is more amenable to finding a fixed point, and allows a cache of results to be built from which future questions can be answered.
+That is, the result is at least as restrictive as if the function was inlined at this point. Two instantiation strategies can be used: (1) Use $\beta$ substitution (\C{instantiate}) replacing the call with the body of |fn|. (2) Create fresh variables for each argument, use $\beta$ substitution, and then instantiate the results. \oldtool{} used method 1. \newtool{} uses method 2, as it is easier to find a fixed point, and allows a cache of results to be built from which future questions can be answered.
 
 \begin{figure}
 \begin{code}
@@ -494,9 +494,7 @@ end loop
 \label{fig:property_fixp}
 \end{figure}
 
-\begin{discuss}
-Answers can be calculated by obtaining a fixed point as detailed in Figure \ref{fig:property_fixp}. The function \C{property} generates fresh variables for each of the arguments, and solves this new problem. As in the precondition calculation in \S\ref{sec:precond}, each result is anded with its existing value. As there are finitely many constraint/function pairs termination is guaranteed. Here again, a speed up can be obtained by tracking the dependencies between constraints.
-\end{discuss}
+The function \C{property} takes a postcondition, and transforms it to constraints on the argument positions -- preconditions to the function. This operation can be seen as minimal precondition calculation. As in the precondition calculation in \S\ref{sec:precond}, each result becomes increasingly restrictive. As there are finitely many constraint/function pairs termination is guaranteed. Here again, a speed up can be obtained by tracking the dependencies between constraints.
 
 \subsection{Semantics of Constraints}
 
