@@ -494,7 +494,7 @@ end loop
 \label{fig:property_fixp}
 \end{figure}
 
-The function \C{property} takes a postcondition, and transforms it to constraints on the argument positions -- preconditions to the function. This operation can be seen as minimal precondition calculation. As in the precondition calculation in \S\ref{sec:precond}, each result becomes increasingly restrictive. As there are finitely many constraint/function pairs termination is guaranteed. Here again, a speed up can be obtained by tracking the dependencies between constraints.
+The function \C{property} takes a postcondition, and transforms it to constraints on the argument positions -- a precondition to ensure the postcondition. As in the precondition calculation in \S\ref{sec:precond}, each result becomes increasingly restrictive. As there are finitely many constraint/function pairs termination is guaranteed. Here again, a speed up can be obtained by tracking the dependencies between constraints.
 
 \subsection{Semantics of Constraints}
 
@@ -524,29 +524,21 @@ forall v, c `o` satisfies v (notin c) => (valueCtor v /= c)
 \subsection{Bounded Constraints}
 \label{sec:bounded}
 
-\begin{discuss}
-We require that for any type, there are finitely many constraints. This property is used for termination proofs.
-
-Mention that this lemma is required for termination.
-
-This approach works provided no selectors have a type that is structurally greater than the defined type, and no higher-kinded type variables are used. If the presence of definitions involving these features, either a translation can be made to a permitted form, or \C{isRec} can conservatively return True.
-
-More formally, there exists a function |bounded t| such that the number of non-recursive selectors in any path of any value of type |t| is less than this value.
+We require that for any type, there are finitely many constraints. This lemma is required for termination proofs. To enable these proofs, it is useful to know which selectors are potentially \textit{recursive}. A selector takes a constructor, and returns a particular component. Using \C{hd} for |(:,0)| and \C{tl} for |(:,1)|, we have the types:
 
 \begin{code}
-forall x,t,p `o`  x :: t && p `elem` paths x =>
-                  length (filter (not . isRec) p) < bounded t
+hd  :: [alpha] -> alpha
+tl  :: [alpha] -> [alpha]
 \end{code}
 
-A path is a list of selectors, the \C{paths} function returns all paths in a given data structure -- a potentially infinite number.
-\end{discuss}
+A selector is non-recursive if its result type is structurally less than its argument type. We can see that \C{hd} meets this criteria (is non-recursive) while \C{tl} does not (is recursive). A function |isRec :: Selector -> Bool| carries out this test.
 
-With unbounded recursion in patterns, the BP-constraint language does \textit{not} have finitely many constraints per type. We could limit the depth of patterns, but instead ignore the issue for now. Both constraint systems in \ref{sec:constraint} have the finiteness property.
+With unbounded recursion in patterns, the BP-constraint language does \textit{not} have finitely many constraints per type. We could limit the depth of patterns, but instead ignore the issue for now.
 
 \section{Richer Constraint Systems}
 \label{sec:constraint}
 
-There are various ways of defining a richer constraint system. Here we outline two -- one adapted from \oldtool{}, the other used in \newtool{}. Neither is strictly more powerful than the other; each is capable of expressing constraints that the other cannot express.
+There are various ways of defining a richer constraint system, which also has the necessary finiteness properties. Here we outline two -- one adapted from \oldtool{}, the other used in \newtool{}. Neither is strictly more powerful than the other; each is capable of expressing constraints that the other cannot express.
 
 \subsection{Regular Expression (RE) Constraints}
 \label{sec:regexp}
@@ -555,10 +547,10 @@ There are various ways of defining a richer constraint system. Here we outline t
 \begin{code}
 data Constraint = RegExp :- [CtorName]
 
-type RegExp = [Atom]
+type RegExp = [RegItem]
 
-data Atom  =  Atom  Selector
-           |  Star  [Selector]
+data RegItem  =  Atom  Selector
+              |  Star  [Selector]
 
 notin :: CtorName -> Constraint
 notin c = [] :- delete c (ctors c)
@@ -607,31 +599,18 @@ Concerning the helper functions needed to define | ||>| and |<||| in Figure \ref
 
 \oldtool{} regular expressions were unrestricted and quickly grew to an unmanageable size, thwarting analysis of larger programs. In general, a regular expression takes one of six forms:\\ \\
 \begin{tabular}{ll}
-|s+t|  & union of regular expressions |s| and |t| \\
-|s^.t| & concatenation of regular expressions |s| then |t| \\
-|s^*|  & any number (possibly zero) occurrences of |s| \\
-\C{x}  & a selector, i.e. |(:,0)| for the head of a list \\
-       & We use \C{hd} to abbreviate |(:,0)| and \C{tl} to abbreviate |(:,1)|. \\
-0      & the language is the empty set \\
-1      & the language is the set containing the empty string
+|r1+r2|  & union of regular expressions |s| and |t| \\
+|r1^.r2| & concatenation of regular expressions |s| then |t| \\
+|r1^*|   & any number (possibly zero) occurrences of |s| \\
+\C{sel}  & a selector, i.e. \C{hd} for the head of a list \\
+0        & the language is the empty set \\
+1        & the language is the set containing the empty string
 \end{tabular} \\
 
-\begin{discuss}
-\newtool{} restricts REs to concatenations of selectors, or stars of unions:
-\end{discuss}
-
-\[\begin{array}{lllll}
-r & = & 1     & || & |a^.r| \\
-a & = & \C{x} & || & |u^*| \\
-u & = & \C{x} & || & \C{x} + u
-\end{array}\]
-
-\begin{discuss}
-In addition, all selectors for which \C{isRec} returns true must be under \C{Star}, all which are not must be \C{Atom}, and \C{Star}s cannot be concatenated. These restrictions are motivated by three observations:
-\end{discuss}
+\newtool{} implements REs using the data type \C{RegExp} from Figure \ref{fig:regexp}, with \C{RegExp} being a list of concatenated \C{RegItem}. In addition to the restrictions imposed by the data type, we require: (1) within \C{Atom} the \C{Selector} is not recursive; (2) within \C{Star} there is a non-empty list of \C{Selector}s, each of which is recursive; (3) no two \C{Star} constructors are adjacent in a concatenation. These restrictions are motivated by three observations:
 
 \begin{itemize}
-\item \begin{discuss} Constructor-sets, because of static typing and the restricted form of regular expression, must all be of the same type. (In \oldtool{} expressions such as |hd^*| could arise.)\end{discuss}
+\item Because of static typing constructor-sets must all be of the same type. (In \oldtool{} expressions such as |hd^*| could arise.)
 
 \item There are finitely many regular expressions for any type. Combined with the finite number of constructors, this property is enough to guarantee termination when computing a fixed-point iteration on constraints.
 
@@ -674,7 +653,7 @@ count t = 2 ^ rec * (2 ^ ctor + sum (map count nonrec))
 The |2^rec| term corresponds to the number of possible constraints under \C{Star}. The |2^ctor| term accounts for the case where the selector path is empty.
 
 
-\subsection{RE-Constraint Propositions}
+\subsubsection{RE-Constraint Propositions}
 \label{sec:re-propositions}
 
 \catch{} computes over propositional formulae with constraints as atomic propositions. Among other operators on propositions, they are compared for equality to obtain a fixed point. All the fixed-point algorithms given in this paper stop once equal constraints are found. We use Binary Decision Diagrams (BDD) \citep{lee:bdd} to make these equality tests fast. Since the complexity of performing an operation is often proportional to the number of atomic constraints in a proposition, we apply simplification rules to reduce this number. Three of the nineteen rules are:
@@ -744,7 +723,7 @@ Although RE-constraints are capable of solving many problems, they suffer from a
 
 MP-constraints are similar to BP-constraints, but can constrain an infinite number of items. A value |v| satisfies a constraint |p1 :* p2| if |v| itself satisfies |p1| and all its recursive components satisfy |p2|. Each of |p1| and |p2| is given as a set of matches -- as in \S\ref{sec:basic} but each \C{Pattern} only specifies the values for the non-recursive selectors, all recursive selectors are handled by |p2|.
 
-\begin{revisit}{1} safe evaluation of |(head xs)| requires |xs| to be non-empty. The MP-constraint on |xs| is: |{(:) Any} :* {[], (:) Any}| This constraint is longer than the corresponding RE-constraint because it makes explicit that the \C{hd} field is unrestricted.
+\begin{revisit}{1} safe evaluation of |(head xs)| requires |xs| to be non-empty. The MP-constraint on |xs| is: |{(:) Any} :* {[], (:) Any}| This constraint is longer than the corresponding RE-constraint as it makes explicit that the \C{hd} field is unrestricted.
 \end{revisit}
 
 \begin{revisit}{2} safe evaluation of |(map head xs)| requires |xs| to be a list of non-empty lists. The MP-constraint on |xs| is:
@@ -781,7 +760,7 @@ pattern t = sum (map f t)
 The \C{val} function counts the number of possible \C{Val} constructions. The \C{pattern} function performs a similar role for \C{Pattern} constructions.
 
 
-\subsection{MP-Constraint Propositions and Uncurrying}
+\subsubsection{MP-Constraint Propositions and Uncurrying}
 
 A big advantage of MP-constraints is that if two constraints on the same expression are combined at the proposition level, they can be reduced into one constraint:
 
@@ -837,9 +816,7 @@ v2 = Branch (Leaf False  ) (Leaf True   )
 \noindent The RE-constraint |(left^* :- True)| is satisfied by |v1| but not |v2|. No MP-constraint separates the two values.
 \end{example}
 
-\begin{discuss}
-\newtool{} uses MP-constraints, as they scale to much larger examples.
-\end{discuss}
+We have implemented checkers using both constraint systems. There are various factors to consider when choosing which constraint system to use -- how readable the constraints are, the expressive power, implementation complexity and scalability. In practice the issue of scalability is key: how large do constraints become, how quickly can they be manipulated, how expensive is their simplification. \newtool{} uses MP-constraints, as they are far superior to RE-constraints at scale, allowing much larger examples to be checked.
 
 \section{Converting Haskell to a First-order Core}
 \label{sec:transform}
@@ -887,9 +864,9 @@ The dictionary transformation is a global transformation. In Example \lastexampl
 
 The analysis presented in \S\ref{sec:manipulate} operates on a first-order language. In order to analyse full Haskell, we transform Haskell to a first-order language. We briefly consider three alternative methods.
 
-\subsubsection{Reynold's style defunctionalization}
+\subsubsection{Reynolds style defunctionalization}
 
-Reynold's style defunctionalization \citep{reynolds:defunc} is the seminal method for generating a first-order equivalent of a higher-order program.
+Reynolds style defunctionalization \citep{reynolds:defunc} is the seminal method for generating a first-order equivalent of a higher-order program.
 
 \begin{example}
 \begin{code}
@@ -916,12 +893,12 @@ Now all calls to |map head| are replaced by |map Head|.
 
 Defunctionalized code is still type safe, but type checking would require a dependently typed language. This presents no problem for \catch{}, which does not use type information. The unacceptable aspect is the creation of an \C{apply} function, whose meaning is excessively general, introducing a bottleneck through which various properties must be proven. Asking questions such as \textit{``Is the result of \C{apply} an empty-list?''}, requires a lot of computation.
 
-\catch{} only uses Reynold's style defunctionalization if all other methods fail.
+\catch{} only uses Reynolds style defunctionalization if all other methods fail.
 
 
 \subsubsection{Specialisation}
 
-\oldtool{} used a different technique to remove higher-order functions: specialisation. A mutually recursive group of functions can be specialised in \underline{their $n$th argument} if in all recursive calls this argument is invariant. Examples of common functions whose applications can be specialised include \C{map}, \C{filter}, \C{foldr} and \C{foldl}. When a function can be specialised, the expression passed as the $n$th argument has all its free variables passed as extra arguments, and is expanded in the specialised version. All recursive calls within the new function are then renamed.
+\oldtool{} used a different technique to remove higher-order functions: specialisation. A mutually recursive group of functions can be specialised if one argument is always passed between functions unmodified. Examples of common functions whose applications can be specialised include \C{map}, \C{filter}, \C{foldr} and \C{foldl}. When a function can be specialised, the expression passed as the invariant argument has all its free variables passed as extra arguments, and is expanded in the specialised version. All recursive calls within the new function are then renamed.
 
 \begin{example}
 \begin{code}
@@ -996,41 +973,18 @@ transform (Call fn xs) | any isHO xs =
     f x = if isHO x then freeVars x else [x]
 \end{code}
 
-The combination of specialisation and inlining is powerful. We have encountered few examples where it fails -- mainly artificial tests created specifically to break the approach! Either the entire body is an application of the functional argument (in which case it will be inlined), or it must occur as the argument to a function (in which case it is specialised). There are only two places left for functional arguments to be used: (1) As the subject of a |case| expression. But this situation is impossible as all |case| expressions must choose over a data value. (2) Inside an \C{Apply} with another functional argument variable as the function. This situation is very rare in practice.
+In rare circumstances a program may have an infinite number of specialisations. If necessary we revert to Reynolds style defunctionalization.
 
-\begin{discuss}
-In some circumstances a program may have an infinite number of specialisations. In reality, this is rare, but if necessary we revert to Reynold's style defunctionalization.
-\end{discuss}
+The combination of specialisation and inlining is powerful. We have encountered few examples where it fails -- mainly artificial tests created specifically to break the approach! Either the entire body is an application of the functional argument (in which case it will be inlined), or it must occur as the argument to a function (in which case it is specialised). There are only two places left for functional arguments to be used: (1) As the subject of a |case| expression. But this situation is impossible as all |case| expressions must choose over a data value. (2) Inside an \C{Apply} with another functional argument variable as the function. This situation is rare due to the removal of other functional arguments.
 
 \section{Results and Evaluation}
 \label{sec:results}
 
-The best way to see the power of Catch is by example. \S\ref{sec:safety} discusses in general how some programs may need to be modified to obtain provable safety. \S\ref{sec:imaginary} investigates all the examples from the Imaginary section of Nofib, \S\ref{sec:filepath} investigates a library (FiniteMap) and \S\ref{sec:hscolour} investigates a larger real-world program (HsColour).
+The best way to see the power of Catch is by example. \S\ref{sec:safety} discusses in general how some programs may need to be modified to obtain provable safety. \S\ref{sec:imaginary} investigates all the examples from the Imaginary section of the Nofib suite \cite{nofib}. To illustrate results for larger and widely-used applications, \S\ref{sec:finitemap} investigates a library (FiniteMap) and \S\ref{sec:hscolour} investigates a complete program (HsColour).
 
 
 \subsection{Modifications for Verifiable Safety}
 \label{sec:safety}
-
-\begin{discuss}
-Take a typical benchmark, Primes. The \C{main} function is:
-\end{discuss}
-
-\begin{code}
-main = do  [arg] <- getArgs
-           print $ primes !! (read arg)
-\end{code} % $
-
-The first unsafe pattern here is |[arg] <- getArgs|, as \C{getArgs} is a primitive which may return any value. \catch{} correctly returns False as the precondition to \C{main}!
-
-The next step that may fail is when \C{read} is applied to an argument extracted from getArgs. This argument is entirely unknown, and \C{read} is a sufficiently complicated function that although it can be modelled by Catch, there is no possibility for getting an appropriate abstraction which models the failure case. As a result, any program which calls \C{read} is unsafe, according to \catch{}! Using \C{reads}, which indicates failure properly, a program may still be checked  successfully.
-
-As a result the programs have been rewritten, and \catch{} is directed to check the function:
-
-\begin{code}
-compute x = print $ primes !! x
-\end{code}
-
-\todo{JUMP}
 
 Take the following example:
 
@@ -1110,7 +1064,26 @@ Results are given in Table \ref{tab:results}. Only four programs contain no call
 
 Three programs have preconditions on the \C{main} function, all of which state that the argument must be a natural number. In all cases the generated precondition is a necessary one -- if the input violates the precondition then pattern-match failure will occur.
 
-We now discuss the four programs which required changes, along with the Digits of E2 program -- a program with complex pattern matching that \catch{} is able to prove safe.
+We now discuss general modifications required to allow \catch{} to begin checking the programs, followed by the six programs which required changes. We finish with the Digits of E2 program -- a program with complex pattern matching that \catch{} is able to prove safe.
+
+\paragraph{Modifications for Checking}
+
+Take a typical benchmark, Primes. The \C{main} function is:
+
+\begin{code}
+main = do  [arg] <- getArgs
+           print $ primes !! (read arg)
+\end{code} % $
+
+The first unsafe pattern here is |[arg] <- getArgs|, as \C{getArgs} is a primitive which may return any value. \catch{} correctly returns False as the precondition to \C{main}!
+
+The next step that may fail is when \C{read} is applied to an argument extracted from getArgs. This argument is entirely unknown, and \C{read} is a sufficiently complicated function that although it can be modelled by Catch, there is no possibility for getting an appropriate abstraction which models the failure case. As a result, any program which calls \C{read} is unsafe, according to \catch{}! Using \C{reads}, which indicates failure properly, a program may still be checked  successfully.
+
+As a result the programs have been rewritten, and \catch{} is directed to check the function:
+
+\begin{code}
+compute x = print $ primes !! x
+\end{code}
 
 \paragraph{Bernoulli}
 
@@ -1131,9 +1104,11 @@ ratTrans (a,b,c,d) xs |
 
 \noindent \catch{} is able to prove that the division by |d| is only unsafe if both |c| and |d| are zero, but it is not able to prove that this invariant is maintained. Using \C{safeDiv} from \S\ref{sec:safety} the program is proved safe.
 
+This program requires quite deep results in number theory to ensure safety, consequently we consider it beyond the scope of an automatic checker such as \catch{}.
+
 \paragraph{Gen-Regexps}
 
-This program expects valid regular expressions as input. Ways of crashing the program include entering |""|, |"["|, |"<"| and lots of other inputs. One potential error comes from |head . lines|, which can be replaced by |takeWhile (/= '\n')|. Two potential errors take the form |(a,_:b) = span f x|. At first glance this pattern definition is similar to the one in \C{risers}. But here the pattern is only safe if for one of the elements in the list |x|, |f| returns True. The test |f| is actually |(/= '-')|. Using the abstraction for |Char| as detailed in \S\ref{sec:abstraction}, |(/=)| \underline{over |Char| always has an unknown result}, making this pattern impossible to prove safe. With the amendment  |(a,b) = safeSpan f x|, where \C{safeSpan} is defined as:
+This program expects valid regular expressions as input. Ways of crashing the program include entering |""|, |"["|, |"<"| and lots of other inputs. One potential error comes from |head . lines|, which can be replaced by |takeWhile (/= '\n')|. Two potential errors take the form |(a,_:b) = span f x|. At first glance this pattern definition is similar to the one in \C{risers}. But here the pattern is only safe if for one of the elements in the list |x|, |f| returns True. The test |f| is actually |(/= '-')|, and the only safe condition \catch{} can express is |x| is an infinite list. With the amendment  |(a,b) = safeSpan f x|, where \C{safeSpan} is defined as:
 
 \begin{code}
 safeSpan p x = (a, drop 1 b) where (a,b) = span p x
@@ -1196,19 +1171,19 @@ e =  ("2."++) $
 \noindent Two uses of \C{tail} and one of \C{head} occur in quite complex functional pipelines. \catch{} is again able to prove that no pattern-match fails.
 
 \subsection{The FiniteMap library}
-\label{sec:filepath}
+\label{sec:finitemap}
 
-The FiniteMap library is based on \citep{adams:sets}, and was included in the Haskell standard libraries for many years.The initial challenge to checking a library is that there is no \C{main} function. \catch{} provides the |(||||||)| operator to resolve this issue. A \C{main} function can be constructed as follows:
+The FiniteMap library for Haskell has been widely distributed for over 10 years. The library utilises balanced binary trees, based on \citep{adams:sets}. There are non-exhaustive pattern matches in 14 places.
+
+The first challenge is that there is no \C{main} function. \catch{} provides the |(||||||)| operator to resolve this issue. A \C{main} function can be constructed as follows:
 
 \begin{code}
-main = emptyFM ||| unitFM ||| listToFM ||| ...
+main = addListToFM ||| addListToFM_C ||| ... ||| unitFM
 \end{code}
 
-\begin{discuss}
-The |(||||||)| operator takes two functions, and using Haskell type classes saturates them with enough arguments, then checks that a crash does not result.
-\end{discuss}
+The |(||||||)| operator chains together functions, checking each functions as though it had been specified as the root from which to check.
 
-The library manipulates trees, and has 14 distinct possible pattern match errors. Of these \catch{} is able to prove that 13 are unreachable. The final issue detected stems from the code:
+\catch{} is able to prove that all but one of the non-exhaustive patterns are safe. The definitino found unsafe has the form:
 
 \begin{code}
 delFromFM (Branch key ...) del_key  | del_key  >   key = ...
@@ -1216,9 +1191,12 @@ delFromFM (Branch key ...) del_key  | del_key  >   key = ...
                                     | del_key  ==  key = ....
 \end{code}
 
-At first glance this appears to be a complete pattern, the law of trichotomy states that one of these patterns must hold. Unfortunately, the Haskell \C{Ord} class does not have these restrictions. By writing a dubious \C{Ord} class, a crash can be provoked. This issue is not necessarily a coding problem -- authors are allowed to assume that \C{Ord} is indeed an ordering, but perhaps a more defensive approach should have been taken. By moving to the \C{compare} function, the code becomes faster and does not suffer a potential pattern match error.
+At first glance the cases appear to be exhaustive. The law of trichotomy leads us to expect one of these guards must be true. However, the Haskell \C{Ord} class does not have these restrictions. There is nothing to prevent an instance for a type with partially ordered values, some of which are incomparable -- NaN in the \C{Double} type is incomparable.
 
-The paper on which this library is based does not contain such a pattern, leaving the deletion function as homework for the reader.
+
+By writing a dubious \C{Ord} class, a crash can be provoked. This issue is not necessarily a coding problem -- authors are allowed to assume that \C{Ord} is indeed an ordering, but perhaps a more defensive approach should have been taken. A solution would be to use the \C{compare} function with returns one of \C{GT}, \C{EQ} or \C{LT}. This approach has several advantages: (1) the code is free from non-exhaustive patterns; (2) the assumption of trichotomy is explicit in the return type; (3) the library would be faster, avoiding an additional test.
+
+(As an aside, Adams' original paper on which the FiniteMap library is based leaves the deletion function as homework for the reader!)
 
 
 \subsection{The HsColour Program}
@@ -1233,17 +1211,15 @@ We have contributed patches back to the author of HsColour, with the result that
 \section{Related Work}
 \label{sec:related}
 
-\begin{discuss}
-This paper follows very much the same spirit as \cite{me:catch_tfp} -- the goals are the same and the approach is similar. The comparison to the previous paper has been made throughout , but the two main improvements are support for full Haskell, and scalability.
-\end{discuss}
-
 \subsection{Mistake Detectors}
 
 There has been a long history of writing tools to analyse programs to detect potential bugs, going back to the classic C Lint tool \citep{lint}. In the functional arena there is the Dialyzer tool \citep{dialyzer} for Erlang \citep{erlang}. The aim is to have a static checker that works on unmodified code, with no additional annotations. However, a key difference is that in Dialyzer all warnings indicate a genuine problem that needs to be fixed. Because Erlang is a dynamically typed language, a large proportion of Dialyzer's warnings relate to mistakes a type checker would have detected.
 
 \subsection{Proving Incomplete Patterns Safe}
 
-Despite the seriousness of the problem of pattern matching, there are very few tools for checking pattern-match safety. The closest work we are aware of is \citep{esc_haskell}, where ESC/Haskell is introduced. The ESC/Haskell approach requires the programmer to give explicit preconditions and contracts which the program obeys. Contracts have more expressive power than our constraints -- one of the examples involves an invariant on an ordered list, something beyond \catch{}. But the programmer has more work to do. At the time of writing there is no publicly available version of ESC/Haskell. So far as we know, it does not yet support full Haskell, lacks features such as type classes, and handles only small examples. A future version of ESC/Haskell may address these limitations, allowing a fuller comparison to be made.
+Despite the seriousness of the problem of pattern matching, there are very few other tools for checking pattern-match safety. This paper follows very much the same spirit as \cite{me:catch_tfp} -- the goals are the same and the approach is similar. A comparison to this work has been made throughout, in most aspects this paper is radically different. We support full Haskell, can scale to much larger programs and can make a useful on real programs. Some of the reasons for these improvements include a different fixed-point mechanism, new MP-constraints and a much superior translation from Core.
+
+The closest other work we are aware of is \citep{esc_haskell}, where ESC/Haskell is introduced. The ESC/Haskell approach requires the programmer to give explicit preconditions and contracts which the program obeys. Contracts have more expressive power than our constraints -- one of the examples involves an invariant on an ordered list, something beyond \catch{}. But the programmer has more work to do. At the time of writing there is no publicly available version of ESC/Haskell. So far as we know, it does not yet support full Haskell, lacks features such as type classes, and handles only small examples. A future version of ESC/Haskell may address these limitations, allowing a fuller comparison to be made.
 
 
 \subsection{Eliminating Incomplete Patterns}
