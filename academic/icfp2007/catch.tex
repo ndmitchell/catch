@@ -388,7 +388,7 @@ Our intention is that for every function, constraints on the arguments form a pr
 
 \subsubsection{Stable Preconditions}
 
-The precondition to each function must be at least as restrictive as the precondition to the body of that function:
+The precondition on each function must be at least as restrictive as the precondition on the body of that function:
 
 \begin{code}
 forall fn, xs `o` preFunc fn xs => pre (instantiate fn xs)
@@ -413,7 +413,7 @@ end loop
 \label{fig:precond_fixp}
 \end{figure}
 
-The iterative algorithm for calculating preconditions is given in Figure~\ref{fig:precond_fixp}. 
+The iterative algorithm for calculating preconditions is given in Figure~\ref{fig:precond_fixp}.
 Initially all preconditions are assumed to be True, apart from the \C{error} precondition, which is False. New preconditions are calculated for every function, until no condition changes. In each iteration the preconditions become more restrictive, so \textit{given a constraint in which all chains of increasingly restrictive constraints are finite}, termination is guaranteed (we return to the finiteness in \ref{sec:bounded}). A more efficient algorithm tracks dependencies between preconditions, and performs the minimum amount of recalculation. Finding strongly connected components in the static call graph of a program would allow parts of the program to be checked separately.
 
 \subsubsection{Preconditions and Laziness}
@@ -475,7 +475,7 @@ forall fn, xs, k `o`  backs (Call fn xs :< k) =>
                       backs (instantiate fn xs :< k)
 \end{code}
 
-That is, the result is at least as restrictive as if the function was inlined at this point. Two instantiation strategies can be used: (1) Use $\beta$ substitution (\C{instantiate}) replacing the call with the body of |fn|. (2) Create fresh variables for each argument, use $\beta$ substitution, and then instantiate the results. \oldtool{} used method 1. \newtool{} uses method 2, as it is easier to find a fixed point, and allows a cache of results to be built from which future questions can be answered.
+That is, the result is at least as restrictive as if the function was inlined at this point. Two strategies can be used: (1) Use $\beta$ substitution (\C{instantiate}) replacing the call with the body of |fn|. (2) Create fresh variables for each argument, use $\beta$ substitution, and then instantiate the results. \oldtool{} used method 1. \newtool{} uses method 2, as it is easier to find a fixed point, and allows a cache of results to be built -- reducing duplicate computation.
 
 \begin{figure}
 \begin{code}
@@ -538,7 +538,7 @@ With unbounded recursion in patterns, the BP-constraint language does \textit{no
 \section{Richer Constraint Systems}
 \label{sec:constraint}
 
-There are various ways of defining a richer constraint system, which also has the necessary finiteness properties. Here we outline two -- one adapted from \oldtool{}, the other used in \newtool{}. Neither is strictly more powerful than the other; each is capable of expressing constraints that the other cannot express.
+There are various ways of defining a richer constraint system, also providing the necessary finiteness properties. Here we outline two -- one adapted from \oldtool{}, the other used in \newtool{}. Neither is strictly more powerful than the other; each is capable of expressing constraints that the other cannot express.
 
 \subsection{Regular Expression (RE) Constraints}
 \label{sec:regexp}
@@ -599,9 +599,9 @@ Concerning the helper functions needed to define | ||>| and |<||| in Figure \ref
 
 \oldtool{} regular expressions were unrestricted and quickly grew to an unmanageable size, thwarting analysis of larger programs. In general, a regular expression takes one of six forms:\\ \\
 \begin{tabular}{ll}
-|r1+r2|  & union of regular expressions |s| and |t| \\
-|r1^.r2| & concatenation of regular expressions |s| then |t| \\
-|r1^*|   & any number (possibly zero) occurrences of |s| \\
+|r1+r2|  & union of regular expressions |r1| and |r2| \\
+|r1^.r2| & concatenation of regular expressions |r1| then |r2| \\
+|r1^*|   & any number (possibly zero) occurrences of |r1| \\
 \C{sel}  & a selector, i.e. \C{hd} for the head of a list \\
 0        & the language is the empty set \\
 1        & the language is the set containing the empty string
@@ -898,7 +898,7 @@ Defunctionalized code is still type safe, but type checking would require a depe
 
 \subsubsection{Specialisation}
 
-\oldtool{} used a different technique to remove higher-order functions: specialisation. A mutually recursive group of functions can be specialised if one argument is always passed between functions unmodified. Examples of common functions whose applications can be specialised include \C{map}, \C{filter}, \C{foldr} and \C{foldl}. When a function can be specialised, the expression passed as the invariant argument has all its free variables passed as extra arguments, and is expanded in the specialised version. All recursive calls within the new function are then renamed.
+\oldtool{} uses a different technique to remove higher-order functions: specialisation. A mutually recursive group of functions can be specialised if one argument is always passed between functions unmodified. Examples of common functions whose applications can be specialised include \C{map}, \C{filter}, \C{foldr} and \C{foldl}. When a function can be specialised, the expression passed as the invariant argument has all its free variables passed as extra arguments, and is expanded in the specialised version. All recursive calls within the new function are then renamed.
 
 \begin{example}
 \begin{code}
@@ -1077,7 +1077,7 @@ main = do  [arg] <- getArgs
 
 The first unsafe pattern here is |[arg] <- getArgs|, as \C{getArgs} is a primitive which may return any value. \catch{} correctly returns False as the precondition to \C{main}!
 
-The next step that may fail is when \C{read} is applied to an argument extracted from getArgs. This argument is entirely unknown, and \C{read} is a sufficiently complicated function that although it can be modelled by Catch, there is no possibility for getting an appropriate abstraction which models the failure case. As a result, any program which calls \C{read} is unsafe, according to \catch{}! Using \C{reads}, which indicates failure properly, a program may still be checked  successfully.
+The next step that may fail is when \C{read} is applied to an argument extracted from \C{getArgs}. This argument is entirely unknown, and \C{read} is a sufficiently complicated function that although it can be modelled by Catch, there is no possibility for getting an appropriate abstraction which models the failure case. As a result, any program which calls \C{read} is unsafe, according to \catch{}! Using \C{reads}, which indicates failure properly, a program may still be checked  successfully.
 
 As a result the programs have been rewritten, and \catch{} is directed to check the function:
 
@@ -1173,7 +1173,7 @@ e =  ("2."++) $
 \subsection{The FiniteMap library}
 \label{sec:finitemap}
 
-The FiniteMap library for Haskell has been widely distributed for over 10 years. The library utilises balanced binary trees, based on \citep{adams:sets}. There are non-exhaustive pattern matches in 14 places.
+The FiniteMap library for Haskell has been widely distributed for over 10 years. The library utilises balanced binary trees, based on \citep{adams:sets}. There are 14 non-exhaustive pattern matches.
 
 The first challenge is that there is no \C{main} function. \catch{} provides the |(||||||)| operator to resolve this issue. A \C{main} function can be constructed as follows:
 
@@ -1181,9 +1181,9 @@ The first challenge is that there is no \C{main} function. \catch{} provides the
 main = addListToFM ||| addListToFM_C ||| ... ||| unitFM
 \end{code}
 
-The |(||||||)| operator chains together functions, checking each functions as though it had been specified as the root from which to check.
+The |(||||||)| operator chains together functions, checking each function as though it had been specified as the root from which to check.
 
-\catch{} is able to prove that all but one of the non-exhaustive patterns are safe. The definitino found unsafe has the form:
+\catch{} is able to prove that all but one of the non-exhaustive patterns are safe. The definition found unsafe has the form:
 
 \begin{code}
 delFromFM (Branch key ...) del_key  | del_key  >   key = ...
@@ -1191,10 +1191,13 @@ delFromFM (Branch key ...) del_key  | del_key  >   key = ...
                                     | del_key  ==  key = ....
 \end{code}
 
-At first glance the cases appear to be exhaustive. The law of trichotomy leads us to expect one of these guards must be true. However, the Haskell \C{Ord} class does not have these restrictions. There is nothing to prevent an instance for a type with partially ordered values, some of which are incomparable -- NaN in the \C{Double} type is incomparable.
+At first glance the cases appear to be exhaustive. The law of trichotomy leads us to expect one of these guards must be true. However, the Haskell \C{Ord} class does not have these restrictions. There is nothing to prevent an instance for a type with partially ordered values, some of which are incomparable -- NaN in the \C{Double} type is incomparable. Given a \C{nan} value:
 
+\begin{code}
+main = print $ sizeFM $ delFromFM (unitFM nan ()) nan)
+\end{code}
 
-By writing a dubious \C{Ord} class, a crash can be provoked. This issue is not necessarily a coding problem -- authors are allowed to assume that \C{Ord} is indeed an ordering, but perhaps a more defensive approach should have been taken. A solution would be to use the \C{compare} function with returns one of \C{GT}, \C{EQ} or \C{LT}. This approach has several advantages: (1) the code is free from non-exhaustive patterns; (2) the assumption of trichotomy is explicit in the return type; (3) the library would be faster, avoiding an additional test.
+\noindent Evaluation of \C{main} will raise a pattern-match error. A solution would be to use the \C{compare} function which returns one of \C{GT}, \C{EQ} or \C{LT}. This approach has several advantages: (1) the code is free from non-exhaustive patterns; (2) the assumption of trichotomy is explicit in the return type; (3) the library is faster, avoiding an additional test.
 
 (As an aside, Adams' original paper on which the FiniteMap library is based leaves the deletion function as homework for the reader!)
 
@@ -1217,26 +1220,21 @@ There has been a long history of writing tools to analyse programs to detect pot
 
 \subsection{Proving Incomplete Patterns Safe}
 
-Despite the seriousness of the problem of pattern matching, there are very few other tools for checking pattern-match safety. This paper follows very much the same spirit as \cite{me:catch_tfp} -- the goals are the same and the approach is similar. A comparison to this work has been made throughout, in most aspects this paper is radically different. We support full Haskell, can scale to much larger programs and can make a useful on real programs. Some of the reasons for these improvements include a different fixed-point mechanism, new MP-constraints and a much superior translation from Core.
+Despite the seriousness of the problem of pattern matching, there are very few other tools for checking pattern-match safety. This paper follows very much the same spirit as \cite{me:catch_tfp} -- the goals are the same and the approach is similar. A comparison to this work has been made throughout, in most aspects this paper is radically different. We support full Haskell, can scale to much larger programs and can make a useful on real programs. Some of the reasons for these better results include a different fixed-point mechanism, the use of MP-constraints and a superior translation from Core.
 
 The closest other work we are aware of is \citep{esc_haskell}, where ESC/Haskell is introduced. The ESC/Haskell approach requires the programmer to give explicit preconditions and contracts which the program obeys. Contracts have more expressive power than our constraints -- one of the examples involves an invariant on an ordered list, something beyond \catch{}. But the programmer has more work to do. At the time of writing there is no publicly available version of ESC/Haskell. So far as we know, it does not yet support full Haskell, lacks features such as type classes, and handles only small examples. A future version of ESC/Haskell may address these limitations, allowing a fuller comparison to be made.
 
 
 \subsection{Eliminating Incomplete Patterns}
 
-One way to guarantee that a program does not crash with an incomplete pattern is to ensure that all pattern matching is exhaustive. The GHC compiler \citep{ghc} has an option flag to warn of any incomplete patterns. Unfortunately the Bugs (12.2.1) section of the manual notes that the checks are sometimes wrong, particularly with string patterns or guards, and that this part of the compiler ``needs an overhaul really'' \citep{ghc}. Also the GHC checks are only local.
+One way to guarantee that a program does not crash with an incomplete pattern is to ensure that all pattern matching is exhaustive. The GHC compiler \citep{ghc} has an option flag to warn of any incomplete patterns. Unfortunately the Bugs (12.2.1) section of the manual notes that the checks are sometimes wrong, particularly with string patterns or guards, and that this part of the compiler ``needs an overhaul really'' \citep{ghc}. The GHC checks are only local: defining \C{head} will lead to a warning, even though the definition is correct; using \C{head} will not lead to a warning, even though it may raise a pattern-match error.
 
-\begin{discuss}
-A more radical approach is to design a \textit{total} functional language without pattern-match errors (or non-termination) \citep{turner:total}. Incomplete pattern matches are banned. But as we have seen in \S\ref{sec:imaginary}, Haskell programs have a reasonably high number of incomplete pattern matches, but may still be safe.
+A more radical approach is to build exhaustive pattern matching into the design of the language, as part of a total programming system \citep{turner:total}. As we have seen in \S\ref{sec:results}, Haskell programs often contain a reasonable number of non-exhaustive patterns, used in a safe manner. The \catch{} tool could perhaps allow the exhaustive pattern matching restriction to be lifted somewhat.
 
-The \catch{} tool could perhaps allow the exhaustive pattern matching restriction to be lifted somewhat. The \catch{} tool will always report success if there are no inexhaustive patterns, so a more generous requirement would be for the \catch{} tool to succeed on the program.
-\end{discuss}
 
 \subsection{Type System Safety}
 
-\begin{discuss}
-Another way of checking pattern matching is to define a slightly more precise type system. In this light the checker can be compared to the tree automata work done on XML and XSL \citep{static_xslt}, which can be seen as an algebraic data type and a functional language. Another soft typing system with similarities is by \citet{aiken:type_infer}, on the functional language FL. This system tries to assign a type to each function using a set of constructors, for example \C{head} takes the type \C{Cons} and not \C{Nil}.
-\end{discuss}
+One method for specifying properties about functional programs is to use the type system. This approach is taken in the tree automata work done on XML and XSL \citep{static_xslt}, which can be seen as an algebraic data type and a functional language. Another soft typing system with similarities is by \citet{aiken:type_infer}, on the functional language FL. This system tries to assign a type to each function using a set of constructors, for example \C{head} takes the type \C{Cons} and not \C{Nil}.
 
 \begin{figure}
 \begin{code}
@@ -1286,22 +1284,15 @@ Using GADT's \citep{spj:gadt}, an encoding of lists can be written as in Figure 
 \section{Conclusions and Future Work}
 \label{sec:conclusion}
 
+We have presented a static checker for potential pattern-match errors in Haskell. This checker is capable of determining preconditions under which a program with non-exhaustive patterns executes without failing due to a pattern-match error. A section of the Nofib suite has been tested (\S\ref{sec:imaginary}) , with encouraging results -- all but one program can be proved safe, many without modification. Two larger real-world examples have been checked: new bugs were discovered and fixed in one of them (\S\ref{sec:hscolour}), which is now verified to be pattern safe.
+
+We see three avenues of future work. (1) \textit{Allow explicit annotations.} If the programmer was able to specify preconditions and invariants, they could both assist the checker, and allow for more restrictive and explicit conditions. (2) \textit{Increase the power of the constraints.} A linear constraint system would allow at least three of the examples from \S\ref{sec:imaginary} to succeed, other constraint systems would have more success. (3) \textit{Exploiting \catch{} for other purposes}. Absence of pattern-match failure could be used to inform an optimising compiler. The properties generated could also be used to generate more efficient code.
+
 \begin{discuss}
-A static checker for potential pattern-match errors in Haskell has been specified and implemented. This checker is capable of determining preconditions under which a program with non-exhaustive patterns executes without failing due to a pattern-match error. A section of the Nofib suite has been tested, with encouraging results -- all but one program can be proved safe, many without modification. Two larger real-world examples have been checked: new bugs were discovered and fixed in one of them, which is now verified to be pattern safe.
-
-There are two main avenues of future work. (1) \textit{Extend the power of the checker.} Possible ways to increase power include the addition of explicit annotations of properties, or a more powerful constraint language, with special purpose constraints (e.g. a linear constraint system \todo{Colin wants citation}). If the programmer was able to specify more restrictive preconditions, or properties, or invariants, then these may be able checked with \catch{}. If the power of the constraint system was increased then richer program annotations could be used.
-
-(2) \textit{Use \catch{} to solve other problems.} Absence of pattern-match failure could be used to inform an optimising compiler. The properties generated could also be used to generate more efficient code.
+The elegance of Haskell is sometimes tainted by the presence of partial functions. By ensuring that partial functions are used appropriately, we are able to regain guarantees of safety -- without placing undue burden upon the programmer.
 \end{discuss}
 
-% \appendix
-% \section{Appendix Title}
-%
-% Here is the text of the appendix, if you need one.
-
-\acks
-
-The first author is an EPSRC-supported PhD student.
+\anon{\acks The first author is an EPSRC-supported PhD student.}{}
 
 \bibliographystyle{plainnat}
 
