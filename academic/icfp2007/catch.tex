@@ -74,27 +74,32 @@
 \copyrightyear{2007} %
 \copyrightdata{[to be supplied]}
 
-\titlebanner{\today{} - \currenttime{}}        % These are ignored unless
+\titlebanner{} % \today{} - \currenttime{}}        % These are ignored unless
 \preprintfooter{}   % 'preprint' option specified.
 
 \title{Not All Patterns, But Enough}
 \subtitle{ -- an automatic verifier for partial but sufficient pattern matching}
 
 \authorinfo{\anon{Neil Mitchell}{Author 1}}
-           {\anon{University of York, UK}{Affiliation 1}}
-           {\anon{\http://www.cs.york.ac.uk/$\sim$ndm/}{Contact Details 1}}
+           {\anon{University of York, UK - ndm}{Affiliation 1}}
+           {}
 \authorinfo{\anon{Colin Runciman}{Author 2}}
-           {\anon{University of York, UK}{Affiliation 2}}
-           {\anon{http://www.cs.york.ac.uk/$\sim$colin/}{Contact Details 2}}
+           {\anon{University of York, UK - colin}{Affiliation 2}}
+           {}
 
 \maketitle
 
 \begin{abstract}
-\begin{discuss}
-A Haskell program may fail at runtime with a pattern-match error if the program has any incomplete (non-exhaustive) patterns in definitions or case alternatives. This paper describes a static checker that allows non-exhaustive patterns to exist, yet can verify that a pattern-match error does not occur. We describe a constraint language that can be used to express requirements for safe pattern matches, along with mechanisms to propagate and reason about these constraints between program components.
-
-The checker we develop using these methods obtains minimal preconditions for 8 out of 14 programs in the Imaginary section of the Nofib suite. With minor modifications a further 5 are proven safe. We also check two larger example programs with success, finding several previously unknown errors.
-\end{discuss}
+We describe an automated analysis of Haskell 98 programs to check
+statically that, despite the possible use of partial (or non-exhaustive)
+pattern matching, no pattern-match failure can occur.  Our method is an
+iterative backward analysis using a novel form of pattern-constraint
+to represent sets of data values.  The analysis is defined for a
+core first-order language to which Haskell 98 programs are reduced.
+Our analysis tool has been successfully applied to a range of programs,
+and in contrast to some previous approaches our techniques seem to
+scale well.  Throughout the paper, methods are represented much as we
+have implemented them in practice, again in Haskell.
 \end{abstract}
 
 \category{D.3}{Software}{Programming Languages}
@@ -108,9 +113,23 @@ Haskell, automatic verification, functional programming, pattern-match errors, p
 \section{Introduction}
 \label{sec:introduction}
 
-\begin{discuss}
-Often it is useful to define selector functions, which are defined only for arguments matching a specific constructor pattern, for example \C{head} fails on the empty list. Unfortunately programs with incomplete pattern matches may fail at runtime.
-\end{discuss}
+Many functional languages support case-by-case definition of functions
+over algebraic data types, matching arguments against alternative
+constructor patterns.  In the most widely used languages, such as Haskell
+and ML, alternative patterns need not exhaust all possible values of
+the relevant datatype; it is often more convenient for pattern matching
+to be partial.  Common simple examples include functions that select
+components from specific constructions --- in Haskell \C{tail} applies
+to |(:)|-constructed lists and \C{fromJust} to \C{Just}-constructed values of
+a \C{Maybe}-type.
+
+Partial matching does have a disadvantage.  Programs may fail at run-time
+because a case arises that matches none of the available alternatives.
+Such pattern-match failures are clearly undesirable, and the motivation
+for this paper is to avoid them without denying the convenience of
+partial matching.  Our goal is an automated analysis of Haskell 98 programs
+to check statically that, despite the possible use of partial pattern
+matching, no pattern match failure can occur.
 
 The problem of pattern match failures is a serious one. The darcs \citep{darcs} project is one of the most successful large scale programs written in Haskell. Taking a look at the darcs bug tracker, 13 problems are errors related to the selector function \C{fromJust} and 19 are direct pattern match failures.
 
@@ -145,7 +164,7 @@ In addition the checker produces a set of properties it has proved about Risers,
 The contributions of this paper include:
 
 \begin{itemize}
-\item Two constraint languages to reason about pattern-match failures with methods for generating and solving appropriate constraints.
+\item Two constraint languages to reason about pattern-match failures with methods for generating and solving constraints.
 \item Details of an implementation which handles the complete Haskell 98 language \citep{haskell} by transforming Haskell 98 programs to a first-order language.
 \item Results showing success on a number of small examples drawn from the Nofib suite \citep{nofib}, and for two larger examples, investigating the scalability of the checker.
 \end{itemize}
@@ -156,7 +175,6 @@ In \citet{me:catch_tfp} a pattern match checker was described with similar aims,
 
 \S\ref{sec:walkthrough} gives an overview of the checking process for the \C{risers} function. \S\ref{sec:manipulate} introduces a small core functional language and a mechanism for reasoning about this language, \S\ref{sec:constraint} describes two constraint languages. \S\ref{sec:transform} discusses how to transform Haskell to a first-order core language. \S\ref{sec:results} evaluates \newtool{} on various sample programs -- including the Nofib benchmark suite. \S\ref{sec:related} compares our work to other work before \S\ref{sec:conclusion} presents concluding remarks.
 
-\newpage
 \section{Walkthrough of Risers}
 \label{sec:walkthrough}
 
