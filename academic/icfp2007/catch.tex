@@ -82,10 +82,10 @@
 
 \authorinfo{\anon{Neil Mitchell}{Author 1}}
            {\anon{University of York, UK - ndm}{Affiliation 1}}
-           {}
+           {Contact Details 1}
 \authorinfo{\anon{Colin Runciman}{Author 2}}
            {\anon{University of York, UK - colin}{Affiliation 2}}
-           {}
+           {Contact Details 2}
 
 \maketitle
 
@@ -97,9 +97,8 @@ iterative backward analysis using a novel form of pattern-constraint
 to represent sets of data values.  The analysis is defined for a
 core first-order language to which Haskell 98 programs are reduced.
 Our analysis tool has been successfully applied to a range of programs,
-and in contrast to some previous approaches our techniques seem to
-scale well.  Throughout the paper, methods are represented much as we
-have implemented them in practice, again in Haskell.
+and our techniques seem to scale well.  Throughout the paper, methods
+are represented much as we have implemented them in practice, again in Haskell.
 \end{abstract}
 
 \category{D.3}{Software}{Programming Languages}
@@ -131,7 +130,7 @@ partial matching.  Our goal is an automated analysis of Haskell 98 programs
 to check statically that, despite the possible use of partial pattern
 matching, no pattern match failure can occur.
 
-The problem of pattern match failures is a serious one. The darcs \citep{darcs} project is one of the most successful large scale programs written in Haskell. Taking a look at the darcs bug tracker, 13 problems are errors related to the selector function \C{fromJust} and 19 are direct pattern match failures.
+The problem of pattern-match failures is a serious one. The darcs \citep{darcs} project is one of the most successful large scale programs written in Haskell. Taking a look at the darcs bug tracker, 13 problems are errors related to the selector function \C{fromJust} and 19 are direct pattern-match failures.
 
 Consider the following example taken from \citep{me:catch_tfp}:
 
@@ -150,14 +149,12 @@ A sample application of this function is:
 [[1,2,3],[1,2]]
 \end{code}
 
-In the last line of the definition, |(s:ss)| is matched against the result of |risers (y:etc)|. If the result is in fact an empty list a pattern match error will be raised. It takes a few moments to check manually that no pattern-match failure can occur -- and a few more to be sure one has not made a mistake! Turning the \C{risers} function over to our checker, the output is:
+In the last line of the definition, |(s:ss)| is matched against the result of |risers (y:etc)|. If the result is in fact an empty list a pattern match error will be raised. It takes a few moments to check manually that no pattern-match failure can occur -- and a few more to be sure one has not made a mistake! Turning the \C{risers} function over to our analysis tool (which we call \catch{}), the output is:
 
 \begin{verbatim}
 > Incomplete pattern on line 5, proven safe
 > Program is Safe
 \end{verbatim}
-
-In addition the checker produces a set of properties it has proved about Risers, along with an outline of the proofs. Fuller details of how the checking is performed follow in \S\ref{sec:walkthrough}.
 
 \subsection{Contributions}
 
@@ -165,17 +162,18 @@ The contributions of this paper include:
 
 \begin{itemize}
 \item Two constraint languages to reason about pattern-match failures with methods for generating and solving constraints.
-\item Details of an implementation which handles the complete Haskell 98 language \citep{haskell} by transforming Haskell 98 programs to a first-order language.
+\item Details of the \catch{} implementation which handles the complete Haskell 98 language \citep{haskell} by transforming Haskell 98 programs to a first-order language.
 \item Results showing success on a number of small examples drawn from the Nofib suite \citep{nofib}, and for two larger examples, investigating the scalability of the checker.
 \end{itemize}
 
-In \citet{me:catch_tfp} a pattern match checker was described with similar aims, which we will refer to as \oldtool{}\anon{\footnote{Although the paper was completed in 2005, publication was delayed}}{}. For \oldtool{} \C{risers} was towards the boundary of what was possible, for \newtool{} it is trivial. Scalability problems have been addressed and \newtool{} handles real Haskell programs, with no restriction on the recursion patterns, higher-order functions or type classes. The underlying constraint mechanism of \newtool{} is radically different from \oldtool{}.
+In \citet{me:catch_tfp} a pattern-match checker was described with similar aims, which we will refer to as \oldtool{}\anon{\footnote{Although the paper was completed in 2005, publication was delayed}}{}. For \oldtool{} \C{risers} was towards the boundary of what was possible, for \newtool{} it is trivial. Scalability problems have been addressed and \newtool{} handles real Haskell programs, with no restriction on the recursion patterns, higher-order functions or type classes. The underlying constraint mechanism of \newtool{} is radically different from \oldtool{}.
 
+\newpage
 \subsection{Road map}
 
-\S\ref{sec:walkthrough} gives an overview of the checking process for the \C{risers} function. \S\ref{sec:manipulate} introduces a small core functional language and a mechanism for reasoning about this language, \S\ref{sec:constraint} describes two constraint languages. \S\ref{sec:transform} discusses how to transform Haskell to a first-order core language. \S\ref{sec:results} evaluates \newtool{} on various sample programs -- including the Nofib benchmark suite. \S\ref{sec:related} compares our work to other work before \S\ref{sec:conclusion} presents concluding remarks.
+\S\ref{sec:walkthrough} gives an overview of the checking process for the \C{risers} function. \S\ref{sec:manipulate} introduces a small core functional language and a mechanism for reasoning about this language, \S\ref{sec:constraint} describes two constraint languages. \S\ref{sec:transform} discusses how to transform Haskell to a first-order core language. \S\ref{sec:results} evaluates \newtool{} on programs from the Nofib suite, on a widely-used library and on a larger application program. \S\ref{sec:related} offers comparisons with related work before \S\ref{sec:conclusion} presents concluding remarks.
 
-\section{Walkthrough of Risers}
+\section{Overview of the Risers Example}
 \label{sec:walkthrough}
 
 This section sketches the process of checking that the \C{risers} function in the Introduction does not crash with a pattern-match error.
@@ -300,7 +298,7 @@ isRec        :: Selector  -> Bool
 \label{fig:core_operations}
 \end{figure}
 
-Figure \ref{fig:core_operations} gives the signatures for helper functions over the core data type. Every constructor has an arity, which can be obtained with the \C{arity} function. To determine alternative constructors the \C{ctors} function can be used, for example |ctors True = {False, True}| and |ctors [] = {[], :}|. The \C{var} function returns \C{Nothing} for a variable bound as an argument of a top-level function, and |Just (e,(c,i))| for a variable bound as the |i|th component in the |c|-constructed alternative of case-expression |e|. The function \C{instantiate} corresponds to $\beta$ reduction. The |isRec (c,n)| function returns true if the constructor |c| has a recursive |n|th component.
+Figure \ref{fig:core_operations} gives the signatures for helper functions over the core data type. Every constructor has an arity, which can be obtained with the \C{arity} function. To determine alternative constructors the \C{ctors} function can be used; for example |ctors True = {False, True}| and |ctors [] = {[], :}|. The \C{var} function returns \C{Nothing} for a variable bound as an argument of a top-level function, and |Just (e,(c,i))| for a variable bound as the |i|th component in the |c|-constructed alternative of case-expression |e|. The function \C{instantiate} corresponds to $\beta$ reduction. The |isRec (c,n)| function returns true if the constructor |c| has a recursive |n|th component; for example, let |hd = ((:),0)| and |tl = ((:),1)| then |isRec hd = False| but |isRec tl = True|.
 
 \subsubsection{Algebraic Abstractions of Primitive Types}
 \label{sec:abstraction}
@@ -405,6 +403,7 @@ preFunc :: FuncName -> [Expr] -> Prop (Assert Expr)
 Our intention is that for every function, constraints on the arguments form a precondition for pattern safety. The precondition for \C{error} is False. A program is safe if the precondition on \C{main} is True. The process of analysis can be seen as deriving these preconditions. Given a function \C{preFunc} that returns the precondition on a function's arguments, a function to determine the precondition for safe evaluation of an \textit{expression} can be specified as \C{pre} in Figure \ref{fig:precondition}.
 
 \subsubsection{Stable Preconditions}
+\label{sec:fixp_precond}
 
 The precondition on each function must be at least as restrictive as the precondition on the body of that function:
 
@@ -432,7 +431,7 @@ end loop
 \end{figure}
 
 The iterative algorithm for calculating preconditions is given in Figure~\ref{fig:precond_fixp}.
-Initially all preconditions are assumed to be True, apart from the \C{error} precondition, which is False. New preconditions are calculated for every function, until no condition changes. In each iteration the preconditions become more restrictive, so \textit{given a constraint in which all chains of increasingly restrictive constraints are finite}, termination is guaranteed (we return to the finiteness in \ref{sec:bounded}). A more efficient algorithm tracks dependencies between preconditions, and performs the minimum amount of recalculation. Finding strongly connected components in the static call graph of a program would allow parts of the program to be checked separately.
+Initially all preconditions are assumed to be True, apart from the \C{error} precondition, which is False. New preconditions are calculated for every function, until no condition changes. In each iteration the preconditions become more restrictive, so \textit{if all chains of increasingly restrictive constraints are finite}, termination is guaranteed. (We return to finiteness in \S\ref{sec:bounded}.) A more efficient algorithm tracks dependencies between preconditions, and performs the minimum amount of recalculation. Finding strongly connected components in the static call graph of a program would allow parts of the program to be checked separately.
 
 \subsubsection{Preconditions and Laziness}
 
@@ -539,19 +538,11 @@ forall v, c `o` satisfies v (notin c) => (valueCtor v /= c)
 
 \noindent Note that both properties are implications, not equivalences, as constraints may be more restrictive than necessary.
 
-\subsection{Bounded Constraints}
+\subsection{Finite Refinement of Constraints}
 \label{sec:bounded}
 
-We require that for any type, there are finitely many constraints. This lemma is required for termination proofs. To enable these proofs, it is useful to know which selectors are potentially \textit{recursive}. A selector takes a constructor, and returns a particular component. Using \C{hd} for |(:,0)| and \C{tl} for |(:,1)|, we have the types:
+With unbounded recursion in patterns, the BP-constraint language does \textit{not} have only finite chains of refinement. As we saw in \S\ref{sec:fixp_precond}, we need this property for termination of the iterative analysis. In the next section we introduce two alternative constraint systems. Both share a key property: \textit{for any type, there are finitely many constraints}.
 
-\begin{code}
-hd  :: [alpha] -> alpha
-tl  :: [alpha] -> [alpha]
-\end{code}
-
-A selector is non-recursive if its result type is structurally less than its argument type. We can see that \C{hd} meets this criteria (is non-recursive) while \C{tl} does not (is recursive). A function |isRec :: Selector -> Bool| carries out this test.
-
-With unbounded recursion in patterns, the BP-constraint language does \textit{not} have finitely many constraints per type. We could limit the depth of patterns, but instead ignore the issue for now.
 
 \section{Richer Constraint Systems}
 \label{sec:constraint}
@@ -998,7 +989,7 @@ The combination of specialisation and inlining is powerful. We have encountered 
 \section{Results and Evaluation}
 \label{sec:results}
 
-The best way to see the power of Catch is by example. \S\ref{sec:safety} discusses in general how some programs may need to be modified to obtain provable safety. \S\ref{sec:imaginary} investigates all the examples from the Imaginary section of the Nofib suite \cite{nofib}. To illustrate results for larger and widely-used applications, \S\ref{sec:finitemap} investigates a library (FiniteMap) and \S\ref{sec:hscolour} investigates a complete program (HsColour).
+The best way to see the power of \catch{} is by example. \S\ref{sec:safety} discusses in general how some programs may need to be modified to obtain provable safety. \S\ref{sec:imaginary} investigates all the examples from the Imaginary section of the Nofib suite \cite{nofib}. To illustrate results for larger and widely-used applications, \S\ref{sec:finitemap} investigates a library (FiniteMap) and \S\ref{sec:hscolour} investigates a complete program (HsColour).
 
 
 \subsection{Modifications for Verifiable Safety}
@@ -1016,21 +1007,21 @@ If |xs| is |[]| then a division by zero occurs, modelled in  In \catch{} as a pa
 average xs = if null xs then 0 else sum xs / length xs
 \end{code}
 
-Now if |xs| is |[]|, the program simply returns 0, and no pattern match error occurs. While this program is now safe, this safety has come at a cost -- the code no longer behaves as it did before -- replacing $\bot{}$ with the non-sensical value 0.
+\noindent Now if |xs| is |[]|, the program simply returns 0, and no pattern match error occurs. In general, pattern-match errors can be avoided in two ways:
 
-Pattern-match errors can be avoided in two ways:
+\para{Widen the domain of definition:} In the example, we widen the domain definition for the \C{average} function. The modification is made in one place only -- in the definition of \C{average} itself.
 
-\para{Widen the domain of definition:} In the example, we widen the domain of \C{average}, adding a special test guarding the division. This fix is local and fairly simple, and requires only small code changes in the definition.
+\para{Narrow the domain of application:} In the example, we narrow the domain of application for the |(/)| function.  Note that we narrow this domain only for the |(/)| application in \C{average} -- other |(/)| applications may remain unsafe.
 
-\para{Narrow the domain of application:} In the example, we have narrowed the domain of application of division. To narrow the domain of \C{average} we would investigate the code that calls \C{average}, ensuring that |[]| is not passed as the first argument. This fix requires a deeper understanding of the flow of the program, and depending on the overall design, may require substantial work at each application. The end result is likely to be a cleaner body of code.
-
-Another alternative to prove the example is to widen the domain of division, using a safe variant:
+An alternative approach to the \C{average} example is to widen the domain of definition for division, using a safe variant:
 
 \begin{code}
 safeDiv x y = if y == 0 then 0 else x / y
 \end{code}
 
-In the following sections, where modifications were required, we prefer to make the minimum number of changes. Consequently, we have widened the domain of definition.
+Yet another alternative is to narrow the domain of application for \C{average}, ensuring that |[]| is not passed as the first argument. This fix requires a deeper understanding of the flow of the program, requiring rather more work.
+
+In the following sections, where modifications are required, we prefer to make the minimum number of changes. Consequently, we widen the domain of definition.
 
 \subsection{Nofib Benchmark Tests}
 \label{sec:imaginary}
@@ -1191,7 +1182,7 @@ e =  ("2."++) $
 \subsection{The FiniteMap library}
 \label{sec:finitemap}
 
-The FiniteMap library for Haskell has been widely distributed for over 10 years. The library utilises balanced binary trees, based on \citep{adams:sets}. There are 14 non-exhaustive pattern matches.
+The FiniteMap library for Haskell has been widely distributed for over 10 years. The library uses balanced binary trees, based on \citep{adams:sets}. There are 14 non-exhaustive pattern matches.
 
 The first challenge is that there is no \C{main} function. \catch{} provides the |(||||||)| operator to resolve this issue. A \C{main} function can be constructed as follows:
 
@@ -1199,7 +1190,7 @@ The first challenge is that there is no \C{main} function. \catch{} provides the
 main = addListToFM ||| addListToFM_C ||| ... ||| unitFM
 \end{code}
 
-The |(||||||)| operator chains together functions, checking each function as though it had been specified as the root from which to check.
+The |(||||||)| chain contains every function exported by the library. The effect is that \catch{} checks each of them as if it had \C{main} status.
 
 \catch{} is able to prove that all but one of the non-exhaustive patterns are safe. The definition found unsafe has the form:
 
@@ -1209,13 +1200,9 @@ delFromFM (Branch key ...) del_key  | del_key  >   key = ...
                                     | del_key  ==  key = ....
 \end{code}
 
-At first glance the cases appear to be exhaustive. The law of trichotomy leads us to expect one of these guards must be true. However, the Haskell \C{Ord} class does not have these restrictions. There is nothing to prevent an instance for a type with partially ordered values, some of which are incomparable -- NaN in the \C{Double} type is incomparable. Given a \C{nan} value:
+At first glance the cases appear to be exhaustive. The law of trichotomy leads us to expect one of the guards to be true. However, the Haskell \C{Ord} class does not enforce this law. There is nothing to prevent an instance for a type with partially ordered values, some of which are incomparable. So \catch{} cannot verify the safety to \C{delFromFM} as defined as above.
 
-\begin{code}
-main = print $ sizeFM $ delFromFM (unitFM nan ()) nan)
-\end{code}
-
-\noindent Evaluation of \C{main} will raise a pattern-match error. A solution would be to use the \C{compare} function which returns one of \C{GT}, \C{EQ} or \C{LT}. This approach has several advantages: (1) the code is free from non-exhaustive patterns; (2) the assumption of trichotomy is explicit in the return type; (3) the library is faster, avoiding an additional test.
+The solution is to use the \C{compare} function which returns one of \C{GT}, \C{EQ} or \C{LT}. This approach has several advantages: (1) the code is free from non-exhaustive patterns; (2) the assumption of trichotomy is explicit in the return type; (3) the library is faster, avoiding an additional test.
 
 (As an aside, Adams' original paper on which the FiniteMap library is based leaves the deletion function as homework for the reader!)
 
@@ -1302,9 +1289,9 @@ Using GADT's \citep{spj:gadt}, an encoding of lists can be written as in Figure 
 \section{Conclusions and Future Work}
 \label{sec:conclusion}
 
-We have presented a static checker for potential pattern-match errors in Haskell. This checker is capable of determining preconditions under which a program with non-exhaustive patterns executes without failing due to a pattern-match error. A section of the Nofib suite has been tested (\S\ref{sec:imaginary}) , with encouraging results -- all but one program can be proved safe, many without modification. Two larger real-world examples have been checked: new bugs were discovered and fixed in one of them (\S\ref{sec:hscolour}), which is now verified to be pattern safe.
+We have presented a static analysis tool for potential pattern-match errors in Haskell. This tool is capable of determining preconditions under which a program with non-exhaustive patterns executes without failing due to a pattern-match error. A section of the Nofib suite has been tested (\S\ref{sec:imaginary}) , with encouraging results -- all but one program can be proved safe, many without modification. Two larger real-world examples have been checked: new bugs were discovered and fixed in one of them (\S\ref{sec:hscolour}), which is now verified to be pattern safe.
 
-We see three avenues of future work. (1) \textit{Allow explicit annotations.} If the programmer was able to specify preconditions and invariants, they could both assist the checker, and allow for more restrictive and explicit conditions. (2) \textit{Increase the power of the constraints.} A linear constraint system would allow at least three of the examples from \S\ref{sec:imaginary} to succeed, other constraint systems would have more success. (3) \textit{Exploiting \catch{} for other purposes}. Absence of pattern-match failure could be used to inform an optimising compiler. The properties generated could also be used to generate more efficient code.
+We see three avenues of future work. (0) \textit{A form proof of correctness.} (1) \textit{Allow explicit annotations.} If the programmer was able to specify preconditions and invariants, they could both assist the checker, and allow for more restrictive and explicit conditions. (2) \textit{Increase the power of the constraints.} A linear constraint system would allow at least three of the examples from \S\ref{sec:imaginary} to succeed, other constraint systems would have more success. (3) \textit{Exploiting \catch{} for other purposes}. Absence of pattern-match failure could be used to inform an optimising compiler. The properties generated could also be used to generate more efficient code.
 
 \begin{discuss}
 The elegance of Haskell is sometimes tainted by the presence of partial functions. By ensuring that partial functions are used appropriately, we are able to regain guarantees of safety -- without placing undue burden upon the programmer.
