@@ -17,7 +17,8 @@ import Data.List
 oneArg :: Core -> Core
 oneArg core = mapOverCore useTuples $ applyFuncCore mkTuples $ core{coreDatas = newDatas ++ coreDatas core}
     where
-        newDatas = map g $ snub [arity | func <- coreFuncs core, let arity = length $ coreFuncArgs func, arity /= 1]
+        newDatas = map g $ snub [arity | func <- coreFuncs core, isCoreFunc func,
+                                         let arity = length $ coreFuncArgs func, arity /= 1]
             where
                 g n = CoreData name frees [CoreCtor name $ zip frees [Just $ name ++ "_" ++ show i | i <- [1..n]]]
                     where
@@ -25,6 +26,7 @@ oneArg core = mapOverCore useTuples $ applyFuncCore mkTuples $ core{coreDatas = 
                         name = '#' : show n
     
         mkTuples :: CoreFunc -> CoreFunc
+        mkTuples x@(CorePrim{}) = x
         mkTuples (CoreFunc name [x] body) = CoreFunc name [x] body
         mkTuples (CoreFunc name xs body) = CoreFunc name [free] body2
             where

@@ -96,11 +96,11 @@ numPrims = [("ADD_W","numAdd"),("SUB_W","numSub"),("MUL_W","numMul")
            ]
 
 
+-- no longer needs doing this way, since now primitives can be Overlay'd
 primAbstract :: Core -> Core
 primAbstract = mapUnderCore f
     where
         f (CoreFun  x) = g CoreFun  x
-        f (CorePrim x) = g CorePrim x
         f x = x
         
         g rebuild x = case lookup x numPrims of

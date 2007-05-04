@@ -18,7 +18,7 @@ analyse logger options core = do
     let split = Errors `elem` options
         partials = Partial `elem` options
         (msgs,core2) = if split then labelErrors core else ([],core)
-        funcs = map coreFuncName $ coreFuncs core2
+        funcs = map coreFuncName $ filter isCoreFunc $ coreFuncs core2
     
     initInfo core2
     initProperty (logger False)
@@ -43,15 +43,17 @@ labelErrors core = (reverse res,core2)
     where
         (core2,(n,res)) = runState (mapUnderCoreM f core) (0,[])
         
-        f (CoreApp (CorePrim "Prelude.error") (x:_)) = do
+        f (CoreApp (CoreFun "Prelude.error") (x:_)) = do
             (n,xs) <- get
             put (n+1,g 10 x:xs)
-            return $ CoreApp (CorePrim "Prelude.error") [CoreInt n]
+            return $ CoreApp (CoreFun "Prelude.error") [CoreInt n]
         f x = return x
         
+        -- calculate the error message (has a termination bound built in)
         g n _ | n <= 0 = "Unknown"
         g n (CoreStr x) = x
         g n (CoreApp (CoreCon _) (x:_)) = g (n-1) x
-        g n (CoreApp (CoreFun x) _) = g (n-1) $ coreFuncBody $ coreFunc core x
+        g n (CoreApp (CoreFun x) _) | isCoreFunc func = g (n-1) $ coreFuncBody func
+            where func = coreFunc core x
         g n _ = "Unknown"
 

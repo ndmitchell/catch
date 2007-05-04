@@ -66,19 +66,19 @@ pre errcheck preFunc x = f x
     where
         f x | isCoreVar x || isCoreConst x = return propTrue
         
-        f (CoreApp (CorePrim prim) xs)
-            | prim == "Prelude.error" = return $ propBool $ not $ errcheck $ head xs
-            | otherwise = liftM propAnds $ mapM f xs
-
-        f (CorePrim prim) = return propTrue
-
         f (CoreApp (CoreCon _) xs) = liftM propAnds $ mapM f xs
         f (CoreApp (CoreVar _) xs) = liftM propAnds $ mapM f xs
 
-        f (CoreApp (CoreFun fn) xs) = do
-            p <- preFunc fn
-            xs2 <- mapM (pre errcheck preFunc) xs
-            return $ propAnds $ replaceVars xs p : xs2
+        f (CoreApp (CoreFun fn) xs) 
+            | fn == "Prelude.error" = return $ propBool $ not $ errcheck $ head xs
+            | otherwise = do
+            info <- getInfo
+            if isCorePrim (function info fn)
+                then liftM propAnds $ mapM f xs
+                else do
+                    p <- preFunc fn
+                    xs2 <- mapM (pre errcheck preFunc) xs
+                    return $ propAnds $ replaceVars xs p : xs2
 
         f (CoreCase on alts) = do
             info <- getInfo

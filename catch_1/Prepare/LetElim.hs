@@ -112,6 +112,7 @@ letMove = applyBodyCore (mapUnderCore f)
 letKill :: Core -> Core
 letKill core = core{coreFuncs = concatMap f (coreFuncs core)}
     where
+        f x@(CorePrim{}) = [x]
         f (CoreFunc name args body) = CoreFunc name args body2 : funcs
             where
                 names = [name ++ "." ++ show i | i <- [1..]]
