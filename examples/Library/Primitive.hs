@@ -237,3 +237,60 @@ global_Data'_Ratio'_'per _ a b =
         _    -> Global_Data'_Ratio'_'col'per (any3 Neg One Pos) (any2 One Pos)
 
 global_Data'_Ratio'_reduce a b c = global_Data'_Ratio'_'per a b c
+
+
+---------------------------------------------------------------------
+-- Data.Map
+
+data Map k v = EmptyMap | FullMap k v
+
+
+global_Data'_Map'_fromList dict x = f x
+    where
+        f [] = EmptyMap
+        f ((k,v):xs) = g k v xs
+        
+        g k v [] = FullMap k v
+        g k v ((k2,v2):xs) = g (any2 k k2) (any2 v v2) xs
+
+global_Data'_Map'_empty = EmptyMap
+
+global_Data'_Map'_member dict v m = f m
+    where
+        f EmptyMap = False
+        f _ = any0
+
+global_Data'_Map'_lookup dict1@(_,_,fail_,return_) dict2 k m = f m
+    where
+        f EmptyMap = fail_ ""
+        f (FullMap k v) = any2 (fail_ "") (return_ v)
+
+global_Data'_Map'_insert dict k v m = f m
+    where
+        f EmptyMap = FullMap k v
+        f (FullMap k2 v2) = FullMap (any2 k k2) (any2 v v2)
+
+global_Data'_Map'_keys m = f m
+    where
+        f EmptyMap = []
+        f (FullMap k v) = g k
+        
+        g k = any2 [] (k : g k)
+
+global_Data'_Map'_adjust dict change k m = global_Data'_Map'_insert dict k (change any0) m
+
+global_Data'_Map'_delete dict k m = any2 m EmptyMap
+
+global_Data'_Map'_update dict change k m = f m
+    where
+        f EmptyMap = EmptyMap
+        f (FullMap k v) = case change v of
+                               Nothing -> any2 EmptyMap (FullMap k v)
+                               Just x -> FullMap k (any2 v x)
+
+global_Data'_Map'_filter dict test m = f m
+    where
+        f EmptyMap = EmptyMap
+        f (FullMap k v) = case test v of
+                              True -> FullMap k v
+                              False -> EmptyMap
