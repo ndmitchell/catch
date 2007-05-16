@@ -41,6 +41,7 @@ back info prop (CoreCase on alts :< k) = do
     where
         f c e = propLit (on :< notin info c) `propOr` propLit (e :< k)
 
+back info prop (CoreFun f :< k) = back info prop (CoreApp (CoreFun f) [] :< k)
 back info prop (CoreApp (CoreFun f) xs :< k)
     | f == "Prelude.error" = return propTrue
     | isCorePrim (function info f) = return propFalse

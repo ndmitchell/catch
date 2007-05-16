@@ -55,5 +55,6 @@ labelErrors core = (reverse res,core2)
         g n (CoreApp (CoreCon _) (x:_)) = g (n-1) x
         g n (CoreApp (CoreFun x) _) | isCoreFunc func = g (n-1) $ coreFuncBody func
             where func = coreFunc core x
+        g n (CoreFun x) = g n (CoreApp (CoreFun x) [])
         g n _ = "Unknown"
 

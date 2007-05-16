@@ -69,6 +69,7 @@ pre errcheck preFunc x = f x
         f (CoreApp (CoreCon _) xs) = liftM propAnds $ mapM f xs
         f (CoreApp (CoreVar _) xs) = liftM propAnds $ mapM f xs
 
+        f (CoreFun fn) = f $ CoreApp (CoreFun fn) []
         f (CoreApp (CoreFun fn) xs) 
             | fn == "Prelude.error" = return $ propBool $ not $ errcheck $ head xs
             | otherwise = do
