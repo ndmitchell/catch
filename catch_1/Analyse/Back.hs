@@ -54,4 +54,6 @@ back info prop (CoreStr x :< k) = back info prop (explode x :< k)
         explode [] = CoreApp (CoreCon "[]") []
         explode (x:xs) = CoreApp (CoreCon ":") [CoreChr x, CoreStr xs]
 
+back info prop (CoreApp (CoreVar x) xs :< k) = return propFalse
+
 back info prop x = error $ "Unhandled back, " ++ show x
