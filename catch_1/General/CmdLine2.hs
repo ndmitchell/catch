@@ -6,6 +6,11 @@ module General.CmdLine2(
     ) where
 
 import System.Console.GetOpt
+import System.Exit
+import System.Environment
+import Control.Monad
+import Data.List
+import Data.Char
 
 data Flag = -- General Options
             Version | Help
@@ -50,6 +55,35 @@ helpMsgLong = do
            $ usageInfo "" (optionsNormal ++ optionsDebug)
 
 
-parseCmdLine = undefined
+parseCmdLine :: IO ([Flag],[String])
+parseCmdLine = do
+        args <- getArgs
+        let (flags,files,errs) = getOpt Permute options args
 
-unparseCmdLine = undefined
+        when (not $ null errs) $ do
+            putStrLn "Error in command line, see --help"
+            putStr $ unlines errs
+            exitFailure
+        when (Version `elem` flags) $ do
+            putStrLn "Catch 2007, v1.0"
+            exitSuccess
+        when (Help `elem` flags) $ do
+            helpMsgLong
+            exitSuccess
+        when (null files) $ do
+            helpMsgShort
+            exitSuccess
+
+        return (flags,files)
+
+exitSuccess = exitWith ExitSuccess
+
+
+unparseCmdLine :: [Flag] -> [String] -> String
+unparseCmdLine flags files = unwords $ map f flags ++ map g files
+    where
+        f (Timeout i) = "--timeout=" ++ show i
+        f (Skip is) = "--skip=" ++ concat (intersperse "," $ map show is)
+        f x = "--" ++ map toLower (show x)
+
+        g x = "\"" ++ x ++ "\""
