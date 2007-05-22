@@ -1,22 +1,21 @@
 
 module Main where
 
-import System.FilePath
-import System.Directory
-import System.Environment
-import System.CPUTime
-import System.Cmd
-import System.Exit
-import System.IO
-import Control.Monad
-import Data.Char
-import Data.Maybe
-import Data.List
-import Prepare.All
 import Analyse.All
-import Yhc.Core
+import Control.Monad
+import Data.List
+import Files
 import General.CmdLine2
 import General.General
+import Prepare.All
+import System.CPUTime
+import System.Cmd
+import System.Directory
+import System.Environment
+import System.Exit
+import System.FilePath
+import System.IO
+import Yhc.Core
 
 {-
 The flags which need special processing:
@@ -35,7 +34,7 @@ main = do
     if DProfile `elem` flags then
         execProfile flags files
      else
-        mapM_ (mainFile flags) =<< concatMapM findStartFiles files
+        mapM_ (mainFile flags) =<< findFiles files
 
 
 mainFile :: [Flag] -> FilePath -> IO ()
@@ -150,48 +149,3 @@ tasks = [("Overlay"   , liftM success . overlay)
         ,("UniqueVars", return . success . uniqueVars)
         ,("ShortCtors", return . success . shortCtors)
         ]
-
-
--- * File Location
-
--- find the file that the user specified on the command line:
--- # A Haskell source file
--- # A Text file, giving one file per line
--- # A directory of files
---
--- file must be in <directory>/givenname.<extension>
-findStartFiles :: String -> IO [FilePath]
-findStartFiles file = do
-        dirs <- findStartDirs
-        let exts = ["","hs","lhs","txt"]
-            poss = [d </> file <.> e | d <- dirs, e <- exts]
-        f poss
-    where
-        f [] = putStrLn ("Error: File not found, " ++ file) >> exitFailure
-        f (x:xs) = do
-            bFile <- doesFileExist x
-            bDir  <- doesDirectoryExist x
-            if bFile then (
-                if takeExtension x == ".txt" then
-                    readFile x >>= concatMapM findStartFiles . lines
-                else
-                    return [x]
-             )
-             else if bDir then do
-                items <- getDirectoryContents x
-                items <- return $ map (x </>) $ filter (\x -> takeExtension x `elem` [".hs",".lhs"]) items
-                if null items then error $ "No files found within, " ++ x
-                              else return items
-             else f xs
-
-
-findStartDirs :: IO [FilePath]
-findStartDirs = do
-    base <- baseDir
-    let examples = base </> "examples"
-    b <- doesDirectoryExist examples
-    if not b then return [""] else do
-        items <- getDirectoryContents examples
-        items <- return $ map (examples </>) $ filter (not . isPrefixOf ".") items
-        items <- filterM doesDirectoryExist items
-        return ("" : examples : items)
