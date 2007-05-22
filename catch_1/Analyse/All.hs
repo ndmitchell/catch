@@ -6,7 +6,7 @@ import Analyse.Info
 import Analyse.Property
 import Analyse.Precond
 import Control.Monad.State
-import General.CmdLine2
+import General.CmdLine
 
 
 -- given a logger and the core, do the work

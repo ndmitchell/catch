@@ -5,7 +5,7 @@ import Analyse.All
 import Control.Monad
 import Data.List
 import Files
-import General.CmdLine2
+import General.CmdLine
 import General.General
 import Prepare.All
 import System.CPUTime
