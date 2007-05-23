@@ -107,21 +107,9 @@ execFile flags file = do
         putStrLn $ "Answer: " ++ result
         close
 
-        {-
-        when (Regress `elem` options) $ do
-            src <- readFile origfile
-            let line0 = takeWhile (/= '\n') src
-                start = "-- #CATCH"
-                valid = start `isPrefixOf` line0
-                demand = if valid then drop (length start) line0 else "_"
-
-            when (not valid) $ putStrLn "WARNING: Regression statement not found (assuming _)"
-
-            if result /= dropWhile isSpace demand then
-                error "ERROR: Regression statement differs from answer"
-             else
-                putStrLn "Regression statement matches"
-        -}
+        when (regress /= "" && regress /= result) $ do
+            putStrLn $ "ERROR: Regression statement differs from answer, expected " ++ regress
+            exitFailure
     where
         ycafile = dropFileName file </> "ycr" </> replaceExtension (takeFileName file) "yca"
         stage msg = when (Quiet `notElem` flags) $ putStrLn msg
