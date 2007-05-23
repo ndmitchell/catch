@@ -126,8 +126,7 @@ execFile flags file = do
                 saveCore  (out <.> "yca" ) core
 
             when (not success) $ do
-                putStrLn $ "Error: Failed in stage " ++ name
-                exitFailure
+                putStrLn $ "Warning: Failed in stage " ++ name
 
             f core (i+1) tasks
 
