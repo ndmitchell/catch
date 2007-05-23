@@ -85,7 +85,7 @@ execFile flags file = do
         Pragmas exports partial regress <- liftM parseHaskell $ readFile file
         
         stage "Compiling"
-        compile file
+        compile file $ unwords [s | Yhc s <- flags]
         core <- liftM (createMain $ exports \\ partial) $ loadCore ycafile
 
         stage "Transformations"

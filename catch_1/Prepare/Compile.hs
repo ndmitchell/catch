@@ -6,7 +6,7 @@ import System.Exit
 import Control.Monad
 
 
-compile :: FilePath -> IO ()
-compile file = do
-    res <- system $ "yhc -hide -linkcore " ++ file
+compile :: FilePath -> String -> IO ()
+compile file flags = do
+    res <- system $ "yhc -hide -linkcore " ++ file ++ " " ++ flags
     when (res /= ExitSuccess) $ error $ "Failed to compile, " ++ file

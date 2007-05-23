@@ -15,7 +15,7 @@ import Data.Char
 data Flag = -- General Options
             Version | Help
             -- Standard Options
-          | Quiet | Timeout Int | Skip [Int]
+          | Quiet | Timeout Int | Skip [Int] | Yhc String
             -- Debug Options
           | DLog | DCore | DProfile | DTime | DMemory
             deriving (Eq, Show)
@@ -28,6 +28,7 @@ optionsNormal =
  ,Option "q"  ["quiet"]   (NoArg Quiet)              "final results only"
  ,Option "t"  ["timeout"] (OptArg timeout "SECONDS") "timeout per error, 0=inf"
  ,Option "s"  ["skip"]    (ReqArg skip "N,M")        "list of errors to skip"
+ ,Option "y"  ["yhc"]     (ReqArg Yhc "flags")       "extra flags to give to Yhc"
  ]
  where
     timeout = Timeout . maybe 0 read
@@ -84,6 +85,7 @@ unparseCmdLine flags files = unwords $ map f flags ++ map g files
     where
         f (Timeout i) = "--timeout=" ++ show i
         f (Skip is) = "--skip=" ++ concat (intersperse "," $ map show is)
+        f (Yhc s) = "\"--yhc=" ++ s ++ "\""
         f x = "--" ++ map toLower (show x)
 
         g x = "\"" ++ x ++ "\""
