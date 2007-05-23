@@ -165,6 +165,8 @@ lam prims (CoreCase on alts) = do
             rhs <- mapM (lam prims . snd) alts
             return $ CoreCase on2 (zip (map fst alts) rhs)
 
+lam prims (CoreLam vars x) = liftM (CoreLam vars) (lam prims x)
+
 lam prims x | isCoreLam x || isCoreVar x || isCoreConst x = return x
 
 lam prims x = error $ show x
