@@ -1,20 +1,22 @@
 
-module Haskell(Partial, parseHaskell) where
+module Haskell(parseHaskell, Pragmas(..)) where
 
 import Data.Char
 import Data.List
 
--- name, possible precondition
-type Partial = (String,String)
+data Pragmas = Pragmas {exports :: [String]
+                       ,partial :: [String]
+                       ,regress :: String
+                       } deriving Show
+
+parseHaskell :: String -> Pragmas
+parseHaskell s = Pragmas (parseExports s) (parsePartial s) (parseRegress s)
 
 
-parseHaskell :: String -> ([String], [Partial])
-parseHaskell s = (parseModule s, parsePragmas s)
-
-
-parseModule s = case lexList $ dropComments s of
-                    ("module":xs) -> f xs
-                    _ -> []
+parseExports s =
+    case lexList $ dropComments s of
+        ("module":xs) -> f xs
+        _ -> []
     where
         f ("where":_) = []
         f (x:xs) = [x | isLower (head x)] ++ f xs
@@ -37,18 +39,31 @@ dropComments ('{':'-':xs) = f xs
 dropComments x = x
 
 
-parsePragmas = concatMap readPartial . tails
-
-readPartial ('{':'-':'#':xs)
-        | "PARTIAL" `isPrefixOf` xs2 && not (null ys2) && isSpace (head ys2)
-        = parsePartial $ filter (/= ",") $ lexList ys2
+parsePartial = concatMap (filter f . lexList) . parsePragmas "PARTIAL"
     where
-        ys2 = drop 7 xs2
-        xs2 = dropWhile isSpace xs
-readPartial _ = []
+        f (x:xs) | isLower x = True
+        f "," = False
+        f x = error $ "PARTIAL pragma parse error: " ++ x
 
-parsePartial (('#':_):_) = []
-parsePartial (name:s@('\"':_):rest) = (name,read s) : parsePartial rest
-parsePartial (name:rest) = (name,"") : parsePartial rest
-parsePartial _ = []
 
+parseRegress = f . concatMap lexList . parsePragmas "CATCH"
+    where
+        f [xs@('\"':_)] = read xs :: String
+        f [] = []
+        f x = error $ "CATCH pragma parse error: " ++ show x
+
+
+parsePragmas :: String -> String -> [String]
+parsePragmas name = concatMap f . tails
+    where
+        f ('{':'-':'#':xs)
+                | name `isPrefixOf` xs2 && not (null ys2) && isSpace (head ys2)
+                = [g ys2]
+            where
+                ys2 = drop (length name) xs2
+                xs2 = dropWhile isSpace xs
+        f _ = []
+
+        g ('#':'-':'}':_) = []
+        g (x:xs) = x : g xs
+        g _ = []
