@@ -4,6 +4,7 @@ module Prepare.Overlay(overlay) where
 import System.Cmd
 import System.Exit
 import Data.Maybe
+import Data.List
 import Control.Monad
 import Yhc.Core
 import General.General
@@ -107,8 +108,9 @@ numPrims = [("ADD_W","numAdd"),("SUB_W","numSub"),("MUL_W","numMul")
 
 -- no longer needs doing this way, since now primitives can be Overlay'd
 primAbstract :: Core -> Core
-primAbstract = mapUnderCore f
+primAbstract core = mapUnderCore f core{coreFuncs = CorePrim "abort" 1 : coreFuncs core}
     where
+        f (CoreFun x) | ".abort" `isSuffixOf` x = CoreFun "abort"
         f (CoreFun  x) = g CoreFun  x
         f x = x
         
