@@ -8,13 +8,22 @@ import Control.Monad
 import Yhc.Core
 import General.General
 import System.FilePath
+import System.Directory
 
 
 
 overlay :: Core -> IO Core
 overlay core = do
     base <- baseDir
-    res <- system $ "yhc -hide -core " ++ base </> "examples/Library/Primitive.hs"
+    let prim = base </> "examples/Library/Primitive.hs"
+    b <- doesFileExist prim
+    when (not b) $ do
+        putStrLn $ "ERROR: Could not find primitive"
+        putStrLn $ "  Looked at: " ++ prim
+        putStrLn $ "  Probably fix: set %CATCH_BASE_PATH% to the root of the repo"
+        exitFailure
+
+    res <- system $ "yhc -hide -core " ++ prim
     when (res /= ExitSuccess) $ error "Failed to compile the overlay"
 
     over <- loadCore $ base </> "examples/Library/ycr/Primitive.ycr"
