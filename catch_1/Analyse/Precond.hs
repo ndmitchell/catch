@@ -92,4 +92,6 @@ pre errcheck preFunc x = f x
                 x <- f e
                 return $ propOr (propLit $ on :< notin info c) x
 
+        f (CoreLam vars x) = f $ replaceFreeVars (zip vars $ repeat (CoreFun "any?")) x
+
         f x = error $ "Analyse.Precond.pre, unhandled: " ++ show x

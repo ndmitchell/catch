@@ -20,7 +20,7 @@ analyse logger options core = do
         (msgs,core2) = if split then labelErrors core else ([],core)
         funcs = map coreFuncName $ filter isCoreFunc $ coreFuncs core2
     
-    initInfo core2
+    initInfo core2{coreFuncs = CorePrim "any?" 0 : coreFuncs core2}
     initProperty (logger False)
     
     res <- if split then do
