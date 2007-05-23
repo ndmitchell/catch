@@ -14,7 +14,7 @@ parseHaskell s = Pragmas (parseExports s) (parsePartial s) (parseRegress s)
 
 
 parseExports s =
-    case lexList $ dropComments s of
+    case lexList s of
         ("module":xs) -> f xs
         _ -> []
     where
@@ -25,18 +25,14 @@ parseExports s =
 
 lexList x = case lex x of
                 [("","")] -> []
+                [("--",xs)] -> lexList $ dropWhile (/= '\n') xs
+                [("{",'-':xs)] -> f xs
                 [(x,xs)] -> x : lexList xs
                 _ -> []
-
-
-dropComments ('-':'-':xs) = dropComments $ dropWhile (/= '\n') xs
-dropComments (x:xs) | isSpace x = dropComments xs
-dropComments ('{':'-':xs) = f xs
     where
-        f ('-':'}':xs) = dropComments xs
-        f (x:xs) = dropComments xs
+        f ('-':'}':xs) = lexList xs
+        f (x:xs) = f xs
         f [] = []
-dropComments x = x
 
 
 parsePartial = concatMap (filter f . lexList) . parsePragmas "PARTIAL"
