@@ -5,6 +5,7 @@ import Analyse.All
 import Control.Monad
 import Data.List
 import Files
+import Haskell
 import General.CmdLine
 import General.General
 import Prepare.All
@@ -81,10 +82,11 @@ execTime flags file = do
 execFile :: [Flag] -> FilePath -> IO ()
 execFile flags file = do
         putStrLn $ "Executing: " ++ file
+        Pragmas exports partial regress <- liftM parseHaskell $ readFile file
         
         stage "Compiling"
         compile file
-        core <- loadCore ycafile
+        core <- liftM (createMain $ exports \\ partial) $ loadCore ycafile
 
         stage "Transformations"
         core <- f core 1 tasks
