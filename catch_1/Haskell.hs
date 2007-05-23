@@ -25,7 +25,7 @@ parseExports s =
 
 lexList x = case lex x of
                 [("","")] -> []
-                [("--",xs)] -> lexList $ dropWhile (/= '\n') xs
+                [('-':'-':_,xs)] -> lexList $ dropWhile (/= '\n') xs
                 [("{",'-':xs)] -> f xs
                 [(x,xs)] -> x : lexList xs
                 _ -> []
