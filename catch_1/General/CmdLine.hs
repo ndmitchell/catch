@@ -31,8 +31,8 @@ optionsNormal =
  ,Option "y"  ["yhc"]     (ReqArg Yhc "flags")       "extra flags to give to Yhc"
  ]
  where
-    timeout = Timeout . maybe 0 read
-    skip = Skip . map read . words . map f
+    timeout = Timeout . maybe 0 (read2 "timeout")
+    skip = Skip . map (read2 "skip") . words . map f
     f x = if x == ',' then ' ' else x
 
 optionsDebug =
@@ -89,3 +89,8 @@ unparseCmdLine flags files = unwords $ map f flags ++ map g files
         f x = "--" ++ map toLower (show x)
 
         g x = "\"" ++ x ++ "\""
+
+
+read2 msg x = case reads x of
+                  [(y,"")] -> y
+                  _ -> error $ "Could not parse " ++ msg ++ ", found: " ++ show x
