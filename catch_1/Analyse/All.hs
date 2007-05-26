@@ -7,6 +7,7 @@ import Analyse.Property
 import Analyse.Precond
 import Control.Monad.State
 import General.CmdLine
+import Analyse.Req
 
 
 -- given a logger and the core, do the work
@@ -34,6 +35,20 @@ analyse logger options core = do
     termInfo
     termProperty
     return $ show res
+
+
+
+preconds :: (String -> IO ()) -> Bool -> [String] -> [CoreFuncName] -> IO Constraint
+preconds logger partials errmsgs funcs = do
+        cs <- zipWithM f [1..] errmsgs
+        info <- getInfo
+        return $ conAnds info cs
+    where
+        f n msg = do
+            putStrLn $ "Checking [" ++ show n ++ "/" ++ show (length errmsgs) ++ "]: " ++ msg
+            res <- precond logger partials [n] funcs
+            putStrLn $ "Answer: " ++ show res
+            return res
 
 
 

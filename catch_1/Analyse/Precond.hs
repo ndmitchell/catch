@@ -1,5 +1,5 @@
 
-module Analyse.Precond(preconds, precond) where
+module Analyse.Precond(precond) where
 
 import Yhc.Core
 import Data.Proposition
@@ -12,19 +12,6 @@ import Analyse.Property
 import Analyse.Back
 import Analyse.Fix
 
-
-
-preconds :: (String -> IO ()) -> Bool -> [String] -> [CoreFuncName] -> IO Constraint
-preconds logger partials errmsgs funcs = do
-        cs <- zipWithM f [1..] errmsgs
-        info <- getInfo
-        return $ conAnds info cs
-    where
-        f n msg = do
-            putStrLn $ "Checking [" ++ show n ++ "/" ++ show (length errmsgs) ++ "]: " ++ msg
-            res <- precond logger partials [n] funcs
-            putStrLn $ "Answer: " ++ show res
-            return res
 
 
 -- given a list of all functions, return the constraint on "main"
