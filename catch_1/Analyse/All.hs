@@ -38,11 +38,11 @@ analyse logger options core = do
 
 
 
--- label the errors starting at 0
+-- label the errors starting at 1
 labelErrors :: Core -> ([String],Core)
 labelErrors core = (reverse res,core2)
     where
-        (core2,(n,res)) = runState (mapUnderCoreM f core) (0,[])
+        (core2,(n,res)) = runState (mapUnderCoreM f core) (1,[])
         
         f (CoreApp (CoreFun "Prelude.error") (x:_)) = do
             (n,xs) <- get
