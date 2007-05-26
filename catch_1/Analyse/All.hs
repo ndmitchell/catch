@@ -18,7 +18,7 @@ analyse logger options core = do
     let quiet = Quiet `elem` options
         split = not quiet
         partials = not quiet
-        (msgs,core2) = if split then labelErrors core else ([],core)
+        (msgs,core2) = labelErrors core
         funcs = map coreFuncName $ filter isCoreFunc $ coreFuncs core2
     
     initInfo core2{coreFuncs = CorePrim "any?" 0 : coreFuncs core2}
