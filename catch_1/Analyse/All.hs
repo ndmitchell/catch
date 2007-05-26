@@ -15,8 +15,9 @@ import General.CmdLine
 -- should you do partial function listined
 analyse :: (Bool -> String -> IO ()) -> [Flag] -> Core -> IO String
 analyse logger options core = do
-    let split = Quiet `notElem` options
-        partials = Quiet `notElem` options
+    let quiet = Quiet `elem` options
+        split = not quiet
+        partials = not quiet
         (msgs,core2) = if split then labelErrors core else ([],core)
         funcs = map coreFuncName $ filter isCoreFunc $ coreFuncs core2
     
