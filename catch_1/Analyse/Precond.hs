@@ -22,18 +22,15 @@ preconds logger partials errmsgs funcs = do
     where
         f n msg = do
             putStrLn $ "Checking [" ++ show n ++ "/" ++ show (length errmsgs) ++ "]: " ++ msg
-            res <- precond logger partials (g n) funcs
+            res <- precond logger partials [n] funcs
             putStrLn $ "Answer: " ++ show res
             return res
-
-        g n (CoreInt i) = n == i
-
 
 
 -- given a list of all functions, return the constraint on "main"
 -- first argument logs stuff
--- second argument says if an error should fail (True == error)
-precond :: (String -> IO ()) -> Bool -> (CoreExpr -> Bool) -> [CoreFuncName] -> IO Constraint
+-- second argument says which error messages should fail (True == error)
+precond :: (String -> IO ()) -> Bool -> [Int] -> [CoreFuncName] -> IO Constraint
 precond logger partials errcheck funcs = do
         info <- getInfo
         let true = conTrue info
@@ -61,7 +58,7 @@ precond logger partials errcheck funcs = do
 
 
 
-pre :: (CoreExpr -> Bool) -> (CoreFuncName -> IO (PropReq Int)) -> CoreExpr -> IO (PropReq CoreExpr)
+pre :: [Int] -> (CoreFuncName -> IO (PropReq Int)) -> CoreExpr -> IO (PropReq CoreExpr)
 pre errcheck preFunc x = f x
     where
         f x | isCoreVar x || isCoreConst x = return propTrue
@@ -70,9 +67,8 @@ pre errcheck preFunc x = f x
         f (CoreApp (CoreVar _) xs) = liftM propAnds $ mapM f xs
 
         f (CoreFun fn) = f $ CoreApp (CoreFun fn) []
-        f (CoreApp (CoreFun fn) xs) 
-            | fn == "Prelude.error" = return $ propBool $ not $ errcheck $ head xs
-            | otherwise = do
+        f (CoreApp (CoreFun "Prelude.error") [CoreInt i]) | i `elem` errcheck = return $ propFalse
+        f (CoreApp (CoreFun fn) xs) = do
             info <- getInfo
             if isCorePrim (function info fn)
                 then liftM propAnds $ mapM f xs

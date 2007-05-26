@@ -30,7 +30,7 @@ analyse logger options core = do
                return res
            else do
                putStrLn "Checking whole program"
-               precond (logger True) partials (const True) funcs
+               precond (logger True) partials [1..length msgs] funcs
 
     termInfo
     termProperty
