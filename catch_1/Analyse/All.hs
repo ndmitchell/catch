@@ -16,7 +16,6 @@ import General.CmdLine
 analyse :: (Bool -> String -> IO ()) -> [Flag] -> Core -> IO String
 analyse logger options core = do
     let quiet = Quiet `elem` options
-        split = not quiet
         partials = not quiet
         (msgs,core2) = labelErrors core
         funcs = map coreFuncName $ filter isCoreFunc $ coreFuncs core2
