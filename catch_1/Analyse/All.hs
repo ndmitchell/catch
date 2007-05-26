@@ -23,7 +23,7 @@ analyse logger options core = do
     initInfo core2{coreFuncs = CorePrim "any?" 0 : coreFuncs core2}
     initProperty (logger False)
     
-    res <- if split then do
+    res <- if not quiet then do
                res <- preconds (logger True) partials msgs funcs
                putStrLn "Checking whole program"
                return res
