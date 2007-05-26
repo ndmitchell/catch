@@ -8,6 +8,7 @@ import Analyse.Precond
 import Control.Monad.State
 import General.CmdLine
 import Analyse.Req
+import Data.List
 
 
 -- given a logger and the core, do the work
@@ -19,36 +20,33 @@ analyse logger options core = do
     let quiet = Quiet `elem` options
         partials = not quiet
         (msgs,core2) = labelErrors core
+        use = [1..length msgs] \\ concat [i | Skip i <- options]
         funcs = map coreFuncName $ filter isCoreFunc $ coreFuncs core2
     
     initInfo core2{coreFuncs = CorePrim "any?" 0 : coreFuncs core2}
     initProperty (logger False)
     
-    res <- if not quiet then do
-               res <- preconds (logger True) partials msgs funcs
+    res <- if quiet then do
                putStrLn "Checking whole program"
-               return res
+               precond (logger True) partials use funcs
            else do
+               res <- flip mapM (zip [1..] msgs) $ \(i,msg) ->
+                   let count = " [" ++ show i ++ "/" ++ show (length msgs) ++ "]: " ++ msg in
+                   if i `notElem` use then do
+                       putStrLn $ "Skipping" ++ count
+                       return []
+                   else do
+                       putStrLn $ "Checking" ++ count
+                       res <- precond (logger True) partials [i] funcs
+                       putStrLn $ "Answer: " ++ show res
+                       return [res]
                putStrLn "Checking whole program"
-               precond (logger True) partials [1..length msgs] funcs
+               info <- getInfo
+               return $ conAnds info $ concat res
 
     termInfo
     termProperty
     return $ show res
-
-
-
-preconds :: (String -> IO ()) -> Bool -> [String] -> [CoreFuncName] -> IO Constraint
-preconds logger partials errmsgs funcs = do
-        cs <- zipWithM f [1..] errmsgs
-        info <- getInfo
-        return $ conAnds info cs
-    where
-        f n msg = do
-            putStrLn $ "Checking [" ++ show n ++ "/" ++ show (length errmsgs) ++ "]: " ++ msg
-            res <- precond logger partials [n] funcs
-            putStrLn $ "Answer: " ++ show res
-            return res
 
 
 
