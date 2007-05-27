@@ -79,22 +79,31 @@ h3 {
 
 <h2>Obtaining and Installing Catch</h2>
 
-<p>
-	Users at York University who use <tt>/grp/haskell</tt> have Catch already installed. This section is for everyone else. Catch is not yet polished for easy installation, but with a little effort can be installed.
+<h3>Installing Yhc</h3>
+
 <p>
     Catch has Yhc as a dependency, so before installing Catch you must first install Yhc. See <a href="http://haskell.org/haskellwiki/Yhc">this page</a> for details of installation. Once you have installed Yhc, add it to your search path so that the <tt>yhc</tt> command is available and can compile files.
 </p>
 <p>
-    Once you have Yhc installed, obtain a release of Catch using <a href="http://darcs.net/">darcs</a>:
+	If you aren't able to compile Yhc in its entirity, then the following is sufficient:
 </p>
 <pre>
-darcs get --partial <a href="http://www.cs.york.ac.uk/fp/darcs/catch">http://www.cs.york.ac.uk/fp/darcs/catch</a>
+scons build yhc
+scons build libraries
+</pre>
+
+<h3>Installing Catch</h3>
+
+<p>
+    Take a Catch tarball, and unpack. Then invoke the standard Cabal magic:
+</p>
+<pre>
+runhaskell Setup configure
+runhaskell Setup build
+runhaskell Setup install
 </pre>
 <p>
-    Change to the directory <tt>catch_1</tt> and compile the program Main. This will require the FilePath module, and will require you to add -I flags to the various required bits. A file <tt>make.bat</tt> is provided which should give a hint of what will be required, although will not work on any machines but mine.
-</p>
-<p>
-	If you wish to simply test Catch quickly, then <tt>catch Risers</tt> should do something. If you want to add Catch to your path, you will also need to set <tt>CATCH_BASE_PATH</tt> to point at the root of the darcs repo. This is to ensure that Catch can find the necessary support files.
+	After this set <tt>CATCH_BASE_PATH</tt> so it points at the root of the unpacked directory - i.e. <tt>%CATCH_BASE_PATH%/catch.htm</tt> will be this manual.
 </p>
 
 <h2>A Walkthrough of Risers</h2>
@@ -128,31 +137,35 @@ Answer: _
 	First find your code, something under 500 lines is probably best - start small (10 lines) and work your way up. Remember that even a 2 line program may pull in 1000's of lines of libraries, so do not think of program size as an absolute.
 </p>
 <p>
-	To prepare your code for analysis, make sure there is a <tt>main</tt> function. If the main function is a standard one (i.e. :: IO ()) then any module name will do. If you want to make any function the root of Catch checking, name it as <tt>main</tt> and change the module name to something other than Main - so Haskell does not attempt to make it <tt>Main.main</tt>.
+	Your code should either be a program with a <tt>main</tt> function, or a library with an export list (restricted to one module deep names currently). If you wish to check a fragment which does not have <tt>main :: IO ()</tt>, then name the module something else.
 </p>
 <p>
 	Next check that Yhc is able to compile your code, if it cannot then fix either the code or Yhc until you have success.
 </p>
 <p>
-	Now check the program by typing <tt>catch <i>testname</i> -partial -errors</tt>. The flags are discussed later, but these two give useful help. To take a program such as <a href="http://www.cs.york.ac.uk/fp/darcs/hscolour/">HsColour</a>, we would get:
+	Now check the program by typing <tt>catch <i>testname</i></tt>. To take a program such as <a href="http://www.cs.york.ac.uk/fp/darcs/hscolour/">HsColour</a>, we would get:
 </p>
 <pre>
-Checking [1/4]: Language.Haskell.HsColour.Classify: Pattern match failure in fun
-ction at 49:1-56:26.
+Checking [1/5]: Language.Haskell.HsColour.Classify: Pattern match failure in fun
+ction at 56:1-63:26.
 Partial: "Language.Haskell.HsColour.Classify.nestcomment.4"
 Partial: "Language.Haskell.HsColour.Classify.nestcomment"
 Partial: "Language.Haskell.HsColour.Classify.nestcomment.5"
 Answer: _
-Checking [2/4]: PreludeList.foldr1: empty list
-Partial: "Prelude.fold$30"
+Checking [2/5]: PreludeList.foldr1: empty list
+Partial: "Prelude.fold$292"
 Answer: _
-Checking [3/4]: PreludeList.head: empty list
+Checking [3/5]: PreludeList.head: empty list
 Partial: "Prelude.head"
 Partial: "Language.Haskell.HsColour.Classify.chunk.6"
-Partial: "Main.Main.Prelude.312.useDefault$24.1"
-Partial: "Main.Main.Prelude.312.useDefault$93.1"
+Partial: "Main.Main.Prelude.319.useDefault$269.1"
+Partial: "Main.Main.Prelude.319.useDefault$710.1"
 Answer: _
-Checking [4/4]: PreludeList.tail: empty list
+Checking [4/5]: PreludeList.last: empty list
+Partial: "Prelude.last"
+Partial: "Main.Main.Prelude.313.writeResult$283.1"
+Answer: _
+Checking [5/5]: PreludeList.tail: empty list
 Partial: "Prelude.tail"
 Partial: "Language.Haskell.HsColour.Classify.chunk.6"
 Answer: _
@@ -160,10 +173,10 @@ Checking whole program
 Answer: _
 </pre>
 <p>
-	Each "Checking" output corresponds to the error message the user would see at runtime if this pattern was invoked. For example, the first would give an error message about foldr1 being on an empty list - which clearly shows where the problem is. Functions often have specialised variants generated, Prelude.fold$30 is one of these - which comes from foldr originally.
+	Each "Checking" output corresponds to the error message the user would see at runtime if this pattern was invoked. For example, the second would give an error message about foldr1 being on an empty list - which clearly shows where the problem is. Functions often have specialised variants generated, Prelude.fold$30 is one of these - which comes from foldr originally.
 </p>
 <p>
-	The "Partial" list are all the functions which have a precondition from the given pattern match error, the second pattern most clearly illustates this. Here the function <tt>head</tt> has transmitted a precondition to <tt>useDefault</tt>, which is defined in module <tt>Main</tt>. The precondition extends no further than this though, so will never occur in practice.
+	Another example is the third error message. Here the function <tt>head</tt> has transmitted a precondition to <tt>useDefault</tt>, which is defined in module <tt>Main</tt>. The precondition extends no further than this though, so will never occur in practice.
 </p>
 <p>
 	We can examine the <tt>useDefault</tt> function more closely, we can find its original definition in HsColour:
@@ -173,7 +186,7 @@ useDefault d f list | null list = d
                     | otherwise = f (head list)
 </pre>
 <p>
-	And if we turn on the <tt>-text</tt> flag to Catch, we can take a look at <tt>ycr/HsColour.shortctors.txt</tt>, which gives the functions relating to <tt>useDefault</tt> just before analysis. Another option is to look at the <tt>letelim</tt> file, which is a close match to the original code:
+	And if we turn on the <tt>--dcore</tt> flag to Catch, we can take a look at <tt>ycr/HsColour.6.ShortCtors.txt</tt>, which gives the functions relating to <tt>useDefault</tt> just before analysis. Another option is to look at the <tt>LetElim</tt> file, which is a close match to the original code:
 </p>
 <pre>
 Main.Main.Prelude.311.useDefault$24 v1 v4 =
@@ -225,7 +238,7 @@ Main.Main.Prelude.311.useDefault$93.1 v3 v10 v2 v8 v9 v1 =
 	<li><b>{Just {True}} | {Nothing}</b> Must be Just True or Nothing.</li>
 	<li><b>{#2 _ {True}}</b> The function takes 2 arguments, the second must be True.</li>
 	<li><b>{: _ * _}</b> Must be the constructor (:). The first _ is the restriction on the head, the * is merely a separator, and the second _ is the restriction on all tails.</li>
-	<li><b>_{: {True} * {: {True} | []}} | []</b> Must be a list of any size, with True for all elements.</li>
+	<li><b>{: {True} * {: {True} | []}} | []</b> Must be a list of any size, with True for all elements.</li>
 </ul>
 <p>
 	Catch could probably do with writing its constraints in some human friendly way - although quite what form this would take is still unclear. Counter example generation is likely to be useful, and is on the todo list.
@@ -245,50 +258,31 @@ Main.Main.Prelude.311.useDefault$93.1 v3 v10 v2 v8 v9 v1 =
 </p>
 <ul>
 	<li><b>.hs/.lhs</b> Treated as a Haskell file, and compiled using Yhc. If no extension is given, this extension is infered.</li>
-	<li><b>.yca</b> A linked Core file generated using Yhc with -linkcore.</li>
 	<li><b>.txt</b> A text file, listing files to analyse one per line.</li>
 	<li><b>Directory</b> A directory of .hs/.lhs files, all which be analysed separately.</li>
 </ul>
 <p>
-	Files are searched for in the current directory and in <tt>$CATCH_BASE_PATH/examples/*/</tt>. This allows the standard examples to be executed by Catch without worrying about directories etc.
+	Files are searched for in the current directory and in <tt>%CATCH_BASE_PATH%/examples/*/</tt>. This allows the standard examples to be executed by Catch without worrying about directories etc.
 </p>
-
-<h3>Stages</h3>
-
-<p>
-	Catch runs through several stages. By specifying a stage, that causes the stage to be executed. If no stages are specified (the common case) then all are executed.
-</p>
-<ul>
-	<li><b>-all</b> All stages, the default.</li>
-	<li><b>-compile</b> Compile the program.</li>
-	<li><b>-overlay</b> Replace primitives and library functions with special versions if necessary.</li>
-	<li><b>-firstify</b> Make the program first order.</li>
-	<li><b>-letelim</b> Eliminate let expressions.</li>
-	<li><b>-onearg</b> Make all functions have arity of one.</li>
-	<li><b>-uniquevars</b> Make all free variables unique throughout the program.</li>
-	<li><b>-shortctors</b> Shorten all constructor names, by dropping module qualifiers.</li>
-	<li><b>-analyse</b> Run the analysis.</li>
-</ul>
 
 <h3>Options</h3>
 
-<p>
-	For most users, <tt>-partial -errors</tt> is probably a good choice of flags. The flags are given in order of their usefulness to an average user.
-</p>
-<ul>
-	<li><b>-errors</b> Check each call to <tt>error</tt> separately, runs slower but gives more useable results.</li>
-	<li><b>-partial</b> Give a record of each partial function found, this is useful if your program is unsafe. Also useful if your program takes too much time and needs killing, to get useful results.</li>
-	<li><b>-screen</b> View the logs of what is happening, not that useful (unless you are me), until it gets to the end where it gives all the preconditions.</li>
-	<li><b>-quiet</b> Remove the Task: messages.</li>
-	<li><b>-nolog</b> Do not write any disk logs, can make the program run faster, especially if the log file is on a network drive.</li>
-	<li><b>-text</b> Output the Core at the intermediate stages, see <tt>ycr/<i>file</i>.shortctors.txt</tt> to see the final code just before analysis.</li>
-	<li><b>-html</b> Output the same information as -text, but in a pretty HTML page with hyperlinks and colouring.</li>
-	<li><b>-yca</b> Output the Core files directly, required if you specify stages.</li>
-	<li><b>-regress</b> After execution compare the result to a regression statement. If the first line of the file is <tt>-- #CATCH <i>str</i></tt>, then <tt><i>str</i></tt> must match the result, or an error will be given.</li>
-	<li><b>-time</b> Output CPU time consumed on each program.</li>
-	<li><b>-memory</b> Output maximum residency statistics, requires GHC compiled Catch.</li>
-	<li><b>-prof</b> Run with profiling. Requires <tt>catch_prof</tt> to be built with profiling information.</li>
-</ul>
+<pre>
+Standard options:
+  -v           --version            show version number
+  -h, -?       --help               show help message
+  -q           --quiet              final results only
+  -t[SECONDS]  --timeout[=SECONDS]  timeout per error, 0=inf
+  -s N,M       --skip=N,M           list of errors to skip
+  -y flags     --yhc=flags          extra flags to give to Yhc
+
+Debug options:
+               --dlog               ouptput property/precondition logs
+               --dcore              output intermediate Yhc.Core files
+               --dtime              display CPU time
+               --dmemory            display memory useage
+               --dprofile           run with profiling
+</pre>
 
 
 <h2>Limitations</h2>
@@ -308,15 +302,15 @@ Main.Main.Prelude.311.useDefault$93.1 v3 v10 v2 v8 v9 v1 =
 		<b>Firstifier non-terminates</b> Some programs will not terminate in the firstifier. If the program has this behaviour, email it to me. There are a few known cases of this, which are being investigated.
 	</li>
 	<li>
-		<b>Firstifier fails</b> Some programs cannot currently be firstified. First check that your <tt>main</tt> function is first order, and is given all the required arguments.
+		<b>Analysis takes forever</b> This is unlikely, but it may well take a very long time. Adding either <tt>--skip</tt> or <tt>--timeout</tt> can be used to ignore this particular error.
 	</li>
 	<li>
-		<b>Analysis takes forever</b> This is unlikely, but it may well take a very long time. I recommend -partial -errors and then Ctrl+C after a short while. This is likely to pinpoint the pattern Catch fails on.
+		<b>Timeout does not work</b> Not sure why, but I have very limited success with the timeout flag.
 	</li>
 </ul>
 
 <p>
-	If you run into any of the last three of these problems, please email me the sample code. The larger the program, the more likely that Catch will run into one of these issues - however a large program in itself will not cause any issues.
+	The larger the program, the more likely that Catch will run into one of these issues - however a large program in itself will not cause any issues.
 </p>
 
     </body>
