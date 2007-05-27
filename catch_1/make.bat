@@ -1,9 +1,5 @@
 @echo off
 
-if exist C:\Neil\yhc set comp=C:\Neil\yhc
-if exist C:\Documents\Uni\yhc\current set comp=C:\Documents\Uni\yhc\current
-if exist D:\sources\yhc\current set comp=D:\sources\yhc\current
-
 if "%1" == "prof" goto make_prof
 if "%1" == "opt" goto make_opt
 if "%1" == "opt2" goto make_opt2
@@ -41,8 +37,9 @@ goto make
 :make
 mkdir obj 2> nul
 mkdir %objdir% 2> nul
+set packages= -hide-all-packages -package base -package mtl -package filepath -i%YHC_BASE_PATH%\..\src\libraries\core -i%YHC_BASE_PATH%\..\src\libraries\general -i%YHC_BASE_PATH%\..\depends\play -i..\proposition
 @echo on
-ghc %flags% --make Main -o %exe%.exe -odir %objdir% -hidir %objdir% -i%comp%\src\libraries\core -i%comp%\src\libraries\general -i..\proposition
+ghc %flags% --make Main -o %exe%.exe -odir %objdir% -hidir %objdir% %packages%
 @echo off
 
 
