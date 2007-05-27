@@ -2,6 +2,8 @@
 
 import System.Directory
 import System.Environment
+import System.Cmd
+import System.IO
 import Control.Monad
 import System.FilePath
 import Data.List
@@ -12,18 +14,20 @@ main = do
     b <- doesDirectoryExist "release"
     when b $ removeDirectoryRecursive "release"
     createDirectory "release"
+    createDirectory "release/catch"
 
     yhc <- getEnv "YHC_BASE_PATH"
-    copyHaskell "catch_1" "release/src"
-    copyHaskell "proposition" "release/src"
-    copyHaskell "examples" "release/examples"
-    copyHaskell (yhc ++ "/../src/libraries/general") "release/src"
-    copyHaskell (yhc ++ "/../src/libraries/core") "release/src"
-    copyHaskell (yhc ++ "/../depends/play") "release/src"
-    copyFile "catch.htm" "release/catch.htm"
-    renameFile "release/src/Setup.hs" "release/Setup.hs"
-    
+    copyHaskell "catch_1" "release/catch/src"
+    copyHaskell "proposition" "release/catch/src"
+    copyHaskell "examples" "release/catch/examples"
+    copyHaskell (yhc ++ "/../src/libraries/general") "release/catch/src"
+    copyHaskell (yhc ++ "/../src/libraries/core") "release/catch/src"
+    copyHaskell (yhc ++ "/../depends/play") "release/catch/src"
+    copyFileBinary "catch.htm" "release/catch/catch.htm"
+    renameFile "release/catch/src/Setup.hs" "release/catch/Setup.hs"
     createCabal
+
+    system "cd release && tar -cf catch.tar.gz catch --gzip"
 
 
 badDirs = ["Examples","Benchmark","hw2007","Unused","Dead"]
@@ -40,7 +44,7 @@ copyHaskell from to = do
 
     flip mapM_ files $ \s -> do
         createDirectoryIfMissing True (takeDirectory $ to </> s)
-        copyFile (from </> s) (to </> s)
+        copyFileBinary (from </> s) (to </> s)
 
 
 listFiles :: FilePath -> IO [FilePath]
@@ -61,5 +65,16 @@ createCabal :: IO ()
 createCabal = do
     src <- readFile "bundle.txt"
     let f = (++) "    " . concat . intersperse "." . splitDirectories . dropExtension
-    mods <- liftM (map f) $ listFiles "release/src"
-    writeFile "release/catch.cabal" $ src ++ unlines mods
+    mods <- liftM (map f) $ listFiles "release/catch/src"
+    h <- openBinaryFile "release/catch/catch.cabal" WriteMode
+    hPutStr h $ src ++ unlines mods
+    hClose h
+
+
+copyFileBinary from to = do
+    hIn  <- openBinaryFile from ReadMode
+    s <- hGetContents hIn
+    hOut <- openBinaryFile to WriteMode
+    hPutStr hOut s
+    hClose hIn
+    hClose hOut
