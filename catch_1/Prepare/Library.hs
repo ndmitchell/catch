@@ -16,11 +16,7 @@ createMain exports core
         newany  = CorePrim "main_any" 0
         newmain = CoreFunc "main" [] (CoreApp (CoreFun "main_prim") (map f exports))
 
-        f name | null funcs = error $ "Could not find export: " ++ name
-               | length funcs > 1 = error $ "Found multiple time, use a qualified name: " ++ name
-               | otherwise = coreApp (CoreFun n) (replicate args (CoreFun "main_any"))
+        f name = coreApp (CoreFun n) (replicate args (CoreFun "main_any"))
             where
-                match x = if '.' `elem` name then name == x
-                          else ('.':name) `isSuffixOf` x
-                funcs = [(n,length args) | CoreFunc n args _ <- coreFuncs core, match n]
-                (n,args) = head funcs
+                n = coreName core ++ "." ++ name
+                args = coreFuncArity $ coreFunc core n
