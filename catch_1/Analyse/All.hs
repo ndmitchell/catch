@@ -9,6 +9,8 @@ import Control.Monad.State
 import General.CmdLine
 import Analyse.Req
 import Data.List
+import Data.Maybe
+import System.Timeout
 
 
 -- given a logger and the core, do the work
@@ -22,27 +24,34 @@ analyse logger options core = do
         (msgs,core2) = labelErrors core
         use = [1..length msgs] \\ concat [i | Skip i <- options]
         funcs = map coreFuncName $ filter isCoreFunc $ coreFuncs core2
-    
+
+        timer x = do
+            let t = last $ defaultTimeout : [i | Timeout i <- options]
+            res <- if t == 0 then liftM Just x else timeout (t * 1000000) x
+            when (isNothing res) $ putStrLn "ERROR: Timeout occurred"
+            return res
+
     initInfo core2{coreFuncs = CorePrim "any?" 0 : coreFuncs core2}
     initProperty (logger False)
     
+    info <- getInfo
     res <- if quiet then do
                putStrLn "Checking whole program"
-               precond (logger True) partials use funcs
+               res <- timer $ precond (logger True) partials use funcs
+               return $ fromMaybe (conTrue info) res
            else do
                res <- flip mapM (zip [1..] msgs) $ \(i,msg) ->
                    let count = " [" ++ show i ++ "/" ++ show (length msgs) ++ "]: " ++ msg in
                    if i `notElem` use then do
                        putStrLn $ "Skipping" ++ count
-                       return []
+                       return Nothing
                    else do
                        putStrLn $ "Checking" ++ count
-                       res <- precond (logger True) partials [i] funcs
-                       putStrLn $ "Answer: " ++ show res
-                       return [res]
+                       res <- timer $ precond (logger True) partials [i] funcs
+                       when (isJust res) $ putStrLn $ "Answer: " ++ show (fromJust res)
+                       return res
                putStrLn "Checking whole program"
-               info <- getInfo
-               return $ conAnds info $ concat res
+               return $ conAnds info $ catMaybes res
 
     termInfo
     termProperty
