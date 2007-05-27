@@ -1,0 +1,12 @@
+Name:               catch
+Version:            0.1
+License:            BSD3
+Author:             Neil Mitchell
+Homepage:           http://www-users.cs.york.ac.uk/~ndm/catch/
+Build-Depends:      base, mtl, filepath
+Synopsis:           Static Analysis for Pattern-Match Errors
+
+Executable:         catch
+Main-Is:            Main.hs
+Hs-Source-Dirs:     src
+Exposed-Modules:
