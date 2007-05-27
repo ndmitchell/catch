@@ -2,7 +2,8 @@
 module General.CmdLine(
     Flag(..),
     parseCmdLine, unparseCmdLine,
-    helpMsgShort, helpMsgLong
+    helpMsgShort, helpMsgLong,
+    defaultTimeout
     ) where
 
 import System.Console.GetOpt
@@ -19,6 +20,9 @@ data Flag = -- General Options
             -- Debug Options
           | DLog | DCore | DProfile | DTime | DMemory
             deriving (Eq, Show)
+
+-- Turn off a timeout since it does not seem to work on GHC
+defaultTimeout = 0 :: Int
 
 options = optionsNormal ++ optionsDebug
 
