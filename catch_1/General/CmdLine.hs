@@ -12,6 +12,8 @@ import System.Environment
 import Control.Monad
 import Data.List
 import Data.Char
+import Data.Version(showVersion)
+import Paths_catch
 
 data Flag = -- General Options
             Version | Help
@@ -70,7 +72,7 @@ parseCmdLine = do
             putStr $ unlines errs
             exitFailure
         when (Version `elem` flags) $ do
-            putStrLn "Catch 2007, v1.0"
+            putStrLn $ "Catch 2007, version " ++ showVersion version
             exitSuccess
         when (Help `elem` flags) $ do
             helpMsgLong

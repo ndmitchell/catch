@@ -6,6 +6,7 @@ import Control.Monad
 import System.Environment
 import System.IO
 import Debug.Trace
+import Paths_catch
 
 
 type Result a = (Bool,a)
@@ -60,5 +61,6 @@ readFileStrict file = do
 
 
 baseDir :: IO FilePath
-baseDir = catch (getEnv "CATCH_BASE_PATH")
-                (\_ -> return "..")
+baseDir = catch (getEnv "CATCH_BASE_PATH") $ \_ ->
+                do s <- getDataDir
+                   return $ if null s then ".." else s
