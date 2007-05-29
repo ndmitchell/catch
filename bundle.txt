@@ -5,8 +5,13 @@ Author:             Neil Mitchell
 Homepage:           http://www-users.cs.york.ac.uk/~ndm/catch/
 Build-Depends:      base, mtl, filepath
 Synopsis:           Static Analysis for Pattern-Match Errors
+Extra-Source-Files:
+	catch.htm
+Data-Files:
+$EXAMPLES
 
 Executable:         catch
 Main-Is:            Main.hs
 Hs-Source-Dirs:     src
-Exposed-Modules:
+Other-Modules:
+$MODULES

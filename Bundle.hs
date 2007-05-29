@@ -31,7 +31,7 @@ main = do
 
 
 badDirs = ["Examples","Benchmark","hw2007","Unused","Dead"]
-badFiles = ["Test"]
+badFiles = ["Test","Paths_catch"]
 
 
 copyHaskell :: FilePath -> FilePath -> IO ()
@@ -64,10 +64,21 @@ listFiles root = do
 createCabal :: IO ()
 createCabal = do
     src <- readFile "bundle.txt"
-    let f = (++) "    " . concat . intersperse "." . splitDirectories . dropExtension
+    
+    let indent = (++) "    "
+        f = indent . concat . intersperse "." . splitDirectories . dropExtension
+        g x = if x == '\\' then '/' else x
     mods <- liftM (map f) $ listFiles "release/catch/src"
+    fils <- liftM (map (indent . map g . (</>) "examples")) $ listFiles "release/catch/examples"
+    
+    let ask "EXAMPLES" = fils
+        ask "MODULES" = mods
+
+        f ('$':xs) = ask xs
+        f xs = [xs]
+    
     h <- openBinaryFile "release/catch/catch.cabal" WriteMode
-    hPutStr h $ src ++ unlines mods
+    hPutStr h $ unlines $ concatMap f $ lines src
     hClose h
 
 
