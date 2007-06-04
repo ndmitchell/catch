@@ -268,8 +268,9 @@ hnf :: Expr -> Maybe (CtorName, [Expr])
 hnf (Make  x   xs    )  =  Just (x, xs)
 hnf (Call  x   xs    )  |  x == "error"  = Nothing
                         |  otherwise     = hnf (instantiate x xs)
-hnf (Case  on  alts  )  =  listToMaybe [hnf (subst (zip vs cs) e)
-       | Just (c,cs) <- [hnf on], Alt n vs e <- alts, c == n]
+hnf (Case  on  alts  )  =  listToMaybe [res
+       | Just (c,cs) <- [hnf on], Alt n vs e <- alts, c == n
+       , Just res <- [hnf (subst (zip vs cs) e)]]
 
 subst :: [(VarName, Expr)] -> Expr -> Expr
 subst r (Var   x     ) = fromJust (lookup x r)
