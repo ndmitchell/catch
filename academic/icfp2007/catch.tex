@@ -145,7 +145,7 @@ risers (x:y:etc) = if x <= y then (x:s):ss else [x]:(s:ss)
 
 A sample application of this function is:
 
-\begin{code}
+\ignore\begin{code}
 > risers [1,2,3,1,2]
 [[1,2,3],[1,2]]
 \end{code}
@@ -213,13 +213,13 @@ risers4 x = case x of
 
 In the Core language every pattern match covers all possible constructors of the appropriate type. The alternatives for constructor cases not originally given are calls to \C{error}. The analysis starts by finding calls to \C{error}, then tries to prove that these calls will not be reached. The one \C{error} call in \C{risers4} is avoided under the precondition (see \S\ref{sec:precond}):
 
-\begin{code}
+\ignore\begin{code}
 risers4, x :< (:)
 \end{code}
 
 \noindent That is, all callers of \C{risers4} must supply an argument |x| which is a |(:)|-constructed value. For the proof that this precondition holds, two properties are required (see \S\ref{sec:backward}):
 
-\begin{code}
+\ignore\begin{code}
 x :< (:)  => (risers x       ) :< (:)
 True      => (risers2 x y z  ) :< (:)
 \end{code}
@@ -326,7 +326,7 @@ In our experience, numbers are most often constrained to be a natural, or to be 
 
 Possible abstractions of characters include:
 
-\begin{code}
+\ignore\begin{code}
 data Char = Char
 data Char = Alpha | Digit | White | Other
 data Char = 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | Other
