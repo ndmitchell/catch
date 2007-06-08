@@ -26,7 +26,7 @@ main = do
     renameFile "release/catch/src/Setup.hs" "release/catch/Setup.hs"
     createCabal
 
-    system "cd release && tar -cf catch.tar.gz catch --gzip"
+    system "cd release && tar -cf catch.tar catch"
 
 
 badDirs = ["Examples","Benchmark","hw2007","Unused","Dead"]
