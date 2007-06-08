@@ -22,8 +22,8 @@
 \newcommand{\mtxt}[1]{\textsf{#1}}
 
 \newcommand{\catch}{\textsc{Catch}}
-\newcommand{\newtool}{\anon{\catch07}{\catch}}
-\newcommand{\oldtool}{\anon{\catch05}{\textsc{MR-Checker}}}
+\newcommand{\newtool}{\catch07}
+\newcommand{\oldtool}{\catch05}
 
 % examples
 \newcounter{exmp}
@@ -36,8 +36,6 @@
 \newcommand{\todo}[1]{\textbf{\textsc{Todo:} #1}}
 
 \newcommand{\para}[1]{\vspace{2mm}\noindent\textbf{#1}}
-
-\newcommand{\anon}[2]{#2}
 
 % code blocks
 \newenvironment{codepage}
@@ -67,26 +65,27 @@
 \newcommand{\vecto}[1]{\overrightarrow{#1\;}}
 \newcommand{\gap}{\;\;}
 \newcommand{\dom}{\text{dom}}
+\newcommand{\ignore}{}
 
 
 \begin{document}
 
-\conferenceinfo{ICFP '07}{date, City.} %
+\conferenceinfo{Haskell Workshop '07}{date, City.} %
 \copyrightyear{2007} %
 \copyrightdata{[to be supplied]}
 
-\titlebanner{} % \today{} - \currenttime{}}        % These are ignored unless
+\titlebanner{\today{} - \currenttime{}}        % These are ignored unless
 \preprintfooter{}   % 'preprint' option specified.
 
 \title{Not All Patterns, But Enough}
 \subtitle{ -- an automatic verifier for partial but sufficient pattern matching}
 
-\authorinfo{\anon{Neil Mitchell}{Author 1}}
-           {\anon{University of York, UK - ndm}{Affiliation 1}}
-           {Contact Details 1}
-\authorinfo{\anon{Colin Runciman}{Author 2}}
-           {\anon{University of York, UK - colin}{Affiliation 2}}
-           {Contact Details 2}
+\authorinfo{Neil Mitchell}
+           {University of York, UK}
+           {\url{http://www.cs.york.ac.uk/~ndm/}}
+\authorinfo{Colin Runciman}
+           {University of York, UK}
+           {\url{http://www.cs.york.ac.uk/~colin/}}
 
 \maketitle
 
@@ -169,7 +168,7 @@ The contributions of this paper include:
 \item Results showing success on a number of small examples drawn from the Nofib suite \citep{nofib}, and for two larger examples, investigating the scalability of the checker.
 \end{itemize}
 
-In \citet{me:catch_tfp} a pattern-match checker was described with similar aims, which we will refer to as \oldtool{}\anon{\footnote{Although the paper was completed in 2005, publication was delayed}}{}. For \oldtool{} \C{risers} was towards the boundary of what was possible, for \newtool{} it is trivial. Scalability problems have been addressed and \newtool{} handles real Haskell programs, with no restriction on the recursion patterns, higher-order functions or type classes. The underlying constraint mechanism of \newtool{} is radically different.
+In \citet{me:catch_tfp} a pattern-match checker was described with similar aims, which we will refer to as \oldtool{}\footnote{Although the paper was completed in 2005, publication was delayed}. For \oldtool{} \C{risers} was towards the boundary of what was possible, for \newtool{} it is trivial. Scalability problems have been addressed and \newtool{} handles real Haskell programs, with no restriction on the recursion patterns, higher-order functions or type classes. The underlying constraint mechanism of \newtool{} is radically different.
 
 \subsection{Road map}
 
@@ -378,7 +377,7 @@ data Pattern  =  Con CtorName [Pattern]
 \end{figure}
 
 For simplicity, our analysis framework will be introduced using basic pattern constraints (BP-constraints). A BP-constraint directly corresponds to Haskell pattern matching. A constraint is a finite set of patterns represented as in Figure \ref{fig:basic}. A given data structure |d| satisfies a constraint |ps| if |d| matches at least one pattern in |ps|. True and false constraints can be represented as |[Any]| and |[]| respectively. The requirement for a value to be |(:)|-constructed would be expressed as |(Con ":" [Any,Any])|.
- 
+
 The BP-constraint language is limited in expressivity. For example it is impossible to state that all the elements of a boolean list are True. However, even with this limited constraint language, the Risers example can be proven safe.
 
 As an example of an operator definition for the BP-constraint language, \C{notin} can be defined:
@@ -1329,7 +1328,7 @@ programming systems.  We hope that \catch{} or its successors can provide
 a small but useful bridge crossing part of that gap.
 
 \acks
-\anon{The first author is an EPSRC-supported PhD student.}{Acknowledgements removed for anonymity.}
+The first author is an EPSRC-supported PhD student.
 
 \bibliographystyle{plainnat}
 
