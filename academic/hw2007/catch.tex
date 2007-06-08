@@ -109,6 +109,25 @@ languages, verification
 \keywords
 Haskell, automatic verification, functional programming, pattern-match errors, preconditions
 
+% For Tex2hs
+\begin{comment}
+\begin{code}
+data Constraint = Constraint
+\end{code}
+\begin{code}
+data Assert a = a :< Constraint
+\end{code}
+\begin{code}
+infix  4  ==, /=
+infixr 2  ||
+
+(||) :: Bool -> Bool -> Bool
+(==) :: Eq a => a -> a -> Bool
+(/=) :: Eq a => a -> a -> Bool
+map :: (a -> b) -> [a] -> [b]
+\end{code}
+\end{comment}
+
 \section{Introduction}
 \label{sec:introduction}
 
@@ -337,13 +356,38 @@ data Char = '\0' | '\1' | '\2' ..
 
 The final issue of abstraction relates to primitive functions in the \C{IO} monad, such as \C{getArgs} (which returns the command-line arguments), or \C{readFile} (which reads from the file-system). In most cases an IO function is modelled as returning \textit{any} value of the correct type, using a function primitive to the checker.
 
+\subsection{Proposition Essentials}
+
+\begin{figure}
+\begin{code}
+data Prop a =  Prop a
+
+propAnd :: Prop a -> Prop a -> Prop a
+propOr  :: Prop a -> Prop a -> Prop a
+propAnds :: [Prop a] -> Prop a
+propOrs :: [Prop a] -> Prop a
+propMap :: (a -> b) -> Prop a -> Prop b
+propImp :: Prop a -> Prop a -> Prop a
+
+propTrue :: Prop a
+propFalse :: Prop a
+propBool :: Bool -> Prop a
+propIsTrue :: Prop a -> Bool
+propIsFalse :: Prop a -> Bool
+propLit :: a -> Prop a
+\end{code}
+\caption{Property data type}
+\label{fig:prop}
+\end{figure}
+
+See Figure \ref{fig:prop} for the property data type.
 
 \subsection{Constraint Essentials and Notation}
 \label{sec:constraints}
 
 An expression in our first-order core language evaluates to a data structure. A constraint describes a set of data structures to which a value may belong. If a component within a data structure evaluates to $\bot{}$, there are no constraints upon it.
 
-If |x| is an expression and |c| is a constraint we write |x :< c| to assert that the value of expression |x| must be a member of the set satisfying |c|. It is convenient to have a notation for constraints upon named arguments of named functions: we write |f, x :< c| to assert that argument |x| of |f| must be in the set satisfying |c|. These atomic constraints can be combined using logical operators $\wedge{}$ and $\vee{}$ to form propositional constraints.
+If |x| is an expression and |c| is a constraint we write |x :< c| to assert that the value of expression |x| must be a member of the set satisfying |c|. It is convenient to have a notation for constraints upon named arguments of named functions: we write \ignore|f, x :< c| to assert that argument |x| of |f| must be in the set satisfying |c|. These atomic constraints can be combined using logical operators $\wedge{}$ and $\vee{}$ to form propositional constraints.
 
 Several underlying constraint models are possible. To keep the introduction of the algorithms simple we first use \textit{basic pattern constraints} (\S\ref{sec:basic}). We then describe \textit{regular expression constraints} in \S\ref{sec:regexp} -- a variant of the constraints used in \oldtool{}. Finally we present \textit{multi-pattern constraints} in \S\ref{sec:multipattern} -- used in \newtool{} to enable scaling to much larger problems.
 
@@ -353,7 +397,7 @@ data Assert a = a :< Constraint
 
 notin :: CtorName -> Constraint
 (|>) :: Selector -> Constraint -> Constraint
-(<|) :: CtorName -> Prop (Assert Int)
+(<|) :: CtorName -> Constraint -> Prop (Assert Int)
 \end{code}
 \caption{Constraint operations.}
 \label{fig:constraint}
@@ -384,7 +428,7 @@ As an example of an operator definition for the BP-constraint language, \C{notin
 
 \begin{code}
 notin c = map f (delete c (ctors c))
-   where f x = Pattern x (replicate (arity x) Any)
+   where f x = Con x (replicate (arity x) Any)
 \end{code}
 
 
@@ -394,11 +438,11 @@ notin c = map f (delete c (ctors c))
 \begin{figure}
 \begin{code}
 pre :: Expr -> Prop (Assert Expr)
-pre (Var   x         ) = True
-pre (Make  _   xs    ) = and (map pre xs)
-pre (Call  fn  xs    ) = preFunc fn xs && and (map pre xs)
-pre (Case  on  alts  ) = pre on && and [f c e | Alt c vs e <- alts]
-    where f c e = (on :< notin c) || pre e
+pre (Var   x         ) = propTrue
+pre (Make  _   xs    ) = propAnds (map pre xs)
+pre (Call  fn  xs    ) = preFunc fn xs `propAnd` propAnds (map pre xs)
+pre (Case  on  alts  ) = pre on `propAnd` propAnds [f c e | Alt c vs e <- alts]
+    where f c e = propLit (on :< notin c) `propOr` pre e
 
 preFunc :: FuncName -> [Expr] -> Prop (Assert Expr)
 \end{code}
@@ -414,13 +458,13 @@ Our intention is that for every function, constraints on the arguments form a pr
 The precondition on each function must be at least as restrictive as the precondition on the body of that function:
 
 \begin{code}
-forall fn, xs `o` preFunc fn xs => pre (instantiate fn xs)
+propRestrictive fn xs = propIsTrue $ preFunc fn xs `propImp` pre (instantiate fn xs)
 \end{code}
 
-One conservative implementation of \C{preFunc} is to always return False. A perfect precondition would be such that |preFunc f xs == pre (instantiate f xs)|.
+One conservative implementation of \C{preFunc} is to always return False. A perfect precondition would be such that \ignore|preFunc fn xs == pre (instantiate fn xs)|.
 
 \begin{figure}
-\begin{code}
+\ignore\begin{code}
 for fn `elem` funcs do conds(fn) := (fn /= "error")
 loop
     for fn `elem` funcs do
@@ -441,7 +485,7 @@ Initially all preconditions are assumed to be True, apart from the \C{error} pre
 
 \subsubsection{Preconditions and Laziness}
 
-The \C{pre} function defined in Figures \ref{fig:precondition} does not exploit laziness. The \C{Call} equation demands that preconditions hold on \textit{all} arguments -- only correct if a function is strict in all arguments. For example, the precondition on |False user_and error "here"| is False, when it should be True. In general, preconditions may be more restrictive than necessary. However, investigation of a range of examples suggests that inlining |(user_and)| and |(user_or)| captures many of the common cases where laziness would be required.
+The \C{pre} function defined in Figures \ref{fig:precondition} does not exploit laziness. The \C{Call} equation demands that preconditions hold on \textit{all} arguments -- only correct if a function is strict in all arguments. For example, the precondition on |False && error "here"| is False, when it should be True. In general, preconditions may be more restrictive than necessary. However, investigation of a range of examples suggests that inlining |(&&)| and |(||||)| captures many of the common cases where laziness would be required.
 
 
 \subsection{Manipulating constraints}
@@ -450,31 +494,31 @@ The \C{pre} function defined in Figures \ref{fig:precondition} does not exploit 
 \begin{figure}
 \begin{code}
 back :: Assert Expr -> Prop (Assert Expr)
-back (Var   x         :< k) = on :< (c |> k)
+back (Var   x         :< k) = propLit $ on :< (c |> k)
     where Just (on, c) = var x
 back (Make  c   xs    :< k) = replaceVars xs (c <| k)
-back (Case  on  alts  :< k) = and [f c e | Alt c vs e <- alts]
-    where f c e = (on :< notin c) || (e :< k)
+back (Case  on  alts  :< k) = propAnds [f c e | Alt c vs e <- alts]
+    where f c e = propLit (on :< notin c) `propOr` propLit (e :< k)
 back (Call  fn  xs    :< k) = replaceVars xs (property fn k)
 
-backs :: Prop Assert -> Prop (Assert VarName)
+backs :: Prop (Assert Expr) -> Prop (Assert VarName)
 property :: FuncName -> Constraint -> Prop (Assert Int)
 
 replaceVars :: [Expr] -> Prop (Assert Int) -> Prop (Assert Expr)
-replaceVars xs p = mapProp (\(i:<k) -> (xs!!i) :< k) p
+replaceVars xs p = propMap (\(i:<k) -> (xs!!i) :< k) p
 \end{code}
 \caption{Specification of backward analysis, \C{back}.}
 \label{fig:backward}
 \end{figure}
 
-Constraints on expressions other than argument variables can be rewritten using the \C{back} function, detailed in Figure \ref{fig:backward}. The \C{backs} function repeatedly applies \C{back} until all constraints are on arguments. The \C{replaceVars} function takes a propositional constraint over a set of index variables, |v1..v_n|, and replaces each variable with a corresponding expression from an indexed list.
+Constraints on expressions other than argument variables can be rewritten using the \C{back} function, detailed in Figure \ref{fig:backward}. The \C{backs} function repeatedly applies \C{back} until all constraints are on arguments. The \C{replaceVars} function takes a propositional constraint over a set of index variables, \ignore|v1..v_n|, and replaces each variable with a corresponding expression from an indexed list.
 
 \para{The \C{Var} rule} applies to variables bound by patterns in case alternatives. It lifts conditions on a bound variable to the subject of the case expression in which they occur. The | ||>| operator lifts a constraint on one part of a data structure to a constraint on the entire data structure. For BP-constraints | ||>| can be defined:
 
 \begin{code}
 (c,i) |> k = map extend k
     where
-    extend x = Pattern c (anys i ++ [x] ++ anys (n-i))
+    extend x = Con c (anys i ++ [x] ++ anys (n-i))
     anys j = replicate j Any
     n = arity c
 \end{code}
@@ -482,11 +526,11 @@ Constraints on expressions other than argument variables can be rewritten using 
 \para{The \C{Make} rule} deals with an application of a constructor. The |<||| operator splits a constraint on an entire structure into a combination of constraints on each part.
 
 \begin{code}
-c <| k = or (map f k)
+c <| k = propOrs (map f k)
     where
-    f Any = Any
-    f (Pattern c2 xs) = c2 == c &&
-        and (zipWith (:<) [0..] (map (:[]) xs))
+    f Any = propTrue
+    f (Con c2 xs) = propBool (c2 == c) `propAnd`
+        propAnds (map propLit (zipWith (:<) [0..] (map (:[]) xs)))
 \end{code}
 
 \para{The \C{Case} rule} generates a conjunct for each alternative. An alternative is safe if \textit{either} it is never taken, \textit{or} it meets the constraint when taken. The \C{notin} function is used to assert that a particular alternative never matches.
@@ -494,14 +538,15 @@ c <| k = or (map f k)
 \para{The \C{Call} rule} relies on the key property:
 
 \begin{code}
-forall fn, xs, k `o`  backs (Call fn xs :< k) =>
-                      backs (instantiate fn xs :< k)
+propRestrict fn xs k = propIsTrue $
+    backs (propLit $ Call fn xs :< k) `propImp`
+    backs (propLit $ instantiate fn xs :< k)
 \end{code}
 
 That is, the result is at least as restrictive as if the function was inlined at this point. Two strategies can be used: (1) Use $\beta$ substitution (\C{instantiate}) replacing the call with the body of |fn|. (2) Create fresh variables for each argument, use $\beta$ substitution, and then instantiate the results. \oldtool{} used method 1. \newtool{} uses method 2, as it is easier to find a fixed point, and allows a cache of results to be built -- reducing duplicate computation.
 
 \begin{figure}
-\begin{code}
+\ignore\begin{code}
 prop := [(fn,k) | fn <- funcs, k <- constraints]
 for (fn,k) `elem` ps do prop(fn,k) := True
 loop
@@ -528,7 +573,7 @@ A key function in the semantics of constraints tests whether a value satisfies a
 data Value = Value CtorName [Value]
 
 satisfies :: Value -> Constraint -> Bool
-satisfies (Value c xs) = mapProp f (c <| k)
+satisfies (Value c xs) k = propIsTrue $ propMap f (c <| k)
     where f (i :< k2) = satisfies (xs !! i) k2
 \end{code}
 \end{minipage}
@@ -536,11 +581,11 @@ satisfies (Value c xs) = mapProp f (c <| k)
 Now we can express properties that the other constraint operations must have:
 
 \begin{code}
-forall v, k, i  `o` satisfies v ((c,i) |> k)
-                => (c2 /= c || satisfies (x !! i) k)
+propExtend v k i =  satisfies v ((c,i) |> k)
+                    ==> (c2 /= c || satisfies (x !! i) k)
     where Value c2 xs = v
 
-forall v, c `o` satisfies v (notin c) => (valueCtor v /= c)
+propNotin v c = satisfies v (notin c) ==> (valueCtor v /= c)
     where valueCtor (Value c2 xs) = c2
 \end{code}
 
@@ -576,12 +621,12 @@ notin c = [] :- delete c (ctors c)
 p |> (r :- cs) = integrate p r :- cs
 
 (<|) :: CtorName -> Constraint -> Prop (Assert Int)
-c <| (r :- cs) = (ewp r => c `elem` cs) &&
-    and (zipWith f (paths c) [0..])
+c <| (r :- cs) = propBool (ewp r ==> (c `elem` cs)) `propAnd`
+    propAnds (map f [0 .. arity c - 1])
     where
-    f p x = case  differentiate p r of
-                  Nothing  -> True
-                  Just r2  -> x :< (r2 :- cs)
+    f i = case  differentiate (c,i) r of
+                  Nothing  -> propTrue
+                  Just r2  -> propLit $ i :< (r2 :- cs)
 
 ewp :: RegExp -> Bool
 ewp x = all isStar x
@@ -590,10 +635,10 @@ ewp x = all isStar x
 
 integrate :: Selector -> RegExp -> RegExp
 integrate p r | not (isRec p)  = Atom p : r
-integrate p (Star ps:r)        = Star (nub (p:ps) : r)
+integrate p (Star ps:r)        = Star (nub (p:ps)) : r
 integrate p r                  = Star [p] : r
 
-differentiate :: Selector -> Path -> Maybe Path
+differentiate :: Selector -> RegExp -> Maybe RegExp
 differentiate p [] = Nothing
 differentiate p (Atom  r:rs)  | p == r     = Just rs
                               | otherwise  = Nothing
@@ -606,7 +651,7 @@ differentiate p (Star  r:rs)  | p `elem` r  = Just (Star r:rs)
 
 \oldtool{} used regular expressions in constraints. A data type for regular expression based constraints (RE-constraints), along with the essential operations upon it is given in Figure \ref{fig:regexp}. In a constraint of the form |(r :- cs)|, |r| is a regular expression and |cs| is a set of constructors. Such a constraint is satisfied by a data structure |d| if every well-defined application to |d| of a sequence of selectors described by |r| reaches a constructor in the set |cs|. That is:
 
-\begin{code}
+\ignore\begin{code}
 d :< (r :- c) <=> (forall l `elem` lang r `o` defined d l => ctor d l `elem` c)
 \end{code}
 
@@ -617,9 +662,9 @@ Concerning the helper functions needed to define | ||>| and |<||| in Figure \ref
 \oldtool{} regular expressions were unrestricted and quickly grew to an unmanageable size, thwarting analysis of larger programs. In general, a regular expression takes one of six forms:\\ \\
 \begin{tabular}{ll}
 |r1+r2|  & union of regular expressions |r1| and |r2| \\
-|r1^.r2| & concatenation of regular expressions |r1| then |r2| \\
-|r1^*|   & any number (possibly zero) occurrences of |r1| \\
-\C{sel}  & a selector, i.e. \C{hd} for the head of a list \\
+\ignore|r1^.r2| & concatenation of regular expressions |r1| then |r2| \\
+\ignore|r1^*|   & any number (possibly zero) occurrences of |r1| \\
+\C{sel}  & a selector, i.e. |hd| for the head of a list \\
 0        & the language is the empty set \\
 1        & the language is the set containing the empty string
 \end{tabular} \\
@@ -627,23 +672,23 @@ Concerning the helper functions needed to define | ||>| and |<||| in Figure \ref
 \newtool{} implements REs using the data type \C{RegExp} from Figure \ref{fig:regexp}, with \C{RegExp} being a list of concatenated \C{RegItem}. In addition to the restrictions imposed by the data type, we require: (1) within \C{Atom} the \C{Selector} is not recursive; (2) within \C{Star} there is a non-empty list of \C{Selector}s, each of which is recursive; (3) no two \C{Star} constructors are adjacent in a concatenation. These restrictions are motivated by three observations:
 
 \begin{itemize}
-\item Because of static typing constructor-sets must all be of the same type. (In \oldtool{} expressions such as |hd^*| could arise.)
+\item Because of static typing constructor-sets must all be of the same type. (In \oldtool{} expressions such as \ignore|hd^*| could arise.)
 
 \item There are finitely many regular expressions for any type. Combined with the finite number of constructors, this property is enough to guarantee termination when computing a fixed-point iteration on constraints.
 
-\item The restricted REs with 0 are closed under integration and differentiation. (The 0 alternative is catered for by the \C{Maybe} return type in the differentiation. As |0 :- c| always evaluates to True, |<||| replaces \C{Nothing} by True.)
+\item The restricted REs with 0 are closed under integration and differentiation. (The 0 alternative is catered for by the \C{Maybe} return type in the differentiation. As \ignore|0 :- c| always evaluates to True, |<||| replaces \C{Nothing} by True.)
 \end{itemize}
 
 \begin{example}
-|(head xs)| is safe if |xs| evaluates to a non-empty list. The RE-constraint is: |xs :< (1 :- {:})|
+|(head xs)| is safe if |xs| evaluates to a non-empty list. The RE-constraint is: \ignore|xs :< (1 :- {:})|
 \end{example}
 
 \begin{example}
-|(map head xs)| is safe if |xs| evaluates to a list of non-empty lists. The RE-constraint is: |xs :< (tl^* ^. hd :- {:})| If |xs| is empty, it still satisfies the constraint. If |xs| is infinite then the condition applies to all elements, constraining an infinite number.
+|(map head xs)| is safe if |xs| evaluates to a list of non-empty lists. The RE-constraint is: \ignore|xs :< (tl^* ^. hd :- {:})| If |xs| is empty, it still satisfies the constraint. If |xs| is infinite then the condition applies to all elements, constraining an infinite number.
 \end{example}
 
 \begin{example}
-|(map head (reverse xs))| is safe if every item in |xs| is |(:)|-constructed, or if |xs| is infinite -- so \C{reverse} does not terminate. The RE-constraint is: |xs :< (tl^* ^. hd :- {:}) |||| x :< (tl^* :- {:})|
+|(map head (reverse xs))| is safe if every item in |xs| is |(:)|-constructed, or if |xs| is infinite -- so \C{reverse} does not terminate. The RE-constraint is: \ignore|xs :< (tl^* ^. hd :- {:}) |||| x :< (tl^* :- {:})|
 \end{example}
 
 \subsubsection{Finite Number of RE-Constraints}
@@ -652,7 +697,7 @@ Concerning the helper functions needed to define | ||>| and |<||| in Figure \ref
 We require that for any type, there are finitely many constraints (see \S\ref{sec:bounded}). We can model types as:
 
 \begin{code}
-type Type  = [Ctor]
+data Type  = Type [Ctor]
 type Ctor  = [Maybe Type]
 \end{code}
 
@@ -660,7 +705,7 @@ Each \C{Type} has a number of constructors. For each constructor \C{Ctor}, every
 
 \begin{code}
 count :: Type -> Integer
-count t = 2 ^ rec * (2 ^ ctor + sum (map count nonrec))
+count (Type t) = 2 ^ rec * (2 ^ ctor + sum (map count nonrec))
     where
     rec = length (filter isNothing (concat t))
     nonrec = [x | Just x <- concat t]
@@ -675,11 +720,11 @@ The |2^rec| term corresponds to the number of possible constraints under \C{Star
 
 \catch{} computes over propositional formulae with constraints as atomic propositions. Among other operators on propositions, they are compared for equality to obtain a fixed point. All the fixed-point algorithms given in this paper stop once equal constraints are found. We use Binary Decision Diagrams (BDD) \citep{lee:bdd} to make these equality tests fast. Since the complexity of performing an operation is often proportional to the number of atomic constraints in a proposition, we apply simplification rules to reduce this number. Three of the nineteen rules are:
 
-\para{Exhaustion:} In the constraint |x :< (r :- {:,[]})| the condition lists all the possible constructors. Because of static typing |x| must be one of these constructors. Any such constraint simplifies to True.
+\para{Exhaustion:} In the constraint |x :< (r :- [":","[]"])| the condition lists all the possible constructors. Because of static typing |x| must be one of these constructors. Any such constraint simplifies to True.
 
-\para{And merging:} The conjunction |e :< (r :- c1) && e :< (r :- c2)| can be replaced by |e :< (r :- (c1 `union` c2))|.
+\para{And merging:} The conjunction \ignore|e :< (r :- c1) && e :< (r :- c2)| can be replaced by \ignore|e :< (r :- (c1 `union` c2))|.
 
-\para{Or merging:} The disjunction |e :< (r1 :- c1) |||| e :< (r2 :- c2)| can be replaced by |e :< (r2 :- c2)| if |r1 `subseteq` r2 && c1 `subseteq` r2|.
+\para{Or merging:} The disjunction \ignore|e :< (r1 :- c1) |||| e :< (r2 :- c2)| can be replaced by \ignore|e :< (r2 :- c2)| if \ignore|r1 `subseteq` r2 && c1 `subseteq` r2|.
 
 
 \subsection{Multipattern (MP) Constraints \& Simplification}
@@ -714,22 +759,22 @@ notin c = [map complete (delete c cs) :* map complete cs]
            :* map complete (ctors c)
 
 (<|) :: CtorName -> Constraint -> Prop (Assert Int)
-c <| vs = or (map f vs)
+c <| vs = propOrs (map f vs)
     where
     (rec,non) = partition (isRec . (,) c) [0..arity c-1]
 
     f Any = propTrue
-    f (ms1 :* ms2) = or [g vs1 | Pattern c1 vs1 <- ms1, c1 == c]
-        where g vs =  and (zipWith (:<) non (map (:[]) vs)) &&
-                      and (map (:< [ms2 :* ms2]) rec)
+    f (ms1 :* ms2) = propOrs [propAnds $ map propLit $ g vs1 | Pattern c1 vs1 <- ms1, c1 == c]
+        where g vs =  zipWith (:<) non (map (:[]) vs) ++
+                      map (:< [ms2 :* ms2]) rec
 
-(`mergeVal`) :: Val -> Val -> Val
+mergeVal :: Val -> Val -> Val
 (a1 :* b1) `mergeVal` (a2 :* b2)  = merge a1 a2 :* merge b1 b2
 Any        `mergeVal` x           = x
 x          `mergeVal` Any         = x
 
 merge :: [Pattern] -> [Pattern] -> [Pattern]
-merge  ms1 ms2 = [Pattern c1 (zipWith (`mergeVal`) vs1 vs2) |
+merge  ms1 ms2 = [Pattern c1 (zipWith mergeVal vs1 vs2) |
        Pattern c1 vs1 <- ms1, Pattern c2 vs2 <- ms2, c1 == c2]
 \end{code}
 \caption{MP-constraints.}
@@ -740,22 +785,22 @@ Although RE-constraints are capable of solving many examples, they suffer from a
 
 MP-constraints are similar to BP-constraints, but can constrain an infinite number of items. A value |v| satisfies a constraint |p1 :* p2| if |v| itself satisfies |p1| and all its recursive components satisfy |p2|. Each of |p1| and |p2| is given as a set of matches as in \S\ref{sec:basic}, but each \C{Pattern} only specifies the values for the non-recursive selectors, all recursive selectors are handled by |p2|.
 
-\begin{revisit}{1} safe evaluation of |(head xs)| requires |xs| to be non-empty. The MP-constraint on |xs| is: |{(:) Any} :* {[], (:) Any}| This constraint is longer than the corresponding RE-constraint as it makes explicit that the \C{hd} field is unrestricted.
+\begin{revisit}{1} safe evaluation of |(head xs)| requires |xs| to be non-empty. The MP-constraint on |xs| is: \ignore|{(:) Any} :* {[], (:) Any}| This constraint is longer than the corresponding RE-constraint as it makes explicit that the \C{hd} field is unrestricted.
 \end{revisit}
 
 \begin{revisit}{2} safe evaluation of |(map head xs)| requires |xs| to be a list of non-empty lists. The MP-constraint on |xs| is:
 
 \smallskip
-\par\noindent |{[], (:) ({(:) Any} :* {[], (:) Any})} :*|
-\par\noindent |{[], (:) ({(:) Any} :* {[], (:) Any})}|
+\par\noindent \ignore|{[], (:) ({(:) Any} :* {[], (:) Any})} :*|
+\par\noindent \ignore|{[], (:) ({(:) Any} :* {[], (:) Any})}|
 \end{revisit}
 
-\begin{revisit}{3} |(map head (reverse x))| requires |xs| to be a list of non-empty lists \textit{or} infinite. The MP-constraint for an infinite list is: |{(:) Any} :* {(:) Any}|
+\begin{revisit}{3} |(map head (reverse x))| requires |xs| to be a list of non-empty lists \textit{or} infinite. The MP-constraint for an infinite list is: \ignore|{(:) Any} :* {(:) Any}|
 \end{revisit}
 
 MP-constraints also have simplification rules.  Two of the eight rules are:
 
-\para{|[Val]| simplification:} Given a list of |Val|, if the value |Any| is in this list, the list is equal to |[Any]|. If a value occurs more than once in the list, one copy can be removed.
+\para{\ignore|[Val]| simplification:} Given a list of |Val|, if the value |Any| is in this list, the list is equal to |[Any]|. If a value occurs more than once in the list, one copy can be removed.
 
 \para{|Val| simplification:} If both |p1| and |p2| cover all constructors and all their components have |Any| as their constraint, the constraint |p1 :* p2| can be replaced with |Any|.
 
@@ -766,7 +811,7 @@ As in \S\ref{sec:finite_re}, we show there are finitely many constraints per typ
 
 \begin{code}
 count :: Type -> Integer
-count t = 2 ^ val t
+count (Type t) = 2 ^ val t
 
 val t = 1 + 2 * 2 ^ (pattern t)
 
@@ -781,7 +826,7 @@ The \C{val} function counts the number of possible \C{Val} constructions. The \C
 
 A big advantage of MP-constraints is that if two constraints on the same expression are combined at the proposition level, they can be reduced into one constraint:
 
-\begin{code}
+\ignore\begin{code}
 (e :< v1) || (e :< v2) = e :< (v1 ++ v2)
 (e :< v1) && (e :< v2) = e :< [a `mergeVal` b | a <- v1, b <- v2]
 \end{code}
@@ -790,7 +835,7 @@ A big advantage of MP-constraints is that if two constraints on the same express
 
 \begin{example}
 \begin{code}
-(user_or) x y = case  x of
+(||) x y = case  x of
                       True   -> True
                       False  -> y
 \end{code}
@@ -798,7 +843,7 @@ A big advantage of MP-constraints is that if two constraints on the same express
 \noindent can be translated into:
 
 \begin{code}
-(user_or) a = case  a of
+(||) a = case  a of
                     (x,y) -> case  x of
                                    True    -> True
                                    False   -> y
@@ -811,26 +856,32 @@ Combining MP-constraint reduction rules with the uncurrying transformation makes
 
 Both RE-constraints and MP-constraints are capable of expressing a wide range of value-sets, but neither subsumes the other. We give examples where one constraint language can differentiate between a pair of values, and the other cannot.
 
+\begin{comment}
+\begin{code}
+data T = T
+\end{code}
+\end{comment}
+
 \begin{example}
-Let |v1 = (T:[])| and |v2 = (T:T:[])| and consider the MP-constraint |{(:) Any} :* {[]}|. This constraint is satisfied by |v1| but not by |v2|. No proposition over RE-constraints can separate these two values.
+Let |v1 = (T:[])| and |v2 = (T:T:[])| and consider the MP-constraint \ignore|{(:) Any} :* {[]}|. This constraint is satisfied by |v1| but not by |v2|. No proposition over RE-constraints can separate these two values.
 \end{example}
 
 \begin{example}
-Consider a data type |Tree alpha|:
+Consider a data type:
 
 \begin{code}
 data Tree alpha  =  Branch {left :: Tree alpha, right :: Tree alpha}
                  |  Leaf alpha
 \end{code}
 
-\noindent and two values of the type |Tree Bool|
+\noindent and two values of the type \ignore|Tree Bool|
 
 \begin{code}
 v1 = Branch (Leaf True   ) (Leaf False  )
 v2 = Branch (Leaf False  ) (Leaf True   )
 \end{code}
 
-\noindent The RE-constraint |(left^* :- True)| is satisfied by |v1| but not |v2|. No MP-constraint separates the two values.
+\noindent The RE-constraint \ignore|(left^* :- True)| is satisfied by |v1| but not |v2|. No MP-constraint separates the two values.
 \end{example}
 
 We have implemented checkers using both constraint systems. There are various factors to consider when choosing which constraint system to use -- how readable the constraints are, the expressive power, implementation complexity and scalability. In practice the issue of scalability is key: how large do constraints become, how quickly can they be manipulated, how expensive is their simplification. \newtool{} uses MP-constraints, as they allow much larger examples to be checked.
@@ -858,22 +909,22 @@ Most transformations in Yhc operate within a single function definition. The onl
 
 \begin{example}
 \nopagebreak
-\begin{code}
+\ignore\begin{code}
 f :: Eq alpha => alpha -> alpha -> Bool
-f x y = x == y user_or x /= y
+f x y = x == y || x /= y
 \end{code}
 
 \noindent is translated by Yhc into
 
 \begin{code}
 f :: (alpha -> alpha -> Bool, alpha -> alpha -> Bool) -> alpha -> alpha -> Bool
-f dict x y = (user_or) (((==) dict) x y) (((/=) dict) x y)
+f dict x y = (||) (((==) dict) x y) (((/=) dict) x y)
 
 (==) (a,b) = a
 (/=) (a,b) = b
 \end{code}
 
-The \C{Eq} class is implemented as two selector functions, |(==)| and |(/=)|, acting on a method table. For different types of |alpha|, different method tables are provided.
+The |Eq| class is implemented as two selector functions, |(==)| and |(/=)|, acting on a method table. For different types of |alpha|, different method tables are provided.
 \end{example}
 
 The dictionary transformation is a global transformation. In Example \lastexample{} the \C{Eq} context in \C{f} not only requires a dictionary to be accepted by \C{f}; it requires all the callers of \C{f} to pass a dictionary as first argument. An alternative approach to implementing type classes, given in \citet{jones:dictionary_free}, does not rely on higher order functions. Although this approach might suit \catch{} better, we re-used the method already implemented in Yhc.
@@ -895,7 +946,7 @@ map fn x = case  x of
 
 \noindent Defunctionalization works by creating a data type to represent all values that |fn| may take anywhere in the whole program. For instance, it might be:
 
-\begin{code}
+\ignore\begin{code}
 data Functions = Head | Tail
 
 apply Head  x = head  x
@@ -906,7 +957,7 @@ map fn x = case  x of
                  (a:as)  -> apply fn a : map fn as
 \end{code}
 
-\noindent Now all calls to |map head| are replaced by |map Head|.
+\noindent Now all calls to |map head| are replaced by \ignore|map Head|.
 \end{example}
 
 Defunctionalized code is still type safe, but type checking would require a dependently typed language. This presents no problem for \catch{}, which does not use type information. The unacceptable aspect is the creation of an \C{apply} function, whose meaning is excessively general, introducing a bottleneck through which various properties must be proven. Asking questions such as \textit{``Is the result of \C{apply} an empty-list?''}, requires a lot of computation.
@@ -924,7 +975,7 @@ map fn xs = case  xs of
                   []      -> []
                   (a:as)  -> fn a : map fn as
 
-adds x n = map (add n) x
+adds x n = map ((+) n) x
 \end{code}
 
 \noindent is transformed into:
@@ -932,7 +983,7 @@ adds x n = map (add n) x
 \begin{code}
 map_adds n xs = case  xs of
                       []      -> []
-                      (a:as)  -> add n a : map_adds n as
+                      (a:as)  -> (+) n a : map_adds n as
 
 adds x n = map_adds n x
 \end{code}
@@ -945,11 +996,12 @@ Specialisation alone is sufficient for many examples, but it cannot cope with po
 The power of specialisation is greatly increased if it is combined with inlining, and applied selectively to higher-order functions.
 
 \begin{figure}
-\begin{code}
+\ignore\begin{code}
 data Expr  =  ... -- as in Figure {\ref{fig:core}}
            |  Part   Int FuncName [Expr]
            |  Apply  Expr [Expr]
 
+-- equivalences
 Part 0 fn xs == Call fn xs
 Apply (Part n fn xs) ys == Part (n - length ys) fn (xs ++ ys)
 \end{code}
@@ -960,7 +1012,7 @@ Apply (Part n fn xs) ys == Part (n - length ys) fn (xs ++ ys)
 In order to permit a higher-order program to be represented, the Core language is augmented with additional constructs, as shown in Figure \ref{fig:core_ho}. The \C{Apply} constructor represents an unsaturated function call, or a variable to be used as the function. The \C{Part} constructor is used to represent unsaturated function calls, leaving the normal \C{Call} constructor to represent saturated calls. A \C{Part} construction records how many arguments are needed.
 
 \begin{figure}
-\begin{code}
+\ignore\begin{code}
 isHO :: Expr -> Bool
 isHO (Part n _ _)    = n > 0
 isHO (Make _ xs)     = any isHO xs
@@ -973,16 +1025,16 @@ isHO _               = False
 
 The algorithm for removing higher-order functions has two components, specialisation and inlining. We apply the specialise rule until a fixed point is reached, then apply the inline rule once. We repeat these two steps until a fixed point is reached. Given an appropriate \C{fix} function, \C{firstify} can be implemented as:
 
-\begin{code}
+\ignore\begin{code}
 firstify :: Program -> Program
 firstify = fix (inline . fix specialise)
 \end{code}
 
 \para{The \C{inline} stage} inlines each \C{Call} for which the body passes the \C{isHO} test, defined in Figure \ref{fig:isHO}. If this process causes a function to no longer be called from the root of the program, then the function is removed after inlining.
 
-\para{The \C{specialise} stage} takes every expression of the form |Call fn xs| where |any isHO xs|, and generates a specialised version of the function |fn| with all functional arguments in |xs| frozen in, and all others passed normally. Assuming that a function |fn| results in the specialised version |fn2|, then the translation would be:
+\para{The \C{specialise} stage} takes every expression of the form |Call fn xs| where \ignore|any isHO xs|, and generates a specialised version of the function |fn| with all functional arguments in |xs| frozen in, and all others passed normally. Assuming that a function |fn| results in the specialised version |fn2|, then the translation would be:
 
-\begin{code}
+\ignore\begin{code}
 transform (Call fn xs) | any isHO xs =
     Call fn2 (concatMap f xs)
     where
@@ -993,7 +1045,7 @@ transform (Call fn xs) | any isHO xs =
 
 In rare circumstances a program may have an infinite number of specialisations. If necessary we revert to Reynolds style defunctionalization.
 
-The combination of specialisation and inlining is powerful. We have encountered few examples where it fails -- mainly artificial tests created specifically to break the approach! In the definition of a higher-order function either the entire body is an application of the functional argument (in which case it will be inlined), or it must occur as the argument to a function (in which case it is specialised). There are only two places left for functional arguments to be used: (1) As the subject of a |case| expression. But this situation is impossible as all |case| expressions must choose over a data value. (2) Inside an \C{Apply} with another functional argument variable as the function. This situation is rare due to the removal of other functional arguments.
+The combination of specialisation and inlining is powerful. We have encountered few examples where it fails -- mainly artificial tests created specifically to break the approach! In the definition of a higher-order function either the entire body is an application of the functional argument (in which case it will be inlined), or it must occur as the argument to a function (in which case it is specialised). There are only two places left for functional arguments to be used: (1) As the subject of a \ignore|case| expression. But this situation is impossible as all \ignore|case| expressions must choose over a data value. (2) Inside an \C{Apply} with another functional argument variable as the function. This situation is rare due to the removal of other functional arguments.
 
 \section{Results and Evaluation}
 \label{sec:results}
@@ -1007,13 +1059,13 @@ The best way to see the power of \catch{} is by example. \S\ref{sec:safety} disc
 Take the following example:
 
 \begin{code}
-average xs = sum xs / length xs
+average xs = sum xs `div` length xs
 \end{code}
 
 If |xs| is |[]| then a division by zero occurs, modelled in \catch{} as a pattern-match error. One small local change could be made which would remove this pattern match error:
 
 \begin{code}
-average xs = if null xs then 0 else sum xs / length xs
+average xs = if null xs then 0 else sum xs `div` length xs
 \end{code}
 
 \noindent Now if |xs| is |[]|, the program simply returns 0, and no pattern match error occurs. In general, pattern-match errors can be avoided in two ways:
@@ -1085,12 +1137,18 @@ We now discuss general modifications required to allow \catch{} to begin checkin
 
 Take a typical benchmark, Primes. The \C{main} function is:
 
+\begin{comment}
+\begin{code}
+primes :: [Int]
+\end{code}
+\end{comment}
+
 \begin{code}
 main = do  [arg] <- getArgs
            print $ primes !! (read arg)
 \end{code} % $
 
-The first unsafe pattern here is |[arg] <- getArgs|, as \C{getArgs} is a primitive which may return any value. \catch{} can only return False as the sufficient precondition to \C{main}!
+The first unsafe pattern here is \ignore|[arg] <- getArgs|, as \C{getArgs} is a primitive which may return any value. \catch{} can only return False as the sufficient precondition to \C{main}!
 
 The next step that may fail is when \C{read} is applied to an argument extracted from \C{getArgs}. This argument is entirely unknown, and \C{read} is a sufficiently complicated function that although it can be modelled by \catch{}, there is no possibility for getting an appropriate abstraction which models the failure case. As a result, any program which calls \C{read} is unsafe, according to \catch{}. Using \C{reads}, which indicates failure properly, a program may still be checked  successfully.
 
@@ -1123,7 +1181,7 @@ As the safety of this program depends on quite deep results in number theory, it
 
 \paragraph{Gen-Regexps}
 
-This program expects valid regular expressions as input. Ways of crashing the program include entering |""|, |"["|, |"<"| and lots of other inputs. One potential error comes from |head . lines|, which can be replaced by |takeWhile (/= '\n')|. Two potential errors take the form |(a,_:b) = span f xs|. At first glance this pattern definition is similar to the one in \C{risers}. But here the pattern is only safe if for one of the elements in the list |xs|, |f| returns True. The test |f| is actually |(/= '-')|, and the only safe condition \catch{} can express is that |xs| is an infinite list. With the amendment  |(a,b) = safeSpan f xs|, where \C{safeSpan} is defined as:
+This program expects valid regular expressions as input. Ways of crashing the program include entering |""|, |"["|, |"<"| and lots of other inputs. One potential error comes from |head . lines|, which can be replaced by |takeWhile (/= '\n')|. Two potential errors take the form \ignore|(a,_:b) = span f xs|. At first glance this pattern definition is similar to the one in \C{risers}. But here the pattern is only safe if for one of the elements in the list |xs|, |f| returns True. The test |f| is actually |(/= '-')|, and the only safe condition \catch{} can express is that |xs| is an infinite list. With the amendment  \ignore|(a,b) = safeSpan f xs|, where \C{safeSpan} is defined as:
 
 \begin{code}
 safeSpan p xs = (a, drop 1 b) where (a,b) = span p xs
@@ -1153,6 +1211,12 @@ This program has similar datatypes and invariants, but much greater complexity. 
 
 Again the program can only be validated by \catch{} after modification. There are two reasons: laziness and arrays. Laziness allows the following odd-looking definition:
 
+\begin{comment}
+\begin{code}
+big_memory_computation = undefined
+\end{code}
+\end{comment}
+
 \begin{code}
 radical_generator n = radicals undefined
   where radicals unused = big_memory_computation
@@ -1160,7 +1224,7 @@ radical_generator n = radicals undefined
 
 If \C{radicals} had a zero-arity definition it would be computed once and retained as long as there are references to it. To prevent this behaviour, a dummy argument (\C{undefined}) is passed. If the analysis was more lazy (as discussed in \S\ref{sec:precond}) then this example would succeed using \catch{}. As it is, simply changing \C{undefined} to |()| resolves the problem.
 
-The Paraffins program uses the function |array :: Ix a => (a, a) -> [(a, b)] -> Array a b| which takes a list of index/value pairs and builds an array. The precondition on this function is that all indexes must be in the range specified. This precondition is too complex for \catch{}, but simply using \C{listArray}, which takes a list of elements one after another, the program can be validated. Use of \C{listArray} actually makes the program shorter and more readable. The array indexing operator |(!)| is also troublesome. The precondition requires that the index is in the bounds given when the array was constructed, something \catch{} does not currently model.
+The Paraffins program uses the function \ignore|array :: Ix a => (a, a) -> [(a, b)] -> Array a b| which takes a list of index/value pairs and builds an array. The precondition on this function is that all indexes must be in the range specified. This precondition is too complex for \catch{}, but simply using \C{listArray}, which takes a list of elements one after another, the program can be validated. Use of \C{listArray} actually makes the program shorter and more readable. The array indexing operator \ignore|(!)| is also troublesome. The precondition requires that the index is in the bounds given when the array was constructed, something \catch{} does not currently model.
 
 
 \paragraph{Digits of E2}
@@ -1168,12 +1232,13 @@ The Paraffins program uses the function |array :: Ix a => (a, a) -> [(a, b)] -> 
 This program is quite complex, featuring a number of possible pattern-match errors. To illustrate, consider the following fragment:
 
 \begin{code}
+carryPropagate base (d:ds) = elipses
   where  carryguess = d `div` base
          remainder = d `mod` base
          nextcarry:fraction = carryPropagate (base+1) ds
 \end{code}
 
-\noindent There are three potential pattern-match errors in as many lines. Two of these are the calls to |div| and |mod|, both requiring |base| to be non-zero. A possibly more subtle pattern match error is the |nextcarry:fraction| left-hand side of the third line. \catch{} is able to prove that none of these pattern-matches fail. Now consider:
+\noindent There are four potential pattern-match errors in as many lines. Two of these are the calls to |div| and |mod|, both requiring \ignore|base| to be non-zero. A possibly more subtle pattern match error is the \ignore|nextcarry:fraction| left-hand side of the third line. \catch{} is able to prove that none of these pattern-matches fail. Now consider:
 
 \begin{code}
 e =  ("2."++) $
@@ -1190,20 +1255,20 @@ e =  ("2."++) $
 
 The FiniteMap library for Haskell has been widely distributed for over 10 years. The library uses balanced binary trees, based on \citep{adams:sets}. There are 14 non-exhaustive pattern matches.
 
-The first challenge is that there is no \C{main} function. \catch{} provides the |(||||||)| operator to resolve this issue. A \C{main} function can be constructed as follows:
-
-\begin{code}
-main = addListToFM ||| addListToFM_C ||| ... ||| unitFM
-\end{code}
-
-The |(||||||)| chain contains every function exported by the library. The effect is that \catch{} checks each of them as if it had \C{main} status.
+The first challenge is that there is no \C{main} function. \catch{} uses all the exports from the library, and checks each of them as if it had \C{main} status.
 
 \catch{} is able to prove that all but one of the non-exhaustive patterns are safe. The definition found unsafe has the form:
 
+\begin{comment}
 \begin{code}
-delFromFM (Branch key ...) del_key  | del_key  >   key = ...
-                                    | del_key  <   key = ...
-                                    | del_key  ==  key = ....
+data Branch a b = Branch a b
+\end{code}
+\end{comment}
+
+\begin{code}
+delFromFM (Branch key elipses) del_key  | del_key  >   key = elipses
+                                        | del_key  <   key = elipses
+                                        | del_key  ==  key = elipses
 \end{code}
 
 At first glance the cases appear to be exhaustive. The law of trichotomy leads us to expect one of the guards to be true. However, the Haskell \C{Ord} class does not enforce this law. There is nothing to prevent an instance for a type with partially ordered values, some of which are incomparable. So \catch{} cannot verify the safety to \C{delFromFM} as defined as above.
@@ -1259,7 +1324,7 @@ cons a as = List (a:as)
 fromList :: [a] -> List a Unknown
 fromList xs = List xs
 
-safeTail :: List a Cons -> a
+safeTail :: List a Cons -> [a]
 safeTail (List (a:as)) = as
 \end{code}
 \caption{A \C{safeTail} function with Phantom types.}
@@ -1269,7 +1334,7 @@ safeTail (List (a:as)) = as
 Types can sometimes be used to explicitly encode invariants on data in functional languages. One approach is the use of \textit{phantom types} \citep{fluet:phantom}, for example a safe variant of \C{tail} can be written as in Figure \ref{fig:phantom}. The \C{List} type is not exported, ensuring that all lists with a \C{Cons} tag are indeed non-empty. The values \C{Cons} and \C{Unknown} are phantom types -- they exist only at the type level, not at the value level.
 
 \begin{figure}
-\begin{code}
+\ignore\begin{code}
 data ConsT a; data NilT
 
 data List a t where
