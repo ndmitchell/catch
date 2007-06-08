@@ -20,7 +20,6 @@ main = do
     copyHaskell "catch_1" "release/catch/src"
     copyHaskell "proposition" "release/catch/src"
     copyHaskell "examples" "release/catch/examples"
-    copyHaskell (yhc ++ "/../src/libraries/general") "release/catch/src"
     copyHaskell (yhc ++ "/../src/libraries/core") "release/catch/src"
     copyHaskell (yhc ++ "/../depends/play") "release/catch/src"
     copyFileBinary "catch.htm" "release/catch/catch.htm"
