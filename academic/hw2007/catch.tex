@@ -360,21 +360,21 @@ The final issue of abstraction relates to primitive functions in the \C{IO} mona
 
 \begin{figure}
 \begin{code}
-data Prop a =  Prop a
+data Prop alpha =  Prop alpha
 
-propAnd :: Prop a -> Prop a -> Prop a
-propOr  :: Prop a -> Prop a -> Prop a
-propAnds :: [Prop a] -> Prop a
-propOrs :: [Prop a] -> Prop a
-propMap :: (a -> b) -> Prop a -> Prop b
-propImp :: Prop a -> Prop a -> Prop a
+propAnd      :: Prop alpha -> Prop alpha -> Prop alpha
+propOr       :: Prop alpha -> Prop alpha -> Prop alpha
+propAnds     :: [Prop alpha] -> Prop alpha
+propOrs      :: [Prop alpha] -> Prop alpha
+propMap      :: (alpha -> beta) -> Prop alpha -> Prop beta
+propImp      :: Prop alpha -> Prop alpha -> Prop alpha
 
-propTrue :: Prop a
-propFalse :: Prop a
-propBool :: Bool -> Prop a
-propIsTrue :: Prop a -> Bool
-propIsFalse :: Prop a -> Bool
-propLit :: a -> Prop a
+propTrue     :: Prop alpha
+propFalse    :: Prop alpha
+propBool     :: Bool -> Prop alpha
+propIsTrue   :: Prop alpha -> Bool
+propIsFalse  :: Prop alpha -> Bool
+propLit      :: alpha -> Prop alpha
 \end{code}
 \caption{Property data type}
 \label{fig:prop}
@@ -764,7 +764,8 @@ c <| vs = propOrs (map f vs)
     (rec,non) = partition (isRec . (,) c) [0..arity c-1]
 
     f Any = propTrue
-    f (ms1 :* ms2) = propOrs [propAnds $ map propLit $ g vs1 | Pattern c1 vs1 <- ms1, c1 == c]
+    f (ms1 :* ms2) =  propOrs [propAnds $ map propLit $ g vs1
+                      | Pattern c1 vs1 <- ms1, c1 == c]
         where g vs =  zipWith (:<) non (map (:[]) vs) ++
                       map (:< [ms2 :* ms2]) rec
 

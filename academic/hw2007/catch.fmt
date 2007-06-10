@@ -1,5 +1,6 @@
 %format forall  = "\forall{}"
 %format alpha  = "\alpha{}"
+%format beta  = "\beta{}"
 %format lambda  = "\lambda{}"
 %format phi  = "\phi{}"
 %format <| = "\lhd{}"
@@ -19,8 +20,26 @@
 %format not = "\mathsf{not}"
 %format undefined   = "\mathsf{undefined}"
 %format `mergeVal` = "\sqcap{}"
-%format user_and = "\textsf{\&\&}"
-%format user_or = "||"
+%format mergeVal = "(\sqcap{})"
+%format && = "\textsf{\&\&}"
+%format || = "||"
+
+%format `propAnd` = "\ensuremath{\wedge}"
+%format `propOr` = "\ensuremath{\vee}"
+%format propAnd = "(\ensuremath{\wedge})"
+%format propOr = "(\ensuremath{\vee})"
+%format propAnds = "\mathsf{andsP}"
+%format propOrs = "\mathsf{orsP}"
+%format propLit = "\mathsf{lit}"
+%format propMap = "\mathsf{mapP}"
+%format propTrue = "\mathsf{true}"
+%format propFalse = "\mathsf{false}"
+%format propBool = "\mathsf{bool}"
+%format propIsTrue = "\mathsf{isTrue}"
+%format propIsFalse = "\mathsf{isFalse}"
+%format `propImp` = "\ensuremath{\Longrightarrow}"
+%format propImp = "(\ensuremath{\Longrightarrow})"
+
 
 \newcommand{\keyword}[1]{\hspace{-1mm}\text{\textsf{\textbf{ #1}}}}
 
