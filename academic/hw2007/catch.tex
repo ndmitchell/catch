@@ -177,6 +177,8 @@ In the last line of the definition, |(s:ss)| is matched against the result of |r
 
 In other examples, where \catch{} cannot verify pattern-match safety, it can provide information such as sufficient conditions on arguments for safe application of a function.
 
+We have implemented all the techniques reported here. We encourage readers to download the Catch tool and try it out. It can be obtained from the website at \url{http://www.cs.york.ac.uk/~ndm/catch/}. A copy of the library has also been released, and is available on Hackage\footnote{\url{http://hackage.haskell.org/}}.
+
 \subsection{Contributions}
 
 The contributions of this paper include:
@@ -356,11 +358,12 @@ data Char = '\0' | '\1' | '\2' ..
 
 The final issue of abstraction relates to primitive functions in the \C{IO} monad, such as \C{getArgs} (which returns the command-line arguments), or \C{readFile} (which reads from the file-system). In most cases an IO function is modelled as returning \textit{any} value of the correct type, using a function primitive to the checker.
 
-\subsection{Proposition Essentials}
+\subsection{Constraint Essentials and Notation}
+\label{sec:constraints}
 
 \begin{figure}
 \begin{code}
-data Prop alpha =  Prop alpha
+data Prop alpha = Prop alpha
 
 propAnd      :: Prop alpha -> Prop alpha -> Prop alpha
 propOr       :: Prop alpha -> Prop alpha -> Prop alpha
@@ -375,19 +378,18 @@ propBool     :: Bool -> Prop alpha
 propIsTrue   :: Prop alpha -> Bool
 propIsFalse  :: Prop alpha -> Bool
 propLit      :: alpha -> Prop alpha
+
+(==>)        :: Bool -> Bool -> Bool
 \end{code}
 \caption{Property data type}
 \label{fig:prop}
 \end{figure}
 
-See Figure \ref{fig:prop} for the property data type.
-
-\subsection{Constraint Essentials and Notation}
-\label{sec:constraints}
-
 An expression in our first-order core language evaluates to a data structure. A constraint describes a set of data structures to which a value may belong. If a component within a data structure evaluates to $\bot{}$, there are no constraints upon it.
 
-If |x| is an expression and |c| is a constraint we write |x :< c| to assert that the value of expression |x| must be a member of the set satisfying |c|. It is convenient to have a notation for constraints upon named arguments of named functions: we write \ignore|f, x :< c| to assert that argument |x| of |f| must be in the set satisfying |c|. These atomic constraints can be combined using logical operators $\wedge{}$ and $\vee{}$ to form propositional constraints.
+If |x| is an expression and |c| is a constraint we write |x :< c| to assert that the value of expression |x| must be a member of the set satisfying |c|. It is convenient to have a notation for constraints upon named arguments of named functions: we write \ignore|f, x :< c| to assert that argument |x| of |f| must be in the set satisfying |c|.
+
+Atomic constraints can be combined into propositions, using the proposition data type in Figure \ref{fig:prop}. In addition to standard logical operators such as |propAnd| and |propOr|, we also use |propAnds| and |propOrs|, equivalent to |and| and |or| in the Haskell Prelude. We also make use of |propMap| which modifies every single terminal. We use |propTrue|/|propIsTrue| to constructor a true proposition, and to test is a proposition is true. Finally, the |propLit| function lifts a single atomic constraint into a proposition on that constraint. We also introduce |(==>)|, standard boolean implication, which Haskell already provides with |(<=)|, but we prefer the clarity of a different symbol.
 
 Several underlying constraint models are possible. To keep the introduction of the algorithms simple we first use \textit{basic pattern constraints} (\S\ref{sec:basic}). We then describe \textit{regular expression constraints} in \S\ref{sec:regexp} -- a variant of the constraints used in \oldtool{}. Finally we present \textit{multi-pattern constraints} in \S\ref{sec:multipattern} -- used in \newtool{} to enable scaling to much larger problems.
 
@@ -458,7 +460,9 @@ Our intention is that for every function, constraints on the arguments form a pr
 The precondition on each function must be at least as restrictive as the precondition on the body of that function:
 
 \begin{code}
-propRestrictive fn xs = propIsTrue $ preFunc fn xs `propImp` pre (instantiate fn xs)
+propRestrictive fn xs = propIsTrue $
+    preFunc fn xs `propImp`
+    pre (instantiate fn xs)
 \end{code}
 
 One conservative implementation of \C{preFunc} is to always return False. A perfect precondition would be such that \ignore|preFunc fn xs == pre (instantiate fn xs)|.
@@ -732,11 +736,9 @@ The |2^rec| term corresponds to the number of possible constraints under \C{Star
 
 \begin{figure}
 \begin{code}
-type Constraint = [Val]
-
-data Val      =  [Pattern] :* [Pattern]
-              |  Any
-data Pattern  =  Pattern CtorName [Val]
+type Constraint  =  [Val]
+data Val         =  [Pattern] :* [Pattern] |  Any
+data Pattern     =  Pattern CtorName [Val]
 
 -- useful auxiliaries, non recursive selectors
 nonRecs :: CtorName -> [Int]
@@ -764,15 +766,14 @@ c <| vs = propOrs (map f vs)
     (rec,non) = partition (isRec . (,) c) [0..arity c-1]
 
     f Any = propTrue
-    f (ms1 :* ms2) =  propOrs [propAnds $ map propLit $ g vs1
-                      | Pattern c1 vs1 <- ms1, c1 == c]
+    f (ms1 :* ms2) =  propOrs  [propAnds $ map propLit $ g vs1
+                               | Pattern c1 vs1 <- ms1, c1 == c]
         where g vs =  zipWith (:<) non (map (:[]) vs) ++
                       map (:< [ms2 :* ms2]) rec
 
 mergeVal :: Val -> Val -> Val
-(a1 :* b1) `mergeVal` (a2 :* b2)  = merge a1 a2 :* merge b1 b2
-Any        `mergeVal` x           = x
-x          `mergeVal` Any         = x
+(a1 :* b1)  `mergeVal`  (a2 :* b2)  = merge a1 a2 :* merge b1 b2
+x           `mergeVal`  y           = if x == Any then y else x
 
 merge :: [Pattern] -> [Pattern] -> [Pattern]
 merge  ms1 ms2 = [Pattern c1 (zipWith mergeVal vs1 vs2) |
@@ -837,17 +838,17 @@ A big advantage of MP-constraints is that if two constraints on the same express
 \begin{example}
 \begin{code}
 (||) x y = case  x of
-                      True   -> True
-                      False  -> y
+                 True   -> True
+                 False  -> y
 \end{code}
 
 \noindent can be translated into:
 
 \begin{code}
 (||) a = case  a of
-                    (x,y) -> case  x of
-                                   True    -> True
-                                   False   -> y
+               (x,y) -> case  x of
+                              True    -> True
+                              False   -> y
 \end{code}
 \end{example}
 
@@ -900,7 +901,7 @@ The full Haskell language is unwieldy for analysis. As noted in \S\ref{sec:core}
 However, PosLambda has constructs that have no direct representation in Haskell. For example, there is a FatBar construct \cite{spj:implementation}, used for compiling pattern matches which require fall through behaviour. The PosLambda language
 \end{comment}
 
-To generate core representations of programs, it is natural to start with a full Haskell compiler, and we chose Yhc \citep{Yhc}, a fork of nhc \citep{nhc}. The core language of Yhc, PosLambda, was intended only as an internal representation, and exposes certain details that are specific to the compiler. We have therefore introduced a new Core language to Yhc, to which PosLambda can easily be translated. All names are fully qualified. Haskell's type classes have been removed (see \S\ref{sec:dict}). Only top-level functions remain; all local functions have been lambda lifted. All constructor applications are fully saturated. Pattern matching occurs only in case expressions; alternatives match only the top level constructor and are exhaustive, including an \C{error} alternative if necessary.
+To generate core representations of programs, it is natural to start with a full Haskell compiler, and we chose Yhc \citep{me:yhc_core}, a fork of nhc \citep{nhc}. The core language of Yhc, PosLambda, was intended only as an internal representation, and exposes certain details that are specific to the compiler. We have therefore introduced a new Core language to Yhc, to which PosLambda can easily be translated. All names are fully qualified. Haskell's type classes have been removed (see \S\ref{sec:dict}). Only top-level functions remain; all local functions have been lambda lifted. All constructor applications are fully saturated. Pattern matching occurs only in case expressions; alternatives match only the top level constructor and are exhaustive, including an \C{error} alternative if necessary.
 
 
 \subsection{The Dictionary Transformation}
@@ -1302,14 +1303,14 @@ The closest other work we are aware of is \citep{esc_haskell}, where ESC/Haskell
 
 \subsection{Eliminating Incomplete Patterns}
 
-One way to guarantee that a program does not crash with an incomplete pattern is to ensure that all pattern matching is exhaustive. The GHC compiler \citep{ghc} has an option flag to warn of any incomplete patterns. Unfortunately the Bugs (12.2.1) section of the manual notes that the checks are sometimes wrong, particularly with string patterns or guards, and that this part of the compiler ``needs an overhaul really'' \citep{ghc}. The GHC checks are only local: defining \C{head} will lead to a warning, even though the definition is correct; using \C{head} will not lead to a warning, even though it may raise a pattern-match error.
+One way to guarantee that a program does not crash with an incomplete pattern is to ensure that all pattern matching is exhaustive \cite{maranget:pattern_warnings}. The GHC compiler \citep{ghc} has an option flag to warn of any incomplete patterns. Unfortunately the Bugs (12.2.1) section of the manual notes that the checks are sometimes wrong, particularly with string patterns or guards, and that this part of the compiler ``needs an overhaul really'' \citep{ghc}. The GHC checks are only local: defining \C{head} will lead to a warning, even though the definition is correct; using \C{head} will not lead to a warning, even though it may raise a pattern-match error.
 
 A more radical approach is to build exhaustive pattern matching into the design of the language, as part of a total programming system \citep{turner:total}. The \catch{} tool could perhaps allow the exhaustive pattern matching restriction to be lifted somewhat.
 
 
 \subsection{Type System Safety}
 
-One method for specifying properties about functional programs is to use the type system. This approach is taken in the tree automata work done on XML and XSL \citep{static_xslt}, which can be seen as an algebraic data type and a functional language. Another soft typing system with similarities is by \citet{aiken:type_infer}, on the functional language FL. This system tries to assign a type to each function using a set of constructors, for example \C{head} takes the type \C{Cons} and not \C{Nil}.
+One method for specifying properties about functional programs is to use the type system. This approach is taken in the tree automata work done on XML and XSLT \citep{static_xslt}, which can be seen as an algebraic data type and a functional language. Another soft typing system with similarities is by \citet{aiken:type_infer}, on the functional language FL. This system tries to assign a type to each function using a set of constructors, for example \C{head} takes the type \C{Cons} and not \C{Nil}.
 
 \begin{figure}
 \begin{code}
@@ -1345,7 +1346,7 @@ data List a t where
 safeTail :: List a (ConsT t) -> List a t
 safeTail (Cons a b) = b
 
-fromList :: [a] -> (forall t. List a t -> r) -> r
+fromList :: [a] -> (forall t `o` List a t -> r) -> r
 fromList []      fn = fn Nil
 fromList (x:xs)  fn = fromList xs (\sl -> fn (Cons x sl))
 \end{code}

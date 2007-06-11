@@ -12,6 +12,7 @@ import System
 -- # d
 -- # e
 -- instance Eq RegItem
+-- instance Eq Val
 
 ss = undefined
 s = undefined
@@ -37,6 +38,3 @@ v = undefined
 p1 = undefined
 p2 = undefined
 elipses = undefined
-
-(==>) True False = False
-(==>) _ _ = True
