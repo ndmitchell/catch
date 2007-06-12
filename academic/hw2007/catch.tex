@@ -161,14 +161,14 @@ risers (x:y:etc) = if x <= y then (x:s):ss else [x]:(s:ss)
     where (s:ss) = risers (y:etc)
 \end{code}
 
-A sample application of this function is:
+\noindent A sample application of this function is:
 
 \ignore\begin{code}
 > risers [1,2,3,1,2]
 [[1,2,3],[1,2]]
 \end{code}
 
-In the last line of the definition, |(s:ss)| is matched against the result of |risers (y:etc)|. If the result is in fact an empty list, a pattern-match error will occur. It takes a few moments to check manually that no pattern-match failure is possible -- and a few more to be sure one has not made a mistake! Turning the \C{risers} function over to our analysis tool (which we call \catch{}), the output is:
+\noindent In the last line of the definition, |(s:ss)| is matched against the result of |risers (y:etc)|. If the result is in fact an empty list, a pattern-match error will occur. It takes a few moments to check manually that no pattern-match failure is possible -- and a few more to be sure one has not made a mistake! Turning the \C{risers} function over to our analysis tool (which we call \catch{}), the output is:
 
 \begin{verbatim}
 > Incomplete pattern on line 5, proven safe
@@ -289,15 +289,16 @@ hnf (Make  x   xs    )  =  Just (x, xs)
 hnf (Call  x   xs    )  |  x == "error"  = Nothing
                         |  otherwise     = hnf (instantiate x xs)
 hnf (Case  on  alts  )  =  listToMaybe [res
-       | Just (c,cs) <- [hnf on], Alt n vs e <- alts, c == n
-       , Just res <- [hnf (subst (zip vs cs) e)]]
+       |  Just (c,cs) <- [hnf on], Alt n vs e <- alts, c == n
+       ,  Just res <- [hnf (subst (zip vs cs) e)]]
 
 subst :: [(VarName, Expr)] -> Expr -> Expr
-subst r (Var   x     ) = fromJust (lookup x r)
+subst r (Var   x     ) = fromMaybe (Var x) (lookup x r)
 subst r (Make  x xs  ) = Make  x (map (subst r) xs)
 subst r (Call  x xs  ) = Call  x (map (subst r) xs)
 subst r (Case  x xs  ) = Case (subst r x)
-    [Alt n vs (subst r e) | Alt n vs e <- xs]
+    [Alt n vs (subst r2 e) | Alt n vs e <- xs
+    , let r2 = filter ((`notElem` vs) . fst) r]
 \end{code}
 \caption{Semantics for Core expressions.}
 \label{fig:semantics}
@@ -465,7 +466,7 @@ propRestrictive fn xs = propIsTrue $
     pre (instantiate fn xs)
 \end{code}
 
-One conservative implementation of \C{preFunc} is to always return False. A perfect precondition would be such that \ignore|preFunc fn xs == pre (instantiate fn xs)|.
+One conservative (and useless) implementation of \C{preFunc} is to always return False. A perfect precondition would be such that \ignore|preFunc fn xs == pre (instantiate fn xs)|.
 
 \begin{figure}
 \ignore\begin{code}
@@ -522,7 +523,7 @@ Constraints on expressions other than argument variables can be rewritten using 
 \begin{code}
 (c,i) |> k = map extend k
     where
-    extend x = Con c (anys i ++ [x] ++ anys (n-i))
+    extend x = Con c (anys i ++ [x] ++ anys (n-i-1))
     anys j = replicate j Any
     n = arity c
 \end{code}
@@ -566,7 +567,7 @@ end loop
 \label{fig:property_fixp}
 \end{figure}
 
-The function \C{property} takes a postcondition, and transforms it to constraints on the argument positions -- a precondition to ensure the postcondition. As in the precondition calculation in \S\ref{sec:precond}, each result becomes increasingly restrictive. If refinement chains of constraint/function pairs are finite, termination is guaranteed. Here again, a speed up can be obtained by tracking the dependencies between constraints.
+The function \C{property} in Figure \ref{fig:property_fixp} takes a postcondition, and transforms it to constraints on the argument positions -- a precondition to ensure the postcondition. As in the precondition calculation in \S\ref{sec:precond}, each result becomes increasingly restrictive. If refinement chains of constraint/function pairs are finite, termination is guaranteed. Here again, a speed up can be obtained by tracking the dependencies between constraints.
 
 \subsection{Semantics of Constraints}
 
@@ -574,19 +575,18 @@ A key function in the semantics of constraints tests whether a value satisfies a
 
 \noindent\begin{minipage}{\linewidth}
 \begin{code}
-data Value = Value CtorName [Value]
-
 satisfies :: Value -> Constraint -> Bool
-satisfies (Value c xs) k = propIsTrue $ propMap f (c <| k)
+satisfies Bottom        k = True
+satisfies (Value c xs)  k = propIsTrue $ propMap f (c <| k)
     where f (i :< k2) = satisfies (xs !! i) k2
 \end{code}
 \end{minipage}
 
-Now we can express properties that the other constraint operations must have:
+The first equation returns |True| given a value of type |Bottom|, as for a |Bottom| to arise some other constraint must have been violated. Now we can express properties that the other constraint operations must have:
 
 \begin{code}
 propExtend v k i =  satisfies v ((c,i) |> k)
-                    ==> (c2 /= c || satisfies (x !! i) k)
+                    ==> (c2 /= c || satisfies (xs !! i) k)
     where Value c2 xs = v
 
 propNotin v c = satisfies v (notin c) ==> (valueCtor v /= c)
@@ -604,7 +604,7 @@ With unbounded recursion in patterns, the BP-constraint language does \textit{no
 \section{Richer Constraint Systems}
 \label{sec:constraint}
 
-There are various ways of defining a richer constraint system, also providing the necessary finiteness properties. Here we outline two -- one adapted from \oldtool{}, the other used in \newtool{}. Neither is strictly more powerful than the other; each is capable of expressing constraints that the other cannot express.
+There are various ways of defining a richer constraint system, also providing the necessary finiteness properties. Here we outline two -- one adapted from \oldtool{}, one entirely new -- both implemented in \newtool{}. Neither is strictly more powerful than the other; each is capable of expressing constraints that the other cannot express.
 
 \subsection{Regular Expression (RE) Constraints}
 \label{sec:regexp}
@@ -684,7 +684,7 @@ Concerning the helper functions needed to define | ||>| and |<||| in Figure \ref
 \end{itemize}
 
 \begin{example}
-|(head xs)| is safe if |xs| evaluates to a non-empty list. The RE-constraint is: \ignore|xs :< (1 :- {:})|
+|(head xs)| is safe if |xs| evaluates to a non-empty list. The RE-constraint generated by \catch{} is: \ignore|xs :< (1 :- {:})|
 \end{example}
 
 \begin{example}
@@ -692,7 +692,7 @@ Concerning the helper functions needed to define | ||>| and |<||| in Figure \ref
 \end{example}
 
 \begin{example}
-|(map head (reverse xs))| is safe if every item in |xs| is |(:)|-constructed, or if |xs| is infinite -- so \C{reverse} does not terminate. The RE-constraint is: \ignore|xs :< (tl^* ^. hd :- {:}) |||| x :< (tl^* :- {:})|
+|(map head (reverse xs))| is safe if every item in |xs| is |(:)|-constructed, or if |xs| is infinite -- so \C{reverse} does not terminate. The RE-constraint is: \ignore|xs :< (tl^* ^. hd :- {:}) `propOr` xs :< (tl^* :- {:})|
 \end{example}
 
 \subsubsection{Finite Number of RE-Constraints}
@@ -726,9 +726,9 @@ The |2^rec| term corresponds to the number of possible constraints under \C{Star
 
 \para{Exhaustion:} In the constraint |x :< (r :- [":","[]"])| the condition lists all the possible constructors. Because of static typing |x| must be one of these constructors. Any such constraint simplifies to True.
 
-\para{And merging:} The conjunction \ignore|e :< (r :- c1) && e :< (r :- c2)| can be replaced by \ignore|e :< (r :- (c1 `union` c2))|.
+\para{And merging:} The conjunction \ignore|e :< (r :- c1) `propAnd` e :< (r :- c2)| can be replaced by \ignore|e :< (r :- (c1 `intersect` c2))|.
 
-\para{Or merging:} The disjunction \ignore|e :< (r1 :- c1) |||| e :< (r2 :- c2)| can be replaced by \ignore|e :< (r2 :- c2)| if \ignore|r1 `subseteq` r2 && c1 `subseteq` r2|.
+\para{Or merging:} The disjunction \ignore|e :< (r :- c1) `propOr` e :< (r :- c2)| can be replaced by \ignore|e :< (r :- c2)| if \ignore|c1 `subseteq` c2|.
 
 
 \subsection{Multipattern (MP) Constraints \& Simplification}
@@ -785,9 +785,9 @@ merge  ms1 ms2 = [Pattern c1 (zipWith mergeVal vs1 vs2) |
 
 Although RE-constraints are capable of solving many examples, they suffer from a problem of scale. As programs become more complex the size of the propositions grows quickly, slowing \catch{} unacceptably. Multipattern constraints (MP-constraints, defined in Figure \ref{fig:enumeration}) are an alternative which scales better.
 
-MP-constraints are similar to BP-constraints, but can constrain an infinite number of items. A value |v| satisfies a constraint |p1 :* p2| if |v| itself satisfies |p1| and all its recursive components satisfy |p2|. Each of |p1| and |p2| is given as a set of matches as in \S\ref{sec:basic}, but each \C{Pattern} only specifies the values for the non-recursive selectors, all recursive selectors are handled by |p2|.
+MP-constraints are similar to BP-constraints, but can constrain an infinite number of items. A value |v| satisfies a constraint |p1 :* p2| if |v| itself satisfies |p1| and all its recursive components at any depth satisfy |p2|. Each of |p1| and |p2| is given as a set of matches as in \S\ref{sec:basic}, but each \C{Pattern} only specifies the values for the non-recursive selectors, all recursive selectors are handled by |p2|. A constraint is a disjunctive list of |:*| patterns.
 
-\begin{revisit}{1} safe evaluation of |(head xs)| requires |xs| to be non-empty. The MP-constraint on |xs| is: \ignore|{(:) Any} :* {[], (:) Any}| This constraint is longer than the corresponding RE-constraint as it makes explicit that the \C{hd} field is unrestricted.
+\begin{revisit}{1} safe evaluation of |(head xs)| requires |xs| to be non-empty. The MP-constraint generated by \catch{} on |xs| is: \ignore|{(:) Any} :* {[], (:) Any}| This constraint is longer than the corresponding RE-constraint as it makes explicit that the both the \C{hd} field and the recursive components are unrestricted.
 \end{revisit}
 
 \begin{revisit}{2} safe evaluation of |(map head xs)| requires |xs| to be a list of non-empty lists. The MP-constraint on |xs| is:
@@ -829,8 +829,8 @@ The \C{val} function counts the number of possible \C{Val} constructions. The \C
 A big advantage of MP-constraints is that if two constraints on the same expression are combined at the proposition level, they can be reduced into one constraint:
 
 \ignore\begin{code}
-(e :< v1) || (e :< v2) = e :< (v1 ++ v2)
-(e :< v1) && (e :< v2) = e :< [a `mergeVal` b | a <- v1, b <- v2]
+(e :< v1)  `propOr`   (e :< v2) = e :< (v1 ++ v2)
+(e :< v1)  `propAnd`  (e :< v2) = e :< [a `mergeVal` b | a <- v1, b <- v2]
 \end{code}
 
 \noindent This ability to combine constraints on equal expressions can be exploited further by translating the program to be analysed. After applying \C{backs}, all constraints will be in terms of the arguments to a function. So if all functions took exactly one argument then \textit{all} the constraints associated with a function body could be collapsed into one. We therefore \textit{uncurry} all functions.
@@ -856,7 +856,7 @@ Combining MP-constraint reduction rules with the uncurrying transformation makes
 
 \subsection{Comparison of RE and MP Constraints}
 
-Both RE-constraints and MP-constraints are capable of expressing a wide range of value-sets, but neither subsumes the other. We give examples where one constraint language can differentiate between a pair of values, and the other cannot.
+As we discussed in \S\ref{sec:bounded}, it is not possible to use BP-constraint, as they do not have finite chains of refinement. Both RE-constraints and MP-constraints are capable of expressing a wide range of value-sets, but neither subsumes the other. We give examples where one constraint language can differentiate between a pair of values, and the other cannot.
 
 \begin{comment}
 \begin{code}
@@ -872,8 +872,8 @@ Let |v1 = (T:[])| and |v2 = (T:T:[])| and consider the MP-constraint \ignore|{(:
 Consider a data type:
 
 \begin{code}
-data Tree alpha  =  Branch {left :: Tree alpha, right :: Tree alpha}
-                 |  Leaf alpha
+data Tree alpha  =  Branch  {left  :: Tree alpha, right :: Tree alpha}
+                 |  Leaf    {leaf  :: alpha}
 \end{code}
 
 \noindent and two values of the type \ignore|Tree Bool|
@@ -883,10 +883,10 @@ v1 = Branch (Leaf True   ) (Leaf False  )
 v2 = Branch (Leaf False  ) (Leaf True   )
 \end{code}
 
-\noindent The RE-constraint \ignore|(left^* :- True)| is satisfied by |v1| but not |v2|. No MP-constraint separates the two values.
+\noindent The RE-constraint \ignore|(left^* ^.leaf :- True)| is satisfied by |v1| but not |v2|. No MP-constraint separates the two values.
 \end{example}
 
-We have implemented checkers using both constraint systems. There are various factors to consider when choosing which constraint system to use -- how readable the constraints are, the expressive power, implementation complexity and scalability. In practice the issue of scalability is key: how large do constraints become, how quickly can they be manipulated, how expensive is their simplification. \newtool{} uses MP-constraints, as they allow much larger examples to be checked.
+We have implemented both constraint systems in \catch{}. There are various factors to consider when choosing which constraint system to use -- how readable the constraints are, the expressive power, implementation complexity and scalability. In practice the issue of scalability is key: how large do constraints become, how quickly can they be manipulated, how expensive is their simplification. \newtool{} uses MP-constraints by default, as they allow much larger examples to be checked.
 
 \section{Converting Haskell to a First-order Core}
 \label{sec:transform}
@@ -1286,6 +1286,18 @@ We have contributed patches back to the author of HsColour, with the result that
 
 \catch{} required 4 small patches to successfully check the entire program. Details are given in Table \ref{tab:results}. Of the 4 patches, 3 were genuine pattern-match errors which could be tripped by constructing unexpected input. The issues were: (1) \C{read} was called on a preferences file from the user, this could crash given a malformed preferences file; (2) by giving the document consisting of a single double quote character \T{"}, and passing the ``-latex'' flag, a crash occurred; (3) by giving the document \T{(`)}, namely open bracket, backtick, close bracket, and passing ``-html -anchor'' a crash occurred. The one patch which did not (as far as we are able to ascertain) fix a real bug could still be considered an improvement, and was minor in nature (a single line).
 
+Examining the |read| error in more detail, by default \catch{} outputs the potential error message, and a list of incomplete function in a call stack:
+
+\begin{verbatim}
+Checking: "Prelude.read: no parse"
+Partial: "Prelude.read$252"
+Partial: "HsColour.Colourise.parseColourPrefs"
+Partial: "YHC.Internal.IO.>>=$254"
+Partial: "HsColour.Colourise.readColourPrefs"
+...
+\end{verbatim}
+
+We can see (ignoring the text after \texttt{\$}) that the call stack would be |read|, then \ignore|parseColourPrefs|, and so on. By using our knowledge of the intention of functions, we can see that although |read| calls error, the blame probably lies in the caller of |read| -- namely \ignore|parseColourPrefs|. By examining this location in the source code we are able to diagnose and correct the problem. \catch{} does produce constraints, although in our experience the problem can usually be fixed from the source position information.
 
 \section{Related Work}
 \label{sec:related}
@@ -1296,7 +1308,7 @@ There has been a long history of writing tools to analyse programs to detect pot
 
 \subsection{Proving Incomplete Patterns Safe}
 
-Despite the seriousness of the problem of pattern matching, there are very few other tools for checking pattern-match safety. This paper has similar goals to \citet{me:catch_tfp}, but some key design decisions are radically different. The difference in practice is that we support full Haskell, can scale to much larger examples and can feasibly be used on real programs. Some of the reasons for these better results include a different fixed-point mechanism, the use of MP-constraints and a superior translation from Core.
+Despite the seriousness of the problem of pattern matching, there are very few other tools for checking pattern-match safety. This paper has similar goals to \citet{me:catch_tfp}, but some key design decisions are radically different. The difference in practice is that \catch07 supports full Haskell, can scale to much larger examples and can feasibly be used on real programs. Some of the reasons for these better results include a different fixed-point mechanism, the use of MP-constraints and a superior translation from Core.
 
 The closest other work we are aware of is \citep{esc_haskell}, where ESC/Haskell is introduced. The ESC/Haskell approach requires the programmer to give explicit preconditions and contracts which the program obeys. Contracts have more expressive power than our constraints -- one of the examples involves an invariant on an ordered list, something beyond \catch{}. But the programmer has more work to do. At the time of writing there is no publicly available version of ESC/Haskell. So far as we know, it does not yet support full Haskell, lacks features such as type classes, and handles only small examples. A future version of ESC/Haskell may address these limitations, allowing a fuller comparison to be made.
 
@@ -1333,7 +1345,7 @@ safeTail (List (a:as)) = as
 \label{fig:phantom}
 \end{figure}
 
-Types can sometimes be used to explicitly encode invariants on data in functional languages. One approach is the use of \textit{phantom types} \citep{fluet:phantom}, for example a safe variant of \C{tail} can be written as in Figure \ref{fig:phantom}. The \C{List} type is not exported, ensuring that all lists with a \C{Cons} tag are indeed non-empty. The values \C{Cons} and \C{Unknown} are phantom types -- they exist only at the type level, not at the value level.
+Types can sometimes be used to explicitly encode invariants on data in functional languages. One approach is the use of \textit{phantom types} \citep{fluet:phantom}, for example a safe variant of \C{tail} can be written as in Figure \ref{fig:phantom}. The \C{List} type is not exported, ensuring that all lists with a \C{Cons} tag are indeed non-empty. The types \C{Cons} and \C{Unknown} are phantom types -- they exist only at the type level, and have no corresponding value.
 
 \begin{figure}
 \ignore\begin{code}

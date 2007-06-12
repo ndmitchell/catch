@@ -22,7 +22,8 @@
 %format `mergeVal` = "\sqcap{}"
 %format mergeVal = "(\sqcap{})"
 %format && = "\textsf{\&\!\&}"
-%format || = "||"
+%format || = "\textsf{\;\ensuremath{||}\;}"
+%format elipses = "..."
 
 %format `propAnd` = "\ensuremath{\wedge}"
 %format `propOr` = "\ensuremath{\vee}"
