@@ -1282,16 +1282,15 @@ We have contributed patches back to the author of HsColour, with the result that
 
 Examining the |read| error in more detail, by default \catch{} outputs the potential error message, and a list of incomplete function in a call stack:
 
-\begin{verbatim}
-Checking: "Prelude.read: no parse"
-Partial: "Prelude.read$252"
-Partial: "HsColour.Colourise.parseColourPrefs"
-Partial: "YHC.Internal.IO.>>=$254"
-Partial: "HsColour.Colourise.readColourPrefs"
-...
-\end{verbatim}
+\smallskip
+\par\noindent\textsf{Checking ``Prelude.read: no parse''}
+\par\noindent\textsf{Partial Prelude.read\$252}
+\par\noindent\textsf{Partial Language.Haskell.HsColour.Colourise.parseColourPrefs}
+\par\noindent\textsf{...}
+\par\noindent\textsf{Partial Main.main}
+\smallskip
 
-We can see (ignoring the text after \texttt{\$}) that the call stack would be |read|, then \ignore|parseColourPrefs|, and so on. By using our knowledge of the intention of functions, we can see that although |read| calls error, the blame probably lies in the caller of |read| -- namely \ignore|parseColourPrefs|. By examining this location in the source code we are able to diagnose and correct the problem. \catch{} does produce constraints, although in our experience the problem can usually be fixed from the source position information.
+We can see that the call stack would be |read| (the \textsf{\$252} indicates a specialised version of |read|), then \ignore|parseColourPrefs|, and so on. By using our knowledge of the intention of functions, we can see that although |read| calls error, the blame probably lies in the caller of |read| -- namely \ignore|parseColourPrefs|. By examining this location in the source code we are able to diagnose and correct the problem. \catch{} does produce constraints, although in our experience the problem can usually be fixed from the source position information.
 
 \section{Related Work}
 \label{sec:related}
