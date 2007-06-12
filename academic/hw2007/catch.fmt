@@ -21,9 +21,11 @@
 %format undefined   = "\mathsf{undefined}"
 %format `mergeVal` = "\sqcap{}"
 %format mergeVal = "(\sqcap{})"
-%format && = "\textsf{\&\!\&}"
-%format || = "\textsf{\;\ensuremath{||}\;}"
+%format && = "\mathrel{\hbox{\textsf{\& \hspace{-1em} \&}}}"
+%format || = "\mathrel{||}"
 %format elipses = "..."
+%format `div` = "\;\textsf{\`{}\!div\!\`{}}\;"
+%format `mod` = "\;\textsf{\`{}\!mod\!\`{}}\;"
 
 %format `propAnd` = "\ensuremath{\wedge}"
 %format `propOr` = "\ensuremath{\vee}"

@@ -364,23 +364,17 @@ The final issue of abstraction relates to primitive functions in the \C{IO} mona
 
 \begin{figure}
 \begin{code}
-data Prop alpha = Prop alpha
+data Prop alpha
 
-propAnd      :: Prop alpha -> Prop alpha -> Prop alpha
-propOr       :: Prop alpha -> Prop alpha -> Prop alpha
-propAnds     :: [Prop alpha] -> Prop alpha
-propOrs      :: [Prop alpha] -> Prop alpha
-propMap      :: (alpha -> beta) -> Prop alpha -> Prop beta
-propImp      :: Prop alpha -> Prop alpha -> Prop alpha
+propAnd, propOr, propImp  :: Prop alpha -> Prop alpha -> Prop alpha
+propAnds, propOrs         :: [Prop alpha] -> Prop alpha
+propMap                   :: (alpha -> beta) -> Prop alpha -> Prop beta
+propTrue, propFalse       :: Prop alpha
+propBool                  :: Bool -> Prop alpha
+propIsTrue, propIsFalse   :: Prop alpha -> Bool
+propLit                   :: alpha -> Prop alpha
 
-propTrue     :: Prop alpha
-propFalse    :: Prop alpha
-propBool     :: Bool -> Prop alpha
-propIsTrue   :: Prop alpha -> Bool
-propIsFalse  :: Prop alpha -> Bool
-propLit      :: alpha -> Prop alpha
-
-(==>)        :: Bool -> Bool -> Bool
+(==>) :: Bool -> Bool -> Bool
 \end{code}
 \caption{Property data type}
 \label{fig:prop}
@@ -1360,7 +1354,7 @@ safeTail (Cons a b) = b
 
 fromList :: [a] -> (forall t `o` List a t -> r) -> r
 fromList []      fn = fn Nil
-fromList (x:xs)  fn = fromList xs (\sl -> fn (Cons x sl))
+fromList (x:xs)  fn = fromList xs (fn . Cons x)
 \end{code}
 \caption{A \C{safeTail} function using GADTs.}
 \label{fig:gadt}
