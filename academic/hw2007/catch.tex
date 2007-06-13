@@ -590,7 +590,7 @@ The first equation returns |True| given a value of type |Bottom|, as for a |Bott
 
 \begin{code}
 propExtend  v@(Value c xs) k i =
-    satisfies v ((c,i) |> k) => satisfies (xs !! i) k
+    satisfies v ((c,i) |> k) ==> satisfies (xs !! i) k
 propExtend _ _ _ = True
 
 propNotin  v@(Value c xs) = not (satisfies v (notin c))
