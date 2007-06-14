@@ -180,7 +180,7 @@ risers (x:y:etc) = if x <= y then (x:s):ss else [x]:(s:ss)
 
 In other examples, where \catch{} cannot verify pattern-match safety, it can provide information such as sufficient conditions on arguments for safe application of a function.
 
-We have implemented all the techniques reported here. We encourage readers to download the Catch tool and try it out. It can be obtained from the website at \url{http://www.cs.york.ac.uk/~ndm/catch/}. A copy of the library has also been released, and is available on Hackage\footnote{\url{http://hackage.haskell.org/}}.
+We have implemented all the techniques reported here. We encourage readers to download the Catch tool and try it out. It can be obtained from the website at \url{http://www.cs.york.ac.uk/~ndm/catch/}. A copy of the tool has also been released, and is available on Hackage\footnote{\url{http://hackage.haskell.org/}}.
 
 \subsection{Contributions}
 
@@ -208,7 +208,7 @@ This section sketches the process of checking that the \C{risers} function in th
 
 Rather than analyse full Haskell, \catch{} analyses a first-order Core language, without lambda expressions, partial application or let bindings. A convertor is provided from the full Haskell 98 language to this restricted language -- see \S\ref{sec:transform}. The result of converting the \C{risers} program to Core Haskell, and renaming the identifiers for ease of human reading, is shown in Figure \ref{fig:risers_core}.
 
-The type of \C{risers} is polymorphic over types in |Ord|. \catch{} could check \C{risers} assuming that |Ord| methods do not raise pattern-match errors, and may return any value. Or a type instance such as |Int| can be specified with a type signature.
+The type of \C{risers} is polymorphic over types in |Ord|. \catch{} can check \C{risers} assuming that |Ord| methods do not raise pattern-match errors, and may return any value. Or a type instance such as |Int| can be specified with a type signature.
 
 \begin{figure}
 \begin{code}
@@ -480,7 +480,7 @@ loop
     conds := conds'
 end loop
     where
-        preFunc fn xs = cond(fn)[vs1/xs1 .. vs_n/xs_n]
+        preFunc fn xs = conds(fn)[vs1/xs1 .. vs_n/xs_n]
         vs = ... -- free variables
 \end{code}
 \caption{Precondition calculation.}
@@ -489,7 +489,7 @@ end loop
 \end{figure}
 
 The iterative algorithm for calculating preconditions is given in Figure~\ref{fig:precond_fixp}.
-Initially all preconditions are assumed to be True, apart from the \C{error} precondition, which is False. New preconditions are calculated for every function, until no condition changes. In each iteration the preconditions become more restrictive. So \textit{if all chains of increasingly restrictive constraints are finite}, termination is guaranteed. (We return to finiteness in \S\ref{sec:bounded}.) A more efficient algorithm tracks dependencies between preconditions, and performs the minimum amount of recalculation. Finding strongly connected components in the static call graph of a program would allow parts of the program to be checked separately.
+Initially all preconditions are assumed to be True, apart from the \C{error} precondition, which is False. New preconditions are calculated for every function, until no condition changes. The local definition of |preFunc| is the one invoked by |pre|. In each iteration the preconditions become more restrictive. So \textit{if all chains of increasingly restrictive constraints are finite}, termination is guaranteed. (We return to finiteness in \S\ref{sec:bounded}.) A more efficient algorithm tracks dependencies between preconditions, and performs the minimum amount of recalculation. Finding strongly connected components in the static call graph of a program would allow parts of the program to be checked separately.
 
 \subsubsection{Preconditions and Laziness}
 
@@ -527,9 +527,8 @@ Constraints on expressions other than argument variables can be rewritten using 
 \begin{code}
 (c,i) |> k = map extend k
     where
-    extend x = Con c (anys i ++ [x] ++ anys (n-i-1))
+    extend x = Con c (anys i ++ [x] ++ anys (arity c-i-1))
     anys j = replicate j Any
-    n = arity c
 \end{code}
 
 \para{The \C{Make} rule} deals with an application of a constructor. The |<||| operator splits a constraint on an entire structure into a combination of constraints on each part.
@@ -548,8 +547,8 @@ c <| k = propOrs (map f k)
 
 \begin{code}
 propRestrict fn xs k = propIsTrue $
-    backs (propLit $ Call fn xs :< k) `propImp`
-    backs (propLit $ instantiate fn xs :< k)
+    backs (propLit $ Call         fn xs :< k) `propImp`
+    backs (propLit $ instantiate  fn xs :< k)
 \end{code}
 
 That is, the result is at least as restrictive as if the function was inlined at this point. Two strategies can be used: (1) Use $\beta$ substitution (\C{instantiate}) replacing the call with the body of |fn|. (2) Create fresh variables for each argument, use $\beta$ substitution, and then instantiate the results. \oldtool{} used method 1. \newtool{} uses method 2, as it is easier to find a fixed point, and allows a cache of results to be built -- reducing duplicate computation.
@@ -658,7 +657,7 @@ differentiate p (Star  r:rs)  | p `elem` r  = Just (Star r:rs)
 \oldtool{} used regular expressions in constraints. A data type for regular expression based constraints (RE-constraints), along with the essential operations upon it is given in Figure \ref{fig:regexp}. In a constraint of the form |(r :- cs)|, |r| is a regular expression and |cs| is a set of constructors. Such a constraint is satisfied by a data structure |d| if every well-defined application to |d| of a sequence of selectors described by |r| reaches a constructor in the set |cs|. That is:
 
 \ignore\begin{code}
-d :< (r :- c) <=> (forall l `elem` lang r `o` defined d l => ctor d l `elem` c)
+d :< (r :- cs) <=> (forall l `elem` lang r `o` defined d l => ctor d l `elem` cs)
 \end{code}
 
 If no sequence of selectors has a well-defined result then the constraint is vacuously true.
@@ -790,7 +789,7 @@ Although RE-constraints are capable of solving many examples, they suffer from a
 
 MP-constraints are similar to BP-constraints, but can constrain an infinite number of items. A value |v| satisfies a constraint |p1 :* p2| if |v| itself satisfies |p1| and all its recursive components at any depth satisfy |p2|. Each of |p1| and |p2| is given as a set of matches as in \S\ref{sec:basic}, but each \C{Pattern} only specifies the values for the non-recursive selectors, all recursive selectors are handled by |p2|. A constraint is a disjunctive list of |:*| patterns.
 
-\begin{revisit}{1} safe evaluation of |(head xs)| requires |xs| to be non-empty. The MP-constraint generated by \catch{} on |xs| is: \ignore|{(:) Any} :* {[], (:) Any}| This constraint is longer than the corresponding RE-constraint as it makes explicit that the both the \C{hd} field and the recursive components are unrestricted.
+\begin{revisit}{1} safe evaluation of |(head xs)| requires |xs| to be non-empty. The MP-constraint generated by \catch{} on |xs| is: \ignore|{(:) Any} :* {[], (:) Any}| This constraint is longer than the corresponding RE-constraint as it makes explicit that both the \C{hd} field and the recursive components are unrestricted.
 \end{revisit}
 
 \begin{revisit}{2} safe evaluation of |(map head xs)| requires |xs| to be a list of non-empty lists. The MP-constraint on |xs| is:
@@ -1037,15 +1036,7 @@ firstify = fix (inline . fix specialise)
 
 \para{The \C{inline} stage} inlines each \C{Call} for which the body passes the \C{isHO} test, defined in Figure \ref{fig:isHO}. If this process causes a function to no longer be called from the root of the program, then the function is removed after inlining.
 
-\para{The \C{specialise} stage} takes every expression of the form |Call fn xs| where \ignore|any isHO xs|, and generates a specialised version of the function |fn| with all functional arguments in |xs| frozen in, and all others passed normally. Assuming that a function |fn| results in the specialised version |fn2|, then the translation would be:
-
-\ignore\begin{code}
-transform (Call fn xs) | any isHO xs =
-    Call fn2 (concatMap f xs)
-    where
-    fn2 = generate fn xs
-    f x = if isHO x then freeVars x else [x]
-\end{code}
+\para{The \C{specialise} stage} takes every expression of the form |Call fn xs| where \ignore|any isHO xs|, and generates a specialised version of the function |fn| with all functional arguments in |xs| frozen in, and all others passed normally.
 
 In rare circumstances a program may have an infinite number of specialisations. If necessary we revert to Reynolds style defunctionalization.
 
@@ -1317,7 +1308,7 @@ The closest other work we are aware of is \citep{esc_haskell}, where ESC/Haskell
 
 \subsection{Eliminating Incomplete Patterns}
 
-One way to guarantee that a program does not crash with an incomplete pattern is to ensure that all pattern matching is exhaustive \cite{maranget:pattern_warnings}. The GHC compiler \citep{ghc} has an option flag to warn of any incomplete patterns. Unfortunately the Bugs (12.2.1) section of the manual notes that the checks are sometimes wrong, particularly with string patterns or guards, and that this part of the compiler ``needs an overhaul really'' \citep{ghc}. The GHC checks are only local: defining \C{head} will lead to a warning, even though the definition is correct; using \C{head} will not lead to a warning, even though it may raise a pattern-match error.
+One way to guarantee that a program does not crash with an incomplete pattern is to ensure that all pattern matching is exhaustive. The GHC compiler \citep{ghc} has an option flag to warn of any incomplete patterns. Unfortunately the Bugs (12.2.1) section of the manual notes that the checks are sometimes wrong, particularly with string patterns or guards, and that this part of the compiler ``needs an overhaul really'' \citep{ghc}. A more precise treatment of when warnings should be issued is given in \citet{maranget:pattern_warnings}. These checks are only local: defining \C{head} will lead to a warning, even though the definition is correct; using \C{head} will not lead to a warning, even though it may raise a pattern-match error.
 
 A more radical approach is to build exhaustive pattern matching into the design of the language, as part of a total programming system \citep{turner:total}. The \catch{} tool could perhaps allow the exhaustive pattern matching restriction to be lifted somewhat.
 
