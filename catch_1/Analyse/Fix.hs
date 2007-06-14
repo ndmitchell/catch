@@ -29,7 +29,7 @@ fixDumb def combine compute initial = cont initial
         step x = do
             (vs,add) <- mapAndUnzipM g (Map.toAscList x)
             let mp1 = Map.fromAscList vs
-                mp2 = Map.fromAscList $ zip (filter (`Map.notMember` x) $ snub $ concat add) (repeat def)
+                mp2 = Map.fromAscList $ zip (filter (not . (`Map.member` x)) $ snub $ concat add) (repeat def)
             return $ Map.union mp1 mp2
             where
                 g (k,v) = do
@@ -81,7 +81,7 @@ fix logger listing def combine compute initial = do
             depends <- return $ Set.fromList depends
 
             -- add new items
-            new <- return $ Set.filter (`Map.notMember` x) depends
+            new <- return $ Set.filter (not . (`Map.member` x)) depends
             x <- return $ Map.union x (Map.fromAscList [(k, def2) | k <- Set.toAscList new])
             pending <- return $ Set.union pending new
 
