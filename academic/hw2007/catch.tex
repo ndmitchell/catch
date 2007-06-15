@@ -442,45 +442,51 @@ notin c = map f (delete c (ctors c))
 
 \begin{figure}
 \begin{code}
-pre :: Expr -> Prop (Assert Expr)
-pre (Var   x         ) = propTrue
-pre (Make  _   xs    ) = propAnds (map pre xs)
-pre (Call  fn  xs    ) = preFunc fn xs `propAnd` propAnds (map pre xs)
-pre (Case  on  alts  ) = pre on `propAnd` propAnds [f c e | Alt c vs e <- alts]
-    where f c e = propLit (on :< notin c) `propOr` pre e
+type PreFun = FuncName -> [Expr] -> Prop (Assert Expr)
 
-preFunc :: FuncName -> [Expr] -> Prop (Assert Expr)
+pre :: PreFun -> Expr -> Prop (Assert Expr)
+pre pf (Var   x         ) = propTrue
+pre pf (Make  _   xs    ) = propAnds (map (pre pf) xs)
+pre pf (Call  fn  xs    ) = pf fn xs `propAnd` propAnds (map (pre pf) xs)
+pre pf (Case  on  alts  ) = pre pf on `propAnd` propAnds (map f alts)
+    where f (Alt c vs e) = propLit (on :< notin c) `propOr` pre pf e
 \end{code}
 \caption{Precondition of an expression, \C{pre}.}
 \label{fig:precondition}
 \figureend
 \end{figure}
 
-Our intention is that for every function, constraints on the arguments form a precondition for pattern safety. The precondition for \C{error} is False. A program is safe if the precondition on \C{main} is True. The process of analysis can be seen as deriving these preconditions. Given a function \C{preFunc} that returns the precondition on a function's arguments, a function to determine the precondition for safe evaluation of an \textit{expression} can be specified as \C{pre} in Figure \ref{fig:precondition}.
+Our intention is that for every function, constraints on the arguments form a precondition for pattern safety. The precondition for \C{error} is False. A program is safe if the precondition on \C{main} is True. The process of analysis can be seen as deriving these preconditions. Given a function \C{pf} that returns the precondition on a function's arguments, a function to determine the precondition for safe evaluation of an \textit{expression} can be specified as \C{pre} in Figure \ref{fig:precondition}.
 
 \subsubsection{Stable Preconditions}
 \label{sec:fixp_precond}
 
 The precondition on each function must be at least as restrictive as the precondition on the body of that function:
 
+\begin{comment}
+\begin{code}
+preFun :: PreFun
+\end{code}
+\end{comment}
+
 \begin{code}
 propRestrictive fn xs = propIsTrue $
-    preFunc fn xs `propImp` pre (instantiate fn xs)
+    preFun fn xs `propImp` pre preFun (instantiate fn xs)
 \end{code}
 
 One conservative (and useless) implementation of \C{preFunc} is to always return False. A perfect precondition would be such that \ignore|preFunc fn xs == pre (instantiate fn xs)|.
 
 \begin{figure}
 \ignore\begin{code}
-for fn `elem` funcs do conds(fn) := (fn /= "error")
+for fn `elem` funcs do conds(fn) := propBool (fn /= "error")
 loop
     for fn `elem` funcs do
-        conds'(fn) := conds(fn) && pre (instantiate fn vs)
+        conds'(fn) := conds(fn) `propAnd` pre preFun (instantiate fn vs)
     if conds' == conds then break
     conds := conds'
 end loop
     where
-        preFunc fn xs = conds(fn)[vs1/xs1 .. vs_n/xs_n]
+        preFun fn xs = conds(fn)[vs1/xs1 .. vs_n/xs_n]
         vs = ... -- free variables
 \end{code}
 \caption{Precondition calculation.}
@@ -489,7 +495,7 @@ end loop
 \end{figure}
 
 The iterative algorithm for calculating preconditions is given in Figure~\ref{fig:precond_fixp}.
-Initially all preconditions are assumed to be True, apart from the \C{error} precondition, which is False. New preconditions are calculated for every function, until no condition changes. The local definition of |preFunc| is the one invoked by |pre|. In each iteration the preconditions become more restrictive. So \textit{if all chains of increasingly restrictive constraints are finite}, termination is guaranteed. (We return to finiteness in \S\ref{sec:bounded}.) A more efficient algorithm tracks dependencies between preconditions, and performs the minimum amount of recalculation. Finding strongly connected components in the static call graph of a program would allow parts of the program to be checked separately.
+Initially all preconditions are assumed to be True, apart from the \C{error} precondition, which is False. New preconditions are calculated for every function, until no condition changes. In each iteration the preconditions become more restrictive. So \textit{if all chains of increasingly restrictive constraints are finite}, termination is guaranteed. (We return to finiteness in \S\ref{sec:bounded}.) A more efficient algorithm tracks dependencies between preconditions, and performs the minimum amount of recalculation. Finding strongly connected components in the static call graph of a program would allow parts of the program to be checked separately.
 
 \subsubsection{Preconditions and Laziness}
 
@@ -556,14 +562,16 @@ That is, the result is at least as restrictive as if the function was inlined at
 \begin{figure}
 \ignore\begin{code}
 prop := [(fn,k) | fn <- funcs, k <- constraints]
-for (fn,k) `elem` ps do prop(fn,k) := True
+for (fn,k) `elem` ps do prop(fn,k) := true
 loop
     for (fn,k) `elem` p do
-        prop'(fn,k) := prop(fn,k) && backs (instantiate fn vs :< k)
+        prop'(fn,k) := prop(fn,k) `propAnd` backs (instantiate fn vs :< k)
     if prop' == prop then break
     prop := prop'
 end loop
-    where property fn k = prop(fn,k)
+    where
+        property fn k = prop(fn,k)
+        vs = ... -- free variables
 \end{code}
 \caption{Fixed point calculation for \C{property}.}
 \label{fig:property_fixp}
@@ -654,13 +662,7 @@ differentiate p (Star    r:rs)  | p `elem` r  = Just (Star r:rs)
 \figureend
 \end{figure}
 
-\oldtool{} used regular expressions in constraints. A data type for regular expression based constraints (RE-constraints), along with the essential operations upon it is given in Figure \ref{fig:regexp}. In a constraint of the form |(r :- cs)|, |r| is a regular expression and |cs| is a set of constructors. Such a constraint is satisfied by a data structure |d| if every well-defined application to |d| of a sequence of selectors described by |r| reaches a constructor in the set |cs|. That is:
-
-\ignore\begin{code}
-d :< (r :- cs) <=> (forall l `elem` lang r `o` defined d l => ctor d l `elem` cs)
-\end{code}
-
-If no sequence of selectors has a well-defined result then the constraint is vacuously true.
+\oldtool{} used regular expressions in constraints. A data type for regular expression based constraints (RE-constraints), along with the essential operations upon it is given in Figure \ref{fig:regexp}. In a constraint of the form |(r :- cs)|, |r| is a regular expression and |cs| is a set of constructors. Such a constraint is satisfied by a data structure |d| if every well-defined application to |d| of a sequence of selectors described by |r| reaches a constructor in the set |cs|. If no sequence of selectors has a well-defined result then the constraint is vacuously true.
 
 Concerning the helper functions needed to define | ||>| and |<||| in Figure \ref{fig:regexp}, the \C{differentiate} function is from \citet{conway:regexp}; \C{integrate} is its inverse; \C{ewp} is the empty word property.
 
@@ -1308,7 +1310,7 @@ The closest other work we are aware of is \citep{esc_haskell}, where ESC/Haskell
 
 \subsection{Eliminating Incomplete Patterns}
 
-One way to guarantee that a program does not crash with an incomplete pattern is to ensure that all pattern matching is exhaustive. The GHC compiler \citep{ghc} has an option flag to warn of any incomplete patterns. Unfortunately the Bugs (12.2.1) section of the manual notes that the checks are sometimes wrong, particularly with string patterns or guards, and that this part of the compiler ``needs an overhaul really'' \citep{ghc}. A more precise treatment of when warnings should be issued is given in \citet{maranget:pattern_warnings}. These checks are only local: defining \C{head} will lead to a warning, even though the definition is correct; using \C{head} will not lead to a warning, even though it may raise a pattern-match error.
+One way to guarantee that a program does not crash with an incomplete pattern is to ensure that all pattern matching is exhaustive. The GHC compiler \citep{ghc} has an option flag to warn of any incomplete patterns. Unfortunately the Bugs section (12.2.1) of the manual notes that the checks are sometimes wrong, particularly with string patterns or guards, and that this part of the compiler ``needs an overhaul really'' \citep{ghc}. A more precise treatment of when warnings should be issued is given in \citet{maranget:pattern_warnings}. These checks are only local: defining \C{head} will lead to a warning, even though the definition is correct; using \C{head} will not lead to a warning, even though it may raise a pattern-match error.
 
 A more radical approach is to build exhaustive pattern matching into the design of the language, as part of a total programming system \citep{turner:total}. The \catch{} tool could perhaps allow the exhaustive pattern matching restriction to be lifted somewhat.
 
@@ -1319,11 +1321,16 @@ One method for specifying properties about functional programs is to use the typ
 
 \begin{figure}
 \begin{code}
-data Cons; data Unknown
+data Cons
+data Unknown
+
 newtype List a t = List [a]
 
 cons :: a -> [a] -> List a Cons
 cons a as = List (a:as)
+
+nil :: List a Unknown
+nil = List []
 
 fromList :: [a] -> List a Unknown
 fromList xs = List xs
@@ -1340,7 +1347,9 @@ Types can sometimes be used to explicitly encode invariants on data in functiona
 
 \begin{figure}
 \ignore\begin{code}
-data ConsT a; data NilT
+data ConsT a
+data NilT
+
 data List a t where
     Cons  :: a -> List a b -> List a (ConsT b)
     Nil   :: List a NilT

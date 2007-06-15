@@ -72,6 +72,7 @@
 %format v1  = "\Varid{v_1}"
 %format v2  = "\Varid{v_2}"
 %format r1  = "\Varid{r_1}"
+%format pf  = "\Varid{pf}"
 %format r2  = "\Varid{r_2}"
 %format xs2 = "\Varid{xs_2}"
 %format vs1 = "\Varid{vs_1}"
