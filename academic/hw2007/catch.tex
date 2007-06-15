@@ -644,10 +644,10 @@ integrate p r                  = Star [p] : r
 
 differentiate :: Selector -> RegExp -> Maybe RegExp
 differentiate p [] = Nothing
-differentiate p (Atom  r:rs)  | p == r     = Just rs
-                              | otherwise  = Nothing
-differentiate p (Star  r:rs)  | p `elem` r  = Just (Star r:rs)
-                              | otherwise   = differentiate p rs
+differentiate p (Atom    r:rs)  | p == r     = Just rs
+                                | otherwise  = Nothing
+differentiate p (Star    r:rs)  | p `elem` r  = Just (Star r:rs)
+                                | otherwise   = differentiate p rs
 \end{code}
 \caption{RE-constraints.}
 \label{fig:regexp}
