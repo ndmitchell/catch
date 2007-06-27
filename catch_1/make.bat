@@ -37,7 +37,7 @@ goto make
 :make
 mkdir obj 2> nul
 mkdir %objdir% 2> nul
-set packages= -hide-all-packages -package base -package mtl -package filepath -i%YHC_BASE_PATH%\..\src\libraries\core -i%YHC_BASE_PATH%\..\src\libraries\general -i%YHC_BASE_PATH%\..\depends\play -i..\proposition
+set packages= -hide-all-packages -package base -package mtl -package uniplate -package filepath -i%YHC_BASE_PATH%\..\src\libraries\core -i%YHC_BASE_PATH%\..\src\libraries\general -i%YHC_BASE_PATH%\..\depends\play -i..\proposition
 @echo on
 ghc %flags% --make Main -o %exe%.exe -odir %objdir% -hidir %objdir% %packages%
 @echo off
