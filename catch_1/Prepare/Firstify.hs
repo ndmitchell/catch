@@ -38,7 +38,7 @@ The specialised version has:
 firstify :: Core -> Result Core
 firstify core = (if null lams then success else failure) res
     where
-        res = coreReachable ["main"] $ coreSimplify $ fromCoreFuncMap core $ transform $ prepare core
+        res = coreReachable ["main"] $ coreSimplify $ fromCoreFuncMap core $ trans $ prepare core
         lams = filter isCoreLam $ allCore res
         
 
@@ -59,8 +59,8 @@ type SpecM a = State Spec a
 
 
 
-transform :: CoreFuncMap -> CoreFuncMap
-transform fm = evalState f newSpec
+trans :: CoreFuncMap -> CoreFuncMap
+trans fm = evalState f newSpec
     where
         newSpec = Spec 1 fm Map.empty Set.empty Set.empty Set.empty
         
