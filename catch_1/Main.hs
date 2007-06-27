@@ -92,7 +92,7 @@ execFile flags file = do
         core <- f core 1 tasks
         
         stage "Analysing"
-        (logger, close) <- if Quiet `notElem` flags then return (\a b -> return (), return ()) else do
+        (logger, close) <- if DLog `notElem` flags then return (\a b -> return (), return ()) else do
             let openLog x = do h <- openFile (replaceExtension ycafile (x <.> "log")) WriteMode
                                hSetBuffering h NoBuffering
                                return h
