@@ -21,7 +21,7 @@ main = do
     copyHaskell "proposition" "release/catch/src"
     copyHaskell "examples" "release/catch/examples"
     copyHaskell (yhc ++ "/../src/libraries/core") "release/catch/src"
-    copyHaskell (yhc ++ "/../depends/play") "release/catch/src"
+    copyHaskell (yhc ++ "/../depends/uniplate") "release/catch/src"
     copyFileBinary "catch.htm" "release/catch/catch.htm"
     renameFile "release/catch/src/Setup.hs" "release/catch/Setup.hs"
     createCabal
