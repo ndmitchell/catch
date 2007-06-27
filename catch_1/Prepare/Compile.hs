@@ -8,5 +8,5 @@ import Control.Monad
 
 compile :: FilePath -> String -> IO ()
 compile file flags = do
-    res <- system $ "yhc -hide -linkcore \"" ++ file ++ "\" " ++ flags
+    res <- system $ "yhc --hide --linkcore \"" ++ file ++ "\" " ++ flags
     when (res /= ExitSuccess) $ error $ "Failed to compile, " ++ file

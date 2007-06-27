@@ -24,7 +24,7 @@ overlay core = do
         putStrLn $ "  Probably fix: set %CATCH_BASE_PATH% to the root of the repo"
         exitFailure
 
-    res <- system $ "yhc -hide -core \"" ++ prim ++ "\""
+    res <- system $ "yhc --hide --core \"" ++ prim ++ "\""
     when (res /= ExitSuccess) $ error "Failed to compile the overlay"
 
     over <- loadCore $ base </> "examples/Library/ycr/Primitive.ycr"
