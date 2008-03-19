@@ -278,8 +278,8 @@ subst r (Var   x     ) = fromMaybe (Var x) (lookup x r)
 subst r (Make  x xs  ) = Make  x (map (subst r) xs)
 subst r (Call  x xs  ) = Call  x (map (subst r) xs)
 subst r (Case  x xs  ) = Case (subst r x)
-    [Alt n vs (subst r2 e) | Alt n vs e <- xs
-    , let r2 = filter ((`notElem` vs) . fst) r]
+    [Alt n vs (subst r_2 e) | Alt n vs e <- xs
+    , let r_2 = filter ((`notElem` vs) . fst) r]
 \end{code}
 \caption{Semantics for Core expressions.}
 \label{fig:semantics}
@@ -456,7 +456,7 @@ loop
     conds := conds'
 end loop
     where
-        preFun fn xs = conds(fn)[vs1/xs1 .. vs_n/xs_n]
+        preFun fn xs = conds(fn)[vs_1/xs_1 .. vs_n/xs_n]
         vs = ... -- free variables
 \end{code}
 \caption{Precondition calculation.}
@@ -494,7 +494,7 @@ replaceVars xs p = propMap (\(i:<k) -> (xs!!i) :< k) p
 \label{fig:backward}
 \end{figure}
 
-Constraints on expressions other than argument variables can be rewritten using the |back| function, detailed in Figure \ref{fig:backward}. The |backs| function repeatedly applies |back| until all constraints are on arguments. The |replaceVars| function takes a propositional constraint over a set of index variables, \ignore|v1..v_n|, and replaces each variable with a corresponding expression from an indexed list.
+Constraints on expressions other than argument variables can be rewritten using the |back| function, detailed in Figure \ref{fig:backward}. The |backs| function repeatedly applies |back| until all constraints are on arguments. The |replaceVars| function takes a propositional constraint over a set of index variables, \ignore|v_1..v_n|, and replaces each variable with a corresponding expression from an indexed list.
 
 \para{The |Var| rule} applies to variables bound by patterns in case alternatives. It lifts conditions on a bound variable to the subject of the case expression in which they occur. The | ||>| operator lifts a constraint on one part of a data structure to a constraint on the entire data structure. For BP-constraints | ||>| can be defined:
 
@@ -511,7 +511,7 @@ Constraints on expressions other than argument variables can be rewritten using 
 c <| k = propOrs (map f k)
     where
     f Any = propTrue
-    f (Con c2 xs) = propBool (c2 == c) `propAnd`
+    f (Con c_2 xs) = propBool (c_2 == c) `propAnd`
         propAnds (map propLit (zipWith (:<) [0..] (map (:[]) xs)))
 \end{code}
 
@@ -556,7 +556,7 @@ A key function in the semantics of constraints tests whether a value satisfies a
 satisfies :: Value -> Constraint -> Bool
 satisfies Bottom        k = True
 satisfies (Value c xs)  k = propIsTrue $ propMap f (c <| k)
-    where f (i :< k2) = satisfies (xs !! i) k2
+    where f (i :< k_2) = satisfies (xs !! i) k_2
 \end{code}
 \end{minipage}
 
@@ -605,7 +605,7 @@ c <| (r :- cs) = propBool (ewp r ==> (c `elem` cs)) `propAnd`
     where
     f i = case  differentiate (c,i) r of
                   Nothing  -> propTrue
-                  Just r2  -> propLit $ i :< (r2 :- cs)
+                  Just r_2  -> propLit $ i :< (r_2 :- cs)
 
 ewp :: RegExp -> Bool
 ewp x = all isStar x
@@ -634,9 +634,9 @@ Concerning the helper functions needed to define | ||>| and |<||| in Figure \ref
 
 Catch05 regular expressions were unrestricted and quickly grew to an unmanageable size, thwarting analysis of larger programs. In general, a regular expression takes one of six forms:\\ \\
 \begin{tabular}{ll}
-|r1+r2|  & union of regular expressions |r1| and |r2| \\
-\ignore|r1^.r2| & concatenation of regular expressions |r1| then |r2| \\
-\ignore|r1^*|   & any number (possibly zero) occurrences of |r1| \\
+|r_1+r_2|  & union of regular expressions |r_1| and |r_2| \\
+\ignore|r_1^.r_2| & concatenation of regular expressions |r_1| then |r_2| \\
+\ignore|r_1^*|   & any number (possibly zero) occurrences of |r_1| \\
 |sel|  & a selector, i.e. |hd| for the head of a list \\
 0        & the language is the empty set \\
 1        & the language is the set containing the empty string
@@ -698,9 +698,9 @@ Catch computes over propositional formulae with constraints as atomic propositio
 
 \para{Exhaustion:} In the constraint |x :< (r :- [":","[]"])| the condition lists all the possible constructors. Because of static typing |x| must be one of these constructors. Any such constraint simplifies to True.
 
-\para{And merging:} The conjunction \ignore|e :< (r :- c1) `propAnd` e :< (r :- c2)| can be replaced by \ignore|e :< (r :- (c1 `intersect` c2))|.
+\para{And merging:} The conjunction \ignore|e :< (r :- c_1) `propAnd` e :< (r :- c_2)| can be replaced by \ignore|e :< (r :- (c_1 `intersect` c_2))|.
 
-\para{Or merging:} The disjunction \ignore|e :< (r :- c1) `propOr` e :< (r :- c2)| can be replaced by \ignore|e :< (r :- c2)| if \ignore|c1 `subseteq` c2|.
+\para{Or merging:} The disjunction \ignore|e :< (r :- c_1) `propOr` e :< (r :- c_2)| can be replaced by \ignore|e :< (r :- c_2)| if \ignore|c_1 `subseteq` c_2|.
 
 
 \subsection{Multipattern (MP) Constraints \& Simplification}
@@ -728,7 +728,7 @@ notin c = [map complete (delete c cs) :* map complete cs]
 (c,i) |> k = notin c ++ map f k
     where
     f Any = Any
-    f (ms1 :* ms2) | isRec (c,i) = [complete c] :* merge ms1 ms2
+    f (ms_1 :* ms_2) | isRec (c,i) = [complete c] :* merge ms_1 ms_2
     f v =  [Pattern c [if i == j then v else Any | j <- nonRecs c]]
            :* map complete (ctors c)
 
@@ -738,18 +738,18 @@ c <| vs = propOrs (map f vs)
     (rec,non) = partition (isRec . (,) c) [0..arity c-1]
 
     f Any = propTrue
-    f (ms1 :* ms2) =  propOrs  [propAnds $ map propLit $ g vs1
-                               | Pattern c1 vs1 <- ms1, c1 == c]
+    f (ms_1 :* ms_2) =  propOrs  [propAnds $ map propLit $ g vs_1
+                               | Pattern c_1 vs_1 <- ms_1, c_1 == c]
         where g vs =  zipWith (:<) non (map (:[]) vs) ++
-                      map (:< [ms2 :* ms2]) rec
+                      map (:< [ms_2 :* ms_2]) rec
 
 mergeVal :: Val -> Val -> Val
-(a1 :* b1)  `mergeVal`  (a2 :* b2)  = merge a1 a2 :* merge b1 b2
+(a_1 :* b_1)  `mergeVal`  (a_2 :* b_2)  = merge a_1 a_2 :* merge b_1 b_2
 x           `mergeVal`  y           = if x == Any then y else x
 
 merge :: [Pattern] -> [Pattern] -> [Pattern]
-merge  ms1 ms2 = [Pattern c1 (zipWith mergeVal vs1 vs2) |
-       Pattern c1 vs1 <- ms1, Pattern c2 vs2 <- ms2, c1 == c2]
+merge  ms_1 ms_2 = [Pattern c_1 (zipWith mergeVal vs_1 vs_2) |
+       Pattern c_1 vs_1 <- ms_1, Pattern c_2 vs_2 <- ms_2, c_1 == c_2]
 \end{code}
 \caption{MP-constraints.}
 \label{fig:enumeration}
@@ -757,7 +757,7 @@ merge  ms1 ms2 = [Pattern c1 (zipWith mergeVal vs1 vs2) |
 
 Although RE-constraints are capable of solving many examples, they suffer from a problem of scale. As programs become more complex the size of the propositions grows quickly, slowing Catch unacceptably. Multipattern constraints (MP-constraints, defined in Figure \ref{fig:enumeration}) are an alternative which scales better.
 
-MP-constraints are similar to BP-constraints, but can constrain an infinite number of items. A value |v| satisfies a constraint |p1 :* p2| if |v| itself satisfies |p1| and all its recursive components at any depth satisfy |p2|. Each of |p1| and |p2| is given as a set of matches as in \S\ref{sec:basic}, but each |Pattern| only specifies the values for the non-recursive selectors, all recursive selectors are handled by |p2|. A constraint is a disjunctive list of |:*| patterns.
+MP-constraints are similar to BP-constraints, but can constrain an infinite number of items. A value |v| satisfies a constraint |p_1 :* p_2| if |v| itself satisfies |p_1| and all its recursive components at any depth satisfy |p_2|. Each of |p_1| and |p_2| is given as a set of matches as in \S\ref{sec:basic}, but each |Pattern| only specifies the values for the non-recursive selectors, all recursive selectors are handled by |p_2|. A constraint is a disjunctive list of |:*| patterns.
 
 \begin{examplerevisit}{\ref{ex:head}} Safe evaluation of |(head xs)| requires |xs| to be non-empty. The MP-constraint generated by Catch on |xs| is: \ignore|{(:) Any} :* {[], (:) Any}| This constraint is longer than the corresponding RE-constraint as it makes explicit that both the |hd| field and the recursive components are unrestricted.
 \end{examplerevisit}
@@ -776,7 +776,7 @@ MP-constraints also have simplification rules.  Two of the eight rules are:
 
 \para{\ignore|[Val]| simplification:} Given a list of |Val|, if the value |Any| is in this list, the list is equal to |[Any]|. If a value occurs more than once in the list, one copy can be removed.
 
-\para{|Val| simplification:} If both |p1| and |p2| cover all constructors and all their components have |Any| as their constraint, the constraint |p1 :* p2| can be replaced with |Any|.
+\para{|Val| simplification:} If both |p_1| and |p_2| cover all constructors and all their components have |Any| as their constraint, the constraint |p_1 :* p_2| can be replaced with |Any|.
 
 
 \subsubsection{Finitely Many MP-Constraints per Type}
@@ -790,7 +790,7 @@ count (Type t) = 2 ^ val t
 val t = 1 + 2 * 2 ^ (pattern t)
 
 pattern t = sum (map f t)
-    where f c = product [count t2 | Just t2 <- c]
+    where f c = product [count t_2 | Just t_2 <- c]
 \end{code}
 
 The |val| function counts the number of possible |Val| constructions. The |pattern| function performs a similar role for |Pattern| constructions.
@@ -801,8 +801,8 @@ The |val| function counts the number of possible |Val| constructions. The |patte
 A big advantage of MP-constraints is that if two constraints on the same expression are combined at the proposition level, they can be reduced into one constraint:
 
 \ignore\begin{code}
-(e :< v1)  `propOr`   (e :< v2) = e :< (v1 ++ v2)
-(e :< v1)  `propAnd`  (e :< v2) = e :< [a `mergeVal` b | a <- v1, b <- v2]
+(e :< v_1)  `propOr`   (e :< v_2) = e :< (v_1 ++ v_2)
+(e :< v_1)  `propAnd`  (e :< v_2) = e :< [a `mergeVal` b | a <- v_1, b <- v_2]
 \end{code}
 
 \noindent This ability to combine constraints on equal expressions can be exploited further by translating the program to be analysed. After applying |backs|, all constraints will be in terms of the arguments to a function. So if all functions took exactly one argument then \textit{all} the constraints associated with a function body could be collapsed into one. We therefore \textit{uncurry} all functions.
@@ -837,7 +837,7 @@ data T = T
 \end{comment}
 
 \begin{example}
-Let |v1 = (T:[])| and |v2 = (T:T:[])| and consider the MP-constraint \ignore|{(:) Any} :* {[]}|. This constraint is satisfied by |v1| but not by |v2|. No proposition over RE-constraints can separate these two values.
+Let |v_1 = (T:[])| and |v_2 = (T:T:[])| and consider the MP-constraint \ignore|{(:) Any} :* {[]}|. This constraint is satisfied by |v_1| but not by |v_2|. No proposition over RE-constraints can separate these two values.
 \end{example}
 
 \begin{example}
@@ -851,11 +851,11 @@ data Tree alpha  =  Branch  {left  :: Tree alpha, right :: Tree alpha}
 \noindent and two values of the type \ignore|Tree Bool|
 
 \begin{code}
-v1 = Branch (Leaf True   ) (Leaf False  )
-v2 = Branch (Leaf False  ) (Leaf True   )
+v_1 = Branch (Leaf True   ) (Leaf False  )
+v_2 = Branch (Leaf False  ) (Leaf True   )
 \end{code}
 
-\noindent The RE-constraint \ignore|(left^* ^.leaf :- True)| is satisfied by |v1| but not |v2|. No MP-constraint separates the two values.
+\noindent The RE-constraint \ignore|(left^* ^.leaf :- True)| is satisfied by |v_1| but not |v_2|. No MP-constraint separates the two values.
 \end{example}
 
 We have implemented both constraint systems in Catch. There are various factors to consider when choosing which constraint system to use -- how readable the constraints are, the expressive power, implementation complexity and scalability. In practice the issue of scalability is key: how large do constraints become, how quickly can they be manipulated, how expensive is their simplification. Catch08 uses MP-constraints by default, as they allow much larger examples to be checked.
