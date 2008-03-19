@@ -130,7 +130,7 @@ partial matching.  Our goal is an automated analysis of Haskell 98 programs
 to check statically that, despite the possible use of partial pattern
 matching, no pattern-match failure can occur.
 
-The problem of pattern-match failures is a serious one. The \textit{darcs} project \citep{darcs} is one of the most successful large scale programs written in Haskell. Taking a look at the darcs bug tracker, 13 problems are errors related to the selector function |fromJust| and 19 are direct pattern-match failures.
+The problem of pattern-match failures is a serious one. The \textit{darcs} project \cite{darcs} is one of the most successful large scale programs written in Haskell. Taking a look at the darcs bug tracker, 13 problems are errors related to the selector function |fromJust| and 19 are direct pattern-match failures.
 
 Consider the following example taken from \citet{me:catch_tfp}:
 
@@ -167,8 +167,8 @@ The contributions of this paper include:
 \begin{itemize}
 \item A method for reasoning about pattern-match failures, in terms of a parameterisable constraint language. The method calculates \textit{preconditions} to functions, and \textit{properties} that functions satisfy.
 \item Two separate constraint languages that can be used with our method.
-\item Details of the Catch implementation which handles the complete Haskell 98 language \citep{haskell}, by transforming Haskell 98 programs to a first-order language.
-\item Results showing success on a number of small examples drawn from the Nofib suite \citep{nofib}, and for two larger examples, investigating the scalability of the checker.
+\item Details of the Catch implementation which handles the complete Haskell 98 language \cite{haskell}, by transforming Haskell 98 programs to a first-order language.
+\item Results showing success on a number of small examples drawn from the Nofib suite \cite{nofib}, and for two larger examples, investigating the scalability of the checker.
 \end{itemize}
 
 In \citet{me:catch_tfp} a pattern-match checker was described with similar aims, which we will refer to as Catch05\footnote{Although the paper was completed in 2005, publication was delayed}. For Catch05 |risers| was towards the boundary of what was possible, for Catch08 it is trivial. Scalability problems have been addressed and Catch08 handles real Haskell programs, with no restriction on the recursion patterns, higher-order functions or type classes. The underlying constraint mechanism of Catch08 is radically different.
@@ -288,7 +288,7 @@ subst r (Case  x xs  ) = Case (subst r x)
 \label{fig:semantics}
 \end{figure}
 
-Syntax for the core language is given in Figure \ref{fig:core}. Our Core language is a little more restrictive than the core languages typically used in compilers \citep{ghc_core}. It is first order, has only simple case statements, and only algebraic data types. All case statements have alternatives for all constructors, with |error| calls being introduced where a pattern-match error would otherwise occur.
+Syntax for the core language is given in Figure \ref{fig:core}. Our Core language is a little more restrictive than the core languages typically used in compilers \cite{ghc_core}. It is first order, has only simple case statements, and only algebraic data types. All case statements have alternatives for all constructors, with |error| calls being introduced where a pattern-match error would otherwise occur.
 
 The evaluation strategy is lazy. A semantics is outlined in Figure \ref{fig:semantics}, as an evaluator from expression to values, written in Haskell. The |hnf| function evaluates an expression to head normal form. The |subst| function substitutes free variables that are the result of a |Case| expression. Laziness is a useful property as it allows $\beta$-reduction to be performed by the checker.
 
@@ -702,7 +702,7 @@ The |2^rec| term corresponds to the number of possible constraints under |Star|.
 \subsubsection{RE-Constraint Propositions}
 \label{sec:re-propositions}
 
-Catch computes over propositional formulae with constraints as atomic propositions. Among other operators on propositions, they are compared for equality to obtain a fixed point. All the fixed-point algorithms given in this paper stop once equal constraints are found. We use Binary Decision Diagrams (BDD) \citep{lee:bdd} to make these equality tests fast. Since the complexity of performing an operation is often proportional to the number of atomic constraints in a proposition, we apply simplification rules to reduce this number. Three of the nineteen rules are:
+Catch computes over propositional formulae with constraints as atomic propositions. Among other operators on propositions, they are compared for equality to obtain a fixed point. All the fixed-point algorithms given in this paper stop once equal constraints are found. We use Binary Decision Diagrams (BDD) \cite{lee:bdd} to make these equality tests fast. Since the complexity of performing an operation is often proportional to the number of atomic constraints in a proposition, we apply simplification rules to reduce this number. Three of the nineteen rules are:
 
 \para{Exhaustion:} In the constraint |x :< (r :- [":","[]"])| the condition lists all the possible constructors. Because of static typing |x| must be one of these constructors. Any such constraint simplifies to True.
 
@@ -947,7 +947,7 @@ In the following sections, where modifications are required, we prefer to make t
 \end{tabular*}
 \end{table}
 
-The entire Nofib suite \citep{nofib} is large. We concentrate on the `Imaginary' section. These programs are all under a page of text, excluding any Prelude or library definitions used, and particularly stress list operations and numeric computations.
+The entire Nofib suite \cite{nofib} is large. We concentrate on the `Imaginary' section. These programs are all under a page of text, excluding any Prelude or library definitions used, and particularly stress list operations and numeric computations.
 
 Results are given in Table \ref{tab:results}. Only four programs contain no calls to |error| as all pattern-matches are exhaustive. Four programs use the list-indexing operator |(!!)|, which requires the index to be non-negative and less than the length of the list; Catch can only prove this condition if the list is infinite. Eight programs include applications of either |head| or |tail|, most of which can be proven safe. Seven programs have incomplete patterns, often in a |where| binding and Catch performs well on these. Nine programs use division, with the precondition that the divisor must not be zero; most of these can be proven safe.
 
@@ -1075,7 +1075,7 @@ e =  ("2."++) $
 \subsection{The FiniteMap library}
 \label{sec:finitemap}
 
-The FiniteMap library for Haskell has been widely distributed for over 10 years. The library uses balanced binary trees, based on \citep{adams:sets}. There are 14 non-exhaustive pattern matches.
+The FiniteMap library for Haskell has been widely distributed for over 10 years. The library uses balanced binary trees, based on \cite{adams:sets}. There are 14 non-exhaustive pattern matches.
 
 The first challenge is that there is no |main| function. Catch uses all the exports from the library, and checks each of them as if it had |main| status.
 
@@ -1123,25 +1123,25 @@ Using our knowledge of the intention of functions, we can see that although |rea
 
 \subsection{Mistake Detectors}
 
-There has been a long history of writing tools to analyse programs to detect potential bugs, going back at least to the classic C Lint tool \citep{lint}. In the functional arena there is the Dialyzer tool \citep{dialyzer} for Erlang \citep{erlang}. The aim is to have a static checker that works on unmodified code, with no additional annotations. However, a key difference is that in Dialyzer all warnings indicate a genuine problem that needs to be fixed. Because Erlang is a dynamically typed language, a large proportion of Dialyzer's warnings relate to mistakes a type checker would have detected.
+There has been a long history of writing tools to analyse programs to detect potential bugs, going back at least to the classic C Lint tool \cite{lint}. In the functional arena there is the Dialyzer tool \cite{dialyzer} for Erlang \cite{erlang}. The aim is to have a static checker that works on unmodified code, with no additional annotations. However, a key difference is that in Dialyzer all warnings indicate a genuine problem that needs to be fixed. Because Erlang is a dynamically typed language, a large proportion of Dialyzer's warnings relate to mistakes a type checker would have detected.
 
 \subsection{Proving Incomplete Patterns Safe}
 
 Despite the seriousness of the problem of pattern matching, there are very few other tools for checking pattern-match safety. This paper has similar goals to \citet{me:catch_tfp}, but some key design decisions are radically different. The difference in practice is that Catch08 supports full Haskell, can scale to much larger examples and can feasibly be used on real programs. Some of the reasons for these better results include a different fixed-point mechanism, the use of MP-constraints and a superior translation from Core.
 
-The closest other work we are aware of is \citep{esc_haskell}, where ESC/Haskell is introduced. The ESC/Haskell approach requires the programmer to give explicit preconditions and contracts which the program obeys. Contracts have more expressive power than our constraints -- one of the examples involves an invariant on an ordered list, something beyond Catch. But the programmer has more work to do. At the time of writing there is no publicly available version of ESC/Haskell. So far as we know, it does not yet support full Haskell, lacks features such as type classes\footnote{We have confirmed this information in correspondence with Xu.}, and handles only small examples. A future version of ESC/Haskell may address these limitations, allowing a fuller comparison to be made.
+The closest other work we are aware of is \cite{esc_haskell}, where ESC/Haskell is introduced. The ESC/Haskell approach requires the programmer to give explicit preconditions and contracts which the program obeys. Contracts have more expressive power than our constraints -- one of the examples involves an invariant on an ordered list, something beyond Catch. But the programmer has more work to do. At the time of writing there is no publicly available version of ESC/Haskell. So far as we know, it does not yet support full Haskell, lacks features such as type classes\footnote{We have confirmed this information in correspondence with Xu.}, and handles only small examples. A future version of ESC/Haskell may address these limitations, allowing a fuller comparison to be made.
 
 
 \subsection{Eliminating Incomplete Patterns}
 
-One way to guarantee that a program does not crash with an incomplete pattern is to ensure that all pattern matching is exhaustive. The GHC compiler \citep{ghc} has an option flag to warn of any incomplete patterns. Unfortunately the Bugs section (12.2.1) of the manual notes that the checks are sometimes wrong, particularly with string patterns or guards, and that this part of the compiler ``needs an overhaul really'' \citep{ghc}. A more precise treatment of when warnings should be issued is given in \citet{maranget:pattern_warnings}. These checks are only local: defining |head| will lead to a warning, even though the definition is correct; using |head| will not lead to a warning, even though it may raise a pattern-match error.
+One way to guarantee that a program does not crash with an incomplete pattern is to ensure that all pattern matching is exhaustive. The GHC compiler \cite{ghc} has an option flag to warn of any incomplete patterns. Unfortunately the Bugs section (12.2.1) of the manual notes that the checks are sometimes wrong, particularly with string patterns or guards, and that this part of the compiler ``needs an overhaul really'' \cite{ghc}. A more precise treatment of when warnings should be issued is given in \citet{maranget:pattern_warnings}. These checks are only local: defining |head| will lead to a warning, even though the definition is correct; using |head| will not lead to a warning, even though it may raise a pattern-match error.
 
-A more radical approach is to build exhaustive pattern matching into the design of the language, as part of a total programming system \citep{turner:total}. The Catch tool could perhaps allow the exhaustive pattern matching restriction to be lifted somewhat.
+A more radical approach is to build exhaustive pattern matching into the design of the language, as part of a total programming system \cite{turner:total}. The Catch tool could perhaps allow the exhaustive pattern matching restriction to be lifted somewhat.
 
 
 \subsection{Type System Safety}
 
-One method for specifying properties about functional programs is to use the type system. This approach is taken in the tree automata work done on XML and XSLT \citep{static_xslt}, which can be seen as an algebraic data type and a functional language. Another soft typing system with similarities is by \citet{aiken:type_infer}, on the functional language FL. This system tries to assign a type to each function using a set of constructors, for example |head| takes the type |Cons| and not |Nil|.
+One method for specifying properties about functional programs is to use the type system. This approach is taken in the tree automata work done on XML and XSLT \cite{static_xslt}, which can be seen as an algebraic data type and a functional language. Another soft typing system with similarities is by \citet{aiken:type_infer}, on the functional language FL. This system tries to assign a type to each function using a set of constructors, for example |head| takes the type |Cons| and not |Nil|.
 
 \begin{figure}
 \begin{code}
@@ -1166,7 +1166,7 @@ safeTail (List (a:as)) = as
 \label{fig:phantom}
 \end{figure}
 
-Types can sometimes be used to explicitly encode invariants on data in functional languages. One approach is the use of \textit{phantom types} \citep{fluet:phantom}, for example a safe variant of |tail| can be written as in Figure \ref{fig:phantom}. The |List| type is not exported, ensuring that all lists with a |Cons| tag are indeed non-empty. The types |Cons| and |Unknown| are phantom types -- they exist only at the type level, and have no corresponding value.
+Types can sometimes be used to explicitly encode invariants on data in functional languages. One approach is the use of \textit{phantom types} \cite{fluet:phantom}, for example a safe variant of |tail| can be written as in Figure \ref{fig:phantom}. The |List| type is not exported, ensuring that all lists with a |Cons| tag are indeed non-empty. The types |Cons| and |Unknown| are phantom types -- they exist only at the type level, and have no corresponding value.
 
 \begin{figure}
 \ignore\begin{code}
@@ -1188,7 +1188,7 @@ fromList (x:xs)  fn = fromList xs (fn . Cons x)
 \label{fig:gadt}
 \end{figure}
 
-Using GADTs \citep{spj:gadt}, an encoding of lists can be written as in Figure \ref{fig:gadt}. Notice that |fromList| requires a locally quantified type. The type-directed approach can be pushed much further with \textit{dependent types}, which allow types to depend on values. There has been much work on dependent types, using undecidable type systems \citep{epigram}, using extensible kinds \citep{omega} and using type systems restricted to a decidable fragment \citep{xi:dependent_practical}. The downside to all these type systems is that they require the programmer to make explicit annotations, and require the user to learn new techniques for computation.
+Using GADTs \cite{spj:gadt}, an encoding of lists can be written as in Figure \ref{fig:gadt}. Notice that |fromList| requires a locally quantified type. The type-directed approach can be pushed much further with \textit{dependent types}, which allow types to depend on values. There has been much work on dependent types, using undecidable type systems \cite{epigram}, using extensible kinds \cite{omega} and using type systems restricted to a decidable fragment \cite{xi:dependent_practical}. The downside to all these type systems is that they require the programmer to make explicit annotations, and require the user to learn new techniques for computation.
 
 
 \section{Conclusions and Future Work}
