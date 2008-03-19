@@ -7,34 +7,20 @@
 \include{paper}
 %include paper.fmt
 
-%format forall  = "\forall{}"
-%format alpha  = "\alpha{}"
-%format beta  = "\beta{}"
-%format lambda  = "\lambda{}"
-%format phi  = "\phi{}"
 %format <| = "\lhd{}"
 %format |> = "\rhd{}"
 %format :< = "\mbox{\ensuremath{<\hspace{-1em}-}}"
 %format :- = "\!\rightsquigarrow{}\!"
 %format :* = "\star{}"
 %format :| = "\ddagger{}"
-%format `o` = "\bullet{}"
 %format ^. = "\!\cdot{}\!"
 %format ^* = "^\ast{}\!"
 %format ^ = "\;\hat{}\;"
-%format <=> = "\Leftrightarrow{}"
-%format `subseteq` = "\subseteq{}"
-%format `union` = "\cup{}"
-%format `intersect` = "\cap{}"
-%format not = "\mathsf{not}"
-%format undefined   = "\mathsf{undefined}"
+%format undefined   = "\Varid{undefined}"
 %format `mergeVal` = "\sqcap{}"
 %format mergeVal = "(\sqcap{})"
 %format && = "\mathrel{\hbox{\textsf{\& \hspace{-1em} \&}}}"
 %format || = "\mathrel{||}"
-%format elipses = "..."
-%format `div` = "\;\textsf{\`{}\!div\!\`{}}\;"
-%format `mod` = "\;\textsf{\`{}\!mod\!\`{}}\;"
 
 %format `propAnd` = "\ensuremath{\wedge}"
 %format `propOr` = "\ensuremath{\vee}"
@@ -54,18 +40,10 @@
 %format ==> = "\ensuremath{\Rightarrow}"
 
 
-\newcommand{\keyword}[1]{\hspace{-1mm}\text{\textsf{\textbf{ #1}}}}
-
-%subst conid a = "\mathsf{" a "}"
-%subst varid a = "\mathsf{" a "}"
-%subst varsym a = "\mathsf{" a "}"
-%subst keyword a = "\keyword{" a "}"
-% "\hspace{-1mm}\text{\textsf{\textbf{ " a "}}}"
-
-%format break = "\keyword{break}"
-%format end   = "\keyword{end}"
-%format loop  = "\keyword{loop}"
-%format for   = "\keyword{for}"
+%format break = "\Keyword{break}"
+%format end   = "\Keyword{end}"
+%format loop  = "\Keyword{loop}"
+%format for   = "\Keyword{for}"
 
 
 
@@ -1086,7 +1064,7 @@ The Paraffins program uses the function \ignore|array :: Ix a => (a, a) -> [(a, 
 This program is quite complex, featuring a number of possible pattern-match errors. To illustrate, consider the following fragment:
 
 \begin{code}
-carryPropagate base (d:ds) = elipses
+carryPropagate base (d:ds) = ellipses
   where  carryguess = d `div` base
          remainder = d `mod` base
          nextcarry:fraction = carryPropagate (base+1) ds
@@ -1120,9 +1098,9 @@ data Branch a b = Branch a b
 \end{comment}
 
 \begin{code}
-delFromFM (Branch key elipses) del_key  | del_key  >   key = elipses
-                                        | del_key  <   key = elipses
-                                        | del_key  ==  key = elipses
+delFromFM (Branch key ellipses) del_key  | del_key  >   key = ellipses
+                                         | del_key  <   key = ellipses
+                                         | del_key  ==  key = ellipses
 \end{code}
 
 At first glance the cases appear to be exhaustive. The law of trichotomy leads us to expect one of the guards to be true. However, the Haskell |Ord| class does not enforce this law. There is nothing to prevent an instance for a type with partially ordered values, some of which are incomparable. So \catch{} cannot verify the safety to |delFromFM| as defined as above.
