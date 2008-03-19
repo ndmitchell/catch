@@ -88,8 +88,6 @@
     {\end{minipage}}
 
 
-\newcommand{\figureend}{\vspace{-4mm}}
-
 
 \begin{document}
 
@@ -250,7 +248,6 @@ risers4 x = case x of
 \end{code}
 \caption{|risers| in the Core language.}
 \label{fig:risers_core}
-\figureend
 \end{figure}
 
 \subsection{Analysis of |risers| -- a brief sketch}
@@ -296,7 +293,6 @@ data Alt   =  Alt CtorName [VarName] Expr
 \end{code}
 \caption{Core Data Type.}
 \label{fig:core}
-\figureend
 \end{figure}
 
 \begin{figure}
@@ -327,7 +323,6 @@ subst r (Case  x xs  ) = Case (subst r x)
 \end{code}
 \caption{Semantics for Core expressions.}
 \label{fig:semantics}
-\figureend
 \end{figure}
 
 Syntax for the core language is given in Figure \ref{fig:core}. Our Core language is a little more restrictive than the core languages typically used in compilers \citep{ghc_core}. It is first order, has only simple case statements, and only algebraic data types. All case statements have alternatives for all constructors, with |error| calls being introduced where a pattern-match error would otherwise occur.
@@ -346,7 +341,6 @@ isRec        :: Selector  -> Bool
 \end{code}
 \caption{Operations on Core.}
 \label{fig:core_operations}
-\figureend
 \end{figure}
 
 Figure \ref{fig:core_operations} gives the signatures for helper functions over the core data types. Every constructor has an arity, which can be obtained with the |arity| function. To determine alternative constructors the |ctors| function can be used; for example |ctors "True" = ["False", "True"]| and |ctors "[]" = ["[]",":"]|. The |var| function returns |Nothing| for a variable bound as an argument of a top-level function, and |Just (e,(c,i))| for a variable bound as the |i|th component in the |c|-constructed alternative of case-expression |e|. The function |instantiate| corresponds to $\beta$ reduction. The |isRec (c,n)| function returns true if the constructor |c| has a recursive |n|th component; for example, let |hd = (":",0)| and |tl = (":",1)| then |isRec hd = False| but |isRec tl = True|.
@@ -405,7 +399,6 @@ propLit                   :: alpha -> Prop alpha
 \end{code}
 \caption{Property data type}
 \label{fig:prop}
-\figureend
 \end{figure}
 
 An expression in our first-order core language evaluates to a data structure. A constraint describes a set of data structures to which a value may belong. If a component within a data structure evaluates to $\bot{}$, there are no constraints upon it.
@@ -426,7 +419,6 @@ notin :: CtorName -> Constraint
 \end{code}
 \caption{Constraint operations.}
 \label{fig:constraint}
-\figureend
 \end{figure}
 
 Some operations must be provided in every constraint implementation. Signatures are given in Figure \ref{fig:constraint}. |Assert| is the type of the |(:<)| condition. The lifting and splitting operators |(||>)| and |(<||)| are discussed in \S\ref{sec:backward}. The |notin| function generates a constraint which does \textit{not} match the constructor given.
@@ -442,7 +434,6 @@ data Pattern     =  Con CtorName [Pattern] | Any
 \end{code}
 \caption{Basic pattern constraints.}
 \label{fig:basic}
-\figureend
 \end{figure}
 
 For simplicity, our analysis framework will be introduced using basic pattern constraints (BP-constraints). A BP-constraint directly corresponds to Haskell pattern matching. A constraint is a finite set of patterns represented as in Figure \ref{fig:basic}. A given data structure |d| satisfies a constraint |ps| if |d| matches at least one pattern in |ps|. True and false constraints can be represented as |[Any]| and |[]| respectively. The requirement for a value to be |(:)|-constructed would be expressed as |(Con ":" [Any,Any])|.
@@ -473,7 +464,6 @@ pre pf (Case  on  alts  ) = pre pf on `propAnd` propAnds (map f alts)
 \end{code}
 \caption{Precondition of an expression, |pre|.}
 \label{fig:precondition}
-\figureend
 \end{figure}
 
 Our intention is that for every function, constraints on the arguments form a precondition for pattern safety. The precondition for |error| is False. A program is safe if the precondition on |main| is True. The process of analysis can be seen as deriving these preconditions. Given a function |pf| that returns the precondition on a function's arguments, a function to determine the precondition for safe evaluation of an \textit{expression} can be specified as |pre| in Figure \ref{fig:precondition}.
@@ -511,7 +501,6 @@ end loop
 \end{code}
 \caption{Precondition calculation.}
 \label{fig:precond_fixp}
-\figureend
 \end{figure}
 
 The iterative algorithm for calculating preconditions is given in Figure~\ref{fig:precond_fixp}.
@@ -543,7 +532,6 @@ replaceVars xs p = propMap (\(i:<k) -> (xs!!i) :< k) p
 \end{code}
 \caption{Specification of backward analysis, |back|.}
 \label{fig:backward}
-\figureend
 \end{figure}
 
 Constraints on expressions other than argument variables can be rewritten using the |back| function, detailed in Figure \ref{fig:backward}. The |backs| function repeatedly applies |back| until all constraints are on arguments. The |replaceVars| function takes a propositional constraint over a set of index variables, \ignore|v1..v_n|, and replaces each variable with a corresponding expression from an indexed list.
@@ -595,7 +583,6 @@ end loop
 \end{code}
 \caption{Fixed point calculation for |property|.}
 \label{fig:property_fixp}
-\figureend
 \end{figure}
 
 The function |property| in Figure \ref{fig:property_fixp} takes a postcondition, and transforms it to constraints on the argument positions -- a precondition to ensure the postcondition. As in the precondition calculation in \S\ref{sec:precond}, each result becomes increasingly restrictive. If refinement chains of constraint/function pairs are finite, termination is guaranteed. Here again, a speed up can be obtained by tracking the dependencies between constraints.
@@ -679,7 +666,6 @@ differentiate p (Star    r:rs)  | p `elem` r  = Just (Star r:rs)
 \end{code}
 \caption{RE-constraints.}
 \label{fig:regexp}
-\figureend
 \end{figure}
 
 \oldtool{} used regular expressions in constraints. A data type for regular expression based constraints (RE-constraints), along with the essential operations upon it is given in Figure \ref{fig:regexp}. In a constraint of the form |(r :- cs)|, |r| is a regular expression and |cs| is a set of constructors. Such a constraint is satisfied by a data structure |d| if every well-defined application to |d| of a sequence of selectors described by |r| reaches a constructor in the set |cs|. If no sequence of selectors has a well-defined result then the constraint is vacuously true.
@@ -807,7 +793,6 @@ merge  ms1 ms2 = [Pattern c1 (zipWith mergeVal vs1 vs2) |
 \end{code}
 \caption{MP-constraints.}
 \label{fig:enumeration}
-\figureend
 \end{figure}
 
 Although RE-constraints are capable of solving many examples, they suffer from a problem of scale. As programs become more complex the size of the propositions grows quickly, slowing \catch{} unacceptably. Multipattern constraints (MP-constraints, defined in Figure \ref{fig:enumeration}) are an alternative which scales better.
@@ -992,7 +977,6 @@ In the following sections, where modifications are required, we prefer to make t
 \hspace{-2mm} HsColour*     \hspace{-3mm} & 823 & 5379 & 5060 & 4 &  9 & 2.1 & 2.7 \\
 \hline
 \end{tabular*}
-\figureend
 \end{table}
 
 The entire Nofib suite \citep{nofib} is large. We concentrate on the `Imaginary' section. These programs are all under a page of text, excluding any Prelude or library definitions used, and particularly stress list operations and numeric computations.
@@ -1212,7 +1196,6 @@ safeTail (List (a:as)) = as
 \end{code}
 \caption{A |safeTail| function with Phantom types.}
 \label{fig:phantom}
-\figureend
 \end{figure}
 
 Types can sometimes be used to explicitly encode invariants on data in functional languages. One approach is the use of \textit{phantom types} \citep{fluet:phantom}, for example a safe variant of |tail| can be written as in Figure \ref{fig:phantom}. The |List| type is not exported, ensuring that all lists with a |Cons| tag are indeed non-empty. The types |Cons| and |Unknown| are phantom types -- they exist only at the type level, and have no corresponding value.
@@ -1235,7 +1218,6 @@ fromList (x:xs)  fn = fromList xs (fn . Cons x)
 \end{code}
 \caption{A |safeTail| function using GADTs.}
 \label{fig:gadt}
-\figureend
 \end{figure}
 
 Using GADTs \citep{spj:gadt}, an encoding of lists can be written as in Figure \ref{fig:gadt}. Notice that |fromList| requires a locally quantified type. The type-directed approach can be pushed much further with \textit{dependent types}, which allow types to depend on values. There has been much work on dependent types, using undecidable type systems \citep{epigram}, using extensible kinds \citep{omega} and using type systems restricted to a decidable fragment \citep{xi:dependent_practical}. The downside to all these type systems is that they require the programmer to make explicit annotations, and require the user to learn new techniques for computation.
