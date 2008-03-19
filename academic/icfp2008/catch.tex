@@ -45,10 +45,6 @@
 %format loop  = "\Keyword{loop}"
 %format for   = "\Keyword{for}"
 
-\newcommand{\catch}{\textsc{Catch}}
-\newcommand{\newtool}{\catch07}
-\newcommand{\oldtool}{\catch05}
-
 \newcommand{\para}[1]{\vspace{2mm}\noindent\textbf{#1}}
 
 
@@ -153,14 +149,14 @@ risers (x:y:etc) = if x <= y then (x:s):ss else [x]:(s:ss)
 [[1,2,3],[1,2]]
 \end{code}
 
-\noindent In the last line of the definition, |(s:ss)| is matched against the result of |risers (y:etc)|. If the result is in fact an empty list, a pattern-match error will occur. It takes a few moments to check manually that no pattern-match failure is possible -- and a few more to be sure one has not made a mistake! Turning the |risers| function over to our analysis tool (which we call \catch{}), the output is:
+\noindent In the last line of the definition, |(s:ss)| is matched against the result of |risers (y:etc)|. If the result is in fact an empty list, a pattern-match error will occur. It takes a few moments to check manually that no pattern-match failure is possible -- and a few more to be sure one has not made a mistake! Turning the |risers| function over to our analysis tool (which we call Catch), the output is:
 
 \smallskip
 \par\noindent\textsf{Checking ``Incomplete pattern on line 5''}
 \par\noindent\textsf{Program is Safe}
 \smallskip
 
-In other examples, where \catch{} cannot verify pattern-match safety, it can provide information such as sufficient conditions on arguments for safe application of a function.
+In other examples, where Catch cannot verify pattern-match safety, it can provide information such as sufficient conditions on arguments for safe application of a function.
 
 We have implemented all the techniques reported here. We encourage readers to download the Catch tool and try it out. It can be obtained from the website at \url{http://www.cs.york.ac.uk/~ndm/catch/}. A copy of the tool has also been released, and is available on Hackage\footnote{\url{http://hackage.haskell.org/}}.
 
@@ -170,15 +166,15 @@ The contributions of this paper include:
 
 \begin{itemize}
 \item Two constraint languages to reason about pattern-match failures, with methods for generating and solving constraints.
-\item Details of the \catch{} implementation which handles the complete Haskell 98 language \citep{haskell}, by transforming Haskell 98 programs to a first-order language.
+\item Details of the Catch implementation which handles the complete Haskell 98 language \citep{haskell}, by transforming Haskell 98 programs to a first-order language.
 \item Results showing success on a number of small examples drawn from the Nofib suite \citep{nofib}, and for two larger examples, investigating the scalability of the checker.
 \end{itemize}
 
-In \citet{me:catch_tfp} a pattern-match checker was described with similar aims, which we will refer to as \oldtool{}\footnote{Although the paper was completed in 2005, publication was delayed}. For \oldtool{} |risers| was towards the boundary of what was possible, for \newtool{} it is trivial. Scalability problems have been addressed and \newtool{} handles real Haskell programs, with no restriction on the recursion patterns, higher-order functions or type classes. The underlying constraint mechanism of \newtool{} is radically different.
+In \citet{me:catch_tfp} a pattern-match checker was described with similar aims, which we will refer to as Catch05\footnote{Although the paper was completed in 2005, publication was delayed}. For Catch05 |risers| was towards the boundary of what was possible, for Catch08 it is trivial. Scalability problems have been addressed and Catch08 handles real Haskell programs, with no restriction on the recursion patterns, higher-order functions or type classes. The underlying constraint mechanism of Catch08 is radically different.
 
 \subsection{Road map}
 
-\S\ref{sec:walkthrough} gives an overview of the checking process for the |risers| function. \S\ref{sec:manipulate} introduces a small core functional language and a mechanism for reasoning about this language, \S\ref{sec:constraint} describes two constraint languages. \S\ref{sec:transform} discusses how to transform Haskell to a first-order core language. \S\ref{sec:results} evaluates \newtool{} on programs from the Nofib suite, on a widely-used library and on a larger application program. \S\ref{sec:related} offers comparisons with related work before \S\ref{sec:conclusion} presents concluding remarks.
+\S\ref{sec:walkthrough} gives an overview of the checking process for the |risers| function. \S\ref{sec:manipulate} introduces a small core functional language and a mechanism for reasoning about this language, \S\ref{sec:constraint} describes two constraint languages. \S\ref{sec:transform} discusses how to transform Haskell to a first-order core language. \S\ref{sec:results} evaluates Catch08 on programs from the Nofib suite, on a widely-used library and on a larger application program. \S\ref{sec:related} offers comparisons with related work before \S\ref{sec:conclusion} presents concluding remarks.
 
 \section{Overview of the Risers Example}
 \label{sec:walkthrough}
@@ -188,9 +184,9 @@ This section sketches the process of checking that the |risers| function in the 
 
 \subsection{Conversion to a Core Language}
 
-Rather than analyse full Haskell, \catch{} analyses a first-order Core language, without lambda expressions, partial application or let bindings. A convertor is provided from the full Haskell 98 language to this restricted language -- see \S\ref{sec:transform}. The result of converting the |risers| program to Core Haskell, and renaming the identifiers for ease of human reading, is shown in Figure \ref{fig:risers_core}.
+Rather than analyse full Haskell, Catch analyses a first-order Core language, without lambda expressions, partial application or let bindings. A convertor is provided from the full Haskell 98 language to this restricted language -- see \S\ref{sec:transform}. The result of converting the |risers| program to Core Haskell, and renaming the identifiers for ease of human reading, is shown in Figure \ref{fig:risers_core}.
 
-The type of |risers| is polymorphic over types in |Ord|. \catch{} can check |risers| assuming that |Ord| methods do not raise pattern-match errors, and may return any value. Or a type instance such as |Int| can be specified with a type signature.
+The type of |risers| is polymorphic over types in |Ord|. Catch can check |risers| assuming that |Ord| methods do not raise pattern-match errors, and may return any value. Or a type instance such as |Int| can be specified with a type signature.
 
 \begin{figure}
 \begin{code}
@@ -323,7 +319,7 @@ data Int  = Minus Pos | Zero | Plus Pos
 Although this abstraction of |Int| captures all the underlying detail of the number system, the underlying constraint systems discussed in \S\ref{sec:constraint} would be unable to distinguishing between any pair of numbers both greater than 2, or both less than -2.
 \end{comment}
 
-The Core language only has algebraic data types. \catch{} allows for primitive types such as characters and numbers by abstracting them into algebraic types. For example, the integer abstraction used in \catch{} is simply:
+The Core language only has algebraic data types. Catch allows for primitive types such as characters and numbers by abstracting them into algebraic types. For example, the integer abstraction used in Catch is simply:
 
 \begin{code}
 data Int = Neg | Zero | One | Pos
@@ -340,7 +336,7 @@ data Char = 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | Other
 data Char = '\0' | '\1' | '\2' ..
 \end{code}
 
-\noindent \catch{} employs the first abstraction by default, but provides a flag to allow alternatives. In practice, few additional programs are proven safe with a more refined character abstraction.
+\noindent Catch employs the first abstraction by default, but provides a flag to allow alternatives. In practice, few additional programs are proven safe with a more refined character abstraction.
 
 The final issue of abstraction relates to primitive functions in the |IO| monad, such as |getArgs| (which returns the command-line arguments), or |readFile| (which reads from the file-system). In most cases an IO function is modelled as returning \textit{any} value of the correct type, using a function primitive to the checker.
 
@@ -371,7 +367,7 @@ If |x| is an expression and |c| is a constraint we write |x :< c| to assert that
 
 Atomic constraints can be combined into propositions, using the proposition data type in Figure \ref{fig:prop}. We also introduce |(==>)|, standard boolean implication -- Haskell already provides |(<=)|, but we prefer the clarity of a different symbol.
 
-Several underlying constraint models are possible. To keep the introduction of the algorithms simple we first use \textit{basic pattern constraints} (\S\ref{sec:basic}). We then describe \textit{regular expression constraints} in \S\ref{sec:regexp} -- a variant of the constraints used in \oldtool{}. Finally we present \textit{multi-pattern constraints} in \S\ref{sec:multipattern} -- used in \newtool{} to enable scaling to much larger problems.
+Several underlying constraint models are possible. To keep the introduction of the algorithms simple we first use \textit{basic pattern constraints} (\S\ref{sec:basic}). We then describe \textit{regular expression constraints} in \S\ref{sec:regexp} -- a variant of the constraints used in Catch05. Finally we present \textit{multi-pattern constraints} in \S\ref{sec:multipattern} -- used in Catch08 to enable scaling to much larger problems.
 
 \begin{figure}
 \begin{code}
@@ -529,7 +525,7 @@ propRestrict fn xs k = propIsTrue $
     backs (propLit $ instantiate  fn xs :< k)
 \end{code}
 
-That is, the result is at least as restrictive as if the function was inlined at this point. Two strategies can be used: (1) Use $\beta$ substitution (|instantiate|) replacing the call with the body of |fn|. (2) Create fresh variables for each argument, use $\beta$ substitution, and then instantiate the results. \oldtool{} used method 1. \newtool{} uses method 2, as it is easier to find a fixed point, and allows a cache of results to be built -- reducing duplicate computation.
+That is, the result is at least as restrictive as if the function was inlined at this point. Two strategies can be used: (1) Use $\beta$ substitution (|instantiate|) replacing the call with the body of |fn|. (2) Create fresh variables for each argument, use $\beta$ substitution, and then instantiate the results. Catch05 used method 1. Catch08 uses method 2, as it is easier to find a fixed point, and allows a cache of results to be built -- reducing duplicate computation.
 
 \begin{figure}
 \ignore\begin{code}
@@ -586,7 +582,7 @@ With unbounded recursion in patterns, the BP-constraint language does \textit{no
 \section{Richer Constraint Systems}
 \label{sec:constraint}
 
-There are various ways of defining a richer constraint system, also providing the necessary finiteness properties. Here we outline two -- one adapted from \oldtool{}, one entirely new -- both implemented in \newtool{}. Neither is strictly more powerful than the other; each is capable of expressing constraints that the other cannot express.
+There are various ways of defining a richer constraint system, also providing the necessary finiteness properties. Here we outline two -- one adapted from Catch05, one entirely new -- both implemented in Catch08. Neither is strictly more powerful than the other; each is capable of expressing constraints that the other cannot express.
 
 \subsection{Regular Expression (RE) Constraints}
 \label{sec:regexp}
@@ -632,11 +628,11 @@ differentiate p (Star    r:rs)  | p `elem` r  = Just (Star r:rs)
 \label{fig:regexp}
 \end{figure}
 
-\oldtool{} used regular expressions in constraints. A data type for regular expression based constraints (RE-constraints), along with the essential operations upon it is given in Figure \ref{fig:regexp}. In a constraint of the form |(r :- cs)|, |r| is a regular expression and |cs| is a set of constructors. Such a constraint is satisfied by a data structure |d| if every well-defined application to |d| of a sequence of selectors described by |r| reaches a constructor in the set |cs|. If no sequence of selectors has a well-defined result then the constraint is vacuously true.
+Catch05 used regular expressions in constraints. A data type for regular expression based constraints (RE-constraints), along with the essential operations upon it is given in Figure \ref{fig:regexp}. In a constraint of the form |(r :- cs)|, |r| is a regular expression and |cs| is a set of constructors. Such a constraint is satisfied by a data structure |d| if every well-defined application to |d| of a sequence of selectors described by |r| reaches a constructor in the set |cs|. If no sequence of selectors has a well-defined result then the constraint is vacuously true.
 
 Concerning the helper functions needed to define | ||>| and |<||| in Figure \ref{fig:regexp}, the |differentiate| function is from \citet{conway:regexp}; |integrate| is its inverse; |ewp| is the empty word property.
 
-\oldtool{} regular expressions were unrestricted and quickly grew to an unmanageable size, thwarting analysis of larger programs. In general, a regular expression takes one of six forms:\\ \\
+Catch05 regular expressions were unrestricted and quickly grew to an unmanageable size, thwarting analysis of larger programs. In general, a regular expression takes one of six forms:\\ \\
 \begin{tabular}{ll}
 |r1+r2|  & union of regular expressions |r1| and |r2| \\
 \ignore|r1^.r2| & concatenation of regular expressions |r1| then |r2| \\
@@ -646,10 +642,10 @@ Concerning the helper functions needed to define | ||>| and |<||| in Figure \ref
 1        & the language is the set containing the empty string
 \end{tabular} \\
 
-\newtool{} implements REs using the data type |RegExp| from Figure \ref{fig:regexp}, with |RegExp| being a list of concatenated |RegItem|. In addition to the restrictions imposed by the data type, we require: (1) within |Atom| the |Selector| is not recursive; (2) within |Star| there is a non-empty list of |Selector|s, each of which is recursive; (3) no two |Star| constructors are adjacent in a concatenation. These restrictions are motivated by three observations:
+Catch08 implements REs using the data type |RegExp| from Figure \ref{fig:regexp}, with |RegExp| being a list of concatenated |RegItem|. In addition to the restrictions imposed by the data type, we require: (1) within |Atom| the |Selector| is not recursive; (2) within |Star| there is a non-empty list of |Selector|s, each of which is recursive; (3) no two |Star| constructors are adjacent in a concatenation. These restrictions are motivated by three observations:
 
 \begin{itemize}
-\item Because of static typing constructor-sets must all be of the same type. (In \oldtool{} expressions such as \ignore|hd^*| could arise.)
+\item Because of static typing constructor-sets must all be of the same type. (In Catch05 expressions such as \ignore|hd^*| could arise.)
 
 \item There are finitely many regular expressions for any type. Combined with the finite number of constructors, this property is enough to guarantee termination when computing a fixed-point iteration on constraints.
 
@@ -658,7 +654,7 @@ Concerning the helper functions needed to define | ||>| and |<||| in Figure \ref
 
 \begin{example}
 \label{ex:head}
-|(head xs)| is safe if |xs| evaluates to a non-empty list. The RE-constraint generated by \catch{} is: \ignore|xs :< (1 :- {:})|
+|(head xs)| is safe if |xs| evaluates to a non-empty list. The RE-constraint generated by Catch is: \ignore|xs :< (1 :- {:})|
 \end{example}
 
 \begin{example}
@@ -698,7 +694,7 @@ The |2^rec| term corresponds to the number of possible constraints under |Star|.
 \subsubsection{RE-Constraint Propositions}
 \label{sec:re-propositions}
 
-\catch{} computes over propositional formulae with constraints as atomic propositions. Among other operators on propositions, they are compared for equality to obtain a fixed point. All the fixed-point algorithms given in this paper stop once equal constraints are found. We use Binary Decision Diagrams (BDD) \citep{lee:bdd} to make these equality tests fast. Since the complexity of performing an operation is often proportional to the number of atomic constraints in a proposition, we apply simplification rules to reduce this number. Three of the nineteen rules are:
+Catch computes over propositional formulae with constraints as atomic propositions. Among other operators on propositions, they are compared for equality to obtain a fixed point. All the fixed-point algorithms given in this paper stop once equal constraints are found. We use Binary Decision Diagrams (BDD) \citep{lee:bdd} to make these equality tests fast. Since the complexity of performing an operation is often proportional to the number of atomic constraints in a proposition, we apply simplification rules to reduce this number. Three of the nineteen rules are:
 
 \para{Exhaustion:} In the constraint |x :< (r :- [":","[]"])| the condition lists all the possible constructors. Because of static typing |x| must be one of these constructors. Any such constraint simplifies to True.
 
@@ -759,11 +755,11 @@ merge  ms1 ms2 = [Pattern c1 (zipWith mergeVal vs1 vs2) |
 \label{fig:enumeration}
 \end{figure}
 
-Although RE-constraints are capable of solving many examples, they suffer from a problem of scale. As programs become more complex the size of the propositions grows quickly, slowing \catch{} unacceptably. Multipattern constraints (MP-constraints, defined in Figure \ref{fig:enumeration}) are an alternative which scales better.
+Although RE-constraints are capable of solving many examples, they suffer from a problem of scale. As programs become more complex the size of the propositions grows quickly, slowing Catch unacceptably. Multipattern constraints (MP-constraints, defined in Figure \ref{fig:enumeration}) are an alternative which scales better.
 
 MP-constraints are similar to BP-constraints, but can constrain an infinite number of items. A value |v| satisfies a constraint |p1 :* p2| if |v| itself satisfies |p1| and all its recursive components at any depth satisfy |p2|. Each of |p1| and |p2| is given as a set of matches as in \S\ref{sec:basic}, but each |Pattern| only specifies the values for the non-recursive selectors, all recursive selectors are handled by |p2|. A constraint is a disjunctive list of |:*| patterns.
 
-\begin{examplerevisit}{\ref{ex:head}} Safe evaluation of |(head xs)| requires |xs| to be non-empty. The MP-constraint generated by \catch{} on |xs| is: \ignore|{(:) Any} :* {[], (:) Any}| This constraint is longer than the corresponding RE-constraint as it makes explicit that both the |hd| field and the recursive components are unrestricted.
+\begin{examplerevisit}{\ref{ex:head}} Safe evaluation of |(head xs)| requires |xs| to be non-empty. The MP-constraint generated by Catch on |xs| is: \ignore|{(:) Any} :* {[], (:) Any}| This constraint is longer than the corresponding RE-constraint as it makes explicit that both the |hd| field and the recursive components are unrestricted.
 \end{examplerevisit}
 
 \begin{examplerevisit}{\ref{ex:map_head}} Safe evaluation of |(map head xs)| requires |xs| to be a list of non-empty lists. The MP-constraint on |xs| is:
@@ -862,13 +858,13 @@ v2 = Branch (Leaf False  ) (Leaf True   )
 \noindent The RE-constraint \ignore|(left^* ^.leaf :- True)| is satisfied by |v1| but not |v2|. No MP-constraint separates the two values.
 \end{example}
 
-We have implemented both constraint systems in \catch{}. There are various factors to consider when choosing which constraint system to use -- how readable the constraints are, the expressive power, implementation complexity and scalability. In practice the issue of scalability is key: how large do constraints become, how quickly can they be manipulated, how expensive is their simplification. \newtool{} uses MP-constraints by default, as they allow much larger examples to be checked.
+We have implemented both constraint systems in Catch. There are various factors to consider when choosing which constraint system to use -- how readable the constraints are, the expressive power, implementation complexity and scalability. In practice the issue of scalability is key: how large do constraints become, how quickly can they be manipulated, how expensive is their simplification. Catch08 uses MP-constraints by default, as they allow much larger examples to be checked.
 
 
 \section{Results and Evaluation}
 \label{sec:results}
 
-The best way to see the power of \catch{} is by example. \S\ref{sec:safety} discusses in general how some programs may need to be modified to obtain provable safety. \S\ref{sec:imaginary} investigates all the examples from the Imaginary section of the Nofib suite \cite{nofib}. To illustrate results for larger and widely-used applications, \S\ref{sec:finitemap} investigates a library (FiniteMap) and \S\ref{sec:hscolour} investigates a complete program (HsColour).
+The best way to see the power of Catch is by example. \S\ref{sec:safety} discusses in general how some programs may need to be modified to obtain provable safety. \S\ref{sec:imaginary} investigates all the examples from the Imaginary section of the Nofib suite \cite{nofib}. To illustrate results for larger and widely-used applications, \S\ref{sec:finitemap} investigates a library (FiniteMap) and \S\ref{sec:hscolour} investigates a complete program (HsColour).
 
 
 \subsection{Modifications for Verifiable Safety}
@@ -880,7 +876,7 @@ Take the following example:
 average xs = sum xs `div` length xs
 \end{code}
 
-If |xs| is |[]| then a division by zero occurs, modelled in \catch{} as a pattern-match error. One small local change could be made which would remove this pattern match error:
+If |xs| is |[]| then a division by zero occurs, modelled in Catch as a pattern-match error. One small local change could be made which would remove this pattern match error:
 
 \begin{code}
 average xs = if null xs then 0 else sum xs `div` length xs
@@ -915,7 +911,7 @@ In the following sections, where modifications are required, we prefer to make t
 \textbf{Err} is the number of calls to |error| (missing pattern cases);
 \textbf{Pre} is the number of functions which have a precondition which is not simply `True';
 \textbf{Sec} is the time taken for transformations and analysis;
-\textbf{Mb} is the maximum residency of \catch{} at garbage collection time.
+\textbf{Mb} is the maximum residency of Catch at garbage collection time.
 
 \smallskip\smallskip
 
@@ -945,11 +941,11 @@ In the following sections, where modifications are required, we prefer to make t
 
 The entire Nofib suite \citep{nofib} is large. We concentrate on the `Imaginary' section. These programs are all under a page of text, excluding any Prelude or library definitions used, and particularly stress list operations and numeric computations.
 
-Results are given in Table \ref{tab:results}. Only four programs contain no calls to |error| as all pattern-matches are exhaustive. Four programs use the list-indexing operator |(!!)|, which requires the index to be non-negative and less than the length of the list; \catch{} can only prove this condition if the list is infinite. Eight programs include applications of either |head| or |tail|, most of which can be proven safe. Seven programs have incomplete patterns, often in a |where| binding and \catch{} performs well on these. Nine programs use division, with the precondition that the divisor must not be zero; most of these can be proven safe.
+Results are given in Table \ref{tab:results}. Only four programs contain no calls to |error| as all pattern-matches are exhaustive. Four programs use the list-indexing operator |(!!)|, which requires the index to be non-negative and less than the length of the list; Catch can only prove this condition if the list is infinite. Eight programs include applications of either |head| or |tail|, most of which can be proven safe. Seven programs have incomplete patterns, often in a |where| binding and Catch performs well on these. Nine programs use division, with the precondition that the divisor must not be zero; most of these can be proven safe.
 
 Three programs have preconditions on the |main| function, all of which state that the argument must be a natural number. In all cases the generated precondition is a necessary one -- if the input violates the precondition then pattern-match failure will occur.
 
-We now discuss general modifications required to allow \catch{} to begin checking the programs, followed by the six programs which required changes. We finish with the Digits of E2 program -- a program with complex pattern matching that \catch{} is able to prove safe.
+We now discuss general modifications required to allow Catch to begin checking the programs, followed by the six programs which required changes. We finish with the Digits of E2 program -- a program with complex pattern matching that Catch is able to prove safe.
 
 \paragraph{Modifications for Checking}
 
@@ -966,11 +962,11 @@ main = do  [arg] <- getArgs
            print $ primes !! (read arg)
 \end{code} % $
 
-The first unsafe pattern here is \ignore|[arg] <- getArgs|, as |getArgs| is a primitive which may return any value. \catch{} can only return False as the sufficient precondition to |main|!
+The first unsafe pattern here is \ignore|[arg] <- getArgs|, as |getArgs| is a primitive which may return any value. Catch can only return False as the sufficient precondition to |main|!
 
-The next step that may fail is when |read| is applied to an argument extracted from |getArgs|. This argument is entirely unknown, and |read| is a sufficiently complicated function that although it can be modelled by \catch{}, there is no possibility for getting an appropriate abstraction which models the failure case. As a result, any program which calls |read| is unsafe, according to \catch{}. Using |reads|, which indicates failure properly, a program may still be checked  successfully.
+The next step that may fail is when |read| is applied to an argument extracted from |getArgs|. This argument is entirely unknown, and |read| is a sufficiently complicated function that although it can be modelled by Catch, there is no possibility for getting an appropriate abstraction which models the failure case. As a result, any program which calls |read| is unsafe, according to Catch. Using |reads|, which indicates failure properly, a program may still be checked  successfully.
 
-As a result the programs have been rewritten, and \catch{} is directed to check the function:
+As a result the programs have been rewritten, and Catch is directed to check the function:
 
 \begin{code}
 compute x = print $ primes !! x
@@ -978,7 +974,7 @@ compute x = print $ primes !! x
 
 \paragraph{Bernoulli}
 
-This program has one instance of |tail (tail x)|. MP-constraints are unable to express that a list must be of at least length two, so \catch{} conservatively strengthens this to the condition that the list must be infinite -- a condition that Bernoulli does not satisfy. One remedy is to replace |tail (tail x)| with |drop 2 x|. After this change, the program still has several non-exhaustive pattern matches, but all are proven safe.
+This program has one instance of |tail (tail x)|. MP-constraints are unable to express that a list must be of at least length two, so Catch conservatively strengthens this to the condition that the list must be infinite -- a condition that Bernoulli does not satisfy. One remedy is to replace |tail (tail x)| with |drop 2 x|. After this change, the program still has several non-exhaustive pattern matches, but all are proven safe.
 
 
 \paragraph{Digits of E1}
@@ -993,19 +989,19 @@ ratTrans (a,b,c,d) xs |
   where q = b `div` d
 \end{code}
 
-\noindent \catch{} is able to prove that the division by |d| is only unsafe if both |c| and |d| are zero, but it is not able to prove that this invariant is maintained. Using |safeDiv| from \S\ref{sec:safety} the program is proved safe.
+\noindent Catch is able to prove that the division by |d| is only unsafe if both |c| and |d| are zero, but it is not able to prove that this invariant is maintained. Using |safeDiv| from \S\ref{sec:safety} the program is proved safe.
 
-As the safety of this program depends on quite deep results in number theory, it is no surprise that it is beyond the scope of an automatic checker such as \catch{}.
+As the safety of this program depends on quite deep results in number theory, it is no surprise that it is beyond the scope of an automatic checker such as Catch.
 
 \paragraph{Gen-Regexps}
 
-This program expects valid regular expressions as input. Ways of crashing the program include entering |""|, |"["|, |"<"| and lots of other inputs. One potential error comes from |head . lines|, which can be replaced by |takeWhile (/= '\n')|. Two potential errors take the form \ignore|(a,_:b) = span f xs|. At first glance this pattern definition is similar to the one in |risers|. But here the pattern is only safe if for one of the elements in the list |xs|, |f| returns True. The test |f| is actually |(/= '-')|, and the only safe condition \catch{} can express is that |xs| is an infinite list. With the amendment  \ignore|(a,b) = safeSpan f xs|, where |safeSpan| is defined as:
+This program expects valid regular expressions as input. Ways of crashing the program include entering |""|, |"["|, |"<"| and lots of other inputs. One potential error comes from |head . lines|, which can be replaced by |takeWhile (/= '\n')|. Two potential errors take the form \ignore|(a,_:b) = span f xs|. At first glance this pattern definition is similar to the one in |risers|. But here the pattern is only safe if for one of the elements in the list |xs|, |f| returns True. The test |f| is actually |(/= '-')|, and the only safe condition Catch can express is that |xs| is an infinite list. With the amendment  \ignore|(a,b) = safeSpan f xs|, where |safeSpan| is defined as:
 
 \begin{code}
 safeSpan p xs = (a, drop 1 b) where (a,b) = span p xs
 \end{code}
 
-\noindent \catch{} verifies pattern safety.
+\noindent Catch verifies pattern safety.
 
 \paragraph{Wheel Sieve 1}
 
@@ -1017,17 +1013,17 @@ data Wheel = Wheel Int [Int]
 sieve :: [Wheel] -> [Int] -> [Int] -> [Int]
 \end{code}
 
-The lists are infinite, and the integers are positive, but the program is too complex for \catch{} to infer these properties in full. To prove safety a variant of |mod| is required which does not raise division by zero and a pattern in |notDivBy| has to be completed. Even with these two modifications, \catch{} takes 7.5 seconds to check the other non-exhaustive pattern matches.
+The lists are infinite, and the integers are positive, but the program is too complex for Catch to infer these properties in full. To prove safety a variant of |mod| is required which does not raise division by zero and a pattern in |notDivBy| has to be completed. Even with these two modifications, Catch takes 7.5 seconds to check the other non-exhaustive pattern matches.
 
 
 \paragraph{Wheel Sieve 2}
 
-This program has similar datatypes and invariants, but much greater complexity. \catch{} is able to prove very few of the necessary invariants. Only after widening the domain of definition in three places -- replacing |tail| with |drop 1|, |head| with a version returning a default on the empty list, and |mod| with a safe variant -- is \catch{} able to prove safety.
+This program has similar datatypes and invariants, but much greater complexity. Catch is able to prove very few of the necessary invariants. Only after widening the domain of definition in three places -- replacing |tail| with |drop 1|, |head| with a version returning a default on the empty list, and |mod| with a safe variant -- is Catch able to prove safety.
 
 
 \paragraph{Paraffins}
 
-Again the program can only be validated by \catch{} after modification. There are two reasons: laziness and arrays. Laziness allows the following odd-looking definition:
+Again the program can only be validated by Catch after modification. There are two reasons: laziness and arrays. Laziness allows the following odd-looking definition:
 
 \begin{comment}
 \begin{code}
@@ -1040,9 +1036,9 @@ radical_generator n = radicals undefined
   where radicals unused = big_memory_computation
 \end{code}
 
-If |radicals| had a zero-arity definition it would be computed once and retained as long as there are references to it. To prevent this behaviour, a dummy argument (|undefined|) is passed. If the analysis was more lazy (as discussed in \S\ref{sec:precond}) then this example would succeed using \catch{}. As it is, simply changing |undefined| to |()| resolves the problem.
+If |radicals| had a zero-arity definition it would be computed once and retained as long as there are references to it. To prevent this behaviour, a dummy argument (|undefined|) is passed. If the analysis was more lazy (as discussed in \S\ref{sec:precond}) then this example would succeed using Catch. As it is, simply changing |undefined| to |()| resolves the problem.
 
-The Paraffins program uses the function \ignore|array :: Ix a => (a, a) -> [(a, b)] -> Array a b| which takes a list of index/value pairs and builds an array. The precondition on this function is that all indexes must be in the range specified. This precondition is too complex for \catch{}, but simply using |listArray|, which takes a list of elements one after another, the program can be validated. Use of |listArray| actually makes the program shorter and more readable. The array indexing operator \ignore|(!)| is also troublesome. The precondition requires that the index is in the bounds given when the array was constructed, something \catch{} does not currently model.
+The Paraffins program uses the function \ignore|array :: Ix a => (a, a) -> [(a, b)] -> Array a b| which takes a list of index/value pairs and builds an array. The precondition on this function is that all indexes must be in the range specified. This precondition is too complex for Catch, but simply using |listArray|, which takes a list of elements one after another, the program can be validated. Use of |listArray| actually makes the program shorter and more readable. The array indexing operator \ignore|(!)| is also troublesome. The precondition requires that the index is in the bounds given when the array was constructed, something Catch does not currently model.
 
 
 \paragraph{Digits of E2}
@@ -1056,7 +1052,7 @@ carryPropagate base (d:ds) = ellipses
          nextcarry:fraction = carryPropagate (base+1) ds
 \end{code}
 
-\noindent There are four potential pattern-match errors in as many lines. Two of these are the calls to |div| and |mod|, both requiring \ignore|base| to be non-zero. A possibly more subtle pattern match error is the \ignore|nextcarry:fraction| left-hand side of the third line. \catch{} is able to prove that none of these pattern-matches fail. Now consider:
+\noindent There are four potential pattern-match errors in as many lines. Two of these are the calls to |div| and |mod|, both requiring \ignore|base| to be non-zero. A possibly more subtle pattern match error is the \ignore|nextcarry:fraction| left-hand side of the third line. Catch is able to prove that none of these pattern-matches fail. Now consider:
 
 \begin{code}
 e =  ("2."++) $
@@ -1066,16 +1062,16 @@ e =  ("2."++) $
      2:[1,1..]
 \end{code}
 
-\noindent Two uses of |tail| and one of |head| occur in quite complex functional pipelines. \catch{} is again able to prove that no pattern-match fails.
+\noindent Two uses of |tail| and one of |head| occur in quite complex functional pipelines. Catch is again able to prove that no pattern-match fails.
 
 \subsection{The FiniteMap library}
 \label{sec:finitemap}
 
 The FiniteMap library for Haskell has been widely distributed for over 10 years. The library uses balanced binary trees, based on \citep{adams:sets}. There are 14 non-exhaustive pattern matches.
 
-The first challenge is that there is no |main| function. \catch{} uses all the exports from the library, and checks each of them as if it had |main| status.
+The first challenge is that there is no |main| function. Catch uses all the exports from the library, and checks each of them as if it had |main| status.
 
-\catch{} is able to prove that all but one of the non-exhaustive patterns are safe. The definition found unsafe has the form:
+Catch is able to prove that all but one of the non-exhaustive patterns are safe. The definition found unsafe has the form:
 
 \begin{comment}
 \begin{code}
@@ -1089,7 +1085,7 @@ delFromFM (Branch key ellipses) del_key  | del_key  >   key = ellipses
                                          | del_key  ==  key = ellipses
 \end{code}
 
-At first glance the cases appear to be exhaustive. The law of trichotomy leads us to expect one of the guards to be true. However, the Haskell |Ord| class does not enforce this law. There is nothing to prevent an instance for a type with partially ordered values, some of which are incomparable. So \catch{} cannot verify the safety to |delFromFM| as defined as above.
+At first glance the cases appear to be exhaustive. The law of trichotomy leads us to expect one of the guards to be true. However, the Haskell |Ord| class does not enforce this law. There is nothing to prevent an instance for a type with partially ordered values, some of which are incomparable. So Catch cannot verify the safety to |delFromFM| as defined as above.
 
 The solution is to use the |compare| function which returns one of |GT|, |EQ| or |LT|. This approach has several advantages: (1) the code is free from non-exhaustive patterns; (2) the assumption of trichotomy is explicit in the return type; (3) the library is faster.
 
@@ -1097,12 +1093,12 @@ The solution is to use the |compare| function which returns one of |GT|, |EQ| or
 \subsection{The HsColour Program}
 \label{sec:hscolour}
 
-Artificial benchmarks are not necessarily intended to be fail-proof. But a real program, with real users, should \textit{never} fail with a pattern-match error. We have taken the HsColour program\footnote{http://www.cs.york.ac.uk/fp/darcs/hscolour/} and analysed it using \catch{}. HsColour has 12 modules, is 4 years old and has had patches from 6 different people.
+Artificial benchmarks are not necessarily intended to be fail-proof. But a real program, with real users, should \textit{never} fail with a pattern-match error. We have taken the HsColour program\footnote{http://www.cs.york.ac.uk/fp/darcs/hscolour/} and analysed it using Catch. HsColour has 12 modules, is 4 years old and has had patches from 6 different people.
 We have contributed patches back to the author of HsColour, with the result that the development version can be proved free from pattern-match errors.
 
-\catch{} required 4 small patches to the HsColour program before it could be verified free of pattern-match failures. Details are given in Table \ref{tab:results}. Of the 4 patches, 3 were genuine pattern-match errors which could be tripped by constructing unexpected input. The issues were: (1) |read| was called on a preferences file from the user, this could crash given a malformed preferences file; (2) by giving the document consisting of a single double quote character \texttt{"}, and passing the ``-latex'' flag, a crash occurred; (3) by giving the document \texttt{(`)}, namely open bracket, backtick, close bracket, and passing ``-html -anchor'' a crash occurred. The one patch which did not (as far as we are able to ascertain) fix a real bug could still be considered an improvement, and was minor in nature (a single line).
+Catch required 4 small patches to the HsColour program before it could be verified free of pattern-match failures. Details are given in Table \ref{tab:results}. Of the 4 patches, 3 were genuine pattern-match errors which could be tripped by constructing unexpected input. The issues were: (1) |read| was called on a preferences file from the user, this could crash given a malformed preferences file; (2) by giving the document consisting of a single double quote character \texttt{"}, and passing the ``-latex'' flag, a crash occurred; (3) by giving the document \texttt{(`)}, namely open bracket, backtick, close bracket, and passing ``-html -anchor'' a crash occurred. The one patch which did not (as far as we are able to ascertain) fix a real bug could still be considered an improvement, and was minor in nature (a single line).
 
-Examining the |read| error in more detail, by default \catch{} outputs the potential error message, and a list of potentially unsafe functions in a call stack:
+Examining the |read| error in more detail, by default Catch outputs the potential error message, and a list of potentially unsafe functions in a call stack:
 
 \smallskip
 \par\noindent\textsf{Checking ``Prelude.read: no parse''}
@@ -1112,7 +1108,7 @@ Examining the |read| error in more detail, by default \catch{} outputs the poten
 \par\noindent\textsf{Partial Main.main}
 \smallskip
 
-Using our knowledge of the intention of functions, we can see that although |read| calls error, the blame probably lies in the caller of |read| -- namely \ignore|parseColourPrefs|. By examining this location in the source code we are able to diagnose and correct the problem. \catch{} optionally reports all the preconditions it has deduced, although in our experience problems can usually be fixed from source-position information alone.
+Using our knowledge of the intention of functions, we can see that although |read| calls error, the blame probably lies in the caller of |read| -- namely \ignore|parseColourPrefs|. By examining this location in the source code we are able to diagnose and correct the problem. Catch optionally reports all the preconditions it has deduced, although in our experience problems can usually be fixed from source-position information alone.
 
 \section{Related Work}
 \label{sec:related}
@@ -1123,16 +1119,16 @@ There has been a long history of writing tools to analyse programs to detect pot
 
 \subsection{Proving Incomplete Patterns Safe}
 
-Despite the seriousness of the problem of pattern matching, there are very few other tools for checking pattern-match safety. This paper has similar goals to \citet{me:catch_tfp}, but some key design decisions are radically different. The difference in practice is that \catch07 supports full Haskell, can scale to much larger examples and can feasibly be used on real programs. Some of the reasons for these better results include a different fixed-point mechanism, the use of MP-constraints and a superior translation from Core.
+Despite the seriousness of the problem of pattern matching, there are very few other tools for checking pattern-match safety. This paper has similar goals to \citet{me:catch_tfp}, but some key design decisions are radically different. The difference in practice is that Catch08 supports full Haskell, can scale to much larger examples and can feasibly be used on real programs. Some of the reasons for these better results include a different fixed-point mechanism, the use of MP-constraints and a superior translation from Core.
 
-The closest other work we are aware of is \citep{esc_haskell}, where ESC/Haskell is introduced. The ESC/Haskell approach requires the programmer to give explicit preconditions and contracts which the program obeys. Contracts have more expressive power than our constraints -- one of the examples involves an invariant on an ordered list, something beyond \catch{}. But the programmer has more work to do. At the time of writing there is no publicly available version of ESC/Haskell. So far as we know, it does not yet support full Haskell, lacks features such as type classes\footnote{We have confirmed this information in correspondence with Xu.}, and handles only small examples. A future version of ESC/Haskell may address these limitations, allowing a fuller comparison to be made.
+The closest other work we are aware of is \citep{esc_haskell}, where ESC/Haskell is introduced. The ESC/Haskell approach requires the programmer to give explicit preconditions and contracts which the program obeys. Contracts have more expressive power than our constraints -- one of the examples involves an invariant on an ordered list, something beyond Catch. But the programmer has more work to do. At the time of writing there is no publicly available version of ESC/Haskell. So far as we know, it does not yet support full Haskell, lacks features such as type classes\footnote{We have confirmed this information in correspondence with Xu.}, and handles only small examples. A future version of ESC/Haskell may address these limitations, allowing a fuller comparison to be made.
 
 
 \subsection{Eliminating Incomplete Patterns}
 
 One way to guarantee that a program does not crash with an incomplete pattern is to ensure that all pattern matching is exhaustive. The GHC compiler \citep{ghc} has an option flag to warn of any incomplete patterns. Unfortunately the Bugs section (12.2.1) of the manual notes that the checks are sometimes wrong, particularly with string patterns or guards, and that this part of the compiler ``needs an overhaul really'' \citep{ghc}. A more precise treatment of when warnings should be issued is given in \citet{maranget:pattern_warnings}. These checks are only local: defining |head| will lead to a warning, even though the definition is correct; using |head| will not lead to a warning, even though it may raise a pattern-match error.
 
-A more radical approach is to build exhaustive pattern matching into the design of the language, as part of a total programming system \citep{turner:total}. The \catch{} tool could perhaps allow the exhaustive pattern matching restriction to be lifted somewhat.
+A more radical approach is to build exhaustive pattern matching into the design of the language, as part of a total programming system \citep{turner:total}. The Catch tool could perhaps allow the exhaustive pattern matching restriction to be lifted somewhat.
 
 
 \subsection{Type System Safety}
@@ -1190,9 +1186,9 @@ Using GADTs \citep{spj:gadt}, an encoding of lists can be written as in Figure \
 \section{Conclusions and Future Work}
 \label{sec:conclusion}
 
-We have described the design, implementation and application of \catch{},
+We have described the design, implementation and application of Catch,
 an analysis tool for safe pattern-matching in Haskell 98.  Two key
-design decisions in \catch{} simplify the analysis and make it scalable:
+design decisions in Catch simplify the analysis and make it scalable:
 (1) the target of analysis is a very small, first-order core language;
 (2) there are finitely many value-set-defining constraints per type.
 Decision (1) requires a translation from the full language that avoids
@@ -1202,26 +1198,26 @@ very effective.  Decision (2) inevitably limits the expressive power of
 constraints; yet it does not prevent the expression of uniform recursive
 constraints on the deep structure of values, as in MP-constraints.
 
-Practical evaluation, using \catch{} to analyse widely distributed examples
+Practical evaluation, using Catch to analyse widely distributed examples
 in Haskell 98, confirms our claim to give results for programs of moderate
 size written in the full language. But it does also reveal a frequent need
 to modify programs, widening definitions or narrowing applications,
-before \catch{} can verify pattern-match safety.
+before Catch can verify pattern-match safety.
 
 Outcomes of example applications could drive the exploration of more
 powerful variants of MP-constraints, with a greater (but still finite)
 number of expressible constraints per type.  More demanding tests of
-scalability could include the application of \catch{} to a Haskell compiler,
-or indeed to \catch{} itself.
+scalability could include the application of Catch to a Haskell compiler,
+or indeed to Catch itself.
 
-A tool such as \catch{} might do more harm than good if it sometimes wrongly
-declares that a program cannot fail.  We claim that the \catch{} analysis
+A tool such as Catch might do more harm than good if it sometimes wrongly
+declares that a program cannot fail.  We claim that the Catch analysis
 is sound, but we have not formally proved soundness with respect to a
 suitable semantics for the core language.
 
 Like many researchers, we are interested in narrowing the gap between the
 exactness of constructive mathematics and the scalability of practical
-programming systems.  We hope that \catch{} or its successors can provide
+programming systems.  We hope that Catch or its successors can provide
 a small but useful bridge crossing part of that gap.
 
 \bibliographystyle{plainnat}
