@@ -1,0 +1,1390 @@
+\documentclass[preprint]{sigplanconf}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{natbib}
+
+\include{paper}
+%include paper.fmt
+
+\newcommand{\tup}[1]{\ensuremath{\langle #1 \rangle}}
+\newcommand{\mtxt}[1]{\textsf{#1}}
+
+\newcommand{\catch}{\textsc{Catch}}
+\newcommand{\newtool}{\catch07}
+\newcommand{\oldtool}{\catch05}
+
+\newcommand{\para}[1]{\vspace{2mm}\noindent\textbf{#1}}
+
+% code blocks
+\newenvironment{codepage}
+    {\begin{minipage}[h]{\textwidth}\begin{code}}
+    {\end{code}\end{minipage}}
+
+\newenvironment{discuss}
+    {\noindent\hspace{-1.5mm}\vline\hspace{1mm}\vline\hspace{1mm}\begin{minipage}[h]{\linewidth}}
+    {\end{minipage}}
+
+\newcommand{\K}{\ensuremath{^\ast}} % kleene star
+\newcommand{\D}{\ensuremath{\cdot}} % central dot
+
+\renewcommand{\c}[3]{\tup{\T{#1},\T{#2},\T{\{#3\}}}}
+\newcommand{\cc}[2]{\c{#1}{$\lambda$}{#2}}
+
+\newcommand{\s}[1]{\ensuremath{_{\tt #1}}} % subscript, in tt font
+\newcommand{\g}[1]{\{#1\}} % group, put { } round it
+\newcommand{\U}{\textunderscore}
+\newcommand{\vecto}[1]{\overrightarrow{#1\;}}
+\newcommand{\gap}{\;\;}
+\newcommand{\dom}{\text{dom}}
+
+\newcommand{\figureend}{\vspace{-4mm}}
+
+\newenvironment{revisit}[1]{\todo{Revisit Begin}}{\todo{Revisit End}}
+\newcommand{\lastexample}{\todo{Last example}}
+
+\begin{document}
+
+\conferenceinfo{ICFP '08}{date, City.} %
+\copyrightyear{2008} %
+\copyrightdata{[to be supplied]}
+
+\titlebanner{\today{} - \currenttime{}}        % These are ignored unless
+\preprintfooter{}   % 'preprint' option specified.
+
+\title{Not All Patterns, But Enough}
+\subtitle{ -- an automatic verifier for partial but sufficient pattern matching}
+
+\authorinfo{Neil Mitchell\titlenote{The first author is supported by an EPSRC PhD studentship}}
+           {University of York, UK}
+           {\url{http://www.cs.york.ac.uk/~ndm/}}
+\authorinfo{Colin Runciman}
+           {University of York, UK}
+           {\url{http://www.cs.york.ac.uk/~colin/}}
+
+\maketitle
+
+\begin{abstract}
+We describe an automated analysis of Haskell 98 programs to check
+statically that, despite the possible use of partial (or non-exhaustive)
+pattern matching, no pattern-match failure can occur.  Our method is an
+iterative backward analysis using a novel form of pattern-constraint
+to represent sets of data values.  The analysis is defined for a
+core first-order language to which Haskell 98 programs are reduced.
+Our analysis tool has been successfully applied to a range of programs,
+and our techniques seem to scale well.  Throughout the paper, methods
+are represented much as we have implemented them in practice, again in Haskell.
+\end{abstract}
+
+\category{D.3}{Software}{Programming Languages}
+
+\terms
+languages, verification
+
+\keywords
+Haskell, automatic verification, functional programming, pattern-match errors, preconditions
+
+% For Tex2hs
+\begin{comment}
+\begin{code}
+data Constraint = Constraint
+\end{code}
+\begin{code}
+data Assert a = a :< Constraint
+\end{code}
+\begin{code}
+infix  4  ==, /=
+infixr 2  ||
+
+(||) :: Bool -> Bool -> Bool
+(==) :: Eq a => a -> a -> Bool
+(/=) :: Eq a => a -> a -> Bool
+map :: (a -> b) -> [a] -> [b]
+\end{code}
+\end{comment}
+
+\section{Introduction}
+\label{sec:introduction}
+
+Many functional languages support case-by-case definition of functions
+over algebraic data types, matching arguments against alternative
+constructor patterns.  In the most widely used languages, such as Haskell
+and ML, alternative patterns need not exhaust all possible values of
+the relevant datatype; it is often more convenient for pattern matching
+to be partial.  Common simple examples include functions that select
+components from specific constructions --- in Haskell |tail| applies
+to |(:)|-constructed lists and |fromJust| to |Just|-constructed values of
+a |Maybe|-type.
+
+Partial matching does have a disadvantage.  Programs may fail at run-time
+because a case arises that matches none of the available alternatives.
+Such pattern-match failures are clearly undesirable, and the motivation
+for this paper is to avoid them without denying the convenience of
+partial matching.  Our goal is an automated analysis of Haskell 98 programs
+to check statically that, despite the possible use of partial pattern
+matching, no pattern-match failure can occur.
+
+The problem of pattern-match failures is a serious one. The \textit{darcs} project \citep{darcs} is one of the most successful large scale programs written in Haskell. Taking a look at the darcs bug tracker, 13 problems are errors related to the selector function |fromJust| and 19 are direct pattern-match failures.
+
+Consider the following example taken from \citet{me:catch_tfp}:
+
+\begin{code}
+risers :: Ord alpha => [alpha] -> [[alpha]]
+risers [] = []
+risers [x] = [[x]]
+risers (x:y:etc) = if x <= y then (x:s):ss else [x]:(s:ss)
+    where (s:ss) = risers (y:etc)
+\end{code}
+
+\noindent A sample application of this function is:
+
+\ignore\begin{code}
+> risers [1,2,3,1,2]
+[[1,2,3],[1,2]]
+\end{code}
+
+\noindent In the last line of the definition, |(s:ss)| is matched against the result of |risers (y:etc)|. If the result is in fact an empty list, a pattern-match error will occur. It takes a few moments to check manually that no pattern-match failure is possible -- and a few more to be sure one has not made a mistake! Turning the |risers| function over to our analysis tool (which we call \catch{}), the output is:
+
+\smallskip
+\par\noindent\textsf{Checking ``Incomplete pattern on line 5''}
+\par\noindent\textsf{Program is Safe}
+\smallskip
+
+In other examples, where \catch{} cannot verify pattern-match safety, it can provide information such as sufficient conditions on arguments for safe application of a function.
+
+We have implemented all the techniques reported here. We encourage readers to download the Catch tool and try it out. It can be obtained from the website at \url{http://www.cs.york.ac.uk/~ndm/catch/}. A copy of the tool has also been released, and is available on Hackage\footnote{\url{http://hackage.haskell.org/}}.
+
+\subsection{Contributions}
+
+The contributions of this paper include:
+
+\begin{itemize}
+\item Two constraint languages to reason about pattern-match failures, with methods for generating and solving constraints.
+\item Details of the \catch{} implementation which handles the complete Haskell 98 language \citep{haskell}, by transforming Haskell 98 programs to a first-order language.
+\item Results showing success on a number of small examples drawn from the Nofib suite \citep{nofib}, and for two larger examples, investigating the scalability of the checker.
+\end{itemize}
+
+In \citet{me:catch_tfp} a pattern-match checker was described with similar aims, which we will refer to as \oldtool{}\footnote{Although the paper was completed in 2005, publication was delayed}. For \oldtool{} |risers| was towards the boundary of what was possible, for \newtool{} it is trivial. Scalability problems have been addressed and \newtool{} handles real Haskell programs, with no restriction on the recursion patterns, higher-order functions or type classes. The underlying constraint mechanism of \newtool{} is radically different.
+
+\subsection{Road map}
+
+\S\ref{sec:walkthrough} gives an overview of the checking process for the |risers| function. \S\ref{sec:manipulate} introduces a small core functional language and a mechanism for reasoning about this language, \S\ref{sec:constraint} describes two constraint languages. \S\ref{sec:transform} discusses how to transform Haskell to a first-order core language. \S\ref{sec:results} evaluates \newtool{} on programs from the Nofib suite, on a widely-used library and on a larger application program. \S\ref{sec:related} offers comparisons with related work before \S\ref{sec:conclusion} presents concluding remarks.
+
+\section{Overview of the Risers Example}
+\label{sec:walkthrough}
+
+This section sketches the process of checking that the |risers| function in the Introduction does not crash with a pattern-match error.
+
+
+\subsection{Conversion to a Core Language}
+
+Rather than analyse full Haskell, \catch{} analyses a first-order Core language, without lambda expressions, partial application or let bindings. A convertor is provided from the full Haskell 98 language to this restricted language -- see \S\ref{sec:transform}. The result of converting the |risers| program to Core Haskell, and renaming the identifiers for ease of human reading, is shown in Figure \ref{fig:risers_core}.
+
+The type of |risers| is polymorphic over types in |Ord|. \catch{} can check |risers| assuming that |Ord| methods do not raise pattern-match errors, and may return any value. Or a type instance such as |Int| can be specified with a type signature.
+
+\begin{figure}
+\begin{code}
+risers x = case x of
+    [] -> []
+    (y:ys) ->  case ys of
+         [] -> (y : []) : []
+         (z:zs) -> risers2 (risers3 z zs) (y <= z) y
+
+risers2 x y z =  case y of
+    True -> (z : snd x) : (fst x)
+    False -> (z : []) : (snd x : fst x)
+
+risers3 x y = risers4 (risers (x : y))
+
+risers4 x = case x of
+    (y:ys) -> (ys, y)
+    [] -> error "Pattern Match Failure, 11:12."
+\end{code}
+\caption{|risers| in the Core language.}
+\label{fig:risers_core}
+\figureend
+\end{figure}
+
+\subsection{Analysis of |risers| -- a brief sketch}
+
+In the Core language every pattern match covers all possible constructors of the appropriate type. The alternatives for constructor cases not originally given are calls to |error|. The analysis starts by finding calls to |error|, then tries to prove that these calls will not be reached. The one |error| call in |risers4| is avoided under the precondition (see \S\ref{sec:precond}):
+
+\ignore\begin{code}
+risers4, x :< (:)
+\end{code}
+
+\noindent That is, all callers of |risers4| must supply an argument |x| which is a |(:)|-constructed value. For the proof that this precondition holds, two properties are required (see \S\ref{sec:backward}):
+
+\ignore\begin{code}
+x :< (:)  => (risers x       ) :< (:)
+True      => (risers2 x y z  ) :< (:)
+\end{code}
+
+\noindent The first property says that if the argument to |risers| is a |(:)|-constructed value, the result will be. The second states that the result from |risers2| is always |(:)|-constructed.
+
+\section{Pattern Match Analysis}
+\label{sec:manipulate}
+
+This section explains the methods used to calculate preconditions for functions. A basic constraint language is introduced, along with operations upon it.
+
+\subsection{Reduced expression language}
+\label{sec:core}
+
+\begin{figure}
+\begin{code}
+type CtorName  =  String
+type FuncName  =  String
+type VarName   =  String
+type Selector  =  (CtorName, Int)
+
+data Func  =  Func FuncName [VarName] Expr
+
+data Expr  =  Var   VarName
+           |  Make  CtorName  [Expr]
+           |  Call  FuncName  [Expr]
+           |  Case  Expr      [Alt]
+
+data Alt   =  Alt CtorName [VarName] Expr
+\end{code}
+\caption{Core Data Type.}
+\label{fig:core}
+\figureend
+\end{figure}
+
+\begin{figure}
+\begin{code}
+data Value = Bottom | Value CtorName [Value]
+
+eval :: Expr -> Value
+eval x = case  hnf x of
+               Nothing      -> Bottom
+               Just (c,cs)  -> Value c (map eval cs)
+
+-- Nothing corresponds to bottom
+hnf :: Expr -> Maybe (CtorName, [Expr])
+hnf (Make  x   xs    )  =  Just (x, xs)
+hnf (Call  x   xs    )  |  x == "error"  = Nothing
+                        |  otherwise     = hnf (instantiate x xs)
+hnf (Case  on  alts  )  =  listToMaybe [res
+       |  Just (c,cs) <- [hnf on], Alt n vs e <- alts, c == n
+       ,  Just res <- [hnf (subst (zip vs cs) e)]]
+
+subst :: [(VarName, Expr)] -> Expr -> Expr
+subst r (Var   x     ) = fromMaybe (Var x) (lookup x r)
+subst r (Make  x xs  ) = Make  x (map (subst r) xs)
+subst r (Call  x xs  ) = Call  x (map (subst r) xs)
+subst r (Case  x xs  ) = Case (subst r x)
+    [Alt n vs (subst r2 e) | Alt n vs e <- xs
+    , let r2 = filter ((`notElem` vs) . fst) r]
+\end{code}
+\caption{Semantics for Core expressions.}
+\label{fig:semantics}
+\figureend
+\end{figure}
+
+Syntax for the core language is given in Figure \ref{fig:core}. Our Core language is a little more restrictive than the core languages typically used in compilers \citep{ghc_core}. It is first order, has only simple case statements, and only algebraic data types. All case statements have alternatives for all constructors, with |error| calls being introduced where a pattern-match error would otherwise occur.
+
+The evaluation strategy is lazy. A semantics is outlined in Figure \ref{fig:semantics}, as an evaluator from expression to values, written in Haskell. The |hnf| function evaluates an expression to head normal form. The |subst| function substitutes free variables that are the result of a |Case| expression. Laziness is a useful property as it allows $\beta$-reduction to be performed by the checker.
+
+\subsubsection{Operations on Core}
+
+\begin{figure}
+\begin{code}
+ctors        :: CtorName  -> [CtorName]
+arity        :: CtorName  -> Int
+var          :: VarName   -> Maybe (Expr, Selector)
+instantiate  :: FuncName  -> [Expr] -> Expr
+isRec        :: Selector  -> Bool
+\end{code}
+\caption{Operations on Core.}
+\label{fig:core_operations}
+\figureend
+\end{figure}
+
+Figure \ref{fig:core_operations} gives the signatures for helper functions over the core data types. Every constructor has an arity, which can be obtained with the |arity| function. To determine alternative constructors the |ctors| function can be used; for example |ctors "True" = ["False", "True"]| and |ctors "[]" = ["[]",":"]|. The |var| function returns |Nothing| for a variable bound as an argument of a top-level function, and |Just (e,(c,i))| for a variable bound as the |i|th component in the |c|-constructed alternative of case-expression |e|. The function |instantiate| corresponds to $\beta$ reduction. The |isRec (c,n)| function returns true if the constructor |c| has a recursive |n|th component; for example, let |hd = (":",0)| and |tl = (":",1)| then |isRec hd = False| but |isRec tl = True|.
+
+\subsubsection{Algebraic Abstractions of Primitive Types}
+\label{sec:abstraction}
+
+\begin{comment}
+Natural numbers are often encoded by Peano numerals, and this idea can easily be extended to integers:
+
+\begin{code}
+data Pos  = One | Succ Pos
+data Int  = Minus Pos | Zero | Plus Pos
+\end{code}
+
+Although this abstraction of |Int| captures all the underlying detail of the number system, the underlying constraint systems discussed in \S\ref{sec:constraint} would be unable to distinguishing between any pair of numbers both greater than 2, or both less than -2.
+\end{comment}
+
+The Core language only has algebraic data types. \catch{} allows for primitive types such as characters and numbers by abstracting them into algebraic types. For example, the integer abstraction used in \catch{} is simply:
+
+\begin{code}
+data Int = Neg | Zero | One | Pos
+\end{code}
+
+In our experience, numbers are most often constrained to be a natural, or to be non-zero. Addition or subtraction of one is the most common operation. Though very simple, the abstraction models the common properties and operations quite well.
+
+Possible abstractions of characters include:
+
+\ignore\begin{code}
+data Char = Char
+data Char = Alpha | Digit | White | Other
+data Char = 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | Other
+data Char = '\0' | '\1' | '\2' ..
+\end{code}
+
+\noindent \catch{} employs the first abstraction by default, but provides a flag to allow alternatives. In practice, few additional programs are proven safe with a more refined character abstraction.
+
+The final issue of abstraction relates to primitive functions in the |IO| monad, such as |getArgs| (which returns the command-line arguments), or |readFile| (which reads from the file-system). In most cases an IO function is modelled as returning \textit{any} value of the correct type, using a function primitive to the checker.
+
+\subsection{Constraint Essentials and Notation}
+\label{sec:constraints}
+
+\begin{figure}
+\begin{code}
+data Prop alpha
+
+propAnd, propOr, propImp  :: Prop alpha -> Prop alpha -> Prop alpha
+propAnds, propOrs         :: [Prop alpha] -> Prop alpha
+propMap                   :: (alpha -> beta) -> Prop alpha -> Prop beta
+propTrue, propFalse       :: Prop alpha
+propIsTrue, propIsFalse   :: Prop alpha -> Bool
+propBool                  :: Bool -> Prop alpha
+propLit                   :: alpha -> Prop alpha
+
+(==>) :: Bool -> Bool -> Bool
+\end{code}
+\caption{Property data type}
+\label{fig:prop}
+\figureend
+\end{figure}
+
+An expression in our first-order core language evaluates to a data structure. A constraint describes a set of data structures to which a value may belong. If a component within a data structure evaluates to $\bot{}$, there are no constraints upon it.
+
+If |x| is an expression and |c| is a constraint we write |x :< c| to assert that the value of expression |x| must be a member of the set satisfying |c|. It is convenient to have a notation for constraints upon named arguments of named functions: we write \ignore|f, x :< c| to assert that argument |x| of |f| must be in the set satisfying |c|.
+
+Atomic constraints can be combined into propositions, using the proposition data type in Figure \ref{fig:prop}. We also introduce |(==>)|, standard boolean implication -- Haskell already provides |(<=)|, but we prefer the clarity of a different symbol.
+
+Several underlying constraint models are possible. To keep the introduction of the algorithms simple we first use \textit{basic pattern constraints} (\S\ref{sec:basic}). We then describe \textit{regular expression constraints} in \S\ref{sec:regexp} -- a variant of the constraints used in \oldtool{}. Finally we present \textit{multi-pattern constraints} in \S\ref{sec:multipattern} -- used in \newtool{} to enable scaling to much larger problems.
+
+\begin{figure}
+\begin{code}
+data Assert a = a :< Constraint
+
+notin :: CtorName -> Constraint
+(|>) :: Selector -> Constraint -> Constraint
+(<|) :: CtorName -> Constraint -> Prop (Assert Int)
+\end{code}
+\caption{Constraint operations.}
+\label{fig:constraint}
+\figureend
+\end{figure}
+
+Some operations must be provided in every constraint implementation. Signatures are given in Figure \ref{fig:constraint}. |Assert| is the type of the |(:<)| condition. The lifting and splitting operators |(||>)| and |(<||)| are discussed in \S\ref{sec:backward}. The |notin| function generates a constraint which does \textit{not} match the constructor given.
+
+
+\subsection{Basic Pattern (BP) Constraints}
+\label{sec:basic}
+
+\begin{figure}
+\begin{code}
+type Constraint  =  [Pattern]
+data Pattern     =  Con CtorName [Pattern] | Any
+\end{code}
+\caption{Basic pattern constraints.}
+\label{fig:basic}
+\figureend
+\end{figure}
+
+For simplicity, our analysis framework will be introduced using basic pattern constraints (BP-constraints). A BP-constraint directly corresponds to Haskell pattern matching. A constraint is a finite set of patterns represented as in Figure \ref{fig:basic}. A given data structure |d| satisfies a constraint |ps| if |d| matches at least one pattern in |ps|. True and false constraints can be represented as |[Any]| and |[]| respectively. The requirement for a value to be |(:)|-constructed would be expressed as |(Con ":" [Any,Any])|.
+
+The BP-constraint language is limited in expressivity. For example it is impossible to state that all the elements of a boolean list are True. However, even with this limited constraint language, the Risers example can be proven safe.
+
+As an example of an operator definition for the BP-constraint language, |notin| can be defined:
+
+\begin{code}
+notin c = map f (delete c (ctors c))
+   where f x = Con x (replicate (arity x) Any)
+\end{code}
+
+
+\subsection{Preconditions for Pattern Safety}
+\label{sec:precond}
+
+\begin{figure}
+\begin{code}
+type PreFun = FuncName -> [Expr] -> Prop (Assert Expr)
+
+pre :: PreFun -> Expr -> Prop (Assert Expr)
+pre pf (Var   x         ) = propTrue
+pre pf (Make  _   xs    ) = propAnds (map (pre pf) xs)
+pre pf (Call  fn  xs    ) = pf fn xs `propAnd` propAnds (map (pre pf) xs)
+pre pf (Case  on  alts  ) = pre pf on `propAnd` propAnds (map f alts)
+    where f (Alt c vs e) = propLit (on :< notin c) `propOr` pre pf e
+\end{code}
+\caption{Precondition of an expression, |pre|.}
+\label{fig:precondition}
+\figureend
+\end{figure}
+
+Our intention is that for every function, constraints on the arguments form a precondition for pattern safety. The precondition for |error| is False. A program is safe if the precondition on |main| is True. The process of analysis can be seen as deriving these preconditions. Given a function |pf| that returns the precondition on a function's arguments, a function to determine the precondition for safe evaluation of an \textit{expression} can be specified as |pre| in Figure \ref{fig:precondition}.
+
+\subsubsection{Stable Preconditions}
+\label{sec:fixp_precond}
+
+The precondition on each function must be at least as restrictive as the precondition on the body of that function:
+
+\begin{comment}
+\begin{code}
+preFun :: PreFun
+\end{code}
+\end{comment}
+
+\begin{code}
+propRestrictive fn xs = propIsTrue $
+    preFun fn xs `propImp` pre preFun (instantiate fn xs)
+\end{code}
+
+One conservative (and useless) implementation of |preFunc| is to always return False. A perfect precondition would be such that \ignore|preFunc fn xs == pre (instantiate fn xs)|.
+
+\begin{figure}
+\ignore\begin{code}
+for fn `elem` funcs do conds(fn) := propBool (fn /= "error")
+loop
+    for fn `elem` funcs do
+        conds'(fn) := conds(fn) `propAnd` pre preFun (instantiate fn vs)
+    if conds' == conds then break
+    conds := conds'
+end loop
+    where
+        preFun fn xs = conds(fn)[vs1/xs1 .. vs_n/xs_n]
+        vs = ... -- free variables
+\end{code}
+\caption{Precondition calculation.}
+\label{fig:precond_fixp}
+\figureend
+\end{figure}
+
+The iterative algorithm for calculating preconditions is given in Figure~\ref{fig:precond_fixp}.
+Initially all preconditions are assumed to be True, apart from the |error| precondition, which is False. New preconditions are calculated for every function, until no condition changes. In each iteration the preconditions become more restrictive. So \textit{if all chains of increasingly restrictive constraints are finite}, termination is guaranteed. (We return to finiteness in \S\ref{sec:bounded}.) A more efficient algorithm tracks dependencies between preconditions, and performs the minimum amount of recalculation. Finding strongly connected components in the static call graph of a program would allow parts of the program to be checked separately.
+
+\subsubsection{Preconditions and Laziness}
+
+The |pre| function defined in Figures \ref{fig:precondition} does not exploit laziness. The |Call| equation demands that preconditions hold on \textit{all} arguments -- only correct if a function is strict in all arguments. For example, the precondition on |False && error "here"| is False, when it should be True. In general, preconditions may be more restrictive than necessary. However, investigation of a range of examples suggests that inlining |(&&)| and |(||||)| captures many of the common cases where laziness would be required.
+
+
+\subsection{Manipulating constraints}
+\label{sec:backward}
+
+\begin{figure}
+\begin{code}
+back :: Assert Expr -> Prop (Assert Expr)
+back (Var   x         :< k) = propLit $ on :< (c |> k)
+    where Just (on, c) = var x
+back (Make  c   xs    :< k) = replaceVars xs (c <| k)
+back (Case  on  alts  :< k) = propAnds [f c e | Alt c vs e <- alts]
+    where f c e = propLit (on :< notin c) `propOr` propLit (e :< k)
+back (Call  fn  xs    :< k) = replaceVars xs (property fn k)
+
+backs :: Prop (Assert Expr) -> Prop (Assert VarName)
+property :: FuncName -> Constraint -> Prop (Assert Int)
+
+replaceVars :: [Expr] -> Prop (Assert Int) -> Prop (Assert Expr)
+replaceVars xs p = propMap (\(i:<k) -> (xs!!i) :< k) p
+\end{code}
+\caption{Specification of backward analysis, |back|.}
+\label{fig:backward}
+\figureend
+\end{figure}
+
+Constraints on expressions other than argument variables can be rewritten using the |back| function, detailed in Figure \ref{fig:backward}. The |backs| function repeatedly applies |back| until all constraints are on arguments. The |replaceVars| function takes a propositional constraint over a set of index variables, \ignore|v1..v_n|, and replaces each variable with a corresponding expression from an indexed list.
+
+\para{The |Var| rule} applies to variables bound by patterns in case alternatives. It lifts conditions on a bound variable to the subject of the case expression in which they occur. The | ||>| operator lifts a constraint on one part of a data structure to a constraint on the entire data structure. For BP-constraints | ||>| can be defined:
+
+\begin{code}
+(c,i) |> k = map extend k
+    where
+    extend x = Con c (anys i ++ [x] ++ anys (arity c-i-1))
+    anys j = replicate j Any
+\end{code}
+
+\para{The |Make| rule} deals with an application of a constructor. The |<||| operator splits a constraint on an entire structure into a combination of constraints on each part.
+
+\begin{code}
+c <| k = propOrs (map f k)
+    where
+    f Any = propTrue
+    f (Con c2 xs) = propBool (c2 == c) `propAnd`
+        propAnds (map propLit (zipWith (:<) [0..] (map (:[]) xs)))
+\end{code}
+
+\para{The |Case| rule} generates a conjunct for each alternative. An alternative is safe if \textit{either} it is never taken, \textit{or} it meets the constraint when taken. The |notin| function is used to assert that a particular alternative never matches.
+
+\para{The |Call| rule} relies on the key property:
+
+\begin{code}
+propRestrict fn xs k = propIsTrue $
+    backs (propLit $ Call         fn xs :< k) `propImp`
+    backs (propLit $ instantiate  fn xs :< k)
+\end{code}
+
+That is, the result is at least as restrictive as if the function was inlined at this point. Two strategies can be used: (1) Use $\beta$ substitution (|instantiate|) replacing the call with the body of |fn|. (2) Create fresh variables for each argument, use $\beta$ substitution, and then instantiate the results. \oldtool{} used method 1. \newtool{} uses method 2, as it is easier to find a fixed point, and allows a cache of results to be built -- reducing duplicate computation.
+
+\begin{figure}
+\ignore\begin{code}
+prop := [(fn,k) | fn <- funcs, k <- constraints]
+for (fn,k) `elem` ps do prop(fn,k) := true
+loop
+    for (fn,k) `elem` p do
+        prop'(fn,k) := prop(fn,k) `propAnd` backs (instantiate fn vs :< k)
+    if prop' == prop then break
+    prop := prop'
+end loop
+    where
+        property fn k = prop(fn,k)
+        vs = ... -- free variables
+\end{code}
+\caption{Fixed point calculation for |property|.}
+\label{fig:property_fixp}
+\figureend
+\end{figure}
+
+The function |property| in Figure \ref{fig:property_fixp} takes a postcondition, and transforms it to constraints on the argument positions -- a precondition to ensure the postcondition. As in the precondition calculation in \S\ref{sec:precond}, each result becomes increasingly restrictive. If refinement chains of constraint/function pairs are finite, termination is guaranteed. Here again, a speed up can be obtained by tracking the dependencies between constraints.
+
+\subsection{Semantics of Constraints}
+
+A key function in the semantics of constraints tests whether a value satisfies a constraint. The | ||>| operator already provides all the necessary information:
+
+\noindent\begin{minipage}{\linewidth}
+\begin{code}
+satisfies :: Value -> Constraint -> Bool
+satisfies Bottom        k = True
+satisfies (Value c xs)  k = propIsTrue $ propMap f (c <| k)
+    where f (i :< k2) = satisfies (xs !! i) k2
+\end{code}
+\end{minipage}
+
+The first equation returns |True| given a value of type |Bottom|, as for a |Bottom| to arise some other constraint must have been violated. Now we can express properties that the other constraint operations must have:
+
+\begin{code}
+propExtend  v@(Value c xs) k i =
+    satisfies v ((c,i) |> k) ==> satisfies (xs !! i) k
+propExtend _ _ _ = True
+
+propNotin  v@(Value c xs) = not (satisfies v (notin c))
+propNotin  _ = True
+\end{code}
+
+\noindent Note that both properties allow for constraints to be more restrictive than necessary.
+
+\subsection{Finite Refinement of Constraints}
+\label{sec:bounded}
+
+With unbounded recursion in patterns, the BP-constraint language does \textit{not} have only finite chains of refinement. As we saw in \S\ref{sec:fixp_precond}, we need this property for termination of the iterative analysis. In the next section we introduce two alternative constraint systems. Both share a key property: \textit{for any type, there are finitely many constraints}.
+
+
+\section{Richer Constraint Systems}
+\label{sec:constraint}
+
+There are various ways of defining a richer constraint system, also providing the necessary finiteness properties. Here we outline two -- one adapted from \oldtool{}, one entirely new -- both implemented in \newtool{}. Neither is strictly more powerful than the other; each is capable of expressing constraints that the other cannot express.
+
+\subsection{Regular Expression (RE) Constraints}
+\label{sec:regexp}
+
+\begin{figure}
+\begin{code}
+data Constraint  = RegExp :- [CtorName]
+type RegExp      = [RegItem]
+data RegItem     = Atom Selector | Star [Selector]
+
+notin :: CtorName -> Constraint
+notin c = [] :- delete c (ctors c)
+
+(|>) :: Selector -> Constraint -> Constraint
+p |> (r :- cs) = integrate p r :- cs
+
+(<|) :: CtorName -> Constraint -> Prop (Assert Int)
+c <| (r :- cs) = propBool (ewp r ==> (c `elem` cs)) `propAnd`
+    propAnds (map f [0 .. arity c - 1])
+    where
+    f i = case  differentiate (c,i) r of
+                  Nothing  -> propTrue
+                  Just r2  -> propLit $ i :< (r2 :- cs)
+
+ewp :: RegExp -> Bool
+ewp x = all isStar x
+   where  isStar (Star  _) = True
+          isStar (Atom  _) = False
+
+integrate :: Selector -> RegExp -> RegExp
+integrate p r | not (isRec p)  = Atom p : r
+integrate p (Star ps:r)        = Star (nub (p:ps)) : r
+integrate p r                  = Star [p] : r
+
+differentiate :: Selector -> RegExp -> Maybe RegExp
+differentiate p [] = Nothing
+differentiate p (Atom    r:rs)  | p == r     = Just rs
+                                | otherwise  = Nothing
+differentiate p (Star    r:rs)  | p `elem` r  = Just (Star r:rs)
+                                | otherwise   = differentiate p rs
+\end{code}
+\caption{RE-constraints.}
+\label{fig:regexp}
+\figureend
+\end{figure}
+
+\oldtool{} used regular expressions in constraints. A data type for regular expression based constraints (RE-constraints), along with the essential operations upon it is given in Figure \ref{fig:regexp}. In a constraint of the form |(r :- cs)|, |r| is a regular expression and |cs| is a set of constructors. Such a constraint is satisfied by a data structure |d| if every well-defined application to |d| of a sequence of selectors described by |r| reaches a constructor in the set |cs|. If no sequence of selectors has a well-defined result then the constraint is vacuously true.
+
+Concerning the helper functions needed to define | ||>| and |<||| in Figure \ref{fig:regexp}, the |differentiate| function is from \citet{conway:regexp}; |integrate| is its inverse; |ewp| is the empty word property.
+
+\oldtool{} regular expressions were unrestricted and quickly grew to an unmanageable size, thwarting analysis of larger programs. In general, a regular expression takes one of six forms:\\ \\
+\begin{tabular}{ll}
+|r1+r2|  & union of regular expressions |r1| and |r2| \\
+\ignore|r1^.r2| & concatenation of regular expressions |r1| then |r2| \\
+\ignore|r1^*|   & any number (possibly zero) occurrences of |r1| \\
+|sel|  & a selector, i.e. |hd| for the head of a list \\
+0        & the language is the empty set \\
+1        & the language is the set containing the empty string
+\end{tabular} \\
+
+\newtool{} implements REs using the data type |RegExp| from Figure \ref{fig:regexp}, with |RegExp| being a list of concatenated |RegItem|. In addition to the restrictions imposed by the data type, we require: (1) within |Atom| the |Selector| is not recursive; (2) within |Star| there is a non-empty list of |Selector|s, each of which is recursive; (3) no two |Star| constructors are adjacent in a concatenation. These restrictions are motivated by three observations:
+
+\begin{itemize}
+\item Because of static typing constructor-sets must all be of the same type. (In \oldtool{} expressions such as \ignore|hd^*| could arise.)
+
+\item There are finitely many regular expressions for any type. Combined with the finite number of constructors, this property is enough to guarantee termination when computing a fixed-point iteration on constraints.
+
+\item The restricted REs with 0 are closed under integration and differentiation. (The 0 alternative is catered for by the |Maybe| return type in the differentiation. As \ignore|0 :- c| always evaluates to True, |<||| replaces |Nothing| by True.)
+\end{itemize}
+
+\begin{example}
+|(head xs)| is safe if |xs| evaluates to a non-empty list. The RE-constraint generated by \catch{} is: \ignore|xs :< (1 :- {:})|
+\end{example}
+
+\begin{example}
+|(map head xs)| is safe if |xs| evaluates to a list of non-empty lists. The RE-constraint is: \ignore|xs :< (tl^* ^. hd :- {:})| If |xs| is empty, it still satisfies the constraint. If |xs| is infinite then the condition applies to all elements, constraining an infinite number.
+\end{example}
+
+\begin{example}
+|(map head (reverse xs))| is safe if every item in |xs| is |(:)|-constructed, or if |xs| is infinite -- so |reverse| does not terminate. The RE-constraint is: \ignore|xs :< (tl^* ^. hd :- {:}) `propOr` xs :< (tl^* :- {:})|
+\end{example}
+
+\subsubsection{Finite Number of RE-Constraints}
+\label{sec:finite_re}
+
+We require that for any type, there are finitely many constraints (see \S\ref{sec:bounded}). We can model types as:
+
+\begin{code}
+data Type  = Type [Ctor]
+type Ctor  = [Maybe Type]
+\end{code}
+
+Each |Type| has a number of constructors. For each constructor |Ctor|, every component has either a recursive type (represented as |Nothing|) or a non-recursive type |t| (represented as |Just t|). As each non-recursive type is structurally smaller than the original, a function that recurses on the type will terminate. We define a function |count| which takes a type and returns the number of possible RE-constraints.
+
+\begin{code}
+count :: Type -> Integer
+count (Type t) = 2 ^ rec * (2 ^ ctor + sum (map count nonrec))
+    where
+    rec = length (filter isNothing (concat t))
+    nonrec = [x | Just x <- concat t]
+    ctor = length t
+\end{code}
+
+The |2^rec| term corresponds to the number of possible constraints under |Star|. The |2^ctor| term accounts for the case where the selector path is empty.
+
+
+\subsubsection{RE-Constraint Propositions}
+\label{sec:re-propositions}
+
+\catch{} computes over propositional formulae with constraints as atomic propositions. Among other operators on propositions, they are compared for equality to obtain a fixed point. All the fixed-point algorithms given in this paper stop once equal constraints are found. We use Binary Decision Diagrams (BDD) \citep{lee:bdd} to make these equality tests fast. Since the complexity of performing an operation is often proportional to the number of atomic constraints in a proposition, we apply simplification rules to reduce this number. Three of the nineteen rules are:
+
+\para{Exhaustion:} In the constraint |x :< (r :- [":","[]"])| the condition lists all the possible constructors. Because of static typing |x| must be one of these constructors. Any such constraint simplifies to True.
+
+\para{And merging:} The conjunction \ignore|e :< (r :- c1) `propAnd` e :< (r :- c2)| can be replaced by \ignore|e :< (r :- (c1 `intersect` c2))|.
+
+\para{Or merging:} The disjunction \ignore|e :< (r :- c1) `propOr` e :< (r :- c2)| can be replaced by \ignore|e :< (r :- c2)| if \ignore|c1 `subseteq` c2|.
+
+
+\subsection{Multipattern (MP) Constraints \& Simplification}
+\label{sec:multipattern}
+
+\begin{figure}
+\begin{code}
+type Constraint  =  [Val]
+data Val         =  [Pattern] :* [Pattern] |  Any
+data Pattern     =  Pattern CtorName [Val]
+
+-- useful auxiliaries, non recursive selectors
+nonRecs :: CtorName -> [Int]
+nonRecs c = [i | i <- [0..arity c-1], not (isRec (c,i))]
+
+-- a complete Pattern on |c|
+complete :: CtorName -> Pattern
+complete c = Pattern c (map (const Any) (nonRecs c))
+
+notin :: CtorName -> Constraint
+notin c = [map complete (delete c cs) :* map complete cs]
+    where cs = ctors c
+
+(|>) :: Selector -> Constraint -> Constraint
+(c,i) |> k = notin c ++ map f k
+    where
+    f Any = Any
+    f (ms1 :* ms2) | isRec (c,i) = [complete c] :* merge ms1 ms2
+    f v =  [Pattern c [if i == j then v else Any | j <- nonRecs c]]
+           :* map complete (ctors c)
+
+(<|) :: CtorName -> Constraint -> Prop (Assert Int)
+c <| vs = propOrs (map f vs)
+    where
+    (rec,non) = partition (isRec . (,) c) [0..arity c-1]
+
+    f Any = propTrue
+    f (ms1 :* ms2) =  propOrs  [propAnds $ map propLit $ g vs1
+                               | Pattern c1 vs1 <- ms1, c1 == c]
+        where g vs =  zipWith (:<) non (map (:[]) vs) ++
+                      map (:< [ms2 :* ms2]) rec
+
+mergeVal :: Val -> Val -> Val
+(a1 :* b1)  `mergeVal`  (a2 :* b2)  = merge a1 a2 :* merge b1 b2
+x           `mergeVal`  y           = if x == Any then y else x
+
+merge :: [Pattern] -> [Pattern] -> [Pattern]
+merge  ms1 ms2 = [Pattern c1 (zipWith mergeVal vs1 vs2) |
+       Pattern c1 vs1 <- ms1, Pattern c2 vs2 <- ms2, c1 == c2]
+\end{code}
+\caption{MP-constraints.}
+\label{fig:enumeration}
+\figureend
+\end{figure}
+
+Although RE-constraints are capable of solving many examples, they suffer from a problem of scale. As programs become more complex the size of the propositions grows quickly, slowing \catch{} unacceptably. Multipattern constraints (MP-constraints, defined in Figure \ref{fig:enumeration}) are an alternative which scales better.
+
+MP-constraints are similar to BP-constraints, but can constrain an infinite number of items. A value |v| satisfies a constraint |p1 :* p2| if |v| itself satisfies |p1| and all its recursive components at any depth satisfy |p2|. Each of |p1| and |p2| is given as a set of matches as in \S\ref{sec:basic}, but each |Pattern| only specifies the values for the non-recursive selectors, all recursive selectors are handled by |p2|. A constraint is a disjunctive list of |:*| patterns.
+
+\begin{revisit}{1} safe evaluation of |(head xs)| requires |xs| to be non-empty. The MP-constraint generated by \catch{} on |xs| is: \ignore|{(:) Any} :* {[], (:) Any}| This constraint is longer than the corresponding RE-constraint as it makes explicit that both the |hd| field and the recursive components are unrestricted.
+\end{revisit}
+
+\begin{revisit}{2} safe evaluation of |(map head xs)| requires |xs| to be a list of non-empty lists. The MP-constraint on |xs| is:
+
+\smallskip
+\par\noindent \ignore|{[], (:) ({(:) Any} :* {[], (:) Any})} :*|
+\par\noindent \ignore|{[], (:) ({(:) Any} :* {[], (:) Any})}|
+\end{revisit}
+
+\begin{revisit}{3} |(map head (reverse x))| requires |xs| to be a list of non-empty lists \textit{or} infinite. The MP-constraint for an infinite list is: \ignore|{(:) Any} :* {(:) Any}|
+\end{revisit}
+
+MP-constraints also have simplification rules.  Two of the eight rules are:
+
+\para{\ignore|[Val]| simplification:} Given a list of |Val|, if the value |Any| is in this list, the list is equal to |[Any]|. If a value occurs more than once in the list, one copy can be removed.
+
+\para{|Val| simplification:} If both |p1| and |p2| cover all constructors and all their components have |Any| as their constraint, the constraint |p1 :* p2| can be replaced with |Any|.
+
+
+\subsubsection{Finitely Many MP-Constraints per Type}
+
+As in \S\ref{sec:finite_re}, we show there are finitely many constraints per type by defining a |count| function:
+
+\begin{code}
+count :: Type -> Integer
+count (Type t) = 2 ^ val t
+
+val t = 1 + 2 * 2 ^ (pattern t)
+
+pattern t = sum (map f t)
+    where f c = product [count t2 | Just t2 <- c]
+\end{code}
+
+The |val| function counts the number of possible |Val| constructions. The |pattern| function performs a similar role for |Pattern| constructions.
+
+
+\subsubsection{MP-Constraint Propositions and Uncurrying}
+
+A big advantage of MP-constraints is that if two constraints on the same expression are combined at the proposition level, they can be reduced into one constraint:
+
+\ignore\begin{code}
+(e :< v1)  `propOr`   (e :< v2) = e :< (v1 ++ v2)
+(e :< v1)  `propAnd`  (e :< v2) = e :< [a `mergeVal` b | a <- v1, b <- v2]
+\end{code}
+
+\noindent This ability to combine constraints on equal expressions can be exploited further by translating the program to be analysed. After applying |backs|, all constraints will be in terms of the arguments to a function. So if all functions took exactly one argument then \textit{all} the constraints associated with a function body could be collapsed into one. We therefore \textit{uncurry} all functions.
+
+\begin{example}
+\begin{code}
+(||) x y = case  x of
+                 True   -> True
+                 False  -> y
+\end{code}
+
+\noindent can be translated into:
+
+\begin{code}
+(||) a = case  a of
+               (x,y) -> case  x of
+                              True    -> True
+                              False   -> y
+\end{code}\codeexample
+\end{example}
+
+Combining MP-constraint reduction rules with the uncurrying transformation makes |Assert VarName| equivalent in power to |Prop (Assert VarName)|. This simplification reduces the number of different propositional constraints, making fixed-point computations faster. In the RE-constraint system uncurrying would do no harm, but it would be of no use. None of the RE simplification rules is able to reduce distinct components in a tuple.
+
+\subsection{Comparison of RE and MP Constraints}
+
+As we discussed in \S\ref{sec:bounded}, it is not possible to use BP-constraint, as they do not have finite chains of refinement. Both RE-constraints and MP-constraints are capable of expressing a wide range of value-sets, but neither subsumes the other. We give examples where one constraint language can differentiate between a pair of values, and the other cannot.
+
+\begin{comment}
+\begin{code}
+data T = T
+\end{code}
+\end{comment}
+
+\begin{example}
+Let |v1 = (T:[])| and |v2 = (T:T:[])| and consider the MP-constraint \ignore|{(:) Any} :* {[]}|. This constraint is satisfied by |v1| but not by |v2|. No proposition over RE-constraints can separate these two values.
+\end{example}
+
+\begin{example}
+Consider a data type:
+
+\begin{code}
+data Tree alpha  =  Branch  {left  :: Tree alpha, right :: Tree alpha}
+                 |  Leaf    {leaf  :: alpha}
+\end{code}
+
+\noindent and two values of the type \ignore|Tree Bool|
+
+\begin{code}
+v1 = Branch (Leaf True   ) (Leaf False  )
+v2 = Branch (Leaf False  ) (Leaf True   )
+\end{code}
+
+\noindent The RE-constraint \ignore|(left^* ^.leaf :- True)| is satisfied by |v1| but not |v2|. No MP-constraint separates the two values.
+\end{example}
+
+We have implemented both constraint systems in \catch{}. There are various factors to consider when choosing which constraint system to use -- how readable the constraints are, the expressive power, implementation complexity and scalability. In practice the issue of scalability is key: how large do constraints become, how quickly can they be manipulated, how expensive is their simplification. \newtool{} uses MP-constraints by default, as they allow much larger examples to be checked.
+
+\section{Converting Haskell to a First-order Core}
+\label{sec:transform}
+
+The full Haskell language is unwieldy for analysis. As noted in \S\ref{sec:core}, analysis is performed instead on a simplified language, a core to which other Haskell programs can be reduced.
+
+\subsection{Yhc Core}
+
+\begin{comment}
+-- a simple variant of lambda calculus without types, but with source position information. Yhc works by applying basic desugaring transformations, without optimisation. This simplicity ensures the generated PosLambda is close to the original Haskell in its structure. Each top-level function in a source file maps to a top-level function in the generated PosLambda, retaining the same name.
+
+However, PosLambda has constructs that have no direct representation in Haskell. For example, there is a FatBar construct \cite{spj:implementation}, used for compiling pattern matches which require fall through behaviour. The PosLambda language
+\end{comment}
+
+To generate core representations of programs, it is natural to start with a full Haskell compiler, and we chose Yhc \citep{me:yhc_core}, a fork of nhc \citep{nhc}. The core language of Yhc, PosLambda, was intended only as an internal representation, and exposes certain details that are specific to the compiler. We have therefore introduced a new Core language to Yhc, to which PosLambda can easily be translated. All names are fully qualified. Haskell's type classes have been removed (see \S\ref{sec:dict}). Only top-level functions remain; all local functions have been lambda lifted. All constructor applications are fully saturated. Pattern matching occurs only in case expressions; alternatives match only the top level constructor and are exhaustive, including an |error| alternative if necessary.
+
+
+\subsection{The Dictionary Transformation}
+\label{sec:dict}
+
+Most transformations in Yhc operate within a single function definition. The only phases which require information about more than one function are type checking and the transformation used to implement type classes \citep{wadler:type_classes}. The dictionary transformation introduces tuples (or \textit{dictionaries}) of methods passed as additional arguments to class-polymorphic functions. Haskell also allows subclassing. For example, |Ord| requires |Eq| for the same type. In such cases the dictionary transformation generates a nested tuple: the |Eq| dictionary is a component of the |Ord| dictionary.
+
+\begin{example}
+\nopagebreak
+\ignore\begin{code}
+f :: Eq alpha => alpha -> alpha -> Bool
+f x y = x == y || x /= y
+\end{code}
+
+\noindent is translated by Yhc into
+
+\begin{code}
+f :: (alpha -> alpha -> Bool, alpha -> alpha -> Bool) -> alpha -> alpha -> Bool
+f dict x y = (||) (((==) dict) x y) (((/=) dict) x y)
+
+(==) (a,b) = a
+(/=) (a,b) = b
+\end{code}
+
+The |Eq| class is implemented as two selector functions, |(==)| and |(/=)|, acting on a method table. For different types of |alpha|, different method tables are provided.
+\end{example}
+
+The dictionary transformation is a global transformation. In Example \lastexample{} the |Eq| context in |f| not only requires a dictionary to be accepted by |f|; it requires all the callers of |f| to pass a dictionary as first argument. An alternative approach to implementing type classes, given in \citet{jones:dictionary_free}, does not rely on higher order functions. Although this approach might suit \catch{} better, we re-used the method already implemented in Yhc.
+
+\subsection{First-Order Haskell}
+
+The analysis presented in \S\ref{sec:manipulate} operates on a first-order language. In order to analyse full Haskell, we transform Haskell to a first-order language. We briefly consider three alternative methods.
+
+\subsubsection{Reynolds style defunctionalization}
+
+Reynolds style defunctionalization \citep{reynolds:defunc} is the seminal method for generating a first-order equivalent of a higher-order program.
+
+\begin{example}
+\begin{code}
+map fn x = case  x of
+                 []      -> []
+                 (a:as)  -> fn a : map fn as
+\end{code}
+
+\noindent Defunctionalization works by creating a data type to represent all values that |fn| may take anywhere in the whole program. For instance, it might be:
+
+\ignore\begin{code}
+data Functions = Head | Tail
+
+apply Head  x = head  x
+apply Tail  x = tail  x
+
+map fn x = case  x of
+                 []      -> []
+                 (a:as)  -> apply fn a : map fn as
+\end{code}
+
+\noindent Now all calls to |map head| are replaced by \ignore|map Head|.
+\end{example}
+
+Defunctionalized code is still type safe, but type checking would require a dependently typed language. This presents no problem for \catch{}, which does not use type information. The unacceptable aspect is the creation of an |apply| function, whose meaning is excessively general, introducing a bottleneck through which various properties must be proven. Asking questions such as \textit{``Is the result of |apply| an empty-list?''}, requires a lot of computation.
+
+\catch{} only uses Reynolds style defunctionalization if all other methods fail.
+
+
+\subsubsection{Specialisation}
+
+\oldtool{} uses a different technique to remove higher-order functions: specialisation. A mutually recursive group of functions can be specialised if one argument is always passed between functions unmodified. Examples of common functions whose applications can be specialised include |map|, |filter|, |foldr| and |foldl|. When a function can be specialised, the expression passed as the invariant argument has all its free variables passed as extra arguments, and is expanded in the specialised version. All recursive calls within the new function are then renamed.
+
+\begin{example}
+\begin{code}
+adds x n = map ((+) n) x
+map fn xs =  case  xs of
+             []      -> []
+             (a:as)  -> fn a : map fn as
+\end{code}
+
+\noindent is transformed into:
+
+\begin{code}
+adds x n = map_adds n x
+map_adds n xs =  case  xs of
+                 []      -> []
+                 (a:as)  -> (+) n a : map_adds n as
+\end{code}\codeexample
+\end{example}
+
+Specialisation alone is sufficient for many examples, but it cannot cope with point-free code, and does not deal with many forms of dictionaries.
+
+\subsubsection{Specialisation with Inlining}
+
+The power of specialisation is greatly increased if it is combined with inlining, and applied selectively to higher-order functions.
+
+\begin{figure}
+\ignore\begin{code}
+data Expr  =  ... -- as in Figure {\ref{fig:core}}
+           |  Part   Int FuncName [Expr]
+           |  Apply  Expr [Expr]
+
+-- equivalences
+Part 0 fn xs == Call fn xs
+Apply (Part n fn xs) ys == Part (n - length ys) fn (xs ++ ys)
+\end{code}
+\caption{Augmented Core syntax.}
+\label{fig:core_ho}
+\figureend
+\end{figure}
+
+In order to permit a higher-order program to be represented, the Core language is augmented with additional constructs, as shown in Figure \ref{fig:core_ho}. The |Apply| constructor represents an unsaturated function call, or a variable to be used as the function. The |Part| constructor is used to represent unsaturated function calls, leaving the normal |Call| constructor to represent saturated calls. A |Part| construction records how many arguments are needed.
+
+\begin{figure}
+\ignore\begin{code}
+isHO :: Expr -> Bool
+isHO (Part n _ _)    = n > 0
+isHO (Make _ xs)     = any isHO xs
+isHO (Case on alts)  = any (isHO . snd) alts
+isHO _               = False
+\end{code}
+\caption{Tests for the firstifier.}
+\label{fig:isHO}
+\figureend
+\end{figure}
+
+The algorithm for removing higher-order functions has two components, specialisation and inlining. We apply the specialise rule until a fixed point is reached, then apply the inline rule once. We repeat these two steps until a fixed point is reached. Given an appropriate |fix| function, |firstify| can be implemented as:
+
+\ignore\begin{code}
+firstify :: Program -> Program
+firstify = fix (inline . fix specialise)
+\end{code}
+
+\para{The |inline| stage} inlines each |Call| for which the body passes the |isHO| test, defined in Figure \ref{fig:isHO}. If this process causes a function to no longer be called from the root of the program, then the function is removed after inlining.
+
+\para{The |specialise| stage} takes every expression of the form |Call fn xs| where \ignore|any isHO xs|, and generates a specialised version of the function |fn| with all functional arguments in |xs| frozen in, and all others passed normally.
+
+In rare circumstances a program may have an infinite number of specialisations. If necessary we revert to Reynolds style defunctionalization.
+
+The combination of specialisation and inlining is powerful. We have encountered few examples where it fails -- mainly artificial tests created specifically to break the approach! In the definition of a higher-order function either the entire body is an application of the functional argument (in which case it will be inlined), or it must occur as the argument to a function (in which case it is specialised). There are only two places left for functional arguments to be used: (1) As the subject of a \ignore|case| expression. But this situation is impossible as all \ignore|case| expressions must choose over a data value. (2) Inside an |Apply| with another functional argument variable as the function. This situation is rare due to the removal of other functional arguments.
+
+\section{Results and Evaluation}
+\label{sec:results}
+
+The best way to see the power of \catch{} is by example. \S\ref{sec:safety} discusses in general how some programs may need to be modified to obtain provable safety. \S\ref{sec:imaginary} investigates all the examples from the Imaginary section of the Nofib suite \cite{nofib}. To illustrate results for larger and widely-used applications, \S\ref{sec:finitemap} investigates a library (FiniteMap) and \S\ref{sec:hscolour} investigates a complete program (HsColour).
+
+
+\subsection{Modifications for Verifiable Safety}
+\label{sec:safety}
+
+Take the following example:
+
+\begin{code}
+average xs = sum xs `div` length xs
+\end{code}
+
+If |xs| is |[]| then a division by zero occurs, modelled in \catch{} as a pattern-match error. One small local change could be made which would remove this pattern match error:
+
+\begin{code}
+average xs = if null xs then 0 else sum xs `div` length xs
+\end{code}
+
+\noindent Now if |xs| is |[]|, the program simply returns 0, and no pattern match error occurs. In general, pattern-match errors can be avoided in two ways:
+
+\para{Widen the domain of definition:} In the example, we widen the domain definition for the |average| function. The modification is made in one place only -- in the definition of |average| itself. An alternative approach to the |average| example would be to widen the domain of definition for division, using a variant such as:
+
+\begin{code}
+safeDiv x y = if y == 0 then 0 else x / y
+\end{code}
+
+
+\para{Narrow the domain of application:} In the example, we narrow the domain of application for the |(/)| function.  Note that we narrow this domain only for the |(/)| application in |average| -- other |(/)| applications may remain unsafe. Another alternative would be to narrow the domain of application for |average|, ensuring that |[]| is not passed as the argument. This alternative would require a deeper understanding of the flow of the program, requiring rather more work.
+
+In the following sections, where modifications are required, we prefer to make the minimum number of changes. Consequently, we widen the domain of definition.
+
+\subsection{Nofib Benchmark Tests}
+\label{sec:imaginary}
+
+\begin{table}
+\caption{Table of results}
+\label{tab:results}
+
+\smallskip
+
+\textbf{Name} is the name of the checked program (a starred name indicates that changes were needed before safe pattern-matching could be verified);
+\textbf{Src} is the number of lines in the original source code;
+\textbf{Core} is the total number of lines of Yhc Core, including all functions used from libraries;
+\textbf{First} is the number of lines after firstification, just before analysis;
+\textbf{Err} is the number of calls to |error| (missing pattern cases);
+\textbf{Pre} is the number of functions which have a precondition which is not simply `True';
+\textbf{Sec} is the time taken for transformations and analysis;
+\textbf{Mb} is the maximum residency of \catch{} at garbage collection time.
+
+\smallskip\smallskip
+
+\begin{tabular*}{\linewidth}{lrrrrrrlll}
+\hspace{-2mm} \textbf{Name} & \textbf{Src} & \textbf{Core} & \textbf{First} & \textbf{Err} & \textbf{Pre} & \textbf{Sec} & \textbf{Mb} \\
+\vspace{-1ex} \\
+\hspace{-2mm} Bernoulli*                   & 35 & 1616 &  652 & 5 & 11 & 4.1 & 0.8 \\
+\hspace{-2mm} Digits of E1*  \hspace{-3mm} & 44 &  957 &  377 & 3 &  8 & 0.3 & 0.6 \\
+\hspace{-2mm} Digits of E2   \hspace{-3mm} & 54 & 1179 &  455 & 5 & 19 & 0.5 & 0.8 \\
+\hspace{-2mm} Exp3-8                       & 29 &  220 &  163 & 0 &  0 & 0.1 & 0.1 \\
+\hspace{-2mm} Gen-Regexps*   \hspace{-3mm} & 41 & 1006 &  776 & 1 &  1 & 0.3 & 0.4 \\
+\hspace{-2mm} Integrate                    & 39 & 2466 &  364 & 3 &  3 & 0.3 & 1.9 \\
+\hspace{-2mm} Paraffins*                   & 91 & 2627 & 1153 & 2 &  2 & 0.8 & 1.9 \\
+\hspace{-2mm} Primes                       & 16 &  302 &  241 & 6 & 13 & 0.2 & 0.1 \\
+\hspace{-2mm} Queens                       & 16 &  648 &  283 & 0 &  0 & 0.2 & 0.2 \\
+\hspace{-2mm} Rfib                         &  9 & 1918 &  100 & 0 &  0 & 0.1 & 1.7 \\
+\hspace{-2mm} Tak                          & 12 &  209 &  155 & 0 &  0 & 0.1 & 0.1 \\
+\hspace{-2mm} Wheel Sieve 1* \hspace{-3mm} & 37 & 1221 &  570 & 7 & 10 & 7.5 & 0.9 \\
+\hspace{-2mm} Wheel Sieve 2* \hspace{-3mm} & 45 & 1397 &  636 & 2 &  2 & 0.3 & 0.6 \\
+\hspace{-2mm} X2n1                         & 10 & 2637 &  331 & 2 &  5 & 1.8 & 1.9 \\
+\vspace{-1ex} \\
+\hspace{-2mm} FiniteMap*    \hspace{-3mm} & 670 & 1484 & 1829 & 13 & 17 & 1.6 & 1.0 \\
+\hspace{-2mm} HsColour*     \hspace{-3mm} & 823 & 5379 & 5060 & 4 &  9 & 2.1 & 2.7 \\
+\hline
+\end{tabular*}
+\figureend
+\end{table}
+
+The entire Nofib suite \citep{nofib} is large. We concentrate on the `Imaginary' section. These programs are all under a page of text, excluding any Prelude or library definitions used, and particularly stress list operations and numeric computations.
+
+Results are given in Table \ref{tab:results}. Only four programs contain no calls to |error| as all pattern-matches are exhaustive. Four programs use the list-indexing operator |(!!)|, which requires the index to be non-negative and less than the length of the list; \catch{} can only prove this condition if the list is infinite. Eight programs include applications of either |head| or |tail|, most of which can be proven safe. Seven programs have incomplete patterns, often in a |where| binding and \catch{} performs well on these. Nine programs use division, with the precondition that the divisor must not be zero; most of these can be proven safe.
+
+Three programs have preconditions on the |main| function, all of which state that the argument must be a natural number. In all cases the generated precondition is a necessary one -- if the input violates the precondition then pattern-match failure will occur.
+
+We now discuss general modifications required to allow \catch{} to begin checking the programs, followed by the six programs which required changes. We finish with the Digits of E2 program -- a program with complex pattern matching that \catch{} is able to prove safe.
+
+\paragraph{Modifications for Checking}
+
+Take a typical benchmark, Primes. The |main| function is:
+
+\begin{comment}
+\begin{code}
+primes :: [Int]
+\end{code}
+\end{comment}
+
+\begin{code}
+main = do  [arg] <- getArgs
+           print $ primes !! (read arg)
+\end{code} % $
+
+The first unsafe pattern here is \ignore|[arg] <- getArgs|, as |getArgs| is a primitive which may return any value. \catch{} can only return False as the sufficient precondition to |main|!
+
+The next step that may fail is when |read| is applied to an argument extracted from |getArgs|. This argument is entirely unknown, and |read| is a sufficiently complicated function that although it can be modelled by \catch{}, there is no possibility for getting an appropriate abstraction which models the failure case. As a result, any program which calls |read| is unsafe, according to \catch{}. Using |reads|, which indicates failure properly, a program may still be checked  successfully.
+
+As a result the programs have been rewritten, and \catch{} is directed to check the function:
+
+\begin{code}
+compute x = print $ primes !! x
+\end{code}
+
+\paragraph{Bernoulli}
+
+This program has one instance of |tail (tail x)|. MP-constraints are unable to express that a list must be of at least length two, so \catch{} conservatively strengthens this to the condition that the list must be infinite -- a condition that Bernoulli does not satisfy. One remedy is to replace |tail (tail x)| with |drop 2 x|. After this change, the program still has several non-exhaustive pattern matches, but all are proven safe.
+
+
+\paragraph{Digits of E1}
+
+This program contains the following equation:
+
+\begin{code}
+ratTrans (a,b,c,d) xs |
+  ((signum c == signum d) || (abs c < abs d)) &&
+  (c+d)*q <= a+b && (c+d)*q + (c+d) > a+b
+     = q:ratTrans (c,d,a-q*c,b-q*d) xs
+  where q = b `div` d
+\end{code}
+
+\noindent \catch{} is able to prove that the division by |d| is only unsafe if both |c| and |d| are zero, but it is not able to prove that this invariant is maintained. Using |safeDiv| from \S\ref{sec:safety} the program is proved safe.
+
+As the safety of this program depends on quite deep results in number theory, it is no surprise that it is beyond the scope of an automatic checker such as \catch{}.
+
+\paragraph{Gen-Regexps}
+
+This program expects valid regular expressions as input. Ways of crashing the program include entering |""|, |"["|, |"<"| and lots of other inputs. One potential error comes from |head . lines|, which can be replaced by |takeWhile (/= '\n')|. Two potential errors take the form \ignore|(a,_:b) = span f xs|. At first glance this pattern definition is similar to the one in |risers|. But here the pattern is only safe if for one of the elements in the list |xs|, |f| returns True. The test |f| is actually |(/= '-')|, and the only safe condition \catch{} can express is that |xs| is an infinite list. With the amendment  \ignore|(a,b) = safeSpan f xs|, where |safeSpan| is defined as:
+
+\begin{code}
+safeSpan p xs = (a, drop 1 b) where (a,b) = span p xs
+\end{code}
+
+\noindent \catch{} verifies pattern safety.
+
+\paragraph{Wheel Sieve 1}
+
+This program defines a data type |Wheel|, and a function |sieve|:
+
+\begin{code}
+data Wheel = Wheel Int [Int]
+
+sieve :: [Wheel] -> [Int] -> [Int] -> [Int]
+\end{code}
+
+The lists are infinite, and the integers are positive, but the program is too complex for \catch{} to infer these properties in full. To prove safety a variant of |mod| is required which does not raise division by zero and a pattern in |notDivBy| has to be completed. Even with these two modifications, \catch{} takes 7.5 seconds to check the other non-exhaustive pattern matches.
+
+
+\paragraph{Wheel Sieve 2}
+
+This program has similar datatypes and invariants, but much greater complexity. \catch{} is able to prove very few of the necessary invariants. Only after widening the domain of definition in three places -- replacing |tail| with |drop 1|, |head| with a version returning a default on the empty list, and |mod| with a safe variant -- is \catch{} able to prove safety.
+
+
+\paragraph{Paraffins}
+
+Again the program can only be validated by \catch{} after modification. There are two reasons: laziness and arrays. Laziness allows the following odd-looking definition:
+
+\begin{comment}
+\begin{code}
+big_memory_computation = undefined
+\end{code}
+\end{comment}
+
+\begin{code}
+radical_generator n = radicals undefined
+  where radicals unused = big_memory_computation
+\end{code}
+
+If |radicals| had a zero-arity definition it would be computed once and retained as long as there are references to it. To prevent this behaviour, a dummy argument (|undefined|) is passed. If the analysis was more lazy (as discussed in \S\ref{sec:precond}) then this example would succeed using \catch{}. As it is, simply changing |undefined| to |()| resolves the problem.
+
+The Paraffins program uses the function \ignore|array :: Ix a => (a, a) -> [(a, b)] -> Array a b| which takes a list of index/value pairs and builds an array. The precondition on this function is that all indexes must be in the range specified. This precondition is too complex for \catch{}, but simply using |listArray|, which takes a list of elements one after another, the program can be validated. Use of |listArray| actually makes the program shorter and more readable. The array indexing operator \ignore|(!)| is also troublesome. The precondition requires that the index is in the bounds given when the array was constructed, something \catch{} does not currently model.
+
+
+\paragraph{Digits of E2}
+
+This program is quite complex, featuring a number of possible pattern-match errors. To illustrate, consider the following fragment:
+
+\begin{code}
+carryPropagate base (d:ds) = elipses
+  where  carryguess = d `div` base
+         remainder = d `mod` base
+         nextcarry:fraction = carryPropagate (base+1) ds
+\end{code}
+
+\noindent There are four potential pattern-match errors in as many lines. Two of these are the calls to |div| and |mod|, both requiring \ignore|base| to be non-zero. A possibly more subtle pattern match error is the \ignore|nextcarry:fraction| left-hand side of the third line. \catch{} is able to prove that none of these pattern-matches fail. Now consider:
+
+\begin{code}
+e =  ("2."++) $
+     tail . concat $
+     map (show.head) $
+     iterate (carryPropagate 2 . map (10*) . tail) $
+     2:[1,1..]
+\end{code}
+
+\noindent Two uses of |tail| and one of |head| occur in quite complex functional pipelines. \catch{} is again able to prove that no pattern-match fails.
+
+\subsection{The FiniteMap library}
+\label{sec:finitemap}
+
+The FiniteMap library for Haskell has been widely distributed for over 10 years. The library uses balanced binary trees, based on \citep{adams:sets}. There are 14 non-exhaustive pattern matches.
+
+The first challenge is that there is no |main| function. \catch{} uses all the exports from the library, and checks each of them as if it had |main| status.
+
+\catch{} is able to prove that all but one of the non-exhaustive patterns are safe. The definition found unsafe has the form:
+
+\begin{comment}
+\begin{code}
+data Branch a b = Branch a b
+\end{code}
+\end{comment}
+
+\begin{code}
+delFromFM (Branch key elipses) del_key  | del_key  >   key = elipses
+                                        | del_key  <   key = elipses
+                                        | del_key  ==  key = elipses
+\end{code}
+
+At first glance the cases appear to be exhaustive. The law of trichotomy leads us to expect one of the guards to be true. However, the Haskell |Ord| class does not enforce this law. There is nothing to prevent an instance for a type with partially ordered values, some of which are incomparable. So \catch{} cannot verify the safety to |delFromFM| as defined as above.
+
+The solution is to use the |compare| function which returns one of |GT|, |EQ| or |LT|. This approach has several advantages: (1) the code is free from non-exhaustive patterns; (2) the assumption of trichotomy is explicit in the return type; (3) the library is faster.
+
+
+\subsection{The HsColour Program}
+\label{sec:hscolour}
+
+Artificial benchmarks are not necessarily intended to be fail-proof. But a real program, with real users, should \textit{never} fail with a pattern-match error. We have taken the HsColour program\footnote{http://www.cs.york.ac.uk/fp/darcs/hscolour/} and analysed it using \catch{}. HsColour has 12 modules, is 4 years old and has had patches from 6 different people.
+We have contributed patches back to the author of HsColour, with the result that the development version can be proved free from pattern-match errors.
+
+\catch{} required 4 small patches to the HsColour program before it could be verified free of pattern-match failures. Details are given in Table \ref{tab:results}. Of the 4 patches, 3 were genuine pattern-match errors which could be tripped by constructing unexpected input. The issues were: (1) |read| was called on a preferences file from the user, this could crash given a malformed preferences file; (2) by giving the document consisting of a single double quote character \texttt{"}, and passing the ``-latex'' flag, a crash occurred; (3) by giving the document \texttt{(`)}, namely open bracket, backtick, close bracket, and passing ``-html -anchor'' a crash occurred. The one patch which did not (as far as we are able to ascertain) fix a real bug could still be considered an improvement, and was minor in nature (a single line).
+
+Examining the |read| error in more detail, by default \catch{} outputs the potential error message, and a list of potentially unsafe functions in a call stack:
+
+\smallskip
+\par\noindent\textsf{Checking ``Prelude.read: no parse''}
+\par\noindent\textsf{Partial Prelude.read\$252}
+\par\noindent\textsf{Partial Language.Haskell.HsColour.Colourise.parseColourPrefs}
+\par\noindent\textsf{...}
+\par\noindent\textsf{Partial Main.main}
+\smallskip
+
+Using our knowledge of the intention of functions, we can see that although |read| calls error, the blame probably lies in the caller of |read| -- namely \ignore|parseColourPrefs|. By examining this location in the source code we are able to diagnose and correct the problem. \catch{} optionally reports all the preconditions it has deduced, although in our experience problems can usually be fixed from source-position information alone.
+
+\section{Related Work}
+\label{sec:related}
+
+\subsection{Mistake Detectors}
+
+There has been a long history of writing tools to analyse programs to detect potential bugs, going back at least to the classic C Lint tool \citep{lint}. In the functional arena there is the Dialyzer tool \citep{dialyzer} for Erlang \citep{erlang}. The aim is to have a static checker that works on unmodified code, with no additional annotations. However, a key difference is that in Dialyzer all warnings indicate a genuine problem that needs to be fixed. Because Erlang is a dynamically typed language, a large proportion of Dialyzer's warnings relate to mistakes a type checker would have detected.
+
+\subsection{Proving Incomplete Patterns Safe}
+
+Despite the seriousness of the problem of pattern matching, there are very few other tools for checking pattern-match safety. This paper has similar goals to \citet{me:catch_tfp}, but some key design decisions are radically different. The difference in practice is that \catch07 supports full Haskell, can scale to much larger examples and can feasibly be used on real programs. Some of the reasons for these better results include a different fixed-point mechanism, the use of MP-constraints and a superior translation from Core.
+
+The closest other work we are aware of is \citep{esc_haskell}, where ESC/Haskell is introduced. The ESC/Haskell approach requires the programmer to give explicit preconditions and contracts which the program obeys. Contracts have more expressive power than our constraints -- one of the examples involves an invariant on an ordered list, something beyond \catch{}. But the programmer has more work to do. At the time of writing there is no publicly available version of ESC/Haskell. So far as we know, it does not yet support full Haskell, lacks features such as type classes\footnote{We have confirmed this information in correspondence with Xu.}, and handles only small examples. A future version of ESC/Haskell may address these limitations, allowing a fuller comparison to be made.
+
+
+\subsection{Eliminating Incomplete Patterns}
+
+One way to guarantee that a program does not crash with an incomplete pattern is to ensure that all pattern matching is exhaustive. The GHC compiler \citep{ghc} has an option flag to warn of any incomplete patterns. Unfortunately the Bugs section (12.2.1) of the manual notes that the checks are sometimes wrong, particularly with string patterns or guards, and that this part of the compiler ``needs an overhaul really'' \citep{ghc}. A more precise treatment of when warnings should be issued is given in \citet{maranget:pattern_warnings}. These checks are only local: defining |head| will lead to a warning, even though the definition is correct; using |head| will not lead to a warning, even though it may raise a pattern-match error.
+
+A more radical approach is to build exhaustive pattern matching into the design of the language, as part of a total programming system \citep{turner:total}. The \catch{} tool could perhaps allow the exhaustive pattern matching restriction to be lifted somewhat.
+
+
+\subsection{Type System Safety}
+
+One method for specifying properties about functional programs is to use the type system. This approach is taken in the tree automata work done on XML and XSLT \citep{static_xslt}, which can be seen as an algebraic data type and a functional language. Another soft typing system with similarities is by \citet{aiken:type_infer}, on the functional language FL. This system tries to assign a type to each function using a set of constructors, for example |head| takes the type |Cons| and not |Nil|.
+
+\begin{figure}
+\begin{code}
+data Cons
+data Unknown
+
+newtype List a t = List [a]
+
+cons :: a -> [a] -> List a Cons
+cons a as = List (a:as)
+
+nil :: List a Unknown
+nil = List []
+
+fromList :: [a] -> List a Unknown
+fromList xs = List xs
+
+safeTail :: List a Cons -> [a]
+safeTail (List (a:as)) = as
+\end{code}
+\caption{A |safeTail| function with Phantom types.}
+\label{fig:phantom}
+\figureend
+\end{figure}
+
+Types can sometimes be used to explicitly encode invariants on data in functional languages. One approach is the use of \textit{phantom types} \citep{fluet:phantom}, for example a safe variant of |tail| can be written as in Figure \ref{fig:phantom}. The |List| type is not exported, ensuring that all lists with a |Cons| tag are indeed non-empty. The types |Cons| and |Unknown| are phantom types -- they exist only at the type level, and have no corresponding value.
+
+\begin{figure}
+\ignore\begin{code}
+data ConsT a
+data NilT
+
+data List a t where
+    Cons  :: a -> List a b -> List a (ConsT b)
+    Nil   :: List a NilT
+
+safeTail :: List a (ConsT t) -> List a t
+safeTail (Cons a b) = b
+
+fromList :: [a] -> (forall t `o` List a t -> r) -> r
+fromList []      fn = fn Nil
+fromList (x:xs)  fn = fromList xs (fn . Cons x)
+\end{code}
+\caption{A |safeTail| function using GADTs.}
+\label{fig:gadt}
+\figureend
+\end{figure}
+
+Using GADTs \citep{spj:gadt}, an encoding of lists can be written as in Figure \ref{fig:gadt}. Notice that |fromList| requires a locally quantified type. The type-directed approach can be pushed much further with \textit{dependent types}, which allow types to depend on values. There has been much work on dependent types, using undecidable type systems \citep{epigram}, using extensible kinds \citep{omega} and using type systems restricted to a decidable fragment \citep{xi:dependent_practical}. The downside to all these type systems is that they require the programmer to make explicit annotations, and require the user to learn new techniques for computation.
+
+
+\section{Conclusions and Future Work}
+\label{sec:conclusion}
+
+We have described the design, implementation and application of \catch{},
+an analysis tool for safe pattern-matching in Haskell 98.  Two key
+design decisions in \catch{} simplify the analysis and make it scalable:
+(1) the target of analysis is a very small, first-order core language;
+(2) there are finitely many value-set-defining constraints per type.
+Decision (1) requires a translation from the full language that avoids
+the introduction of analysis bottlenecks such as an interpretive |apply|
+operator; the combined use of inlining and specialisation has proved
+very effective.  Decision (2) inevitably limits the expressive power of
+constraints; yet it does not prevent the expression of uniform recursive
+constraints on the deep structure of values, as in MP-constraints.
+
+Practical evaluation, using \catch{} to analyse widely distributed examples
+in Haskell 98, confirms our claim to give results for programs of moderate
+size written in the full language. But it does also reveal a frequent need
+to modify programs, widening definitions or narrowing applications,
+before \catch{} can verify pattern-match safety.
+
+Outcomes of example applications could drive the exploration of more
+powerful variants of MP-constraints, with a greater (but still finite)
+number of expressible constraints per type.  More demanding tests of
+scalability could include the application of \catch{} to a Haskell compiler,
+or indeed to \catch{} itself.
+
+A tool such as \catch{} might do more harm than good if it sometimes wrongly
+declares that a program cannot fail.  We claim that the \catch{} analysis
+is sound, but we have not formally proved soundness with respect to a
+suitable semantics for the core language.
+
+Like many researchers, we are interested in narrowing the gap between the
+exactness of constructive mathematics and the scalability of practical
+programming systems.  We hope that \catch{} or its successors can provide
+a small but useful bridge crossing part of that gap.
+
+\vspace{-2mm}
+
+\bibliographystyle{plainnat}
+
+\small
+\bibliography{catch}
+
+
+
+\end{document}
