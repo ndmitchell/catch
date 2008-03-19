@@ -7,6 +7,68 @@
 \include{paper}
 %include paper.fmt
 
+%format forall  = "\forall{}"
+%format alpha  = "\alpha{}"
+%format beta  = "\beta{}"
+%format lambda  = "\lambda{}"
+%format phi  = "\phi{}"
+%format <| = "\lhd{}"
+%format |> = "\rhd{}"
+%format :< = "\mbox{\ensuremath{<\hspace{-1em}-}}"
+%format :- = "\!\rightsquigarrow{}\!"
+%format :* = "\star{}"
+%format :| = "\ddagger{}"
+%format `o` = "\bullet{}"
+%format ^. = "\!\cdot{}\!"
+%format ^* = "^\ast{}\!"
+%format ^ = "\;\hat{}\;"
+%format <=> = "\Leftrightarrow{}"
+%format `subseteq` = "\subseteq{}"
+%format `union` = "\cup{}"
+%format `intersect` = "\cap{}"
+%format not = "\mathsf{not}"
+%format undefined   = "\mathsf{undefined}"
+%format `mergeVal` = "\sqcap{}"
+%format mergeVal = "(\sqcap{})"
+%format && = "\mathrel{\hbox{\textsf{\& \hspace{-1em} \&}}}"
+%format || = "\mathrel{||}"
+%format elipses = "..."
+%format `div` = "\;\textsf{\`{}\!div\!\`{}}\;"
+%format `mod` = "\;\textsf{\`{}\!mod\!\`{}}\;"
+
+%format `propAnd` = "\ensuremath{\wedge}"
+%format `propOr` = "\ensuremath{\vee}"
+%format propAnd = "(\ensuremath{\wedge})"
+%format propOr = "(\ensuremath{\vee})"
+%format propAnds = "\mathsf{andP}"
+%format propOrs = "\mathsf{orP}"
+%format propLit = "\mathsf{lit}"
+%format propMap = "\mathsf{mapP}"
+%format propTrue = "\mathsf{true}"
+%format propFalse = "\mathsf{false}"
+%format propBool = "\mathsf{bool}"
+%format propIsTrue = "\mathsf{isTrue}"
+%format propIsFalse = "\mathsf{isFalse}"
+%format `propImp` = "\ensuremath{\Longrightarrow}"
+%format propImp = "(\ensuremath{\Longrightarrow})"
+%format ==> = "\ensuremath{\Rightarrow}"
+
+
+\newcommand{\keyword}[1]{\hspace{-1mm}\text{\textsf{\textbf{ #1}}}}
+
+%subst conid a = "\mathsf{" a "}"
+%subst varid a = "\mathsf{" a "}"
+%subst varsym a = "\mathsf{" a "}"
+%subst keyword a = "\keyword{" a "}"
+% "\hspace{-1mm}\text{\textsf{\textbf{ " a "}}}"
+
+%format break = "\keyword{break}"
+%format end   = "\keyword{end}"
+%format loop  = "\keyword{loop}"
+%format for   = "\keyword{for}"
+
+
+
 \newcommand{\tup}[1]{\ensuremath{\langle #1 \rangle}}
 \newcommand{\mtxt}[1]{\textsf{#1}}
 
@@ -1383,7 +1445,7 @@ a small but useful bridge crossing part of that gap.
 \bibliographystyle{plainnat}
 
 \small
-\bibliography{catch}
+\bibliography
 
 
 
