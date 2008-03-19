@@ -165,7 +165,8 @@ We have implemented all the techniques reported here. We encourage readers to do
 The contributions of this paper include:
 
 \begin{itemize}
-\item Two constraint languages to reason about pattern-match failures, with methods for generating and solving constraints.
+\item A method for reasoning about pattern-match failures, in terms of a parameterisable constraint language. The method calculates \textit{preconditions} to functions, and \textit{properties} that functions satisfy.
+\item Two separate constraint languages that can be used with our method.
 \item Details of the Catch implementation which handles the complete Haskell 98 language \citep{haskell}, by transforming Haskell 98 programs to a first-order language.
 \item Results showing success on a number of small examples drawn from the Nofib suite \citep{nofib}, and for two larger examples, investigating the scalability of the checker.
 \end{itemize}
@@ -174,7 +175,7 @@ In \citet{me:catch_tfp} a pattern-match checker was described with similar aims,
 
 \subsection{Road map}
 
-\S\ref{sec:walkthrough} gives an overview of the checking process for the |risers| function. \S\ref{sec:manipulate} introduces a small core functional language and a mechanism for reasoning about this language, \S\ref{sec:constraint} describes two constraint languages. \S\ref{sec:transform} discusses how to transform Haskell to a first-order core language. \S\ref{sec:results} evaluates Catch08 on programs from the Nofib suite, on a widely-used library and on a larger application program. \S\ref{sec:related} offers comparisons with related work before \S\ref{sec:conclusion} presents concluding remarks.
+\S\ref{sec:walkthrough} gives an overview of the checking process for the |risers| function. \S\ref{sec:manipulate} introduces a small core functional language and a mechanism for reasoning about this language, \S\ref{sec:constraint} describes two constraint languages. \S\ref{sec:results} evaluates Catch08 on programs from the Nofib suite, on a widely-used library and on a larger application program. \S\ref{sec:related} offers comparisons with related work before \S\ref{sec:conclusion} presents concluding remarks.
 
 \section{Overview of the Risers Example}
 \label{sec:walkthrough}
@@ -186,7 +187,7 @@ This section sketches the process of checking that the |risers| function in the 
 
 Rather than analyse full Haskell, Catch analyses a first-order Core language, without lambda expressions, partial application or let bindings. A convertor is provided from the full Haskell 98 language to this restricted language -- see \S\ref{sec:transform}. The result of converting the |risers| program to Core Haskell, and renaming the identifiers for ease of human reading, is shown in Figure \ref{fig:risers_core}.
 
-The type of |risers| is polymorphic over types in |Ord|. Catch can check |risers| assuming that |Ord| methods do not raise pattern-match errors, and may return any value. Or a type instance such as |Int| can be specified with a type signature.
+The type of |risers| is polymorphic over types in |Ord|. Catch can check |risers| assuming that |Ord| methods do not raise pattern-match errors, and may return any value. Or a type instance such as |Int| can be specified with a type signature. To keep the example simple, we have chosen the latter.
 
 \begin{figure}
 \begin{code}
@@ -226,6 +227,8 @@ True      => (risers2 x y z  ) :< (:)
 \end{code}
 
 \noindent The first property says that if the argument to |risers| is a |(:)|-constructed value, the result will be. The second states that the result from |risers2| is always |(:)|-constructed.
+
+The analysis method works by trying to calculate preconditions on the arguments for each function, where if the precondition holds the function will not call |error|. In the process of calculating preconditions it uses properties of functions, relating the arguments of a function to the result.
 
 \section{Pattern Match Analysis}
 \label{sec:manipulate}
@@ -304,6 +307,11 @@ isRec        :: Selector  -> Bool
 \end{figure}
 
 Figure \ref{fig:core_operations} gives the signatures for helper functions over the core data types. Every constructor has an arity, which can be obtained with the |arity| function. To determine alternative constructors the |ctors| function can be used; for example |ctors "True" = ["False", "True"]| and |ctors "[]" = ["[]",":"]|. The |var| function returns |Nothing| for a variable bound as an argument of a top-level function, and |Just (e,(c,i))| for a variable bound as the |i|th component in the |c|-constructed alternative of case-expression |e|. The function |instantiate| corresponds to $\beta$ reduction. The |isRec (c,n)| function returns true if the constructor |c| has a recursive |n|th component; for example, let |hd = (":",0)| and |tl = (":",1)| then |isRec hd = False| but |isRec tl = True|.
+
+\subsubsection{Transformation From Haskell to Core}
+\label{sec:transform}
+
+write this bit
 
 \subsubsection{Algebraic Abstractions of Primitive Types}
 \label{sec:abstraction}
