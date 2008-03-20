@@ -233,7 +233,13 @@ The analysis method works by trying to calculate preconditions on the arguments 
 \section{Pattern Match Analysis}
 \label{sec:manipulate}
 
-This section explains the methods used to calculate preconditions for functions. A basic constraint language is introduced, along with operations upon it.
+This section explains the method used to calculate preconditions for functions. We first give the Core language for our tool in \S\ref{sec:core}, then some essential operations on constraints and predicates in \S\ref{sec:constraints}. We then introduce a simple constraint language in \S\ref{sec:basic}, with which we illustrate our method. We define three terms which are essential to our analysis method:
+
+\begin{itemize}
+\item A \textbf{constraint} describes a (possibly infinite) set of values. We say a value \textit{satisfies} a constraint if the value is within the set.
+\item A \textbf{precondition} is a predicate of constraints on the arguments to a function, that guarantee the function will not call |error|, either directly or indirectly.
+\item A \textbf{property} is a predicate of constraints on the arguments to a function that ensure the result of the function will satisfy a further constraint.
+\end{itemize}
 
 \subsection{Reduced expression language}
 \label{sec:core}
@@ -281,8 +287,8 @@ subst r (Var   x     ) = fromMaybe (Var x) (lookup x r)
 subst r (Make  x xs  ) = Make  x (map (subst r) xs)
 subst r (Call  x xs  ) = Call  x (map (subst r) xs)
 subst r (Case  x xs  ) = Case (subst r x)
-    [Alt n vs (subst r_2 e) | Alt n vs e <- xs
-    , let r_2 = filter ((`notElem` vs) . fst) r]
+    [Alt n vs (subst r' e) | Alt n vs e <- xs
+    , let r' = filter ((`notElem` vs) . fst) r]
 \end{code}
 \caption{Semantics for Core expressions.}
 \label{fig:semantics}
@@ -290,7 +296,7 @@ subst r (Case  x xs  ) = Case (subst r x)
 
 Syntax for the core language is given in Figure \ref{fig:core}. Our Core language is a little more restrictive than the core languages typically used in compilers \cite{ghc_core}. It is first order, has only simple case statements, and only algebraic data types. All case statements have alternatives for all constructors, with |error| calls being introduced where a pattern-match error would otherwise occur.
 
-The evaluation strategy is lazy. A semantics is outlined in Figure \ref{fig:semantics}, as an evaluator from expression to values, written in Haskell. The |hnf| function evaluates an expression to head normal form. The |subst| function substitutes free variables that are the result of a |Case| expression. Laziness is a useful property as it allows $\beta$-reduction to be performed by the checker.
+The evaluation strategy is lazy. A semantics is outlined in Figure \ref{fig:semantics}, as an evaluator from expression to values, written in Haskell. The |hnf| function evaluates an expression to head normal form. The |subst| function substitutes free variables that are the result of a |Case| expression.
 
 \subsubsection{Operations on Core}
 
@@ -311,7 +317,9 @@ Figure \ref{fig:core_operations} gives the signatures for helper functions over 
 \subsubsection{Transformation From Haskell to Core}
 \label{sec:transform}
 
-write this bit
+To generate core representations of programs, it is natural to start with a full Haskell compiler, and we chose Yhc \citep{me:yhc_core}. Yhc provides a format for external Core files, and can link in all associated libraries to produce a single Core file representing an entire program. Yhc Core is less restrictive than our Core language, being higher-order and containing let expressions. The let expressions can be removed by simple transformations provided in the Yhc Core library.
+
+To generate a first-order program from a higher-order variant the standard technique is to make use of Reynold's style defunctionalization \cite{reynolds:defunc}. Unfortunately, this technique introduces a mini-interpreter into the resultant program, and from a pattern-matching analysis viewpoint, is no easier than directly analysing higher-order code. Instead we use an alternative defunctionalization method \cite{me:firstify_icfp}, which removes higher-order functions without complicating the analysis. Using this sequence of steps, we are able to convert the full Haskell 98 language into our Core language.
 
 \subsubsection{Algebraic Abstractions of Primitive Types}
 \label{sec:abstraction}
@@ -327,14 +335,16 @@ data Int  = Minus Pos | Zero | Plus Pos
 Although this abstraction of |Int| captures all the underlying detail of the number system, the underlying constraint systems discussed in \S\ref{sec:constraint} would be unable to distinguishing between any pair of numbers both greater than 2, or both less than -2.
 \end{comment}
 
-The Core language only has algebraic data types. Catch allows for primitive types such as characters and numbers by abstracting them into algebraic types. For example, the integer abstraction used in Catch is simply:
+The Core language only has algebraic data types. Catch allows for primitive types such as characters and numbers by abstracting them into algebraic types. For example, two abstractions used in Catch are simply:
 
 \begin{code}
 data Int = Neg | Zero | One | Pos
+data Char = Char
 \end{code}
 
-In our experience, numbers are most often constrained to be a natural, or to be non-zero. Addition or subtraction of one is the most common operation. Though very simple, the abstraction models the common properties and operations quite well.
+In our experience, numbers are most often constrained to be a natural, or to be non-zero. Addition or subtraction of one is the most common operation. Though very simple, the abstraction models the common properties and operations quite well. For characters, we have found little benefit in any refinement other than considering all characters to be abstracted to the same value.
 
+\begin{comment}
 Possible abstractions of characters include:
 
 \ignore\begin{code}
@@ -345,6 +355,7 @@ data Char = '\0' | '\1' | '\2' ..
 \end{code}
 
 \noindent Catch employs the first abstraction by default, but provides a flag to allow alternatives. In practice, few additional programs are proven safe with a more refined character abstraction.
+\end{comment}
 
 The final issue of abstraction relates to primitive functions in the |IO| monad, such as |getArgs| (which returns the command-line arguments), or |readFile| (which reads from the file-system). In most cases an IO function is modelled as returning \textit{any} value of the correct type, using a function primitive to the checker.
 
@@ -371,11 +382,11 @@ propLit                   :: alpha -> Prop alpha
 
 An expression in our first-order core language evaluates to a data structure. A constraint describes a set of data structures to which a value may belong. If a component within a data structure evaluates to $\bot{}$, there are no constraints upon it.
 
-If |x| is an expression and |c| is a constraint we write |x :< c| to assert that the value of expression |x| must be a member of the set satisfying |c|. It is convenient to have a notation for constraints upon named arguments of named functions: we write \ignore|f, x :< c| to assert that argument |x| of |f| must be in the set satisfying |c|.
+If |x| is an expression and |c| is a constraint we write |x :< c| to assert that the value of expression |x| must be a member of the set described by |c|, i.e. that |x| \textit{satisfies} |c|. It is convenient to have a notation for constraints upon named arguments of named functions: we write \ignore|f, x :< c| to assert that argument |x| of |f| satisfy |c|.
 
 Atomic constraints can be combined into propositions, using the proposition data type in Figure \ref{fig:prop}. We also introduce |(==>)|, standard boolean implication -- Haskell already provides |(<=)|, but we prefer the clarity of a different symbol.
 
-Several underlying constraint models are possible. To keep the introduction of the algorithms simple we first use \textit{basic pattern constraints} (\S\ref{sec:basic}). We then describe \textit{regular expression constraints} in \S\ref{sec:regexp} -- a variant of the constraints used in Catch05. Finally we present \textit{multi-pattern constraints} in \S\ref{sec:multipattern} -- used in Catch08 to enable scaling to much larger problems.
+Several underlying constraint models are possible. To keep the introduction of the algorithms simple we first use \textit{basic pattern constraints} (\S\ref{sec:basic}), which are unsuitable for reasons given in \S\ref{sec:bounded}. We then describe \textit{regular expression constraints} in \S\ref{sec:regexp} -- a variant of the constraints used in Catch05. Finally we present \textit{multi-pattern constraints} in \S\ref{sec:multipattern} -- used in Catch08 to enable scaling to much larger problems.
 
 \begin{figure}
 \begin{code}
@@ -389,7 +400,7 @@ notin :: CtorName -> Constraint
 \label{fig:constraint}
 \end{figure}
 
-Some operations must be provided in every constraint implementation. Signatures are given in Figure \ref{fig:constraint}. |Assert| is the type of the |(:<)| condition. The lifting and splitting operators |(||>)| and |(<||)| are discussed in \S\ref{sec:backward}. The |notin| function generates a constraint which does \textit{not} match the constructor given.
+Three operations must be provided by every constraint model. Signatures are given in Figure \ref{fig:constraint}. |Assert| is the type of the |(:<)| condition. The lifting and splitting operators |(||>)| and |(<||)| are discussed in \S\ref{sec:backward}. The |notin| function generates a constraint which does \textit{not} match any value whose root constructor is the constructor given.
 
 
 \subsection{Basic Pattern (BP) Constraints}
@@ -404,7 +415,7 @@ data Pattern     =  Con CtorName [Pattern] | Any
 \label{fig:basic}
 \end{figure}
 
-For simplicity, our analysis framework will be introduced using basic pattern constraints (BP-constraints). A BP-constraint directly corresponds to Haskell pattern matching. A constraint is a finite set of patterns represented as in Figure \ref{fig:basic}. A given data structure |d| satisfies a constraint |ps| if |d| matches at least one pattern in |ps|. True and false constraints can be represented as |[Any]| and |[]| respectively. The requirement for a value to be |(:)|-constructed would be expressed as |(Con ":" [Any,Any])|.
+For simplicity, our analysis framework will be introduced using basic pattern constraints (BP-constraints). A BP-constraint directly corresponds to Haskell pattern matching, where |Any| represents an underscore. A constraint is a finite set of patterns represented as in Figure \ref{fig:basic}. A given data structure |d| satisfies a constraint |ps| if |d| matches at least one pattern in |ps|. Universal and empty constraints can be represented as |[Any]| and |[]| respectively. The requirement for a value to be |(:)|-constructed would be expressed as |(Con ":" [Any,Any])|.
 
 The BP-constraint language is limited in expressivity. For example it is impossible to state that all the elements of a boolean list are True. However, even with this limited constraint language, the Risers example can be proven safe.
 
@@ -415,6 +426,13 @@ notin c = map f (delete c (ctors c))
    where f x = Con x (replicate (arity x) Any)
 \end{code}
 
+\noindent Some sample executions:
+
+\begin{code}
+notin "True"  = [Con "False" []]
+notin "[]"    = [Con ":" [Any,Any]]
+notin "()"    = []
+\end{code}
 
 \subsection{Preconditions for Pattern Safety}
 \label{sec:precond}
@@ -434,25 +452,25 @@ pre pf (Case  on  alts  ) = pre pf on `propAnd` propAnds (map f alts)
 \label{fig:precondition}
 \end{figure}
 
-Our intention is that for every function, constraints on the arguments form a precondition for pattern safety. The precondition for |error| is False. A program is safe if the precondition on |main| is True. The process of analysis can be seen as deriving these preconditions. Given a function |pf| that returns the precondition on a function's arguments, a function to determine the precondition for safe evaluation of an \textit{expression} can be specified as |pre| in Figure \ref{fig:precondition}.
+Our intention is that for every function, constraints on the arguments form a precondition for pattern safety. The precondition for |error| is False. A program is safe if the precondition on |main| is True. The process of analysis can be seen as deriving these preconditions. Given a function |pf| that returns the preconditions on a function's arguments, a function to determine the precondition for safe evaluation of an \textit{expression} can be specified as |pre| in Figure \ref{fig:precondition}. The intuition behind |pre| is that all arguments given to a function must satisfy the precondition for that function. The only exception is that a case alternative is safe if either the alternative is never taken (|on :< notin c|), or the alternative is safe. For example:
+
+\begin{code}
+case f x of
+   []    -> x 
+   y:ys  -> g y : []
+\end{code}
+
+\noindent Would generate the predicate:
+
+\begin{code}
+pf f [Var x] `propAnd` (propLit (Call f [Var x] :< notin ":") `propOr` pf g [Var y]
+\end{code}
+
+This predicate states that the invocation of |f x| must be safe, and either |f x| is never a |(:)|-constructed value or |g y| must also be safe.
+
 
 \subsubsection{Stable Preconditions}
 \label{sec:fixp_precond}
-
-The precondition on each function must be at least as restrictive as the precondition on the body of that function:
-
-\begin{comment}
-\begin{code}
-preFun :: PreFun
-\end{code}
-\end{comment}
-
-\begin{code}
-propRestrictive fn xs = propIsTrue $
-    preFun fn xs `propImp` pre preFun (instantiate fn xs)
-\end{code}
-
-One conservative (and useless) implementation of |preFunc| is to always return False. A perfect precondition would be such that \ignore|preFunc fn xs == pre (instantiate fn xs)|.
 
 \begin{figure}
 \ignore\begin{code}
@@ -470,6 +488,21 @@ end loop
 \caption{Precondition calculation.}
 \label{fig:precond_fixp}
 \end{figure}
+
+The precondition on each function must be at least as restrictive as the precondition on the body of that function:
+
+\begin{comment}
+\begin{code}
+preFun :: PreFun
+\end{code}
+\end{comment}
+
+\begin{code}
+propRestrictive fn xs = propIsTrue $
+    preFun fn xs `propImp` pre preFun (instantiate fn xs)
+\end{code}
+
+One conservative (and useless) implementation of |preFunc| is to always return False. A perfect precondition would be such that \ignore|preFunc fn xs == pre (instantiate fn xs)|.
 
 The iterative algorithm for calculating preconditions is given in Figure~\ref{fig:precond_fixp}.
 Initially all preconditions are assumed to be True, apart from the |error| precondition, which is False. New preconditions are calculated for every function, until no condition changes. In each iteration the preconditions become more restrictive. So \textit{if all chains of increasingly restrictive constraints are finite}, termination is guaranteed. (We return to finiteness in \S\ref{sec:bounded}.) A more efficient algorithm tracks dependencies between preconditions, and performs the minimum amount of recalculation. Finding strongly connected components in the static call graph of a program would allow parts of the program to be checked separately.
