@@ -45,6 +45,8 @@
 %format loop  = "\Keyword{loop}"
 %format for   = "\Keyword{for}"
 
+%subst string a = "\mathtt{" a "}"
+
 \newcommand{\para}[1]{\vspace{2mm}\noindent\textbf{#1}}
 
 
@@ -250,6 +252,7 @@ type CtorName  =  String
 type FuncName  =  String
 type VarName   =  String
 type Selector  =  (CtorName, Int)
+type ArgPos    =  Int
 
 data Func  =  Func FuncName [VarName] Expr
 
@@ -304,7 +307,7 @@ The evaluation strategy is lazy. A semantics is outlined in Figure \ref{fig:sema
 \begin{code}
 ctors        :: CtorName  -> [CtorName]
 arity        :: CtorName  -> Int
-var          :: VarName   -> Maybe (Expr, Selector)
+var          :: VarName   -> Either ArgPos (Expr, Selector)
 instantiate  :: FuncName  -> [Expr] -> Expr
 isRec        :: Selector  -> Bool
 \end{code}
@@ -312,7 +315,7 @@ isRec        :: Selector  -> Bool
 \label{fig:core_operations}
 \end{figure}
 
-Figure \ref{fig:core_operations} gives the signatures for helper functions over the core data types. Every constructor has an arity, which can be obtained with the |arity| function. To determine alternative constructors the |ctors| function can be used; for example |ctors "True" = ["False", "True"]| and |ctors "[]" = ["[]",":"]|. The |var| function returns |Nothing| for a variable bound as an argument of a top-level function, and |Just (e,(c,i))| for a variable bound as the |i|th component in the |c|-constructed alternative of case-expression |e|. The function |instantiate| corresponds to $\beta$ reduction. The |isRec (c,n)| function returns true if the constructor |c| has a recursive |n|th component; for example, let |hd = (":",0)| and |tl = (":",1)| then |isRec hd = False| but |isRec tl = True|.
+Figure \ref{fig:core_operations} gives the signatures for helper functions over the core data types. Every constructor has an arity, which can be obtained with the |arity| function. To determine alternative constructors the |ctors| function can be used; for example |ctors "True" = ["False", "True"]| and |ctors "[]" = ["[]",":"]|. The |var| function returns |Left i| for a variable bound as the |i|th argument of a top-level function, and |Right (e,(c,i))| for a variable bound as the |i|th component in the |c|-constructed alternative of case-expression whose scrutinee is |e|. The function |instantiate| corresponds to $\beta$ reduction. The |isRec (c,i)| function returns true if the constructor |c| has a recursive |i|th component; for example, let |hd = (":",0)| and |tl = (":",1)| then |isRec hd = False| but |isRec tl = True|.
 
 \subsubsection{Transformation From Haskell to Core}
 \label{sec:transform}
@@ -368,7 +371,7 @@ data Prop alpha
 
 propAnd, propOr, propImp  :: Prop alpha -> Prop alpha -> Prop alpha
 propAnds, propOrs         :: [Prop alpha] -> Prop alpha
-propMap                   :: (alpha -> beta) -> Prop alpha -> Prop beta
+propMap                   :: (alpha -> Prop beta) -> Prop alpha -> Prop beta
 propTrue, propFalse       :: Prop alpha
 propIsTrue, propIsFalse   :: Prop alpha -> Bool
 propBool                  :: Bool -> Prop alpha
@@ -392,15 +395,15 @@ Several underlying constraint models are possible. To keep the introduction of t
 \begin{code}
 data Assert a = a :< Constraint
 
-notin :: CtorName -> Constraint
+is :: [CtorName] -> Constraint
 (|>) :: Selector -> Constraint -> Constraint
-(<|) :: CtorName -> Constraint -> Prop (Assert Int)
+(<|) :: CtorName -> Constraint -> Prop (Assert ArgPos)
 \end{code}
 \caption{Constraint operations.}
 \label{fig:constraint}
 \end{figure}
 
-Three operations must be provided by every constraint model. Signatures are given in Figure \ref{fig:constraint}. |Assert| is the type of the |(:<)| condition. The lifting and splitting operators |(||>)| and |(<||)| are discussed in \S\ref{sec:backward}. The |notin| function generates a constraint which does \textit{not} match any value whose root constructor is the constructor given.
+Three operations must be provided by every constraint model. Signatures are given in Figure \ref{fig:constraint}. |Assert| is the type of the |(:<)| condition. The lifting and splitting operators |(||>)| and |(<||)| are discussed in \S\ref{sec:backward}. The |is| function generates a constraint which is only satisfied by values whose root constructor is one of the given constructors. All applications of |is| must ensure that at least one constructor is given.
 
 
 \subsection{Basic Pattern (BP) Constraints}
@@ -419,19 +422,18 @@ For simplicity, our analysis framework will be introduced using basic pattern co
 
 The BP-constraint language is limited in expressivity. For example it is impossible to state that all the elements of a boolean list are True. However, even with this limited constraint language, the Risers example can be proven safe.
 
-As an example of an operator definition for the BP-constraint language, |notin| can be defined:
+As an example of an operator definition for the BP-constraint language, |is| can be defined:
 
 \begin{code}
-notin c = map f (delete c (ctors c))
-   where f x = Con x (replicate (arity x) Any)
+is xs = [Con x (replicate (arity x) Any) | x <- xs]
 \end{code}
 
 \noindent Some sample executions:
 
 \begin{code}
-notin "True"  = [Con "False" []]
-notin "[]"    = [Con ":" [Any,Any]]
-notin "()"    = []
+is ["True"]    = [Con "True" []]
+is [":"]       = [Con ":" [Any,Any]]
+is [":","[]"]  = [Con ":" [Any,Any], Con "[]" []]
 \end{code}
 
 \subsection{Preconditions for Pattern Safety}
@@ -439,40 +441,61 @@ notin "()"    = []
 
 \begin{figure}
 \begin{code}
-type PreFun = FuncName -> [Expr] -> Prop (Assert Expr)
-
-pre :: PreFun -> Expr -> Prop (Assert Expr)
+pre ::  (FuncName -> [Expr] -> Prop (Assert Expr)) ->
+        Expr -> Prop (Assert Expr)
 pre pf (Var   x         ) = propTrue
 pre pf (Make  _   xs    ) = propAnds (map (pre pf) xs)
 pre pf (Call  fn  xs    ) = pf fn xs `propAnd` propAnds (map (pre pf) xs)
 pre pf (Case  on  alts  ) = pre pf on `propAnd` propAnds (map f alts)
-    where f (Alt c vs e) = propLit (on :< notin c) `propOr` pre pf e
+    where f (Alt c vs e) = notin on c `propOr` pre pf e
+
+notin x c = if null cs then true else propLit (x :< is cs)
+    where cs = delete c (ctors c)
 \end{code}
 \caption{Precondition of an expression, |pre|.}
 \label{fig:precondition}
 \end{figure}
 
-Our intention is that for every function, constraints on the arguments form a precondition for pattern safety. The precondition for |error| is False. A program is safe if the precondition on |main| is True. The process of analysis can be seen as deriving these preconditions. Given a function |pf| that returns the preconditions on a function's arguments, a function to determine the precondition for safe evaluation of an \textit{expression} can be specified as |pre| in Figure \ref{fig:precondition}. The intuition behind |pre| is that all arguments given to a function must satisfy the precondition for that function. The only exception is that a case alternative is safe if either the alternative is never taken (|on :< notin c|), or the alternative is safe. For example:
+Our intention is that for every function, constraints on the arguments form a precondition for pattern safety. The precondition for |error| is False. A program is safe if the precondition on |main| is True. The process of analysis can be seen as deriving these preconditions. Given a function |pf| that returns the preconditions on a function's arguments, a function to determine the precondition for safe evaluation of an \textit{expression} can be specified as |pre| in Figure \ref{fig:precondition}. The intuition behind |pre| is that all arguments given to a function must satisfy the precondition for that function. The only exception is that a case alternative is safe if either the alternative is never taken, or the alternative is safe.
 
+\begin{example}
+\label{ex:safeTail}
 \begin{code}
-case f x of
-   []    -> x 
-   y:ys  -> g y : []
+safeTail xs = case  null xs of
+                    True   -> []
+                    False  -> tail xs
 \end{code}
 
 \noindent Would generate the predicate:
 
 \begin{code}
-pf f [Var x] `propAnd` (propLit (Call f [Var x] :< notin ":") `propOr` pf g [Var y]
+pf null [xs] `propAnd` (propLit (null xs :< is ["True"]) `propOr` pf tail [xs])
 \end{code}
 
-This predicate states that the invocation of |f x| must be safe, and either |f x| is never a |(:)|-constructed value or |g y| must also be safe.
+This predicate states that the invocation of |null xs| must be safe, and either |null xs| is True or |tail xs| must also be safe.
+\end{example}
 
 
 \subsubsection{Stable Preconditions}
 \label{sec:fixp_precond}
 
 \begin{figure}
+%format preVars_0 = "\Varid{preVars_0}"
+%format preVars_n = "\Varid{preVars_n}"
+%format preVars_n_1 = "\Varid{preVars_{n\text{\tiny{+}}1}}"
+%format preFun_n = "\Varid{preFun_n}"
+\begin{code}
+preVars  :: FuncName            -> Prop (Assert Expr)
+preFun   :: FuncName -> [Expr]  -> Prop (Assert Expr)
+
+preVars_0    fn = if fn == "error" then false else true
+preVars_n_1  fn = preVars_n fn `propAnd` pre preFun_n (instantiate fn vs_)
+
+preFun_n fn xs_ = (preVars_n fn)[vs_ / xs_]
+
+where vs_ = -- list of free variables, of length |arity fn|
+\end{code}
+\begin{comment}
 \ignore\begin{code}
 for fn `elem` funcs do conds(fn) := propBool (fn /= "error")
 loop
@@ -485,17 +508,17 @@ end loop
         preFun fn xs = conds(fn)[vs_1/xs_1 .. vs_n/xs_n]
         vs = ... -- free variables
 \end{code}
+\end{comment}
 \caption{Precondition calculation.}
 \label{fig:precond_fixp}
 \end{figure}
 
-The precondition on each function must be at least as restrictive as the precondition on the body of that function:
+The iterative algorithm for calculating preconditions is given in Figure~\ref{fig:precond_fixp}. The |preVars| function calculates the precondition on a function given a list of variables as arguments, while |preFun| replaces these variables with whatever arguments are desired. Initially all preconditions are assumed to be true, apart from the |error| precondition, which is false. We take the fixed point of |preFun| to be the definitive preconditions. In each iteration of |preVars| the preconditions become more restrictive. So \textit{if all chains of increasingly restrictive constraints are finite}, termination is guaranteed -- a topic we return to in \S\ref{sec:bounded}.
+ 
+We can improve the efficiency of the algorithm by tracking dependencies between preconditions, and performing the minimum amount of recalculation. Finding strongly connected components in the static call graph of a program allows parts of the program to be checked separately.
 
 \begin{comment}
-\begin{code}
-preFun :: PreFun
-\end{code}
-\end{comment}
+The precondition on each function must be at least as restrictive as the precondition on the body of that function:
 
 \begin{code}
 propRestrictive fn xs = propIsTrue $
@@ -503,9 +526,7 @@ propRestrictive fn xs = propIsTrue $
 \end{code}
 
 One conservative (and useless) implementation of |preFunc| is to always return False. A perfect precondition would be such that \ignore|preFunc fn xs == pre (instantiate fn xs)|.
-
-The iterative algorithm for calculating preconditions is given in Figure~\ref{fig:precond_fixp}.
-Initially all preconditions are assumed to be True, apart from the |error| precondition, which is False. New preconditions are calculated for every function, until no condition changes. In each iteration the preconditions become more restrictive. So \textit{if all chains of increasingly restrictive constraints are finite}, termination is guaranteed. (We return to finiteness in \S\ref{sec:bounded}.) A more efficient algorithm tracks dependencies between preconditions, and performs the minimum amount of recalculation. Finding strongly connected components in the static call graph of a program would allow parts of the program to be checked separately.
+\end{comment}
 
 \subsubsection{Preconditions and Laziness}
 
@@ -517,34 +538,71 @@ The |pre| function defined in Figures \ref{fig:precondition} does not exploit la
 
 \begin{figure}
 \begin{code}
-back :: Assert Expr -> Prop (Assert Expr)
-back (Var   x         :< k) = propLit $ on :< (c |> k)
-    where Just (on, c) = var x
-back (Make  c   xs    :< k) = replaceVars xs (c <| k)
+backs ::  (FuncName -> Constraint -> Prop (Assert ArgPos)) ->
+          Prop (Assert Expr) -> Prop (Assert ArgPos)
+backs property = propMap back
+where
+
+back :: Assert Expr -> Prop (Assert ArgPos)
+back (Var   x         :< k) = case var x of
+    Left   i       -> propLit $ i :< k
+    Right  (on,c)  -> back $ on :< (c |> k)
+back (Make  c   xs    :< k) = replacePos xs (c <| k)
+back (Call  fn  xs    :< k) = replacePos xs (property fn k)
 back (Case  on  alts  :< k) = propAnds [f c e | Alt c vs e <- alts]
-    where f c e = propLit (on :< notin c) `propOr` propLit (e :< k)
-back (Call  fn  xs    :< k) = replaceVars xs (property fn k)
+    where f c e = propMap back (notin on c) `propOr` back (e :< k)
 
-backs :: Prop (Assert Expr) -> Prop (Assert VarName)
-property :: FuncName -> Constraint -> Prop (Assert Int)
-
-replaceVars :: [Expr] -> Prop (Assert Int) -> Prop (Assert Expr)
-replaceVars xs p = propMap (\(i:<k) -> (xs!!i) :< k) p
+replacePos ::  [Expr] ->
+               Prop (Assert ArgPos) -> Prop (Assert ArgPos)
+replacePos xs p = propMap (\(i:<k) -> back $ (xs!!i) :< k) p
 \end{code}
 \caption{Specification of backward analysis, |back|.}
 \label{fig:backward}
 \end{figure}
 
-Constraints on expressions other than argument variables can be rewritten using the |back| function, detailed in Figure \ref{fig:backward}. The |backs| function repeatedly applies |back| until all constraints are on arguments. The |replaceVars| function takes a propositional constraint over a set of index variables, \ignore|v_1..v_n|, and replaces each variable with a corresponding expression from an indexed list.
+The precondition calculation generates a predicate in terms of subexpressions of the function body. We simplify this precondition to be in terms of the functions arguments only, allowing the predicate to become simpler -- and hopefully discharged.
 
-\para{The |Var| rule} applies to variables bound by patterns in case alternatives. It lifts conditions on a bound variable to the subject of the case expression in which they occur. The | ||>| operator lifts a constraint on one part of a data structure to a constraint on the entire data structure. For BP-constraints | ||>| can be defined:
+\begin{examplerevisit}{\ref{ex:safeTail}}
+The precondition generated by the |safeTail| function was:
+
+\begin{code}
+pf null [xs] `propAnd` (propLit (null xs :< is ["True"]) `propOr` pf tail [xs]
+\end{code}
+
+\noindent We can use the preconditions computed for |tail| and |null| to rewrite the precondition as:
+
+\begin{code}
+propLit (null xs :< is ["True"]) `propOr` propLit (xs :< is [":"])
+\end{code}
+
+\noindent We can now use the property that if the result of |null| is |True|, then the argument must have been |[]| to write:
+
+\begin{code}
+propLit (xs :< is ["[]"]) `propOr` propLit (xs :< is [":"])
+\end{code}
+
+\noindent Which can be shown to be a tautology.
+\end{examplerevisit}
+
+Constraints are rewritten using the |backs| function, given in Figure \ref{fig:backward}. The result is a predicate where all assertions are over the functions arguments, denoted by argument position. The |replacePos| function takes a predicate of constraints over argument positions, and a list of arguments supplied, and substitutes the arguments into the predicate.
+
+\para{The |Var| rule} has two alternatives. The first alternative deals with top-level bound arguments, which are already in the correct form. The other alternative applies to variables bound by patterns in case alternatives. It lifts conditions on a bound variable to the subject of the case expression in which they occur. The | ||>| operator lifts a constraint on one part of a data structure to a constraint on the entire data structure. For BP-constraints | ||>| can be defined:
 
 \begin{code}
 (c,i) |> k = map extend k
-    where
-    extend x = Con c (anys i ++ [x] ++ anys (arity c-i-1))
-    anys j = replicate j Any
+    where extend x = Con c  [if i == j then x else Any
+                            | j <- [0..arity c - 1]]
 \end{code}
+
+\begin{example}
+\begin{code}
+case  xs of
+      []    -> []
+      y:ys  -> tail y
+\end{code}
+
+Here the initial precondition will be |y :< is [":"]|, which evaluates to |[Con ":" [Any,Any]]|. The |var| function on |y| will return |Right (xs,(":",0))|. After the application of | ||>| the result will be |xs :< [Con ":" [Con ":" [Any,Any], Any]]|. We have gone from a constraint on |y|, using the knowledge that |y| is bound to a portion of |xs|, to a constraint on |xs|.
+\end{example}
 
 \para{The |Make| rule} deals with an application of a constructor. The |<||| operator splits a constraint on an entire structure into a combination of constraints on each part.
 
@@ -556,19 +614,32 @@ c <| k = propOrs (map f k)
         propAnds (map propLit (zipWith (:<) [0..] (map (:[]) xs)))
 \end{code}
 
-\para{The |Case| rule} generates a conjunct for each alternative. An alternative is safe if \textit{either} it is never taken, \textit{or} it meets the constraint when taken. The |notin| function is used to assert that a particular alternative never matches.
-
-\para{The |Call| rule} relies on the key property:
+The intuition is that a constraint is given knowledge of the root constructor of a data value, and reformulates the constraint in terms of what the constructors fields must satisfy. Some sample applications:
 
 \begin{code}
-propRestrict fn xs k = propIsTrue $
-    backs (propLit $ Call         fn xs :< k) `propImp`
-    backs (propLit $ instantiate  fn xs :< k)
+"True" <| [Con "True" []] = propTrue
+"False" <| [Con "True" []] = propFalse
+":" <| [Con ":" [Con "True" [],Any]] = propLit $ 0 :< [Con "True" []]
+":" <| [Con ":" [Any,Con "[]" []]] = propLit $ 1 :< [Con "[]" []]
 \end{code}
 
-That is, the result is at least as restrictive as if the function was inlined at this point. Two strategies can be used: (1) Use $\beta$ substitution (|instantiate|) replacing the call with the body of |fn|. (2) Create fresh variables for each argument, use $\beta$ substitution, and then instantiate the results. Catch05 used method 1. Catch08 uses method 2, as it is easier to find a fixed point, and allows a cache of results to be built -- reducing duplicate computation.
+\para{The |Case| rule} generates a conjunct for each alternative. An alternative is safe if \textit{either} it is never taken, \textit{or} it meets the constraint when taken. The |notin| function from Figure \ref{fig:precondition} is used to assert that a particular alternative never matches.
 
 \begin{figure}
+%format property_0 = "\Varid{property_0}"
+%format property_n = "\Varid{property_n}"
+%format property_n_1 = "\Varid{property_{n\text{\tiny{+}}1}}"
+\begin{code}
+property :: FuncName -> Constraint -> Prop (Assert ArgPos)
+property_0    fn k = propTrue
+property_n_1  fn k =  property_n fn k `propAnd`
+                      backs property_n (propLit $ instantiate fn vs_ :< k)
+
+where vs_ =  -- free variables, which |var| treats 
+             -- as successive function arguments
+\end{code}
+\begin{comment}
+
 \ignore\begin{code}
 prop := [(fn,k) | fn <- funcs, k <- constraints]
 for (fn,k) `elem` ps do prop(fn,k) := true
@@ -582,11 +653,12 @@ end loop
         property fn k = prop(fn,k)
         vs = ... -- free variables
 \end{code}
+\end{comment}
 \caption{Fixed point calculation for |property|.}
 \label{fig:property_fixp}
 \end{figure}
 
-The function |property| in Figure \ref{fig:property_fixp} takes a postcondition, and transforms it to constraints on the argument positions -- a precondition to ensure the postcondition. As in the precondition calculation in \S\ref{sec:precond}, each result becomes increasingly restrictive. If refinement chains of constraint/function pairs are finite, termination is guaranteed. Here again, a speed up can be obtained by tracking the dependencies between constraints.
+\para{The |Call| rule} relies on the |property| function, defined in Figure \ref{fig:property_fixp}. A property is a mapping from a postcondition on a function, to a predicate of constraints on the arguments to that function -- a precondition to ensure the postcondition. Initially, the assumption is that all arguments to any function will guarantee any constraint. To calculate the property for |fn| to result in a value satisfying |k|, the iterative step takes the body of |fn| with appropriate parameters substituted, and uses the |backs| transformation to obtain a predicate in terms of the arguments to the function only. As in the precondition calculation in \S\ref{sec:precond}, each result becomes increasingly restrictive. If refinement chains of constraint/function pairs are finite, termination is guaranteed. Here again, a speed up can be obtained by tracking the dependencies between constraints, and additionally caching all calculated properties.
 
 \subsection{Semantics of Constraints}
 
@@ -597,7 +669,7 @@ A key function in the semantics of constraints tests whether a value satisfies a
 satisfies :: Value -> Constraint -> Bool
 satisfies Bottom        k = True
 satisfies (Value c xs)  k = propIsTrue $ propMap f (c <| k)
-    where f (i :< k_2) = satisfies (xs !! i) k_2
+    where f (i :< k_2) = propBool $ satisfies (xs !! i) k_2
 \end{code}
 \end{minipage}
 
@@ -625,6 +697,8 @@ With unbounded recursion in patterns, the BP-constraint language does \textit{no
 
 There are various ways of defining a richer constraint system, also providing the necessary finiteness properties. Here we outline two -- one adapted from Catch05, one entirely new -- both implemented in Catch08. Neither is strictly more powerful than the other; each is capable of expressing constraints that the other cannot express.
 
+When designing a constraint system, the main decision is what to abstract. Since the constraint system must be finite, there will exist sets of data values which no constraint within the system can distinguish between. As the constraint system stores more information, it will distinguish more values, but will likely take longer to obtain fixed points. The two constraint systems in this section were developed by looking at examples, and trying to find systems offering power sufficient power to solve real problems, but still remain bounded.
+
 \subsection{Regular Expression (RE) Constraints}
 \label{sec:regexp}
 
@@ -634,8 +708,8 @@ data Constraint  = RegExp :- [CtorName]
 type RegExp      = [RegItem]
 data RegItem     = Atom Selector | Star [Selector]
 
-notin :: CtorName -> Constraint
-notin c = [] :- delete c (ctors c)
+is :: [CtorName] -> Constraint
+is cs = [] :- cs
 
 (|>) :: Selector -> Constraint -> Constraint
 p |> (r :- cs) = integrate p r :- cs
@@ -695,18 +769,20 @@ Catch08 implements REs using the data type |RegExp| from Figure \ref{fig:regexp}
 
 \begin{example}
 \label{ex:head}
-|(head xs)| is safe if |xs| evaluates to a non-empty list. The RE-constraint generated by Catch is: \ignore|xs :< (1 :- {:})|
+|(head xs)| is safe if |xs| evaluates to a non-empty list. The RE-constraint generated by Catch is: \ignore|xs :< (1 :- {:})|. This may be read as the root expression (after following an empty path of selectors) is a |(:)|-constructed value.
 \end{example}
 
 \begin{example}
 \label{ex:map_head}
-|(map head xs)| is safe if |xs| evaluates to a list of non-empty lists. The RE-constraint is: \ignore|xs :< (tl^* ^. hd :- {:})| If |xs| is empty, it still satisfies the constraint. If |xs| is infinite then the condition applies to all elements, constraining an infinite number.
+|(map head xs)| is safe if |xs| evaluates to a list of non-empty lists. The RE-constraint is: \ignore|xs :< (tl^* ^. hd :- {:})|. This may be read as following any number of tails, then exactly one head, you must arrive at a |(:)|. If |xs| is |[]|, it still satisfies the constraint, as the path is not well defined, having no |hd| selector. If |xs| is infinite then the condition applies to all elements, constraining an infinite number of values.
 \end{example}
 
 \begin{example}
 \label{ex:map_head_reverse}
-|(map head (reverse xs))| is safe if every item in |xs| is |(:)|-constructed, or if |xs| is infinite -- so |reverse| does not terminate. The RE-constraint is: \ignore|xs :< (tl^* ^. hd :- {:}) `propOr` xs :< (tl^* :- {:})|
+|(map head (reverse xs))| is safe if every item in |xs| is |(:)|-constructed, or if |xs| is infinite -- so |reverse| does not terminate. The RE-constraint is: \ignore|xs :< (tl^* ^. hd :- {:}) `propOr` xs :< (tl^* :- {:})|. The second term specifies the infinite case: if the list |xs| is |(:)|-constructed, it will have a |tl| selector, and therefore the |tl| path is well defined and requires the tail to be |(:)|. Each step in the chain ensures the next path is well defined, and therefore the list is infinite.
 \end{example}
+
+\todo{Insert examples of all the operations on regular expressions}
 
 \subsubsection{Finite Number of RE-Constraints}
 \label{sec:finite_re}
@@ -761,9 +837,8 @@ nonRecs c = [i | i <- [0..arity c-1], not (isRec (c,i))]
 complete :: CtorName -> Pattern
 complete c = Pattern c (map (const Any) (nonRecs c))
 
-notin :: CtorName -> Constraint
-notin c = [map complete (delete c cs) :* map complete cs]
-    where cs = ctors c
+is :: [CtorName] -> Constraint
+is cs = [map complete cs :* map complete (ctors (head cs))]
 
 (|>) :: Selector -> Constraint -> Constraint
 (c,i) |> k = notin c ++ map f k
@@ -800,6 +875,8 @@ Although RE-constraints are capable of solving many examples, they suffer from a
 
 MP-constraints are similar to BP-constraints, but can constrain an infinite number of items. A value |v| satisfies a constraint |p_1 :* p_2| if |v| itself satisfies |p_1| and all its recursive components at any depth satisfy |p_2|. Each of |p_1| and |p_2| is given as a set of matches as in \S\ref{sec:basic}, but each |Pattern| only specifies the values for the non-recursive selectors, all recursive selectors are handled by |p_2|. A constraint is a disjunctive list of |:*| patterns.
 
+\todo{Expand on the descriptions}
+
 \begin{examplerevisit}{\ref{ex:head}} Safe evaluation of |(head xs)| requires |xs| to be non-empty. The MP-constraint generated by Catch on |xs| is: \ignore|{(:) Any} :* {[], (:) Any}| This constraint is longer than the corresponding RE-constraint as it makes explicit that both the |hd| field and the recursive components are unrestricted.
 \end{examplerevisit}
 
@@ -812,6 +889,8 @@ MP-constraints are similar to BP-constraints, but can constrain an infinite numb
 
 \begin{examplerevisit}{\ref{ex:map_head_reverse}} |(map head (reverse x))| requires |xs| to be a list of non-empty lists \textit{or} infinite. The MP-constraint for an infinite list is: \ignore|{(:) Any} :* {(:) Any}|
 \end{examplerevisit}
+
+\todo{Insert some examples of the operations, including an intuition}
 
 MP-constraints also have simplification rules.  Two of the eight rules are:
 
@@ -839,7 +918,7 @@ The |val| function counts the number of possible |Val| constructions. The |patte
 
 \subsubsection{MP-Constraint Propositions and Uncurrying}
 
-A big advantage of MP-constraints is that if two constraints on the same expression are combined at the proposition level, they can be reduced into one constraint:
+A big advantage of MP-constraints is that if two constraints on the same expression are combined at the proposition level, they can be reduced into one atomic constraint:
 
 \ignore\begin{code}
 (e :< v_1)  `propOr`   (e :< v_2) = e :< (v_1 ++ v_2)
@@ -865,7 +944,7 @@ A big advantage of MP-constraints is that if two constraints on the same express
 \end{code}\codeexample
 \end{example}
 
-Combining MP-constraint reduction rules with the uncurrying transformation makes |Assert VarName| equivalent in power to |Prop (Assert VarName)|. This simplification reduces the number of different propositional constraints, making fixed-point computations faster. In the RE-constraint system uncurrying would do no harm, but it would be of no use. None of the RE simplification rules is able to reduce distinct components in a tuple.
+Combining MP-constraint reduction rules with the uncurrying transformation makes |Assert ArgPos| equivalent in power to |Prop (Assert ArgPos)|. This simplification reduces the number of different propositional constraints, making fixed-point computations faster. In the RE-constraint system uncurrying would do no harm, but it would be of no use. None of the RE simplification rules is able to reduce distinct components in a tuple.
 
 \subsection{Comparison of RE and MP Constraints}
 
@@ -1151,6 +1230,11 @@ Examining the |read| error in more detail, by default Catch outputs the potentia
 
 Using our knowledge of the intention of functions, we can see that although |read| calls error, the blame probably lies in the caller of |read| -- namely \ignore|parseColourPrefs|. By examining this location in the source code we are able to diagnose and correct the problem. Catch optionally reports all the preconditions it has deduced, although in our experience problems can usually be fixed from source-position information alone.
 
+\subsection{The XMonad Program}
+
+\todo{Write up here}
+
+
 \section{Related Work}
 \label{sec:related}
 
@@ -1162,7 +1246,7 @@ There has been a long history of writing tools to analyse programs to detect pot
 
 Despite the seriousness of the problem of pattern matching, there are very few other tools for checking pattern-match safety. This paper has similar goals to \citet{me:catch_tfp}, but some key design decisions are radically different. The difference in practice is that Catch08 supports full Haskell, can scale to much larger examples and can feasibly be used on real programs. Some of the reasons for these better results include a different fixed-point mechanism, the use of MP-constraints and a superior translation from Core.
 
-The closest other work we are aware of is \cite{esc_haskell}, where ESC/Haskell is introduced. The ESC/Haskell approach requires the programmer to give explicit preconditions and contracts which the program obeys. Contracts have more expressive power than our constraints -- one of the examples involves an invariant on an ordered list, something beyond Catch. But the programmer has more work to do. At the time of writing there is no publicly available version of ESC/Haskell. So far as we know, it does not yet support full Haskell, lacks features such as type classes\footnote{We have confirmed this information in correspondence with Xu.}, and handles only small examples. A future version of ESC/Haskell may address these limitations, allowing a fuller comparison to be made.
+The closest other work we are aware of is ESC/Haskell \cite{esc_haskell} and its successor Sound Haskell \cite{xu:sound_haskell}. The Sound Haskell approach requires the programmer to give explicit preconditions and contracts which the program obeys. Contracts have more expressive power than our constraints -- one of the examples involves an invariant on an ordered list, something beyond Catch. But the programmer has more work to do. At the time of writing there is no publicly available version of Sound Haskell. So far as we know, it does not yet support full Haskell, lacks features such as type classes\footnote{We have confirmed this information in correspondence with Xu.}, and handles only small examples. A future version of Sound Haskell will hopefully address these limitations, allowing a fuller comparison to be made.
 
 
 \subsection{Eliminating Incomplete Patterns}
