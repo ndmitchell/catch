@@ -22,8 +22,8 @@
 %format && = "\mathrel{\hbox{\textsf{\& \hspace{-1em} \&}}}"
 %format || = "\mathrel{||}"
 
-%format `propAnd` = "\ensuremath{\wedge}"
-%format `propOr` = "\ensuremath{\vee}"
+%format `propAnd` = "\;\ensuremath{\wedge}\;"
+%format `propOr` = "\;\ensuremath{\vee}\;"
 %format propAnd = "(\ensuremath{\wedge})"
 %format propOr = "(\ensuremath{\vee})"
 %format propAnds = "\mathsf{andP}"
@@ -45,7 +45,16 @@
 %format loop  = "\Keyword{loop}"
 %format for   = "\Keyword{for}"
 
-%subst string a = "\mathtt{" a "}"
+%format `is` = "\backtick{is}"
+
+% too confusing!
+% subst string a = "\mathtt{" a "}"
+
+\newcommand{\rec}[1]{\hspace{-0.75ex}_{#1}}
+%format Rec0 = "\rec{\mathrm{0}}"
+%format RecN = "\rec{\Varid{n}}"
+%format RecN1 = "\rec{\Varid{n}\text{\tiny{+}}\mathrm{1}}"
+
 
 \newcommand{\para}[1]{\vspace{2mm}\noindent\textbf{#1}}
 
@@ -393,9 +402,9 @@ Several underlying constraint models are possible. To keep the introduction of t
 
 \begin{figure}
 \begin{code}
-data Assert a = a :< Constraint
+data Assert alpha = alpha :< Constraint
 
-is :: [CtorName] -> Constraint
+is :: alpha -> [CtorName] -> Prop (Assert alpha)
 (|>) :: Selector -> Constraint -> Constraint
 (<|) :: CtorName -> Constraint -> Prop (Assert ArgPos)
 \end{code}
@@ -403,7 +412,7 @@ is :: [CtorName] -> Constraint
 \label{fig:constraint}
 \end{figure}
 
-Three operations must be provided by every constraint model. Signatures are given in Figure \ref{fig:constraint}. |Assert| is the type of the |(:<)| condition. The lifting and splitting operators |(||>)| and |(<||)| are discussed in \S\ref{sec:backward}. The |is| function generates a constraint which is only satisfied by values whose root constructor is one of the given constructors. All applications of |is| must ensure that at least one constructor is given.
+Three operations must be provided by every constraint model. Signatures are given in Figure \ref{fig:constraint}. |Assert| is the type of the |(:<)| condition. The lifting and splitting operators |(||>)| and |(<||)| are discussed in \S\ref{sec:backward}. The |is| function generates a constraint on  value, which is only satisfied by values whose root constructor is one of the given constructors.
 
 
 \subsection{Basic Pattern (BP) Constraints}
@@ -411,29 +420,27 @@ Three operations must be provided by every constraint model. Signatures are give
 
 \begin{figure}
 \begin{code}
-type Constraint  =  [Pattern]
+type Constraint  =  Pattern
 data Pattern     =  Con CtorName [Pattern] | Any
 \end{code}
 \caption{Basic pattern constraints.}
 \label{fig:basic}
 \end{figure}
 
-For simplicity, our analysis framework will be introduced using basic pattern constraints (BP-constraints). A BP-constraint directly corresponds to Haskell pattern matching, where |Any| represents an underscore. A constraint is a finite set of patterns represented as in Figure \ref{fig:basic}. A given data structure |d| satisfies a constraint |ps| if |d| matches at least one pattern in |ps|. Universal and empty constraints can be represented as |[Any]| and |[]| respectively. The requirement for a value to be |(:)|-constructed would be expressed as |(Con ":" [Any,Any])|.
-
-The BP-constraint language is limited in expressivity. For example it is impossible to state that all the elements of a boolean list are True. However, even with this limited constraint language, the Risers example can be proven safe.
+For simplicity, our analysis framework will be introduced using basic pattern constraints (BP-constraints). A BP-constraint directly corresponds to Haskell pattern matching, where |Any| represents an underscore. A constraint is a finite set of patterns represented as in Figure \ref{fig:basic}. A given data structure |d| satisfies a constraint |p| it matches the pattern. The universal constraints can be represented as |Any|. The requirement for a value to be |(:)|-constructed would be expressed as |(Con ":" [Any,Any])|. The BP-constraint language is limited in expressivity. For example it is impossible to state that all the elements of a boolean list are True.
 
 As an example of an operator definition for the BP-constraint language, |is| can be defined:
 
 \begin{code}
-is xs = [Con x (replicate (arity x) Any) | x <- xs]
+is a xs = propOrs [a :< Con x (replicate (arity x) Any) | x <- xs]
 \end{code}
 
 \noindent Some sample executions:
 
 \begin{code}
-is ["True"]    = [Con "True" []]
-is [":"]       = [Con ":" [Any,Any]]
-is [":","[]"]  = [Con ":" [Any,Any], Con "[]" []]
+e `is` ["True"]    = e :< Con "True" []
+e `is` [":"]       = e :< Con ":" [Any,Any]
+e `is` [":","[]"]  = e :< Con ":" [Any,Any] `propOr` e :< Con "[]" []
 \end{code}
 
 \subsection{Preconditions for Pattern Safety}
@@ -447,10 +454,7 @@ pre pf (Var   x         ) = propTrue
 pre pf (Make  _   xs    ) = propAnds (map (pre pf) xs)
 pre pf (Call  fn  xs    ) = pf fn xs `propAnd` propAnds (map (pre pf) xs)
 pre pf (Case  on  alts  ) = pre pf on `propAnd` propAnds (map f alts)
-    where f (Alt c vs e) = notin on c `propOr` pre pf e
-
-notin x c = if null cs then true else propLit (x :< is cs)
-    where cs = delete c (ctors c)
+    where f (Alt c vs e) = on `is` (ctors c \\ [c]) `propOr` pre pf e
 \end{code}
 \caption{Precondition of an expression, |pre|.}
 \label{fig:precondition}
@@ -469,7 +473,7 @@ safeTail xs = case  null xs of
 \noindent Would generate the predicate:
 
 \begin{code}
-pf null [xs] `propAnd` (propLit (null xs :< is ["True"]) `propOr` pf tail [xs])
+pf null [xs] `propAnd` (null xs `is` ["True"] `propOr` pf tail [xs])
 \end{code}
 
 This predicate states that the invocation of |null xs| must be safe, and either |null xs| is True or |tail xs| must also be safe.
@@ -479,19 +483,16 @@ This predicate states that the invocation of |null xs| must be safe, and either 
 \subsubsection{Stable Preconditions}
 \label{sec:fixp_precond}
 
+
 \begin{figure}
-%format preVars_0 = "\Varid{preVars_0}"
-%format preVars_n = "\Varid{preVars_n}"
-%format preVars_n_1 = "\Varid{preVars_{n\text{\tiny{+}}1}}"
-%format preFun_n = "\Varid{preFun_n}"
 \begin{code}
 preVars  :: FuncName            -> Prop (Assert Expr)
 preFun   :: FuncName -> [Expr]  -> Prop (Assert Expr)
 
-preVars_0    fn = if fn == "error" then false else true
-preVars_n_1  fn = preVars_n fn `propAnd` pre preFun_n (instantiate fn vs_)
+preVars Rec0   fn = if fn == "error" then false else true
+preVars RecN1  fn = preVars RecN fn `propAnd` pre preFun RecN (instantiate fn vs_)
 
-preFun_n fn xs_ = (preVars_n fn)[vs_ / xs_]
+preFun RecN fn xs_ = (preVars RecN fn)[vs_ / xs_]
 
 where vs_ = -- list of free variables, of length |arity fn|
 \end{code}
@@ -514,7 +515,7 @@ end loop
 \end{figure}
 
 The iterative algorithm for calculating preconditions is given in Figure~\ref{fig:precond_fixp}. The |preVars| function calculates the precondition on a function given a list of variables as arguments, while |preFun| replaces these variables with whatever arguments are desired. Initially all preconditions are assumed to be true, apart from the |error| precondition, which is false. We take the fixed point of |preFun| to be the definitive preconditions. In each iteration of |preVars| the preconditions become more restrictive. So \textit{if all chains of increasingly restrictive constraints are finite}, termination is guaranteed -- a topic we return to in \S\ref{sec:bounded}.
- 
+
 We can improve the efficiency of the algorithm by tracking dependencies between preconditions, and performing the minimum amount of recalculation. Finding strongly connected components in the static call graph of a program allows parts of the program to be checked separately.
 
 \begin{comment}
@@ -530,7 +531,7 @@ One conservative (and useless) implementation of |preFunc| is to always return F
 
 \subsubsection{Preconditions and Laziness}
 
-The |pre| function defined in Figures \ref{fig:precondition} does not exploit laziness. The |Call| equation demands that preconditions hold on \textit{all} arguments -- only correct if a function is strict in all arguments. For example, the precondition on |False && error "here"| is False, when it should be True. In general, preconditions may be more restrictive than necessary. However, investigation of a range of examples suggests that inlining |(&&)| and |(||||)| captures many of the common cases where laziness would be required.
+The |pre| function defined in Figure \ref{fig:precondition} does not exploit laziness. The |Call| equation demands that preconditions hold on \textit{all} arguments -- only correct if a function is strict in all arguments. For example, the precondition on |False && error "here"| is False, when it should be True. In general, preconditions may be more restrictive than necessary. However, investigation of a range of examples suggests that inlining |(&&)| and |(||||)| captures many of the common cases where laziness would be required.
 
 
 \subsection{Manipulating constraints}
@@ -544,17 +545,16 @@ backs property = propMap back
 where
 
 back :: Assert Expr -> Prop (Assert ArgPos)
-back (Var   x         :< k) = case var x of
-    Left   i       -> propLit $ i :< k
-    Right  (on,c)  -> back $ on :< (c |> k)
-back (Make  c   xs    :< k) = replacePos xs (c <| k)
-back (Call  fn  xs    :< k) = replacePos xs (property fn k)
+back (Var   x         :< k) =  case var x of
+                               Left   i       -> propLit $ i :< k
+                               Right  (on,c)  -> back $ on :< (c |> k)
+back (Make  c   xs    :< k) = merge xs (c <| k)
+back (Call  fn  xs    :< k) = merge xs (property fn k)
 back (Case  on  alts  :< k) = propAnds [f c e | Alt c vs e <- alts]
-    where f c e = propMap back (notin on c) `propOr` back (e :< k)
+    where f c e = propMap back (on `is` (ctors c \\ [c])) `propOr` back (e :< k)
 
-replacePos ::  [Expr] ->
-               Prop (Assert ArgPos) -> Prop (Assert ArgPos)
-replacePos xs p = propMap (\(i:<k) -> back $ (xs!!i) :< k) p
+merge ::  [Expr] -> Prop (Assert ArgPos) -> Prop (Assert ArgPos)
+merge xs p = propMap (\(i:<k) -> back $ (xs!!i) :< k) p
 \end{code}
 \caption{Specification of backward analysis, |back|.}
 \label{fig:backward}
@@ -566,32 +566,31 @@ The precondition calculation generates a predicate in terms of subexpressions of
 The precondition generated by the |safeTail| function was:
 
 \begin{code}
-pf null [xs] `propAnd` (propLit (null xs :< is ["True"]) `propOr` pf tail [xs]
+pf null [xs] `propAnd` (null xs `is` ["True"] `propOr` pf tail [xs]
 \end{code}
 
 \noindent We can use the preconditions computed for |tail| and |null| to rewrite the precondition as:
 
 \begin{code}
-propLit (null xs :< is ["True"]) `propOr` propLit (xs :< is [":"])
+null xs `is` ["True"] `propOr` xs `is` [":"]
 \end{code}
 
 \noindent We can now use the property that if the result of |null| is |True|, then the argument must have been |[]| to write:
 
 \begin{code}
-propLit (xs :< is ["[]"]) `propOr` propLit (xs :< is [":"])
+xs `is` ["[]"] `propOr` xs `is` [":"]
 \end{code}
 
 \noindent Which can be shown to be a tautology.
 \end{examplerevisit}
 
-Constraints are rewritten using the |backs| function, given in Figure \ref{fig:backward}. The result is a predicate where all assertions are over the functions arguments, denoted by argument position. The |replacePos| function takes a predicate of constraints over argument positions, and a list of arguments supplied, and substitutes the arguments into the predicate.
+Constraints are rewritten using the |backs| function, given in Figure \ref{fig:backward}. The result is a predicate where all assertions are over the functions arguments, denoted by argument position. The |merge| function takes a predicate of constraints over argument positions, and a list of arguments supplied, and merges the arguments into the predicate.
 
 \para{The |Var| rule} has two alternatives. The first alternative deals with top-level bound arguments, which are already in the correct form. The other alternative applies to variables bound by patterns in case alternatives. It lifts conditions on a bound variable to the subject of the case expression in which they occur. The | ||>| operator lifts a constraint on one part of a data structure to a constraint on the entire data structure. For BP-constraints | ||>| can be defined:
 
 \begin{code}
-(c,i) |> k = map extend k
-    where extend x = Con c  [if i == j then x else Any
-                            | j <- [0..arity c - 1]]
+(c,i) |> k = Con c  [  if i == j then k else Any
+                    |  j <- [0..arity c - 1]]
 \end{code}
 
 \begin{example}
@@ -601,41 +600,36 @@ case  xs of
       y:ys  -> tail y
 \end{code}
 
-Here the initial precondition will be |y :< is [":"]|, which evaluates to |[Con ":" [Any,Any]]|. The |var| function on |y| will return |Right (xs,(":",0))|. After the application of | ||>| the result will be |xs :< [Con ":" [Con ":" [Any,Any], Any]]|. We have gone from a constraint on |y|, using the knowledge that |y| is bound to a portion of |xs|, to a constraint on |xs|.
+Here the initial precondition will be |y `is` [":"]|, which evaluates to |y :< Con ":" [Any,Any]|. The |var| function on |y| will return |Right (xs,(":",0))|. After the application of | ||>| the result will be |xs :< Con ":" [Con ":" [Any,Any], Any]|. We have gone from a constraint on |y|, using the knowledge that |y| is bound to a portion of |xs|, to a constraint on |xs|.
 \end{example}
 
 \para{The |Make| rule} deals with an application of a constructor. The |<||| operator splits a constraint on an entire structure into a combination of constraints on each part.
 
 \begin{code}
-c <| k = propOrs (map f k)
-    where
-    f Any = propTrue
-    f (Con c_2 xs) = propBool (c_2 == c) `propAnd`
-        propAnds (map propLit (zipWith (:<) [0..] (map (:[]) xs)))
+c <| Any = propTrue
+c <| Con c_2 xs  =          propBool (c_2 == c)
+                 `propAnd`  propAnds (map propLit (zipWith (:<) [0..] xs))
 \end{code}
 
 The intuition is that a constraint is given knowledge of the root constructor of a data value, and reformulates the constraint in terms of what the constructors fields must satisfy. Some sample applications:
 
 \begin{code}
-"True" <| [Con "True" []] = propTrue
-"False" <| [Con "True" []] = propFalse
-":" <| [Con ":" [Con "True" [],Any]] = propLit $ 0 :< [Con "True" []]
-":" <| [Con ":" [Any,Con "[]" []]] = propLit $ 1 :< [Con "[]" []]
+"True" <| Con "True" [] = propTrue
+"False" <| Con "True" [] = propFalse
+":" <| Con ":" [Con "True" [],Any] = propLit $ 0 :< Con "True" []
+":" <| Con ":" [Any,Con "[]" []] = propLit $ 1 :< Con "[]" []
 \end{code}
 
 \para{The |Case| rule} generates a conjunct for each alternative. An alternative is safe if \textit{either} it is never taken, \textit{or} it meets the constraint when taken. The |notin| function from Figure \ref{fig:precondition} is used to assert that a particular alternative never matches.
 
 \begin{figure}
-%format property_0 = "\Varid{property_0}"
-%format property_n = "\Varid{property_n}"
-%format property_n_1 = "\Varid{property_{n\text{\tiny{+}}1}}"
 \begin{code}
 property :: FuncName -> Constraint -> Prop (Assert ArgPos)
-property_0    fn k = propTrue
-property_n_1  fn k =  property_n fn k `propAnd`
-                      backs property_n (propLit $ instantiate fn vs_ :< k)
+property Rec0   fn k =  propTrue
+property RecN1  fn k =  property RecN fn k `propAnd`
+                        backs property RecN (propLit $ instantiate fn vs_ :< k)
 
-where vs_ =  -- free variables, which |var| treats 
+where vs_ =  -- free variables, which |var| treats
              -- as successive function arguments
 \end{code}
 \begin{comment}
@@ -669,7 +663,7 @@ A key function in the semantics of constraints tests whether a value satisfies a
 satisfies :: Value -> Constraint -> Bool
 satisfies Bottom        k = True
 satisfies (Value c xs)  k = propIsTrue $ propMap f (c <| k)
-    where f (i :< k_2) = propBool $ satisfies (xs !! i) k_2
+    where f (i :< k') = propBool $ satisfies (xs !! i) k'
 \end{code}
 \end{minipage}
 
@@ -708,8 +702,8 @@ data Constraint  = RegExp :- [CtorName]
 type RegExp      = [RegItem]
 data RegItem     = Atom Selector | Star [Selector]
 
-is :: [CtorName] -> Constraint
-is cs = [] :- cs
+is :: alpha -> [CtorName] -> Prop (Assert alpha)
+is e cs = propLit $ e :< ([] :- cs)
 
 (|>) :: Selector -> Constraint -> Constraint
 p |> (r :- cs) = integrate p r :- cs
@@ -719,8 +713,8 @@ c <| (r :- cs) = propBool (ewp r ==> (c `elem` cs)) `propAnd`
     propAnds (map f [0 .. arity c - 1])
     where
     f i = case  differentiate (c,i) r of
-                  Nothing  -> propTrue
-                  Just r_2  -> propLit $ i :< (r_2 :- cs)
+                Nothing   -> propTrue
+                Just r_2  -> propLit $ i :< (r_2 :- cs)
 
 ewp :: RegExp -> Bool
 ewp x = all isStar x
@@ -837,8 +831,9 @@ nonRecs c = [i | i <- [0..arity c-1], not (isRec (c,i))]
 complete :: CtorName -> Pattern
 complete c = Pattern c (map (const Any) (nonRecs c))
 
-is :: [CtorName] -> Constraint
-is cs = [map complete cs :* map complete (ctors (head cs))]
+is :: :: alpha -> [CtorName] -> Prop (Assert alpha)
+is e [] = propFalse
+is e cs = propLit $ e :<  [map complete cs :* map complete (ctors (head cs))]
 
 (|>) :: Selector -> Constraint -> Constraint
 (c,i) |> k = notin c ++ map f k
@@ -854,14 +849,14 @@ c <| vs = propOrs (map f vs)
     (rec,non) = partition (isRec . (,) c) [0..arity c-1]
 
     f Any = propTrue
-    f (ms_1 :* ms_2) =  propOrs  [propAnds $ map propLit $ g vs_1
-                               | Pattern c_1 vs_1 <- ms_1, c_1 == c]
+    f (ms_1 :* ms_2) = propOrs  [propAnds $ map propLit $ g vs_1
+                                | Pattern c_1 vs_1 <- ms_1, c_1 == c]
         where g vs =  zipWith (:<) non (map (:[]) vs) ++
                       map (:< [ms_2 :* ms_2]) rec
 
 mergeVal :: Val -> Val -> Val
 (a_1 :* b_1)  `mergeVal`  (a_2 :* b_2)  = merge a_1 a_2 :* merge b_1 b_2
-x           `mergeVal`  y           = if x == Any then y else x
+x             `mergeVal`  y             = if x == Any then y else x
 
 merge :: [Pattern] -> [Pattern] -> [Pattern]
 merge  ms_1 ms_2 = [Pattern c_1 (zipWith mergeVal vs_1 vs_2) |
@@ -1232,8 +1227,9 @@ Using our knowledge of the intention of functions, we can see that although |rea
 
 \subsection{The XMonad Program}
 
-\todo{Write up here}
+XMonad \cite{xmonad} is a window manager, which automatically manages the layout of program windows on the screen. The central module of XMonad contains a pure API, which is used to perform manipulate a data structure containing information regarding window layout. Catch has been run on their central module, several times, as the design has evolved. Their API contains 36 exported functions, most of which are intended to be total. Within the implementation of these functions, there are a number of incomplete patterns and calls to partial functions.
 
+When the Catch tool was first used, it detected six separate issues which were causes for concern -- including unsafe uses of partial functions, API functions which contained incomplete pattern matches, and unnecessary assumptions about the |Ord| class. All these issues were subsequently fixed. While XMonad is a program, Catch is being used to check API functions, ensuring they are complete. The XMonad developers have said: ``QuickCheck and Catch can be used to provide mechanical support for developing a clean, orthogonal API for a complex system.''
 
 \section{Related Work}
 \label{sec:related}
