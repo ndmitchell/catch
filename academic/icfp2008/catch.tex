@@ -239,7 +239,10 @@ True      => (risers2 x y z  ) :< (:)
 
 \noindent The first property says that if the argument to |risers| is a |(:)|-constructed value, the result will be. The second states that the result from |risers2| is always |(:)|-constructed.
 
-The analysis method works by trying to calculate preconditions on the arguments for each function, where if the precondition holds the function will not call |error|. In the process of calculating preconditions it uses properties of functions, relating the arguments of a function to the result.
+\begin{comment}
+The analysis method works by calculating preconditions on the arguments for each function, which are sufficient to ensure the function will not call |error|. To calculate preconditions the method uses properties of functions, relating the arguments of a function to the result.
+\end{comment}
+
 
 \section{Pattern Match Analysis}
 \label{sec:manipulate}
@@ -248,8 +251,8 @@ This section explains the method used to calculate preconditions for functions. 
 
 \begin{itemize}
 \item A \textbf{constraint} describes a (possibly infinite) set of values. We say a value \textit{satisfies} a constraint if the value is within the set.
-\item A \textbf{precondition} is a predicate of constraints on the arguments to a function, that guarantee the function will not call |error|, either directly or indirectly.
-\item A \textbf{property} is a predicate of constraints on the arguments to a function that ensure the result of the function will satisfy a further constraint.
+\item A \textbf{precondition} is a predicate of constraints on the arguments to a function, to ensure the result of the function will not contain $\bot{}$.
+\item A \textbf{property}     is a predicate of constraints on the arguments to a function, to ensure the result of the function will satisfy a further constraint.
 \end{itemize}
 
 \subsection{Reduced expression language}
@@ -306,7 +309,7 @@ subst r (Case  x xs  ) = Case (subst r x)
 \label{fig:semantics}
 \end{figure}
 
-Syntax for the core language is given in Figure \ref{fig:core}. Our Core language is a little more restrictive than the core languages typically used in compilers \cite{ghc_core}. It is first order, has only simple case statements, and only algebraic data types. All case statements have alternatives for all constructors, with |error| calls being introduced where a pattern-match error would otherwise occur.
+The syntax for our core language is given in Figure \ref{fig:core}. Our Core language is a little more restrictive than the core languages typically used in compilers \cite{ghc_core}. It is first order, has only simple case statements, and only algebraic data types. All case statements have alternatives for all constructors, with |error| calls being introduced where a pattern-match error would otherwise occur.
 
 The evaluation strategy is lazy. A semantics is outlined in Figure \ref{fig:semantics}, as an evaluator from expression to values, written in Haskell. The |hnf| function evaluates an expression to head normal form. The |subst| function substitutes free variables that are the result of a |Case| expression.
 
@@ -324,14 +327,14 @@ isRec        :: Selector  -> Bool
 \label{fig:core_operations}
 \end{figure}
 
-Figure \ref{fig:core_operations} gives the signatures for helper functions over the core data types. Every constructor has an arity, which can be obtained with the |arity| function. To determine alternative constructors the |ctors| function can be used; for example |ctors "True" = ["False", "True"]| and |ctors "[]" = ["[]",":"]|. The |var| function returns |Left i| for a variable bound as the |i|th argument of a top-level function, and |Right (e,(c,i))| for a variable bound as the |i|th component in the |c|-constructed alternative of case-expression whose scrutinee is |e|. The function |instantiate| corresponds to $\beta$ reduction. The |isRec (c,i)| function returns true if the constructor |c| has a recursive |i|th component; for example, let |hd = (":",0)| and |tl = (":",1)| then |isRec hd = False| but |isRec tl = True|.
+Figure \ref{fig:core_operations} gives the signatures for helper functions over the core data types. Every constructor has an arity, which can be obtained with the |arity| function. To determine alternative constructors the |ctors| function can be used; for example |ctors "True" = ["False", "True"]| and |ctors "[]" = ["[]",":"]|. The |var| function returns |Left i| for a variable bound as the |i|th argument of a top-level function, and |Right (e,(c,i))| for a variable bound as the |i|th component in the |c|-constructed alternative of a case-expression whose scrutinee is |e|. The function |instantiate| corresponds to $\beta$ reduction. The |isRec (c,i)| function returns true if the constructor |c| has a recursive |i|th component; for example, let |hd = (":",0)| and |tl = (":",1)| then |isRec hd = False| but |isRec tl = True|.
 
 \subsubsection{Transformation From Haskell to Core}
 \label{sec:transform}
 
-To generate core representations of programs, it is natural to start with a full Haskell compiler, and we chose Yhc \citep{me:yhc_core}. Yhc provides a format for external Core files, and can link in all associated libraries to produce a single Core file representing an entire program. Yhc Core is less restrictive than our Core language, being higher-order and containing let expressions. The let expressions can be removed by simple transformations provided in the Yhc Core library.
+To generate core representations of programs, we start with the York Haskell Compiler (Yhc) \citep{me:yhc_core}. Yhc can transform a Haskell program into a single Yhc Core file, including all necessary libraries. Yhc Core is higher-order and contains let expressions, both of which are absent in our Core language. The let expressions can be removed by simple transformations provided by the Yhc Core library.
 
-To generate a first-order program from a higher-order variant the standard technique is to make use of Reynold's style defunctionalization \cite{reynolds:defunc}. Unfortunately, this technique introduces a mini-interpreter into the resultant program, and from a pattern-matching analysis viewpoint, is no easier than directly analysing higher-order code. Instead we use an alternative defunctionalization method \cite{me:firstify_icfp}, which removes higher-order functions without complicating the analysis. Using this sequence of steps, we are able to convert the full Haskell 98 language into our Core language.
+The standard way to make a program first-order is Reynolds style defunctionalization \cite{reynolds:defunc}. This method embeds a mini-interpreter into the resultant program, which complicates our analysis method considerably. Instead, we use an alternative defunctionalization method \cite{me:firstify_icfp}, which removes higher-order functions without complicating the analysis. Using these steps, we are able to convert the full Haskell 98 language into our Core language.
 
 \subsubsection{Algebraic Abstractions of Primitive Types}
 \label{sec:abstraction}
@@ -347,14 +350,14 @@ data Int  = Minus Pos | Zero | Plus Pos
 Although this abstraction of |Int| captures all the underlying detail of the number system, the underlying constraint systems discussed in \S\ref{sec:constraint} would be unable to distinguishing between any pair of numbers both greater than 2, or both less than -2.
 \end{comment}
 
-The Core language only has algebraic data types. Catch allows for primitive types such as characters and numbers by abstracting them into algebraic types. For example, two abstractions used in Catch are simply:
+The Core language only has algebraic data types. Catch allows for primitive types such as characters and numbers by abstracting them into algebraic types. Two abstractions used in Catch are:
 
 \begin{code}
 data Int = Neg | Zero | One | Pos
 data Char = Char
 \end{code}
 
-In our experience, numbers are most often constrained to be a natural, or to be non-zero. Addition or subtraction of one is the most common operation. Though very simple, the abstraction models the common properties and operations quite well. For characters, we have found little benefit in any refinement other than considering all characters to be abstracted to the same value.
+In our experience, numbers are most often constrained to be a natural, or to be non-zero. Addition or subtraction of one is the most common operation. Though very simple, the |Int| abstraction models the common properties and operations quite well. For characters, we have found little benefit in any refinement other than considering all characters to be abstracted to the same value.
 
 \begin{comment}
 Possible abstractions of characters include:
@@ -378,25 +381,18 @@ The final issue of abstraction relates to primitive functions in the |IO| monad,
 \begin{code}
 data Prop alpha
 
-propAnd, propOr, propImp  :: Prop alpha -> Prop alpha -> Prop alpha
+propAnd, propOr           :: Prop alpha -> Prop alpha -> Prop alpha
 propAnds, propOrs         :: [Prop alpha] -> Prop alpha
 propMap                   :: (alpha -> Prop beta) -> Prop alpha -> Prop beta
 propTrue, propFalse       :: Prop alpha
-propIsTrue, propIsFalse   :: Prop alpha -> Bool
 propBool                  :: Bool -> Prop alpha
 propLit                   :: alpha -> Prop alpha
-
-(==>) :: Bool -> Bool -> Bool
 \end{code}
 \caption{Property data type}
 \label{fig:prop}
 \end{figure}
 
-An expression in our first-order core language evaluates to a data structure. A constraint describes a set of data structures to which a value may belong. If a component within a data structure evaluates to $\bot{}$, there are no constraints upon it.
-
-If |x| is an expression and |c| is a constraint we write |x :< c| to assert that the value of expression |x| must be a member of the set described by |c|, i.e. that |x| \textit{satisfies} |c|. It is convenient to have a notation for constraints upon named arguments of named functions: we write \ignore|f, x :< c| to assert that argument |x| of |f| satisfy |c|.
-
-Atomic constraints can be combined into propositions, using the proposition data type in Figure \ref{fig:prop}. We also introduce |(==>)|, standard boolean implication -- Haskell already provides |(<=)|, but we prefer the clarity of a different symbol.
+We write |x :< c| to assert that the value of expression |x| must be a member of the set described by the constraint |c|, i.e. that |x| \textit{satisfies} |c|. If any component of |x| evaluates to $\bot{}$, the constraint is vacuously satisfied. Atomic constraints can be combined into propositions, using the proposition data type in Figure \ref{fig:prop}.
 
 Several underlying constraint models are possible. To keep the introduction of the algorithms simple we first use \textit{basic pattern constraints} (\S\ref{sec:basic}), which are unsuitable for reasons given in \S\ref{sec:bounded}. We then describe \textit{regular expression constraints} in \S\ref{sec:regexp} -- a variant of the constraints used in Catch05. Finally we present \textit{multi-pattern constraints} in \S\ref{sec:multipattern} -- used in Catch08 to enable scaling to much larger problems.
 
@@ -404,30 +400,28 @@ Several underlying constraint models are possible. To keep the introduction of t
 \begin{code}
 data Assert alpha = alpha :< Constraint
 
-is :: alpha -> [CtorName] -> Prop (Assert alpha)
-(|>) :: Selector -> Constraint -> Constraint
-(<|) :: CtorName -> Constraint -> Prop (Assert ArgPos)
+is    :: alpha -> [CtorName] -> Prop (Assert alpha)
+(|>)  :: Selector -> Constraint -> Constraint
+(<|)  :: CtorName -> Constraint -> Prop (Assert ArgPos)
 \end{code}
 \caption{Constraint operations.}
 \label{fig:constraint}
 \end{figure}
 
-Three operations must be provided by every constraint model. Signatures are given in Figure \ref{fig:constraint}. |Assert| is the type of the |(:<)| condition. The lifting and splitting operators |(||>)| and |(<||)| are discussed in \S\ref{sec:backward}. The |is| function generates a constraint on  value, which is only satisfied by values whose root constructor is one of the given constructors.
-
+Three operations must be provided by every constraint model, whose signatures are given in Figure \ref{fig:constraint}. |Assert| is the type of the |(:<)| condition. The lifting and splitting operators |(||>)| and |(<||)| are discussed in \S\ref{sec:backward}. The expression |is x cs| generates a predicate ensuring that the value |x| must be constructed by one of the constructors in |cs|.
 
 \subsection{Basic Pattern (BP) Constraints}
 \label{sec:basic}
 
 \begin{figure}
 \begin{code}
-type Constraint  =  Pattern
-data Pattern     =  Con CtorName [Pattern] | Any
+data Constraint = Any | Con CtorName [Constraint]
 \end{code}
 \caption{Basic pattern constraints.}
 \label{fig:basic}
 \end{figure}
 
-For simplicity, our analysis framework will be introduced using basic pattern constraints (BP-constraints). A BP-constraint directly corresponds to Haskell pattern matching, where |Any| represents an underscore. A constraint is a finite set of patterns represented as in Figure \ref{fig:basic}. A given data structure |d| satisfies a constraint |p| it matches the pattern. The universal constraints can be represented as |Any|. The requirement for a value to be |(:)|-constructed would be expressed as |(Con ":" [Any,Any])|. The BP-constraint language is limited in expressivity. For example it is impossible to state that all the elements of a boolean list are True.
+For simplicity, our analysis framework will be introduced using basic pattern constraints (BP-constraints). A BP-constraint is represented as in Figure \ref{fig:basic}, and corresponds to Haskell pattern matching, where |Any| represents an underscore. A given data structure |d| satisfies a BP-constraint |p| if it matches the pattern. The requirement for a value to be |(:)|-constructed would be expressed as |(Con ":" [Any,Any])|. The BP-constraint language is limited in expressivity, for example it is impossible to state that all the elements of a boolean list are True.
 
 As an example of an operator definition for the BP-constraint language, |is| can be defined:
 
@@ -460,7 +454,7 @@ pre pf (Case  on  alts  ) = pre pf on `propAnd` propAnds (map f alts)
 \label{fig:precondition}
 \end{figure}
 
-Our intention is that for every function, constraints on the arguments form a precondition for pattern safety. The precondition for |error| is False. A program is safe if the precondition on |main| is True. The process of analysis can be seen as deriving these preconditions. Given a function |pf| that returns the preconditions on a function's arguments, a function to determine the precondition for safe evaluation of an \textit{expression} can be specified as |pre| in Figure \ref{fig:precondition}. The intuition behind |pre| is that all arguments given to a function must satisfy the precondition for that function. The only exception is that a case alternative is safe if either the alternative is never taken, or the alternative is safe.
+Our intention is that for every function, constraints on the arguments form a precondition to ensure the result does not contain $\bot{}$. The precondition for |error| is False. A program is safe if the precondition on |main| is True. The analyis method derives these preconditions. Given a function |pf| that returns the precondition on a function's arguments, a function to determine the precondition for safe evaluation of an \textit{expression} can be specified as |pre| in Figure \ref{fig:precondition}. The intuition behind |pre| is that all arguments given to a function must satisfy the precondition for that function. The only exception is that a case alternative is safe if either the alternative is never taken, or the alternative is safe.
 
 \begin{example}
 \label{ex:safeTail}
@@ -662,7 +656,7 @@ A key function in the semantics of constraints tests whether a value satisfies a
 \begin{code}
 satisfies :: Value -> Constraint -> Bool
 satisfies Bottom        k = True
-satisfies (Value c xs)  k = propIsTrue $ propMap f (c <| k)
+satisfies (Value c xs)  k = propMap f (c <| k) == propTrue
     where f (i :< k') = propBool $ satisfies (xs !! i) k'
 \end{code}
 \end{minipage}
@@ -671,7 +665,7 @@ The first equation returns |True| given a value of type |Bottom|, as for a |Bott
 
 \begin{code}
 propExtend  v@(Value c xs) k i =
-    satisfies v ((c,i) |> k) ==> satisfies (xs !! i) k
+    not (satisfies v ((c,i) |> k)) || satisfies (xs !! i) k
 propExtend _ _ _ = True
 
 propNotin  v@(Value c xs) = not (satisfies v (notin c))
@@ -709,7 +703,7 @@ is e cs = propLit $ e :< ([] :- cs)
 p |> (r :- cs) = integrate p r :- cs
 
 (<|) :: CtorName -> Constraint -> Prop (Assert Int)
-c <| (r :- cs) = propBool (ewp r ==> (c `elem` cs)) `propAnd`
+c <| (r :- cs) = propBool (not (ewp r) || c `elem` cs) `propAnd`
     propAnds (map f [0 .. arity c - 1])
     where
     f i = case  differentiate (c,i) r of
