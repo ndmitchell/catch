@@ -290,9 +290,10 @@ eval x = case  hnf x of
 
 -- Nothing corresponds to bottom
 hnf :: Expr -> Maybe (CtorName, [Expr])
-hnf (Make  x   xs    )  =  Just (x, xs)
-hnf (Call  x   xs    )  |  x == "error"  = Nothing
-                        |  otherwise     = hnf (instantiate x xs)
+hnf (Make  c   xs    )  =  Just (c, xs)
+hnf (Call  fn  xs    )
+    | fn == "error"  = Nothing
+    | otherwise      = hnf (subst (zip (args fn) xs) (body fn))
 hnf (Case  on  alts  )  =  listToMaybe [res
        |  Just (c,cs) <- [hnf on], Alt n vs e <- alts, c == n
        ,  Just res <- [hnf (subst (zip vs cs) e)]]
@@ -320,14 +321,15 @@ The evaluation strategy is lazy. A semantics is outlined in Figure \ref{fig:sema
 ctors        :: CtorName  -> [CtorName]
 arity        :: CtorName  -> Int
 var          :: VarName   -> Either ArgPos (Expr, Selector)
-instantiate  :: FuncName  -> [Expr] -> Expr
+body         :: FuncName  -> Expr
+args         :: FuncName  -> [VarName]
 isRec        :: Selector  -> Bool
 \end{code}
 \caption{Operations on Core.}
 \label{fig:core_operations}
 \end{figure}
 
-Figure \ref{fig:core_operations} gives the signatures for helper functions over the core data types. Every constructor has an arity, which can be obtained with the |arity| function. To determine alternative constructors the |ctors| function can be used; for example |ctors "True" = ["False", "True"]| and |ctors "[]" = ["[]",":"]|. The |var| function returns |Left i| for a variable bound as the |i|th argument of a top-level function, and |Right (e,(c,i))| for a variable bound as the |i|th component in the |c|-constructed alternative of a case-expression whose scrutinee is |e|. The function |instantiate| corresponds to $\beta$ reduction. The |isRec (c,i)| function returns true if the constructor |c| has a recursive |i|th component; for example, let |hd = (":",0)| and |tl = (":",1)| then |isRec hd = False| but |isRec tl = True|.
+Figure \ref{fig:core_operations} gives the signatures for helper functions over the core data types. Every constructor has an arity, which can be obtained with the |arity| function. To determine alternative constructors the |ctors| function can be used; for example |ctors "True" = ["False", "True"]| and |ctors "[]" = ["[]",":"]|. The |var| function returns |Left i| for a variable bound as the |i|th argument of a top-level function, and |Right (e,(c,i))| for a variable bound as the |i|th component in the |c|-constructed alternative of a case-expression whose scrutinee is |e|. The functions |body| and |args| obtain the body and argument names to a function. The |isRec (c,i)| function returns true if the constructor |c| has a recursive |i|th component; for example, let |hd = (":",0)| and |tl = (":",1)| then |isRec hd = False| but |isRec tl = True|.
 
 \subsubsection{Transformation From Haskell to Core}
 \label{sec:transform}
@@ -410,6 +412,21 @@ is    :: alpha -> [CtorName] -> Prop (Assert alpha)
 
 Three operations must be provided by every constraint model, whose signatures are given in Figure \ref{fig:constraint}. |Assert| is the type of the |(:<)| condition. The lifting and splitting operators |(||>)| and |(<||)| are discussed in \S\ref{sec:backward}. The expression |is x cs| generates a predicate ensuring that the value |x| must be constructed by one of the constructors in |cs|.
 
+\begin{figure}
+\begin{code}
+precond   :: FuncName -> Prop (Assert ArgPos)
+property  :: FuncName -> Prop (Assert ArgPos)
+reduce    :: Prop (Assert Expr) -> Prop (Assert ArgPos)
+
+substP ::  [Expr] -> Prop (Assert ArgPos) -> Prop (Assert Expr)
+substP xs p = propMap (\(i:<k) -> propLit $ (xs!!i) :< k) p
+\end{code}
+\caption{Operations to generate preconditions and properties.}
+\label{fig:operations}
+\end{figure}
+
+The type signatures for the functions providing preconditions and properties are given in Figure \ref{fig:operations}. Both take a function name, and give a predicate of assertions over the arguments to that function, denoted by argument position. During the manipulation of constraints, we will often wish to talk about constraints on expressions, rather than argument positions. We will require the |reduce| function, which converts predicates on expressions to predicates on arguments. We also define the |substP| function which replaces constraints on argument positions with a sequence of arguments.
+
 \subsection{Basic Pattern (BP) Constraints}
 \label{sec:basic}
 
@@ -442,19 +459,18 @@ e `is` [":","[]"]  = e :< Con ":" [Any,Any] `propOr` e :< Con "[]" []
 
 \begin{figure}
 \begin{code}
-pre ::  (FuncName -> [Expr] -> Prop (Assert Expr)) ->
-        Expr -> Prop (Assert Expr)
-pre pf (Var   x         ) = propTrue
-pre pf (Make  _   xs    ) = propAnds (map (pre pf) xs)
-pre pf (Call  fn  xs    ) = pf fn xs `propAnd` propAnds (map (pre pf) xs)
-pre pf (Case  on  alts  ) = pre pf on `propAnd` propAnds (map f alts)
-    where f (Alt c vs e) = on `is` (ctors c \\ [c]) `propOr` pre pf e
+pre ::  Expr -> Prop (Assert Expr)
+pre (Var   x         ) = propTrue
+pre (Make  _   xs    ) = propAnds (map pre xs)
+pre (Call  fn  xs    ) = substP (precond fn) xs `propAnd` propAnds (map pre xs)
+pre (Case  on  alts  ) = pre on `propAnd` propAnds (map f alts)
+    where f (Alt c vs e) = on `is` (ctors c \\ [c]) `propOr` pre e
 \end{code}
 \caption{Precondition of an expression, |pre|.}
 \label{fig:precondition}
 \end{figure}
 
-Our intention is that for every function, constraints on the arguments form a precondition to ensure the result does not contain $\bot{}$. The precondition for |error| is False. A program is safe if the precondition on |main| is True. The analyis method derives these preconditions. Given a function |pf| that returns the precondition on a function's arguments, a function to determine the precondition for safe evaluation of an \textit{expression} can be specified as |pre| in Figure \ref{fig:precondition}. The intuition behind |pre| is that all arguments given to a function must satisfy the precondition for that function. The only exception is that a case alternative is safe if either the alternative is never taken, or the alternative is safe.
+Our intention is that for every function, constraints on the arguments form a precondition to ensure the result does not contain $\bot{}$. The precondition for |error| is False. A program is safe if the precondition on |main| is True. Our analysis method derives these preconditions. Given |precond| which returns the precondition of a function, we can determine the precondition of an \textit{expression} using the |pre| function in Figure \ref{fig:precondition}. The intuition behind |pre| is that all arguments given to a function must satisfy the precondition for that function. The only exception is that a case alternative is safe if either the alternative is never taken, or the alternative is safe.
 
 \begin{example}
 \label{ex:safeTail}
@@ -480,15 +496,9 @@ This predicate states that the invocation of |null xs| must be safe, and either 
 
 \begin{figure}
 \begin{code}
-preVars  :: FuncName            -> Prop (Assert Expr)
-preFun   :: FuncName -> [Expr]  -> Prop (Assert Expr)
-
-preVars Rec0   fn = if fn == "error" then false else true
-preVars RecN1  fn = preVars RecN fn `propAnd` pre preFun RecN (instantiate fn vs_)
-
-preFun RecN fn xs_ = (preVars RecN fn)[vs_ / xs_]
-
-where vs_ = -- list of free variables, of length |arity fn|
+precond  :: FuncName -> Prop (Assert ArgPos)
+precond Rec0   fn = if fn == "error" then false else true
+precond RecN1  fn = precond RecN fn `propAnd` reduce (pre{precond RecN} (body fn))
 \end{code}
 \begin{comment}
 \ignore\begin{code}
@@ -508,7 +518,7 @@ end loop
 \label{fig:precond_fixp}
 \end{figure}
 
-The iterative algorithm for calculating preconditions is given in Figure~\ref{fig:precond_fixp}. The |preVars| function calculates the precondition on a function given a list of variables as arguments, while |preFun| replaces these variables with whatever arguments are desired. Initially all preconditions are assumed to be true, apart from the |error| precondition, which is false. We take the fixed point of |preFun| to be the definitive preconditions. In each iteration of |preVars| the preconditions become more restrictive. So \textit{if all chains of increasingly restrictive constraints are finite}, termination is guaranteed -- a topic we return to in \S\ref{sec:bounded}.
+The iterative algorithm for calculating preconditions is given in Figure~\ref{fig:precond_fixp}. Initially all preconditions are assumed to be true, apart from the |error| precondition, which is false. In each iteration we calculate the precondition using the |pre| function from Figure \ref{fig:precondition}, using the previous value of |precond|. Each successive precondition is combined with the previous value, and is therefore more restrictive. So \textit{if all chains of increasingly restrictive constraints are finite}, termination is guaranteed -- a topic we return to in \S\ref{sec:bounded}.
 
 We can improve the efficiency of the algorithm by tracking dependencies between preconditions, and performing the minimum amount of recalculation. Finding strongly connected components in the static call graph of a program allows parts of the program to be checked separately.
 
@@ -533,24 +543,19 @@ The |pre| function defined in Figure \ref{fig:precondition} does not exploit laz
 
 \begin{figure}
 \begin{code}
-backs ::  (FuncName -> Constraint -> Prop (Assert ArgPos)) ->
-          Prop (Assert Expr) -> Prop (Assert ArgPos)
-backs property = propMap back
-where
+reduce :: Prop (Assert Expr) -> Prop (Assert ArgPos)
+reduce = propMap red
 
-back :: Assert Expr -> Prop (Assert ArgPos)
-back (Var   x         :< k) =  case var x of
-                               Left   i       -> propLit $ i :< k
-                               Right  (on,c)  -> back $ on :< (c |> k)
-back (Make  c   xs    :< k) = merge xs (c <| k)
-back (Call  fn  xs    :< k) = merge xs (property fn k)
-back (Case  on  alts  :< k) = propAnds [f c e | Alt c vs e <- alts]
-    where f c e = propMap back (on `is` (ctors c \\ [c])) `propOr` back (e :< k)
-
-merge ::  [Expr] -> Prop (Assert ArgPos) -> Prop (Assert ArgPos)
-merge xs p = propMap (\(i:<k) -> back $ (xs!!i) :< k) p
+red :: Assert Expr -> Prop (Assert ArgPos)
+red (Var   x         :< k) =  case var x of
+                              Left   i       -> propLit $ i :< k
+                              Right  (on,c)  -> red $ on :< (c |> k)
+red (Make  c   xs    :< k) =  reduce $ substP xs (c <| k)
+red (Call  fn  xs    :< k) =  reduce $ substP xs (property fn k)
+red (Case  on  alts  :< k) =  propAnds [f c e | Alt c vs e <- alts]
+    where f c e = reduce (on `is` (ctors c \\ [c])) `propOr` red (e :< k)
 \end{code}
-\caption{Specification of backward analysis, |back|.}
+\caption{Specification of constraint reduction, |reduce|.}
 \label{fig:backward}
 \end{figure}
 
@@ -578,7 +583,7 @@ xs `is` ["[]"] `propOr` xs `is` [":"]
 \noindent Which can be shown to be a tautology.
 \end{examplerevisit}
 
-Constraints are rewritten using the |backs| function, given in Figure \ref{fig:backward}. The result is a predicate where all assertions are over the functions arguments, denoted by argument position. The |merge| function takes a predicate of constraints over argument positions, and a list of arguments supplied, and merges the arguments into the predicate.
+Constraints are rewritten using the |reduce| function, given in Figure \ref{fig:backward}. The result is a predicate where all assertions are over the functions arguments, denoted by argument position.
 
 \para{The |Var| rule} has two alternatives. The first alternative deals with top-level bound arguments, which are already in the correct form. The other alternative applies to variables bound by patterns in case alternatives. It lifts conditions on a bound variable to the subject of the case expression in which they occur. The | ||>| operator lifts a constraint on one part of a data structure to a constraint on the entire data structure. For BP-constraints | ||>| can be defined:
 
@@ -621,10 +626,7 @@ The intuition is that a constraint is given knowledge of the root constructor of
 property :: FuncName -> Constraint -> Prop (Assert ArgPos)
 property Rec0   fn k =  propTrue
 property RecN1  fn k =  property RecN fn k `propAnd`
-                        backs property RecN (propLit $ instantiate fn vs_ :< k)
-
-where vs_ =  -- free variables, which |var| treats
-             -- as successive function arguments
+                        reduce{property RecN} (propLit $ body fn :< k)
 \end{code}
 \begin{comment}
 
@@ -646,7 +648,7 @@ end loop
 \label{fig:property_fixp}
 \end{figure}
 
-\para{The |Call| rule} relies on the |property| function, defined in Figure \ref{fig:property_fixp}. A property is a mapping from a postcondition on a function, to a predicate of constraints on the arguments to that function -- a precondition to ensure the postcondition. Initially, the assumption is that all arguments to any function will guarantee any constraint. To calculate the property for |fn| to result in a value satisfying |k|, the iterative step takes the body of |fn| with appropriate parameters substituted, and uses the |backs| transformation to obtain a predicate in terms of the arguments to the function only. As in the precondition calculation in \S\ref{sec:precond}, each result becomes increasingly restrictive. If refinement chains of constraint/function pairs are finite, termination is guaranteed. Here again, a speed up can be obtained by tracking the dependencies between constraints, and additionally caching all calculated properties.
+\para{The |Call| rule} relies on the |property| function, defined in Figure \ref{fig:property_fixp}. A property is a mapping from a postcondition on a function, to a predicate of constraints on the arguments to that function -- a precondition to ensure the postcondition. Initially, the assumption is that all arguments to any function will guarantee any constraint. To calculate the property for |fn| to result in a value satisfying |k|, the iterative step takes the body of |fn|, and uses the |reduce| transformation to obtain a predicate in terms of the arguments to the function only. As in the precondition calculation in \S\ref{sec:precond}, each result becomes increasingly restrictive. If refinement chains of constraint/function pairs are finite, termination is guaranteed. Here again, a speed up can be obtained by tracking the dependencies between constraints, and additionally caching all calculated properties.
 
 \subsection{Semantics of Constraints}
 
