@@ -7,8 +7,8 @@
 \include{paper}
 %include paper.fmt
 
-%format <| = "\lhd{}"
-%format |> = "\rhd{}"
+%format <| = "\mathbin{\lhd}"
+%format |> = "\mathbin{\rhd}"
 %format :< = "\mbox{\ensuremath{<\hspace{-1em}-}}"
 %format :- = "\!\rightsquigarrow{}\!"
 %format :* = "\star{}"
@@ -38,6 +38,8 @@
 %format `propImp` = "\ensuremath{\Longrightarrow}"
 %format propImp = "(\ensuremath{\Longrightarrow})"
 %format ==> = "\ensuremath{\Rightarrow}"
+
+%format pre' = pre "^{\prime}"
 
 
 %format break = "\Keyword{break}"
@@ -247,12 +249,12 @@ The analysis method works by calculating preconditions on the arguments for each
 \section{Pattern Match Analysis}
 \label{sec:manipulate}
 
-This section explains the method used to calculate preconditions for functions. We first give the Core language for our tool in \S\ref{sec:core}, then some essential operations on constraints and predicates in \S\ref{sec:constraints}. We then introduce a simple constraint language in \S\ref{sec:basic}, with which we illustrate our method. We define three terms which are essential to our analysis method:
+This section explains the method used to calculate preconditions for functions. We first give the Core language for our tool in \S\ref{sec:core}, then some essential operations on constraints and predicates in \S\ref{sec:constraints}. We then introduce a simple constraint language in \S\ref{sec:basic}, which we use to illustrate our method. First we define three terms:
 
 \begin{itemize}
 \item A \textbf{constraint} describes a (possibly infinite) set of values. We say a value \textit{satisfies} a constraint if the value is within the set.
-\item A \textbf{precondition} is a predicate of constraints on the arguments to a function, to ensure the result of the function will not contain $\bot{}$.
-\item A \textbf{property}     is a predicate of constraints on the arguments to a function, to ensure the result of the function will satisfy a further constraint.
+\item A \textbf{precondition} is a predicate of constraints on the arguments to a function, to ensure the result does not contain $\bot{}$.
+\item A \textbf{property}     is a predicate of constraints on the arguments to a function, to ensure the result satisfies a further constraint.
 \end{itemize}
 
 \subsection{Reduced expression language}
@@ -310,9 +312,9 @@ subst r (Case  x xs  ) = Case (subst r x)
 \label{fig:semantics}
 \end{figure}
 
-The syntax for our core language is given in Figure \ref{fig:core}. Our Core language is a little more restrictive than the core languages typically used in compilers \cite{ghc_core}. It is first order, has only simple case statements, and only algebraic data types. All case statements have alternatives for all constructors, with |error| calls being introduced where a pattern-match error would otherwise occur.
+The syntax for our Core language is given in Figure \ref{fig:core}. Our Core language is more restrictive than the core languages typically used in compilers \cite{ghc_core}. It is first order, has only simple case statements, and only algebraic data types. All case statements have alternatives for all constructors, with |error| calls being introduced where a pattern-match error would otherwise occur.
 
-The evaluation strategy is lazy. A semantics is outlined in Figure \ref{fig:semantics}, as an evaluator from expression to values, written in Haskell. The |hnf| function evaluates an expression to head normal form. The |subst| function substitutes free variables that are the result of a |Case| expression.
+The evaluation strategy is lazy. A semantics is outlined in Figure \ref{fig:semantics}, as an evaluator from expressions to values, written in Haskell. The |hnf| function evaluates an expression to head normal form. The |subst| function substitutes free variables that are the result of a |Case| expression.
 
 \subsubsection{Operations on Core}
 
@@ -334,7 +336,7 @@ Figure \ref{fig:core_operations} gives the signatures for helper functions over 
 \subsubsection{Transformation From Haskell to Core}
 \label{sec:transform}
 
-To generate core representations of programs, we start with the York Haskell Compiler (Yhc) \citep{me:yhc_core}. Yhc can transform a Haskell program into a single Yhc Core file, including all necessary libraries. Yhc Core is higher-order and contains let expressions, both of which are absent in our Core language. The let expressions can be removed by simple transformations provided by the Yhc Core library.
+To generate core representations of programs, we start with Yhc, the York Haskell Compiler \citep{me:yhc_core}. Yhc can transform a Haskell program into a single Yhc Core file, containing all necessary libraries. Yhc Core is higher-order and has let expressions, neither of which are permitted in our Core language. The let expressions can be removed using simple transformations provided by the Yhc Core library.
 
 The standard way to make a program first-order is Reynolds style defunctionalization \cite{reynolds:defunc}. This method embeds a mini-interpreter into the resultant program, which complicates our analysis method considerably. Instead, we use an alternative defunctionalization method \cite{me:firstify_icfp}, which removes higher-order functions without complicating the analysis. Using these steps, we are able to convert the full Haskell 98 language into our Core language.
 
@@ -352,14 +354,14 @@ data Int  = Minus Pos | Zero | Plus Pos
 Although this abstraction of |Int| captures all the underlying detail of the number system, the underlying constraint systems discussed in \S\ref{sec:constraint} would be unable to distinguishing between any pair of numbers both greater than 2, or both less than -2.
 \end{comment}
 
-The Core language only has algebraic data types. Catch allows for primitive types such as characters and numbers by abstracting them into algebraic types. Two abstractions used in Catch are:
+The Core language only has algebraic data types. Catch allows for primitive types such as characters and integers by abstracting them into algebraic types. Two abstractions used in Catch are:
 
 \begin{code}
 data Int = Neg | Zero | One | Pos
 data Char = Char
 \end{code}
 
-In our experience, numbers are most often constrained to be a natural, or to be non-zero. Addition or subtraction of one is the most common operation. Though very simple, the |Int| abstraction models the common properties and operations quite well. For characters, we have found little benefit in any refinement other than considering all characters to be abstracted to the same value.
+In our experience, integers are most often constrained to be a natural, or to be non-zero. Addition or subtraction of one is the most common operation. Though very simple, the |Int| abstraction models the common properties and operations quite well. For characters, we have found little benefit in any refinement other than considering all characters to be abstracted to the same value.
 
 \begin{comment}
 Possible abstractions of characters include:
@@ -394,7 +396,7 @@ propLit                   :: alpha -> Prop alpha
 \label{fig:prop}
 \end{figure}
 
-We write |x :< c| to assert that the value of expression |x| must be a member of the set described by the constraint |c|, i.e. that |x| \textit{satisfies} |c|. If any component of |x| evaluates to $\bot{}$, the constraint is vacuously satisfied. Atomic constraints can be combined into propositions, using the proposition data type in Figure \ref{fig:prop}.
+We write |x :< c| to assert that the value of expression |x| must be a member of the set described by the constraint |c|, i.e. that |x| \textit{satisfies} |c|. If any component of |x| evaluates to $\bot{}$, the constraint is automatically satisfied. Atomic constraints can be combined into propositions, using the proposition data type in Figure \ref{fig:prop}.
 
 Several underlying constraint models are possible. To keep the introduction of the algorithms simple we first use \textit{basic pattern constraints} (\S\ref{sec:basic}), which are unsuitable for reasons given in \S\ref{sec:bounded}. We then describe \textit{regular expression constraints} in \S\ref{sec:regexp} -- a variant of the constraints used in Catch05. Finally we present \textit{multi-pattern constraints} in \S\ref{sec:multipattern} -- used in Catch08 to enable scaling to much larger problems.
 
@@ -415,7 +417,7 @@ Three operations must be provided by every constraint model, whose signatures ar
 \begin{figure}
 \begin{code}
 precond   :: FuncName -> Prop (Assert ArgPos)
-property  :: FuncName -> Prop (Assert ArgPos)
+property  :: FuncName -> Constraint -> Prop (Assert ArgPos)
 reduce    :: Prop (Assert Expr) -> Prop (Assert ArgPos)
 
 substP ::  [Expr] -> Prop (Assert ArgPos) -> Prop (Assert Expr)
@@ -425,7 +427,7 @@ substP xs p = propMap (\(i:<k) -> propLit $ (xs!!i) :< k) p
 \label{fig:operations}
 \end{figure}
 
-The type signatures for the functions providing preconditions and properties are given in Figure \ref{fig:operations}. Both take a function name, and give a predicate of assertions over the arguments to that function, denoted by argument position. During the manipulation of constraints, we will often wish to talk about constraints on expressions, rather than argument positions. We will require the |reduce| function, which converts predicates on expressions to predicates on arguments. We also define the |substP| function which replaces constraints on argument positions with a sequence of arguments.
+The type signatures for the functions providing preconditions and properties are given in Figure \ref{fig:operations}. The |precond| function takes a function name, and gives a predicate of constraints over the arguments to that function, denoted by argument position. The |property| function additionally requires the postcondition that is desired to hold on the result of the function. During the manipulation of constraints, we will often wish to talk about constraints on expressions, rather than argument positions. We require the |reduce| function, which converts predicates on expressions to predicates on arguments. The |substP| function goes in the opposite direction, replacing constraints on argument positions with the argument expressions.
 
 \subsection{Basic Pattern (BP) Constraints}
 \label{sec:basic}
@@ -438,7 +440,7 @@ data Constraint = Any | Con CtorName [Constraint]
 \label{fig:basic}
 \end{figure}
 
-For simplicity, our analysis framework will be introduced using basic pattern constraints (BP-constraints). A BP-constraint is represented as in Figure \ref{fig:basic}, and corresponds to Haskell pattern matching, where |Any| represents an underscore. A given data structure |d| satisfies a BP-constraint |p| if it matches the pattern. The requirement for a value to be |(:)|-constructed would be expressed as |(Con ":" [Any,Any])|. The BP-constraint language is limited in expressivity, for example it is impossible to state that all the elements of a boolean list are True.
+For simplicity, our analysis framework will be introduced using basic pattern constraints (BP-constraints). BP-constraints are defined in Figure \ref{fig:basic}, and correspond to Haskell pattern matching, where |Any| represents an unrestricted match. A data structure satisfies a BP-constraint if it matches the pattern. The requirement for a value to be |(:)|-constructed would be expressed as |(Con ":" [Any,Any])|. The BP-constraint language is limited in expressivity, for example it is impossible to state that all the elements of a boolean list are True.
 
 As an example of an operator definition for the BP-constraint language, |is| can be defined:
 
@@ -462,7 +464,8 @@ e `is` [":","[]"]  = e :< Con ":" [Any,Any] `propOr` e :< Con "[]" []
 pre ::  Expr -> Prop (Assert Expr)
 pre (Var   x         ) = propTrue
 pre (Make  _   xs    ) = propAnds (map pre xs)
-pre (Call  fn  xs    ) = substP (precond fn) xs `propAnd` propAnds (map pre xs)
+pre (Call  fn  xs    ) = pre' fn xs `propAnd` propAnds (map pre xs)
+    where pre' fn xs = substP xs (precond fn) 
 pre (Case  on  alts  ) = pre on `propAnd` propAnds (map f alts)
     where f (Alt c vs e) = on `is` (ctors c \\ [c]) `propOr` pre e
 \end{code}
@@ -483,7 +486,7 @@ safeTail xs = case  null xs of
 \noindent Would generate the predicate:
 
 \begin{code}
-pf null [xs] `propAnd` (null xs `is` ["True"] `propOr` pf tail [xs])
+pre' null [xs] `propAnd` (null xs `is` ["True"] `propOr` pre' tail [xs])
 \end{code}
 
 This predicate states that the invocation of |null xs| must be safe, and either |null xs| is True or |tail xs| must also be safe.
@@ -544,28 +547,28 @@ The |pre| function defined in Figure \ref{fig:precondition} does not exploit laz
 \begin{figure}
 \begin{code}
 reduce :: Prop (Assert Expr) -> Prop (Assert ArgPos)
-reduce = propMap red
+reduce = propMap (\(x:<k) -> red x k)
 
-red :: Assert Expr -> Prop (Assert ArgPos)
-red (Var   x         :< k) =  case var x of
-                              Left   i       -> propLit $ i :< k
-                              Right  (on,c)  -> red $ on :< (c |> k)
-red (Make  c   xs    :< k) =  reduce $ substP xs (c <| k)
-red (Call  fn  xs    :< k) =  reduce $ substP xs (property fn k)
-red (Case  on  alts  :< k) =  propAnds [f c e | Alt c vs e <- alts]
-    where f c e = reduce (on `is` (ctors c \\ [c])) `propOr` red (e :< k)
+red :: Assert Expr -> Constraint -> Prop (Assert ArgPos)
+red (Var   x         ) k =  case var x of
+                            Left   i       -> propLit (i :< k)
+                            Right  (on,c)  -> red on (c |> k)
+red (Make  c   xs    ) k =  reduce $ substP xs (c <| k)
+red (Call  fn  xs    ) k =  reduce $ substP xs (property fn k)
+red (Case  on  alts  ) k =  propAnds [f c e | Alt c vs e <- alts]
+    where f c e = reduce (on `is` (ctors c \\ [c])) `propOr` red e k
 \end{code}
 \caption{Specification of constraint reduction, |reduce|.}
 \label{fig:backward}
 \end{figure}
 
-The precondition calculation generates a predicate in terms of subexpressions of the function body. We simplify this precondition to be in terms of the functions arguments only, allowing the predicate to become simpler -- and hopefully discharged.
+The |pre| function generates a constraint in terms of expressions, which the |precond| function transforms into a constraint on function arguments, using |reduce|. The |reduce| function is defined in Figure \ref{fig:backward}. We will first give an example of how |reduce| works, followed by a description of each equation.
 
 \begin{examplerevisit}{\ref{ex:safeTail}}
 The precondition generated by the |safeTail| function was:
 
 \begin{code}
-pf null [xs] `propAnd` (null xs `is` ["True"] `propOr` pf tail [xs]
+pre' null [xs] `propAnd` (null xs `is` ["True"] `propOr` pre' tail [xs]
 \end{code}
 
 \noindent We can use the preconditions computed for |tail| and |null| to rewrite the precondition as:
@@ -583,9 +586,8 @@ xs `is` ["[]"] `propOr` xs `is` [":"]
 \noindent Which can be shown to be a tautology.
 \end{examplerevisit}
 
-Constraints are rewritten using the |reduce| function, given in Figure \ref{fig:backward}. The result is a predicate where all assertions are over the functions arguments, denoted by argument position.
 
-\para{The |Var| rule} has two alternatives. The first alternative deals with top-level bound arguments, which are already in the correct form. The other alternative applies to variables bound by patterns in case alternatives. It lifts conditions on a bound variable to the subject of the case expression in which they occur. The | ||>| operator lifts a constraint on one part of a data structure to a constraint on the entire data structure. For BP-constraints | ||>| can be defined:
+\para{The |Var| rule} has two alternatives. The first alternative deals with top-level bound arguments, which are already in the correct form. The other alternative applies to variables bound by patterns in case alternatives. It lifts conditions on a bound variable to the scrutinee of the case expression in which they occur. The | ||>| operator lifts a constraint on one part of a data structure to a constraint on the entire data structure. For BP-constraints, | ||>| can be defined as:
 
 \begin{code}
 (c,i) |> k = Con c  [  if i == j then k else Any
@@ -605,21 +607,21 @@ Here the initial precondition will be |y `is` [":"]|, which evaluates to |y :< C
 \para{The |Make| rule} deals with an application of a constructor. The |<||| operator splits a constraint on an entire structure into a combination of constraints on each part.
 
 \begin{code}
-c <| Any = propTrue
-c <| Con c_2 xs  =          propBool (c_2 == c)
-                 `propAnd`  propAnds (map propLit (zipWith (:<) [0..] xs))
+c <| Any         =  propTrue
+c <| Con c_2 xs  =  propBool (c_2 == c) `propAnd`
+                    propAnds (map propLit (zipWith (:<) [0..] xs))
 \end{code}
 
 The intuition is that a constraint is given knowledge of the root constructor of a data value, and reformulates the constraint in terms of what the constructors fields must satisfy. Some sample applications:
 
 \begin{code}
-"True" <| Con "True" [] = propTrue
-"False" <| Con "True" [] = propFalse
-":" <| Con ":" [Con "True" [],Any] = propLit $ 0 :< Con "True" []
-":" <| Con ":" [Any,Con "[]" []] = propLit $ 1 :< Con "[]" []
+"True"   <| Con "True" [] = propTrue
+"False"  <| Con "True" [] = propFalse
+":" <| Con ":" [Con "True" [],Any]  =
+    propLit (0 :< Con "True" []) `propAnd` propLit (1 :< Any)
 \end{code}
 
-\para{The |Case| rule} generates a conjunct for each alternative. An alternative is safe if \textit{either} it is never taken, \textit{or} it meets the constraint when taken. The |notin| function from Figure \ref{fig:precondition} is used to assert that a particular alternative never matches.
+\para{The |Case| rule} generates a conjunct for each alternative. An alternative is safe if \textit{either} it is never taken, \textit{or} it meets the constraint when taken.
 
 \begin{figure}
 \begin{code}
@@ -648,33 +650,39 @@ end loop
 \label{fig:property_fixp}
 \end{figure}
 
-\para{The |Call| rule} relies on the |property| function, defined in Figure \ref{fig:property_fixp}. A property is a mapping from a postcondition on a function, to a predicate of constraints on the arguments to that function -- a precondition to ensure the postcondition. Initially, the assumption is that all arguments to any function will guarantee any constraint. To calculate the property for |fn| to result in a value satisfying |k|, the iterative step takes the body of |fn|, and uses the |reduce| transformation to obtain a predicate in terms of the arguments to the function only. As in the precondition calculation in \S\ref{sec:precond}, each result becomes increasingly restrictive. If refinement chains of constraint/function pairs are finite, termination is guaranteed. Here again, a speed up can be obtained by tracking the dependencies between constraints, and additionally caching all calculated properties.
+\para{The |Call| rule} relies on the |property| function, defined in Figure \ref{fig:property_fixp}. The |property| function calculates the precondition necessary to ensure a given postcondition on a function. Initially, all postconditions are assumed to have no precondition. The iterative step takes the body of the function, and uses the |reduce| transformation to obtain a predicate in terms of the arguments to the function, using the previous |property| binding. As in the precondition calculation in \S\ref{sec:precond}, each result becomes increasingly restrictive. If refinement chains of constraint/function pairs are finite, termination is guaranteed. Here again, a speed up can be obtained by tracking the dependencies between constraints, and additionally caching all calculated properties.
 
 \subsection{Semantics of Constraints}
 
-A key function in the semantics of constraints tests whether a value satisfies a constraint. The | ||>| operator already provides all the necessary information:
+The semantics of a constraint are determined by which values satisfy it. We can implement a |satisfies| function in terms of the |<||| operator:
 
 \noindent\begin{minipage}{\linewidth}
 \begin{code}
-satisfies :: Value -> Constraint -> Bool
+satisfies :: Assert Value -> Bool
 satisfies Bottom        k = True
-satisfies (Value c xs)  k = propMap f (c <| k) == propTrue
-    where f (i :< k') = propBool $ satisfies (xs !! i) k'
+satisfies (Value c xs)  k = satisfiesP $ substP xs (c <| k)
+
+satisfiesP :: Prop (Assert Value) -> Bool
+satisfiesP x = propMap (propBool . satisfies) x == propTrue
 \end{code}
 \end{minipage}
 
-The first equation returns |True| given a value of type |Bottom|, as for a |Bottom| to arise some other constraint must have been violated. Now we can express properties that the other constraint operations must have:
+The first equation returns |True| given a value of type |Bottom|, as if a value contains $\bot{}$ then any constraint is true. In order to be consistent with |<|||, the other operations must respect certain properties:
 
 \begin{code}
-propExtend  v@(Value c xs) k i =
-    not (satisfies v ((c,i) |> k)) || satisfies (xs !! i) k
+propExtend  v@(Value c xs) k i
+    | satisfies v ((c,i) |> k) = satisfies (xs !! i) k
 propExtend _ _ _ = True
-
-propNotin  v@(Value c xs) = not (satisfies v (notin c))
-propNotin  _ = True
 \end{code}
 
-\noindent Note that both properties allow for constraints to be more restrictive than necessary.
+\noindent The |propExtend| property requires that if a constraint satisfies a value after they have both been extended, then the original value must have satisfied the original constraint. For example, if |Just alpha :< (("Just",0) ||> k)| is true, then |alpha :< k| must have been also.
+
+\begin{code}
+propIs  v@(Value c xs) cs | c `notElem` cs = not (satisfiesP (is v cs))
+propIs  _ _ = True
+\end{code}
+
+\noindent The |propIs| property requires that |is v cs| must not match values constructed by constructors not in |cs|. Note that both properties allow for constraints to be more restrictive than necessary.
 
 \subsection{Finite Refinement of Constraints}
 \label{sec:bounded}
@@ -685,7 +693,7 @@ With unbounded recursion in patterns, the BP-constraint language does \textit{no
 \section{Richer Constraint Systems}
 \label{sec:constraint}
 
-There are various ways of defining a richer constraint system, also providing the necessary finiteness properties. Here we outline two -- one adapted from Catch05, one entirely new -- both implemented in Catch08. Neither is strictly more powerful than the other; each is capable of expressing constraints that the other cannot express.
+There are many ways of defining a richer constraint system, while also ensuring the necessary finiteness properties. Here we outline two -- one adapted from Catch05, one entirely new -- both implemented in Catch08. Neither is strictly more powerful than the other; each is capable of expressing constraints that the other cannot express.
 
 When designing a constraint system, the main decision is what to abstract. Since the constraint system must be finite, there will exist sets of data values which no constraint within the system can distinguish between. As the constraint system stores more information, it will distinguish more values, but will likely take longer to obtain fixed points. The two constraint systems in this section were developed by looking at examples, and trying to find systems offering power sufficient power to solve real problems, but still remain bounded.
 
