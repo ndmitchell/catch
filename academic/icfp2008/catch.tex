@@ -1035,8 +1035,7 @@ In the following sections, where modifications are required, we prefer to make t
 
 \textbf{Name} is the name of the checked program (a starred name indicates that changes were needed before safe pattern-matching could be verified);
 \textbf{Src} is the number of lines in the original source code;
-\textbf{Core} is the total number of lines of Yhc Core, including all functions used from libraries;
-\textbf{First} is the number of lines after firstification, just before analysis;
+\textbf{Core} is the number of lines of first-order Core, including all libraries, just before analysis;
 \textbf{Err} is the number of calls to |error| (missing pattern cases);
 \textbf{Pre} is the number of functions which have a precondition which is not simply `True';
 \textbf{Sec} is the time taken for transformations and analysis;
@@ -1045,22 +1044,22 @@ In the following sections, where modifications are required, we prefer to make t
 \smallskip\smallskip
 
 \begin{tabular*}{\linewidth}{lrrrrrrlll}
-\hspace{-2mm} \textbf{Name} & \textbf{Src} & \textbf{Core} & \textbf{First} & \textbf{Err} & \textbf{Pre} & \textbf{Sec} & \textbf{Mb} \\
+\hspace{-2mm} \textbf{Name} & \textbf{Src} & \textbf{Core} & \textbf{Err} & \textbf{Pre} & \textbf{Sec} & \textbf{Mb} \\
 \vspace{-1ex} \\
-\hspace{-2mm} Bernoulli*                   & 35 & 1616 &  652 & 5 & 11 & 4.1 & 0.8 \\
-\hspace{-2mm} Digits of E1*  \hspace{-3mm} & 44 &  957 &  377 & 3 &  8 & 0.3 & 0.6 \\
-\hspace{-2mm} Digits of E2   \hspace{-3mm} & 54 & 1179 &  455 & 5 & 19 & 0.5 & 0.8 \\
-\hspace{-2mm} Exp3-8                       & 29 &  220 &  163 & 0 &  0 & 0.1 & 0.1 \\
-\hspace{-2mm} Gen-Regexps*   \hspace{-3mm} & 41 & 1006 &  776 & 1 &  1 & 0.3 & 0.4 \\
-\hspace{-2mm} Integrate                    & 39 & 2466 &  364 & 3 &  3 & 0.3 & 1.9 \\
-\hspace{-2mm} Paraffins*                   & 91 & 2627 & 1153 & 2 &  2 & 0.8 & 1.9 \\
-\hspace{-2mm} Primes                       & 16 &  302 &  241 & 6 & 13 & 0.2 & 0.1 \\
-\hspace{-2mm} Queens                       & 16 &  648 &  283 & 0 &  0 & 0.2 & 0.2 \\
-\hspace{-2mm} Rfib                         &  9 & 1918 &  100 & 0 &  0 & 0.1 & 1.7 \\
-\hspace{-2mm} Tak                          & 12 &  209 &  155 & 0 &  0 & 0.1 & 0.1 \\
-\hspace{-2mm} Wheel Sieve 1* \hspace{-3mm} & 37 & 1221 &  570 & 7 & 10 & 7.5 & 0.9 \\
-\hspace{-2mm} Wheel Sieve 2* \hspace{-3mm} & 45 & 1397 &  636 & 2 &  2 & 0.3 & 0.6 \\
-\hspace{-2mm} X2n1                         & 10 & 2637 &  331 & 2 &  5 & 1.8 & 1.9 \\
+\hspace{-2mm} Bernoulli*                   & 35 &  652 & 5 & 11 & 4.1 & 0.8 \\
+\hspace{-2mm} Digits of E1*  \hspace{-3mm} & 44 &  377 & 3 &  8 & 0.3 & 0.6 \\
+\hspace{-2mm} Digits of E2   \hspace{-3mm} & 54 &  455 & 5 & 19 & 0.5 & 0.8 \\
+\hspace{-2mm} Exp3-8                       & 29 &  163 & 0 &  0 & 0.1 & 0.1 \\
+\hspace{-2mm} Gen-Regexps*   \hspace{-3mm} & 41 &  776 & 1 &  1 & 0.3 & 0.4 \\
+\hspace{-2mm} Integrate                    & 39 &  364 & 3 &  3 & 0.3 & 1.9 \\
+\hspace{-2mm} Paraffins*                   & 91 & 1153 & 2 &  2 & 0.8 & 1.9 \\
+\hspace{-2mm} Primes                       & 16 &  241 & 6 & 13 & 0.2 & 0.1 \\
+\hspace{-2mm} Queens                       & 16 &  283 & 0 &  0 & 0.2 & 0.2 \\
+\hspace{-2mm} Rfib                         &  9 &  100 & 0 &  0 & 0.1 & 1.7 \\
+\hspace{-2mm} Tak                          & 12 &  155 & 0 &  0 & 0.1 & 0.1 \\
+\hspace{-2mm} Wheel Sieve 1* \hspace{-3mm} & 37 &  570 & 7 & 10 & 7.5 & 0.9 \\
+\hspace{-2mm} Wheel Sieve 2* \hspace{-3mm} & 45 &  636 & 2 &  2 & 0.3 & 0.6 \\
+\hspace{-2mm} X2n1                         & 10 &  331 & 2 &  5 & 1.8 & 1.9 \\
 \vspace{-1ex} \\
 \hspace{-2mm} FiniteMap*    \hspace{-3mm} & 670 & 1484 & 1829 & 13 & 17 & 1.6 & 1.0 \\
 \hspace{-2mm} HsColour*     \hspace{-3mm} & 823 & 5379 & 5060 & 4 &  9 & 2.1 & 2.7 \\
@@ -1242,9 +1241,9 @@ Using our knowledge of the intention of functions, we can see that although |rea
 \subsection{The XMonad Program}
 \label{sec:xmonad}
 
-XMonad \cite{xmonad} is a window manager, which automatically manages the layout of program windows on the screen. The central module of XMonad contains a pure API, which is used to perform manipulate a data structure containing information regarding window layout. Catch has been run on their central module, several times, as the design has evolved. Their API contains 36 exported functions, most of which are intended to be total. Within the implementation of these functions, there are a number of incomplete patterns and calls to partial functions.
+XMonad \cite{xmonad} is a window manager, which automatically manages the layout of program windows on the screen. The central module of XMonad contains a pure API, which is used to manipulate a data structure containing information regarding window layout. Catch has been run on this central module, several times, as XMonad has evolved. Their API contains 36 exported functions, most of which are intended to be total. Within the implementation of these functions, there are a number of incomplete patterns and calls to partial functions.
 
-When the Catch tool was first used, it detected six separate issues which were causes for concern -- including unsafe uses of partial functions, API functions which contained incomplete pattern matches, and unnecessary assumptions about the |Ord| class. All these issues were subsequently fixed. While XMonad is a program, Catch is being used to check API functions, ensuring they are complete. The XMonad developers have said: ``QuickCheck and Catch can be used to provide mechanical support for developing a clean, orthogonal API for a complex system.''
+When the Catch tool was first used, it detected six issues which were cause for concern -- including unsafe uses of partial functions, API functions which contained incomplete pattern matches, and unnecessary assumptions about the |Ord| class. All these issues were subsequently fixed. While XMonad is a program, Catch is being used to check API functions, ensuring they are complete. The XMonad developers have said: ``QuickCheck and Catch can be used to provide mechanical support for developing a clean, orthogonal API for a complex system'' \cite{xmonad}.
 
 \section{Related Work}
 \label{sec:related}
@@ -1253,15 +1252,14 @@ When the Catch tool was first used, it detected six separate issues which were c
 
 There has been a long history of writing tools to analyse programs to detect potential bugs, going back at least to the classic C Lint tool \cite{lint}. In the functional arena there is the Dialyzer tool \cite{dialyzer} for Erlang \cite{erlang}. The aim is to have a static checker that works on unmodified code, with no additional annotations. However, a key difference is that in Dialyzer all warnings indicate a genuine problem that needs to be fixed. Because Erlang is a dynamically typed language, a large proportion of Dialyzer's warnings relate to mistakes a type checker would have detected.
 
-At its heart, the Catch tool tries to prove that |error| calls are unreachable. The Reach tool \cite{naylor:reach} also checks for reachability, trying to find values which will cause a certain expression to be evaluated. Unlike Catch, if the Reach tool cannot find a way to reach an expression, this is no guarantee that the expression is indeed unreachable. As such, Reach can be used to finding examples to provoke non-exhaustive patterns, but not proving their absence.
+The Catch tool tries to prove that |error| calls are unreachable. The Reach tool \cite{naylor:reach} also checks for reachability, trying to find values which will cause a certain expression to be evaluated. Unlike Catch, if the Reach tool cannot find a way to reach an expression, this is no guarantee that the expression is indeed unreachable. As such, Reach can be used to find examples to provoke non-exhaustive patterns, but not to prove their absence.
 
 
 \subsection{Proving Incomplete Patterns Safe}
 
 Despite the seriousness of the problem of pattern matching, there are very few other tools for checking pattern-match safety. This paper has similar goals to \citet{me:catch_tfp}, but some key design decisions are radically different. The difference in practice is that Catch08 supports full Haskell, can scale to much larger examples and can feasibly be used on real programs. Some of the reasons for these better results include a different fixed-point mechanism, the use of MP-constraints and a superior translation from Core.
 
-The closest other work we are aware of is ESC/Haskell \cite{esc_haskell} and its successor Sound Haskell \cite{xu:sound_haskell}. The Sound Haskell approach requires the programmer to give explicit preconditions and contracts which the program obeys. Contracts have more expressive power than our constraints -- one of the examples involves an invariant on an ordered list, something beyond Catch. But the programmer has more work to do. At the time of writing there is no publicly available version of Sound Haskell. So far as we know, it does not yet support full Haskell, lacks features such as type classes\footnote{We have confirmed this information in correspondence with Xu.}, and handles only small examples. A future version of Sound Haskell will hopefully address these limitations, allowing a fuller comparison to be made.
-
+The closest other work we are aware of is ESC/Haskell \cite{esc_haskell} and its successor Sound Haskell \cite{xu:sound_haskell}. The Sound Haskell approach requires the programmer to give explicit preconditions and contracts which the program obeys. Contracts have more expressive power than our constraints -- one of the examples involves an invariant on an ordered list, something beyond Catch. But the programmer has more work to do. We eagerly await prototypes of either tool, to permit a full comparison against Catch.
 
 \subsection{Eliminating Incomplete Patterns}
 
