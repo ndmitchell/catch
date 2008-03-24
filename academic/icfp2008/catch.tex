@@ -249,7 +249,7 @@ The analysis method works by calculating preconditions on the arguments for each
 \section{Pattern Match Analysis}
 \label{sec:manipulate}
 
-This section explains the method used to calculate preconditions for functions. We first give the Core language for our tool in \S\ref{sec:core}, then some essential operations on constraints and predicates in \S\ref{sec:constraints}. We then introduce a simple constraint language in \S\ref{sec:basic}, which we use to illustrate our method. First we define three terms:
+This section describes the method used to calculate preconditions for functions. We first give the Core language for our tool in \S\ref{sec:core}, then some essential operations on constraints and predicates in \S\ref{sec:constraints}. We then introduce a simple constraint language in \S\ref{sec:basic}, which we use to illustrate our method. First we define three terms:
 
 \begin{itemize}
 \item A \textbf{constraint} describes a (possibly infinite) set of values. We say a value \textit{satisfies} a constraint if the value is within the set.
@@ -314,7 +314,7 @@ subst r (Case  x xs  ) = Case (subst r x)
 
 The syntax for our Core language is given in Figure \ref{fig:core}. Our Core language is more restrictive than the core languages typically used in compilers \cite{ghc_core}. It is first order, has only simple case statements, and only algebraic data types. All case statements have alternatives for all constructors, with |error| calls being introduced where a pattern-match error would otherwise occur.
 
-The evaluation strategy is lazy. A semantics is outlined in Figure \ref{fig:semantics}, as an evaluator from expressions to values, written in Haskell. The |hnf| function evaluates an expression to head normal form. The |subst| function substitutes free variables that are the result of a |Case| expression.
+The evaluation strategy is lazy. A semantics is outlined in Figure \ref{fig:semantics}, as an evaluator from expressions to values, written in Haskell. The |hnf| function evaluates an expression to head normal form. The |subst| function substitutes free variables that are the result of a case expression.
 
 \subsubsection{Operations on Core}
 
@@ -331,7 +331,7 @@ isRec        :: Selector  -> Bool
 \label{fig:core_operations}
 \end{figure}
 
-Figure \ref{fig:core_operations} gives the signatures for helper functions over the core data types. Every constructor has an arity, which can be obtained with the |arity| function. To determine alternative constructors the |ctors| function can be used; for example |ctors "True" = ["False", "True"]| and |ctors "[]" = ["[]",":"]|. The |var| function returns |Left i| for a variable bound as the |i|th argument of a top-level function, and |Right (e,(c,i))| for a variable bound as the |i|th component in the |c|-constructed alternative of a case-expression whose scrutinee is |e|. The functions |body| and |args| obtain the body and argument names to a function. The |isRec (c,i)| function returns true if the constructor |c| has a recursive |i|th component; for example, let |hd = (":",0)| and |tl = (":",1)| then |isRec hd = False| but |isRec tl = True|.
+Figure \ref{fig:core_operations} gives the signatures for helper functions over the core data types. In our implementation, these operations are monadic to allow debugging messages to be produced -- a detail we have omitted here. Every constructor has an arity, which can be obtained with the |arity| function. To determine alternative constructors the |ctors| function can be used; for example |ctors "True" = ["False", "True"]| and |ctors "[]" = ["[]",":"]|. The |var| function returns |Left i| for a variable bound as the |i|th argument of a top-level function, and |Right (e,(c,i))| for a variable bound as the |i|th component in the |c|-constructed alternative of a case-expression whose scrutinee is |e|. The functions |body| and |args| obtain the body and argument names to a function. The |isRec (c,i)| function returns true if the constructor |c| has a recursive |i|th component; for example, let |hd = (":",0)| and |tl = (":",1)| then |isRec hd = False| but |isRec tl = True|.
 
 \subsubsection{Transformation From Haskell to Core}
 \label{sec:transform}
@@ -354,7 +354,7 @@ data Int  = Minus Pos | Zero | Plus Pos
 Although this abstraction of |Int| captures all the underlying detail of the number system, the underlying constraint systems discussed in \S\ref{sec:constraint} would be unable to distinguishing between any pair of numbers both greater than 2, or both less than -2.
 \end{comment}
 
-The Core language only has algebraic data types. Catch allows for primitive types such as characters and integers by abstracting them into algebraic types. Two abstractions used in Catch are:
+Our Core language only has algebraic data types. Catch allows for primitive types such as characters and integers by abstracting them into algebraic types. Two abstractions used in Catch are:
 
 \begin{code}
 data Int = Neg | Zero | One | Pos
@@ -451,9 +451,10 @@ is a xs = propOrs [propLit $ a :< Con x (replicate (arity x) Any) | x <- xs]
 \noindent Some sample executions:
 
 \begin{code}
-e `is` ["True"]    = propLit (e :< Con "True" [])
-e `is` [":"]       = propLit (e :< Con ":" [Any,Any])
-e `is` [":","[]"]  = propLit (e :< Con ":" [Any,Any]) `propOr` propLit (e :< Con "[]" [])
+e `is` ["True"]    =  propLit (e :< Con "True" [])
+e `is` [":"]       =  propLit (e :< Con ":" [Any,Any])
+e `is` [":","[]"]  =  propLit (e :< Con ":" [Any,Any]) `propOr`
+                      propLit (e :< Con "[]" [])
 \end{code}
 
 \subsection{Preconditions for Pattern Safety}
@@ -473,7 +474,7 @@ pre (Case  on  alts  ) = pre on `propAnd` propAnds (map f alts)
 \label{fig:precondition}
 \end{figure}
 
-Our intention is that for every function, constraints on the arguments form a precondition to ensure the result does not contain $\bot{}$. The precondition for |error| is False. A program is safe if the precondition on |main| is True. Our analysis method derives these preconditions. Given |precond| which returns the precondition of a function, we can determine the precondition of an \textit{expression} using the |pre| function in Figure \ref{fig:precondition}. The intuition behind |pre| is that all arguments given to a function must satisfy the precondition for that function. The only exception is that a case alternative is safe if either the alternative is never taken, or the alternative is safe.
+Our intention is that for every function, constraints on the arguments form a precondition to ensure the result does not contain $\bot{}$. The precondition for |error| is False. A program is safe if the precondition on |main| is True. Our analysis method derives these preconditions. Given |precond| which returns the precondition of a function, we can determine the precondition of an \textit{expression} using the |pre| function in Figure \ref{fig:precondition}. The intuition behind |pre| is that in all applications |f xs|, the arguments |xs| must satisfy the precondition for |f|. The only exception is that a case alternative is safe if either the alternative is never taken, or the alternative is safe.
 
 \begin{example}
 \label{ex:safeTail}
@@ -500,8 +501,9 @@ This predicate states that the invocation of |null xs| must be safe, and either 
 \begin{figure}
 \ignore\begin{code}
 precond  :: FuncName -> Prop (Assert ArgPos)
-precond Rec0   fn = if fn == "error" then false else true
-precond RecN1  fn = precond RecN fn `propAnd` reduce (pre{precond RecN} (body fn))
+precond Rec0   fn =  if fn == "error" then propFalse else propTrue
+precond RecN1  fn =  precond RecN fn `propAnd`
+                     reduce (pre{precond RecN} (body fn))
 \end{code}
 \begin{comment}
 \ignore\begin{code}
@@ -671,7 +673,8 @@ satisfies Bottom        k = True
 satisfies (Value c xs)  k = satisfiesP $ substP xs (c <| k)
 
 satisfiesP :: Prop (Assert Value) -> Bool
-satisfiesP x = propMap (\(v :< k) -> propBool $ satisfies v k) x == (propTrue :: Prop ())
+satisfiesP x =  (propTrue :: Prop ()) ==
+                propMap (\(v :< k) -> propBool $ satisfies v k) x 
 \end{code}
 \end{minipage}
 
