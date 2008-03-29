@@ -198,7 +198,7 @@ This section sketches the process of checking that the |risers| function in the 
 
 \subsection{Conversion to a Core Language}
 
-Rather than analyse full Haskell, Catch analyses a first-order Core language, without lambda expressions, partial application or let bindings. A convertor is provided from the full Haskell 98 language to this restricted language -- see \S\ref{sec:transform}. The result of converting the |risers| program to Core Haskell, and renaming the identifiers for ease of human reading, is shown in Figure \ref{fig:risers_core}.
+Rather than analyse full Haskell, Catch analyses a first-order Core language, without lambda expressions, partial application or let bindings. A convertor is provided from the full Haskell 98 language to this restricted language -- see \S\ref{sec:transform}. The result of converting the |risers| program to Core Haskell, with identifiers renamed for ease of human reading, is shown in Figure \ref{fig:risers_core}.
 
 The type of |risers| is polymorphic over types in |Ord|. Catch can check |risers| assuming that |Ord| methods do not raise pattern-match errors, and may return any value. Or a type instance such as |Int| can be specified with a type signature. To keep the example simple, we have chosen the latter.
 
@@ -674,7 +674,7 @@ satisfies (Value c xs)  k = satisfiesP $ substP xs (c <| k)
 
 satisfiesP :: Prop (Assert Value) -> Bool
 satisfiesP x =  (propTrue :: Prop ()) ==
-                propMap (\(v :< k) -> propBool $ satisfies v k) x 
+                propMap (\(v :< k) -> propBool $ satisfies v k) x
 \end{code}
 \end{minipage}
 
