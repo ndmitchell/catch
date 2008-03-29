@@ -249,12 +249,12 @@ The analysis method works by calculating preconditions on the arguments for each
 \section{Pattern Match Analysis}
 \label{sec:manipulate}
 
-This section describes the method used to calculate preconditions for functions. We first give the Core language for our tool in \S\ref{sec:core}, then some essential operations on constraints and predicates in \S\ref{sec:constraints}. We then introduce a simple constraint language in \S\ref{sec:basic}, which we use to illustrate our method. First we define three terms:
+This section describes the method used to calculate preconditions for functions. We first give the Core language for our tool in \S\ref{sec:core}, then some essential operations on constraints and propositions in \S\ref{sec:constraints}. We then introduce a simple constraint language in \S\ref{sec:basic}, which we use to illustrate our method. First we define three terms:
 
 \begin{itemize}
 \item A \textbf{constraint} describes a (possibly infinite) set of values. We say a value \textit{satisfies} a constraint if the value is within the set.
-\item A \textbf{precondition} is a predicate of constraints on the arguments to a function, to ensure the result does not contain $\bot{}$.
-\item A \textbf{property}     is a predicate of constraints on the arguments to a function, to ensure the result satisfies a further constraint.
+\item A \textbf{precondition} is a proposition of constraints on the arguments to a function, to ensure the result does not contain $\bot{}$. For example, the precondition on |tail xs| is that |xs| is |(:)|-constructed.
+\item An \textbf{entailment}  is a proposition of constraints on the arguments to a function, to ensure the result satisfies a further constraint. For example, |xs| is |(:)|-constructed ensures |null xs| evaluates to |False|.
 \end{itemize}
 
 \subsection{Reduced expression language}
@@ -290,7 +290,6 @@ eval x = case  hnf x of
                Nothing      -> Bottom
                Just (c,cs)  -> Value c (map eval cs)
 
--- Nothing corresponds to bottom
 hnf :: Expr -> Maybe (CtorName, [Expr])
 hnf (Make  c   xs    )  =  Just (c, xs)
 hnf (Call  fn  xs    )
@@ -331,14 +330,12 @@ isRec        :: Selector  -> Bool
 \label{fig:core_operations}
 \end{figure}
 
-Figure \ref{fig:core_operations} gives the signatures for helper functions over the core data types. In our implementation, these operations are monadic to allow debugging messages to be produced -- a detail we have omitted here. Every constructor has an arity, which can be obtained with the |arity| function. To determine alternative constructors the |ctors| function can be used; for example |ctors "True" = ["False", "True"]| and |ctors "[]" = ["[]",":"]|. The |var| function returns |Left i| for a variable bound as the |i|th argument of a top-level function, and |Right (e,(c,i))| for a variable bound as the |i|th component in the |c|-constructed alternative of a case-expression whose scrutinee is |e|. The functions |body| and |args| obtain the body and argument names to a function. The |isRec (c,i)| function returns true if the constructor |c| has a recursive |i|th component; for example, let |hd = (":",0)| and |tl = (":",1)| then |isRec hd = False| but |isRec tl = True|.
+Figure \ref{fig:core_operations} gives the signatures for helper functions over the core data types. In our implementation, these operations are monadic to allow the checking process to be traced -- a detail we have omitted here. Every constructor has an arity, which can be obtained with the |arity| function. To determine alternative constructors the |ctors| function can be used; for example |ctors "True" = ["False", "True"]| and |ctors "[]" = ["[]",":"]|. The |var| function returns |Left i| for a variable bound as the |i|th argument of a top-level function, and |Right (e,(c,i))| for a variable bound as the |i|th component in the |c|-constructed alternative of a case-expression whose scrutinee is |e|. The functions |body| and |args| obtain the body and argument names to a function. The |isRec (c,i)| function returns true if the constructor |c| has a recursive |i|th component; for example, let |hd = (":",0)| and |tl = (":",1)| then |isRec hd = False| but |isRec tl = True|.
 
 \subsubsection{Transformation From Haskell to Core}
 \label{sec:transform}
 
-To generate core representations of programs, we start with Yhc, the York Haskell Compiler \citep{me:yhc_core}. Yhc can transform a Haskell program into a single Yhc Core file, containing all necessary libraries. Yhc Core is higher-order and has let expressions, neither of which are permitted in our Core language. The let expressions can be removed using simple transformations provided by the Yhc Core library.
-
-The standard way to make a program first-order is Reynolds style defunctionalization \cite{reynolds:defunc}. This method embeds a mini-interpreter into the resultant program, which complicates our analysis method considerably. Instead, we use an alternative defunctionalization method \cite{me:firstify_icfp}, which removes higher-order functions without complicating the analysis. Using these steps, we are able to convert the full Haskell 98 language into our Core language.
+To generate core representations of programs, we start with Yhc, the York Haskell Compiler \citep{me:yhc_core}. Yhc can transform a Haskell program into a single Yhc Core file, containing all necessary libraries. Yhc Core is higher-order and has let expressions, neither of which are permitted in our Core language. The let expressions can be removed using simple transformations provided by the Yhc Core library. The standard way to make a program first-order is Reynolds style defunctionalization \cite{reynolds:defunc}. This method embeds a mini-interpreter into the resultant program, which would complicate our analysis method considerably. Instead, we use an alternative defunctionalization method \cite{me:firstify_icfp}, which removes higher-order functions without complicating the analysis. Using these steps, we are able to convert the full Haskell 98 language into our Core language.
 
 \subsubsection{Algebraic Abstractions of Primitive Types}
 \label{sec:abstraction}
@@ -392,11 +389,11 @@ propTrue, propFalse       :: Prop alpha
 propBool                  :: Bool -> Prop alpha
 propLit                   :: alpha -> Prop alpha
 \end{code}
-\caption{Property data type}
+\caption{Proposition data type}
 \label{fig:prop}
 \end{figure}
 
-We write |Sat x c| to assert that the value of expression |x| must be a member of the set described by the constraint |c|, i.e. that |x| \textit{satisfies} |c|. If any component of |x| evaluates to $\bot{}$, the constraint is automatically satisfied. Atomic constraints can be combined into propositions, using the proposition data type in Figure \ref{fig:prop}.
+We write |Sat x c| to assert that the value of expression |x| must be a member of the set described by the constraint |c|, i.e. that |x| \textit{satisfies} |c|. If any component of |x| evaluates to $\bot{}$, the constraint is automatically satisfied \todo{why?}. Atomic constraints can be combined into propositions, using the proposition data type in Figure \ref{fig:prop}.
 
 Several underlying constraint models are possible. To keep the introduction of the algorithms simple we first use \textit{basic pattern constraints} (\S\ref{sec:basic}), which are unsuitable for reasons given in \S\ref{sec:bounded}. We then describe \textit{regular expression constraints} in \S\ref{sec:regexp} -- a variant of the constraints used in Catch05. Finally we present \textit{multi-pattern constraints} in \S\ref{sec:multipattern} -- used in Catch08 to enable scaling to much larger problems.
 
