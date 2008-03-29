@@ -389,11 +389,11 @@ propTrue, propFalse       :: Prop alpha
 propBool                  :: Bool -> Prop alpha
 propLit                   :: alpha -> Prop alpha
 \end{code}
-\caption{Proposition data type}
+\caption{Proposition data type.}
 \label{fig:prop}
 \end{figure}
 
-We write |Sat x c| to assert that the value of expression |x| must be a member of the set described by the constraint |c|, i.e. that |x| \textit{satisfies} |c|. If any component of |x| evaluates to $\bot{}$, the constraint is automatically satisfied \todo{why?}. Atomic constraints can be combined into propositions, using the proposition data type in Figure \ref{fig:prop}.
+We write |Sat x c| to assert that the value of expression |x| must be a member of the set described by the constraint |c|, i.e. that |x| \textit{satisfies} |c|. If any component of |x| evaluates to $\bot{}$, the constraint is automatically satisfied. Within our method, for a component of |x| to evaluate to $\bot{}$, some other constraint must have been violated -- ensuring an error is still reported. Atomic constraints can be combined into propositions, using the proposition data type in Figure \ref{fig:prop}.
 
 Several underlying constraint models are possible. To keep the introduction of the algorithms simple we first use \textit{basic pattern constraints} (\S\ref{sec:basic}), which are unsuitable for reasons given in \S\ref{sec:bounded}. We then describe \textit{regular expression constraints} in \S\ref{sec:regexp} -- a variant of the constraints used in Catch05. Finally we present \textit{multi-pattern constraints} in \S\ref{sec:multipattern} -- used in Catch08 to enable scaling to much larger problems.
 
@@ -424,7 +424,7 @@ substP xs p = propMap (\(Sat i k ) -> propLit $ Sat (xs!!i) k) p
 \label{fig:operations}
 \end{figure}
 
-The type signatures for the functions providing preconditions and properties are given in Figure \ref{fig:operations}. The |precond| function takes a function name, and gives a predicate of constraints over the arguments to that function, denoted by argument position. The |prePost| function additionally requires the postcondition that is desired to hold on the result of the function. During the manipulation of constraints, we will often wish to talk about constraints on expressions, rather than argument positions. We require the |reduce| function, which converts predicates on expressions to predicates on arguments. The |substP| function goes in the opposite direction, replacing constraints on argument positions with the argument expressions.
+The type signatures for the functions providing preconditions and properties are given in Figure \ref{fig:operations}. The |precond| function takes a function name, and gives a proposition imposing constraints on the arguments to that function, denoted by argument position. The |prePost| function takes a function name and a postcondition, and gives a precondition sufficient to ensure the postcondition. During the manipulation of constraints, we will often wish to talk about constraints on expressions, rather than argument positions. We require the |reduce| function, which converts propositions of constraints on expressions to equivalent propositions of constraints on arguments. The |substP| function goes in the opposite direction, replacing constraints on argument positions with the substituted argument expressions.
 
 \subsection{Basic Pattern (BP) Constraints}
 \label{sec:basic}
@@ -437,7 +437,7 @@ data Constraint = Any | Con CtorName [Constraint]
 \label{fig:basic}
 \end{figure}
 
-For simplicity, our analysis framework will be introduced using basic pattern constraints (BP-constraints). BP-constraints are defined in Figure \ref{fig:basic}, and correspond to Haskell pattern matching, where |Any| represents an unrestricted match. A data structure satisfies a BP-constraint if it matches the pattern. The requirement for a value to be |(:)|-constructed would be expressed as |(Con ":" [Any,Any])|. The BP-constraint language is limited in expressivity, for example it is impossible to state that all the elements of a boolean list are True.
+For simplicity, our analysis framework will be introduced using basic pattern constraints (BP-constraints). BP-constraints are defined in Figure \ref{fig:basic}, and correspond to Haskell pattern matching, where |Any| represents an unrestricted match. A data structure satisfies a BP-constraint if it matches the pattern. For example, the requirement for a value to be |(:)|-constructed would be expressed as |(Con ":" [Any,Any])|. The BP-constraint language is limited in expressivity, for example it is impossible to state that all the elements of a boolean list are True.
 
 As an example of an operator definition for the BP-constraint language, |(-<)| can be defined:
 
@@ -445,7 +445,7 @@ As an example of an operator definition for the BP-constraint language, |(-<)| c
 a -< xs = propOrs [propLit $ a `Sat` Con x (replicate (arity x) Any) | x <- xs]
 \end{code}
 
-\noindent Some sample executions:
+\noindent So, for example:
 
 \begin{code}
 e -< ["True"]    =  propLit (e `Sat` Con "True" [])
@@ -471,7 +471,7 @@ pre (Case  on  alts  ) = pre on `propAnd` propAnds (map f alts)
 \label{fig:precondition}
 \end{figure}
 
-Our intention is that for every function, constraints on the arguments form a precondition to ensure the result does not contain $\bot{}$. The precondition for |error| is False. A program is safe if the precondition on |main| is True. Our analysis method derives these preconditions. Given |precond| which returns the precondition of a function, we can determine the precondition of an \textit{expression} using the |pre| function in Figure \ref{fig:precondition}. The intuition behind |pre| is that in all applications |f xs|, the arguments |xs| must satisfy the precondition for |f|. The only exception is that a case alternative is safe if either the alternative is never taken, or the alternative is safe.
+Our intention is that for every function, a proposition combining constraints on the arguments forms a precondition to ensure the result does not contain $\bot{}$. The precondition for |error| is False. A program is safe if the precondition on |main| is True. Our analysis method derives these preconditions. Given |precond| which returns the precondition of a function, we can determine the precondition of an \textit{expression} using the |pre| function in Figure \ref{fig:precondition}. The intuition behind |pre| is that in all applications |f xs|, the arguments |xs| must satisfy the precondition for |f|. The only exception is that a case expression is safe if the scrutinee is safe, and each alternative is either safe, or never taken.
 
 \begin{example}
 \label{ex:safeTail}
@@ -481,7 +481,7 @@ safeTail xs = case  null xs of
                     False  -> tail xs
 \end{code}
 
-\noindent Would generate the predicate:
+\noindent The precondition for |safeTail| is computed as:
 
 \ignore\begin{code}
 pre' null [xs] `propAnd` (null xs -< ["True"] `propOr` pre' tail [xs])
@@ -520,7 +520,7 @@ end loop
 \label{fig:precond_fixp}
 \end{figure}
 
-The iterative algorithm for calculating preconditions is given in Figure~\ref{fig:precond_fixp}. Initially all preconditions are assumed to be true, apart from the |error| precondition, which is false. In each iteration we calculate the precondition using the |pre| function from Figure \ref{fig:precondition}, using the previous value of |precond|. Each successive precondition is combined with the previous value, and is therefore more restrictive. So \textit{if all chains of increasingly restrictive constraints are finite}, termination is guaranteed -- a topic we return to in \S\ref{sec:bounded}.
+The iterative algorithm for calculating preconditions is given in Figure~\ref{fig:precond_fixp}. Initially all preconditions are assumed to be true, apart from the |error| precondition, which is false. In each iteration we calculate the precondition using the |pre| function from Figure \ref{fig:precondition}, using the previous value of |precond|. Each successive precondition is conjoined with the previous one, and is therefore more restrictive. So \textit{if all chains of increasingly restrictive propositions of constraints are finite}, termination is guaranteed -- a topic we return to in \S\ref{sec:bounded}.
 
 We can improve the efficiency of the algorithm by tracking dependencies between preconditions, and performing the minimum amount of recalculation. Finding strongly connected components in the static call graph of a program allows parts of the program to be checked separately.
 
@@ -569,7 +569,7 @@ red (Case  on  alts  ) k =  propAnds [f c e | Alt c vs e <- alts]
 \label{fig:backward}
 \end{figure}
 
-The |pre| function generates a constraint in terms of expressions, which the |precond| function transforms into a constraint on function arguments, using |reduce|. The |reduce| function is defined in Figure \ref{fig:backward}. We will first give an example of how |reduce| works, followed by a description of each equation.
+The |pre| function generates constraints in terms of expressions, which the |precond| function transforms into constraints on function arguments, using |reduce|. The |reduce| function is defined in Figure \ref{fig:backward}. We will first give an example of how |reduce| works, followed by a description of each rule corresponding to an equation in the definition of |red|.
 
 \begin{examplerevisit}{\ref{ex:safeTail}}
 The precondition generated by the |safeTail| function was:
@@ -584,7 +584,7 @@ pre' null [xs] `propAnd` (null xs -< ["True"] `propOr` pre' tail [xs]
 null xs -< ["True"] `propOr` xs -< [":"]
 \end{code}
 
-\noindent We can now use the \todo{property} that if the result of |null| is |True|, then the argument must have been |[]| to write:
+\noindent We can now use the entailment that |null []| evaluates to |True| to write:
 
 \ignore\begin{code}
 xs -< ["[]"] `propOr` xs -< [":"]
@@ -611,7 +611,7 @@ case  xs of
 Here the initial precondition will be |y -< [":"]|, which evaluates to |y `Sat` Con ":" [Any,Any]|. The |var| function on |y| will return |Right (xs,(":",0))|. After the application of | ||>| the result will be |xs `Sat` Con ":" [Con ":" [Any,Any], Any]|. We have gone from a constraint on |y|, using the knowledge that |y| is bound to a portion of |xs|, to a constraint on |xs|.
 \end{example}
 
-\para{The |Make| rule} deals with an application of a constructor. The |<||| operator splits a constraint on an entire structure into a combination of constraints on each part.
+\para{The |Make| rule} deals with an application of a constructor. The |<||| operator splits a constraint on an entire structure into a proposition combining constraints on each part.
 
 \begin{code}
 c <| Any         =  propTrue
@@ -619,7 +619,7 @@ c <| Con c_2 xs  =  propBool (c_2 == c) `propAnd`
                     propAnds (map propLit (zipWith Sat [0..] xs))
 \end{code}
 
-The intuition is that a constraint is given knowledge of the root constructor of a data value, and reformulates the constraint in terms of what the constructors fields must satisfy. Some sample applications:
+The intuition is that given knowledge of the root constructor of a data value, we can reformulate the constraint in terms of what the constructor fields must satisfy. Some sample applications:
 
 \begin{code}
 "True"   <| Con "True" [] = propTrue
@@ -657,11 +657,11 @@ end loop
 \label{fig:property_fixp}
 \end{figure}
 
-\para{The |Call| rule} relies on the |prePost| function, defined in Figure \ref{fig:property_fixp}. The |prePost| function calculates the precondition necessary to ensure a given postcondition on a function. Initially, all postconditions are assumed to have no precondition. The iterative step takes the body of the function, and uses the |reduce| transformation to obtain a predicate in terms of the arguments to the function, using the previous |prePost| binding. As in the precondition calculation in \S\ref{sec:precond}, each result becomes increasingly restrictive. If refinement chains of constraint/function pairs are finite, termination is guaranteed. Here again, a speed up can be obtained by tracking the dependencies between constraints, and additionally caching all calculated properties.
+\para{The |Call| rule} relies on the |prePost| function, defined in Figure \ref{fig:property_fixp}. The |prePost| calculates the precondition necessary to ensure a given postcondition on a function. Similarly to the precondition calculation in \S\ref{sec:precond}, the |prePost| function works iteratively, with each result becoming increasingly restrictive. Initially, all postconditions are assumed to be true. The iterative step takes the body of the function, and uses the |reduce| transformation to obtain a predicate in terms of the arguments to the function, using the previous value of |prePost|. If refinement chains of constraint/function pairs are finite, termination is guaranteed. Here again, a speed up can be obtained by tracking the dependencies between constraints, and additionally caching all calculated properties.
 
 \subsection{Semantics of Constraints}
 
-The semantics of a constraint are determined by which values satisfy it. We can implement a |satisfies| function in terms of the |<||| operator:
+The semantics of a constraint are determined by which values satisfy it. We can implement a |satisfies| function using the |<||| operator:
 
 \noindent\begin{minipage}{\linewidth}
 \begin{code}
@@ -683,7 +683,7 @@ propExtend  v@(Value c xs) k i
 propExtend _ _ _ = True
 \end{code}
 
-\noindent The |propExtend| property requires that if a constraint satisfies a value after they have both been extended, then the original value must have satisfied the original constraint. For example, if |Just alpha `Sat` (("Just",0) ||> k)| is true, then |alpha `Sat` k| must have been also.
+\noindent The |propExtend| property requires that if a constraint satisfies a value after they have both been extended, then the original value must have satisfied the original constraint. For example, if |Just alpha `Sat` (("Just",0) ||> k)| is true, then |alpha `Sat` k| must be true.
 
 \begin{code}
 propOneOf  v@(Value c xs) cs | c `notElem` cs = not (satisfiesP (v -< cs))
@@ -698,12 +698,12 @@ propOneOf  _ _ = True
 With unbounded recursion in patterns, the BP-constraint language does \textit{not} have only finite chains of refinement. As we saw in \S\ref{sec:fixp_precond}, we need this property for termination of the iterative analysis. In the next section we introduce two alternative constraint systems. Both share a key property: \textit{for any type, there are finitely many constraints}.
 
 
-\section{Richer Constraint Systems}
+\section{Richer but Finite Constraint Systems}
 \label{sec:constraint}
 
 There are many ways of defining a richer constraint system, while also ensuring the necessary finiteness properties. Here we outline two -- one adapted from Catch05, one entirely new -- both implemented in Catch08. Neither is strictly more powerful than the other; each is capable of expressing constraints that the other cannot express.
 
-When designing a constraint system, the main decision is what to abstract. Since the constraint system must be finite, there will exist sets of data values which no constraint within the system can distinguish between. As the constraint system stores more information, it will distinguish more values, but will likely take longer to obtain fixed points. The two constraint systems in this section were developed by looking at examples, and trying to find systems offering power sufficient power to solve real problems, but still remain bounded.
+When designing a constraint system, the main decision is which distinctions between data values to ignore. Since the constraint system must be finite, there must be sets of data values which no constraint within the system can distinguish between. As the constraint system stores more information, it will distinguish more values, but will likely take longer to obtain fixed points. The two constraint systems in this section were developed by looking at examples, and trying to find systems offering sufficient power to solve real problems, but still remain bounded.
 
 \subsection{Regular Expression (RE) Constraints}
 \label{sec:regexp}
@@ -749,11 +749,11 @@ differentiate p (Star    r:rs)  | p `elem` r  = Just (Star r:rs)
 \label{fig:regexp}
 \end{figure}
 
-Catch05 used regular expressions in constraints. A data type for regular expression based constraints (RE-constraints), along with the essential operations upon it is given in Figure \ref{fig:regexp}. In a constraint of the form |(r :- cs)|, |r| is a regular expression and |cs| is a set of constructors. Such a constraint is satisfied by a data structure |d| if every well-defined application to |d| of a sequence of selectors described by |r| reaches a constructor in the set |cs|. If no sequence of selectors has a well-defined result then the constraint is vacuously true.
+Catch05 used regular expressions in constraints. A data type for regular expression based constraints (RE-constraints), along with the essential operations upon it is given in Figure \ref{fig:regexp}. In a constraint of the form |(r :- cs)|, |r| is a regular expression and |cs| is a set of constructors. Such a constraint is satisfied by a data structure |d| if every well-defined application to |d| of a sequence of selectors described by |r| reaches a constructor in the set |cs|. If no such sequence of selectors has a well-defined result then the constraint is vacuously true.
 
 Concerning the helper functions needed to define | ||>| and |<||| in Figure \ref{fig:regexp}, the |differentiate| function is from \citet{conway:regexp}; |integrate| is its inverse; |ewp| is the empty word property.
 
-Catch05 regular expressions were unrestricted and quickly grew to an unmanageable size, thwarting analysis of larger programs. In general, a regular expression takes one of six forms:\\ \\
+Catch05 regular expressions were unrestricted and quickly grew to an unmanageable size, preventing analysis of larger programs. In general, a regular expression takes one of six forms:\\ \\
 \begin{tabular}{ll}
 |r_1+r_2|  & union of regular expressions |r_1| and |r_2| \\
 \ignore|r_1^.r_2| & concatenation of regular expressions |r_1| then |r_2| \\
@@ -775,12 +775,12 @@ Catch08 implements REs using the data type |RegExp| from Figure \ref{fig:regexp}
 
 \begin{example}
 \label{ex:head}
-|(head xs)| is safe if |xs| evaluates to a non-empty list. The RE-constraint generated by Catch is: \ignore|xs `Sat` (1 :- {:})|. This may be read as the root expression (after following an empty path of selectors) is a |(:)|-constructed value.
+|(head xs)| is safe if |xs| evaluates to a non-empty list. The RE-constraint generated by Catch is: \ignore|xs `Sat` (1 :- {:})|. This may be read: from the root of the value |xs|, after following an empty path of selectors, we reach a |(:)|-constructed value.
 \end{example}
 
 \begin{example}
 \label{ex:map_head}
-|(map head xs)| is safe if |xs| evaluates to a list of non-empty lists. The RE-constraint is: \ignore|xs `Sat` (tl^* ^. hd :- {:})|. This may be read as following any number of tails, then exactly one head, you must arrive at a |(:)|. If |xs| is |[]|, it still satisfies the constraint, as the path is not well defined, having no |hd| selector. If |xs| is infinite then the condition applies to all elements, constraining an infinite number of values.
+|(map head xs)| is safe if |xs| evaluates to a list of non-empty lists. The RE-constraint is: \ignore|xs `Sat` (tl^* ^. hd :- {:})|. From the root of |xs|, following any number of tails, then exactly one head, we reach a |(:)|. If |xs| is |[]|, it still satisfies the constraint, as the path is not well defined, having no |hd| selector. If |xs| is infinite then all its infinitely many elements must be |(:)|-constructed.
 \end{example}
 
 \begin{example}
@@ -815,7 +815,7 @@ The |2^rec| term corresponds to the number of possible constraints under |Star|.
 \subsubsection{RE-Constraint Propositions}
 \label{sec:re-propositions}
 
-Catch computes over propositional formulae with constraints as atomic propositions. Among other operators on propositions, they are compared for equality to obtain a fixed point. All the fixed-point algorithms given in this paper stop once equal constraints are found. We use Binary Decision Diagrams (BDD) \cite{lee:bdd} to make these equality tests fast. Since the complexity of performing an operation is often proportional to the number of atomic constraints in a proposition, we apply simplification rules to reduce this number. Three of the nineteen rules are:
+Catch computes over propositional formulae with constraints as atomic propositions. Among other operators on propositions, they are compared for equality to obtain a fixed point. All the fixed-point algorithms given in this paper stop once equal constraints are found. We use Binary Decision Diagrams (BDD) \cite{lee:bdd} to make these equality tests fast. Since the complexity of performing an operation is often proportional to the number of atomic constraints in a proposition, we apply simplification rules to reduce this number. For example, three of the nineteen rules are:
 
 \para{Exhaustion:} In the constraint |x `Sat` (r :- [":","[]"])| the condition lists all the possible constructors. Because of static typing |x| must be one of these constructors. Any such constraint simplifies to True.
 
@@ -880,16 +880,16 @@ merge  ms_1 ms_2 = [Pattern c_1 (zipWith mergeVal vs_1 vs_2) |
 
 Although RE-constraints are capable of solving many examples, they suffer from a problem of scale. As programs become more complex the size of the propositions grows quickly, slowing Catch unacceptably. Multipattern constraints (MP-constraints, defined in Figure \ref{fig:enumeration}) are an alternative which scales better.
 
-MP-constraints are similar to BP-constraints, but can constrain an infinite number of items. A value |v| satisfies a constraint |p_1 :* p_2| if |v| itself satisfies the pattern |p_1| and all its recursive components at any depth satisfy |p_2|. We call |p_1| the root pattern, and |p_2| the recursive pattern. Each of |p_1| and |p_2| is given as a set of matches similar to BP-constraints, but each |Pattern| only specifies the values for the non-recursive selectors, all recursive selectors are handled by |p_2|. A constraint is a disjunctive list of |:*| patterns.
+MP-constraints are similar to BP-constraints, but can constrain an infinite number of items. A value |v| satisfies a constraint |p_1 :* p_2| if |v| itself satisfies the pattern |p_1| and \textit{all its recursive components at any depth} satisfy |p_2|. We call |p_1| the root pattern, and |p_2| the recursive pattern. Each of |p_1| and |p_2| is given as a set of matches similar to BP-constraints, but each |Pattern| only specifies the values for the non-recursive selectors, all recursive selectors are handled by |p_2|. A constraint is a disjunctive list of |:*| patterns.
 
-The intuition behind the |(c,i) ||> ps| function is that if the selector |(c,i)| is recursive, given a pattern |alpha :* beta|, the new root pattern requires the value to be |c|-constructed, and the recursive patterns becomes |merge alpha beta| -- i.e. all recursive values must satisfy both the root and recursive patterns of the original pattern. If the selector is non-recursive, then each new pattern contains the old pattern within it, as the appropriate non-recursive field. In either case, any value which is not |c| constructed is permitted. The idea corresponds to:
+The intuition behind the definition of |(c,i) ||> ps| is that if the selector |(c,i)| is recursive, given a pattern |alpha :* beta|, the new root pattern requires the value to be |c|-constructed, and the recursive patterns become |merge alpha beta| -- i.e. all recursive values must satisfy both the root and recursive patterns of the original pattern. If the selector is non-recursive, then each new pattern contains the old pattern within it, as the appropriate non-recursive field. In either case, any value which is not |c| constructed is permitted. So, for example:
 
 \ignore\begin{code}
 hd  |> {alpha :* beta} = {[], (:) alpha :* [], (:) Any}
 tl  |> {alpha :* beta} = {[], alpha :* merge alpha beta}
 \end{code}
 
-For the |<||| operator, if the root pattern matches, then all non-recursive fields are matched to their non-recursive constraints, and all recursive fields have their root and recursive patterns become their recursive pattern. Some sample applications are:
+For the |<||| operator, if the root pattern matches, then all non-recursive fields are matched to their non-recursive constraints, and all recursive fields have their root and recursive patterns become their recursive pattern. So, for example:
 
 \ignore\begin{code}
 ":" <| {[]         :* beta} = propFalse
@@ -909,9 +909,9 @@ For the |<||| operator, if the root pattern matches, then all non-recursive fiel
 \begin{examplerevisit}{\ref{ex:map_head_reverse}} |(map head (reverse x))| requires |xs| to be a list of non-empty lists \textit{or} infinite. The MP-constraint for an infinite list is: \ignore|{(:) Any} :* {(:) Any}|
 \end{examplerevisit}
 
-MP-constraints also have simplification rules.  Two of the eight rules are:
+MP-constraints also have simplification rules.  For example, two of the eight rules are:
 
-\para{\ignore|[Val]| simplification:} Given a list of |Val|, if the value |Any| is in this list, the list is equal to |[Any]|. If a value occurs more than once in the list, one copy can be removed.
+\para{|Val|-list simplification:} Given a |Val|-list, if the value |Any| is in this list, the list is equal to |[Any]|. If a value occurs more than once in the list, one copy can be removed.
 
 \para{|Val| simplification:} If both |p_1| and |p_2| cover all constructors and all their components have |Any| as their constraint, the constraint |p_1 :* p_2| can be replaced with |Any|.
 
@@ -951,7 +951,7 @@ A big advantage of MP-constraints is that if two constraints on the same express
                  False  -> y
 \end{code}
 
-\noindent can be translated into:
+\noindent in uncurried form becomes:
 
 \begin{code}
 (||) a = case  a of
@@ -961,11 +961,11 @@ A big advantage of MP-constraints is that if two constraints on the same express
 \end{code}\codeexample
 \end{example}
 
-Combining MP-constraint reduction rules with the uncurrying transformation makes \ignore|Sat ArgPos| equivalent in power to \ignore|Prop (Sat ArgPos)|. This simplification reduces the number of different propositional constraints, making fixed-point computations faster. In the RE-constraint system uncurrying would do no harm, but it would be of no use. None of the RE simplification rules is able to reduce distinct components in a tuple.
+Combining MP-constraint reduction rules with the uncurrying transformation makes \ignore|Sat ArgPos| equivalent in power to \ignore|Prop (Sat ArgPos)|. This simplification reduces the number of different propositional constraints, making fixed-point computations faster. In the RE-constraint system uncurrying would do no harm, but it would be of no use, as no additional simplification rules would apply.
 
-\subsection{Comparison of RE and MP Constraints}
+\subsection{Comparison of Constraint Systems}
 
-As we discussed in \S\ref{sec:bounded}, it is not possible to use BP-constraint, as they do not have finite chains of refinement. Both RE-constraints and MP-constraints are capable of expressing a wide range of value-sets, but neither subsumes the other. We give examples where one constraint language can differentiate between a pair of values, and the other cannot.
+As we discussed in \S\ref{sec:bounded}, it is not possible to use BP-constraints, as they do not have finite chains of refinement. Both RE-constraints and MP-constraints are capable of expressing a wide range of value-sets, but neither subsumes the other. We give examples where one constraint language can differentiate between a pair of values, and the other cannot.
 
 \begin{comment}
 \begin{code}
@@ -995,13 +995,13 @@ v_2 = Branch (Leaf False  ) (Leaf True   )
 \noindent The RE-constraint \ignore|(left^* ^.leaf :- True)| is satisfied by |v_1| but not |v_2|. No MP-constraint separates the two values.
 \end{example}
 
-We have implemented both constraint systems in Catch. There are various factors to consider when choosing which constraint system to use -- how readable the constraints are, the expressive power, implementation complexity and scalability. In practice the issue of scalability is key: how large do constraints become, how quickly can they be manipulated, how expensive is their simplification. Catch08 uses MP-constraints by default, as they allow much larger examples to be checked.
+We have implemented both constraint systems in Catch. Factors to consider when choosing which constraint system to use include: how readable the constraints are, expressive power, implementation complexity and scalability. In practice the issue of scalability is key: how large do constraints become, how quickly can they be manipulated, how expensive is their simplification. Catch08 uses MP-constraints by default, as they allow much larger examples to be checked.
 
 
 \section{Results and Evaluation}
 \label{sec:results}
 
-The best way to see the power of Catch is by example. \S\ref{sec:safety} discusses in general how some programs may need to be modified to obtain provable safety. \S\ref{sec:imaginary} investigates all the examples from the Imaginary section of the Nofib suite \cite{nofib}. To illustrate results for larger and widely-used applications, \S\ref{sec:finitemap} investigates the FiniteMap, \S\ref{sec:hscolour} investigates a the HsColour program and \S\ref{sec:xmonad} reports on XMonad.
+The best way to see the power of Catch is by example. \S\ref{sec:safety} discusses in general how some programs may need to be modified to obtain provable safety. \S\ref{sec:imaginary} investigates all the examples from the Imaginary section of the Nofib suite \cite{nofib}. To illustrate results for larger and widely-used applications, \S\ref{sec:finitemap} investigates the FiniteMap, \S\ref{sec:hscolour} investigates the HsColour program and \S\ref{sec:xmonad} reports on XMonad.
 
 
 \subsection{Modifications for Verifiable Safety}
@@ -1021,12 +1021,7 @@ average xs = if null xs then 0 else sum xs `div` length xs
 
 \noindent Now if |xs| is |[]|, the program simply returns 0, and no pattern match error occurs. In general, pattern-match errors can be avoided in two ways:
 
-\para{Widen the domain of definition:} In the example, we widen the domain definition for the |average| function. The modification is made in one place only -- in the definition of |average| itself. An alternative approach to the |average| example would be to widen the domain of definition for division, using a variant such as:
-
-\begin{code}
-safeDiv x y = if y == 0 then 0 else x / y
-\end{code}
-
+\para{Widen the domain of definition:} In the example, we widen the domain of definition for the |average| function. The modification is made in one place only -- in the definition of |average| itself.
 
 \para{Narrow the domain of application:} In the example, we narrow the domain of application for the |(/)| function.  Note that we narrow this domain only for the |(/)| application in |average| -- other |(/)| applications may remain unsafe. Another alternative would be to narrow the domain of application for |average|, ensuring that |[]| is not passed as the argument. This alternative would require a deeper understanding of the flow of the program, requiring rather more work.
 
@@ -1069,8 +1064,8 @@ In the following sections, where modifications are required, we prefer to make t
 \hspace{-2mm} Wheel Sieve 2* \hspace{-3mm} & 45 &  636 & 2 &  2 & 0.3 & 0.6 \\
 \hspace{-2mm} X2n1                         & 10 &  331 & 2 &  5 & 1.8 & 1.9 \\
 \vspace{-1ex} \\
-\hspace{-2mm} FiniteMap*    \hspace{-3mm} & 670 & 1484 & 1829 & 13 & 17 & 1.6 & 1.0 \\
-\hspace{-2mm} HsColour*     \hspace{-3mm} & 823 & 5379 & 5060 & 4 &  9 & 2.1 & 2.7 \\
+\hspace{-2mm} FiniteMap*    \hspace{-3mm} & 670 & 1829 & 13 & 17 & 1.6 & 1.0 \\
+\hspace{-2mm} HsColour*     \hspace{-3mm} & 823 & 5060 &  4 &  9 & 2.1 & 2.7 \\
 \hline
 \end{tabular*}
 \end{table}
@@ -1098,15 +1093,16 @@ main = do  [arg] <- getArgs
            print $ primes !! (read arg)
 \end{code} % $
 
-The first unsafe pattern here is \ignore|[arg] <- getArgs|, as |getArgs| is a primitive which may return any value. Catch can only return False as the sufficient precondition to |main|!
-
-The next step that may fail is when |read| is applied to an argument extracted from |getArgs|. This argument is entirely unknown, and |read| is a sufficiently complicated function that although it can be modelled by Catch, there is no possibility for getting an appropriate abstraction which models the failure case. As a result, any program which calls |read| is unsafe, according to Catch. Using |reads|, which indicates failure properly, a program may still be checked  successfully.
-
-As a result the programs have been rewritten, and Catch is directed to check the function:
+The first unsafe pattern is \ignore|[arg] <- getArgs|, as |getArgs| is a primitive which may return any value. Additionally, if |read| fails to parse the value extracted from |getArgs|, it will evaluate to $\bot{}$. Instead, we check the revised program:
 
 \begin{code}
-compute x = print $ primes !! x
+main = do  args <- getArgs
+           case  map reads args of
+                 [[(x,s)]] | all isSpace s -> print $ primes !! x
+                 _ -> putStrLn "Bad command line"
 \end{code}
+
+Instead of crashing on malformed command line arguments, the modified program informs the user.
 
 \paragraph{Bernoulli}
 
@@ -1125,13 +1121,13 @@ ratTrans (a,b,c,d) xs |
   where q = b `div` d
 \end{code}
 
-\noindent Catch is able to prove that the division by |d| is only unsafe if both |c| and |d| are zero, but it is not able to prove that this invariant is maintained. Using |safeDiv| from \S\ref{sec:safety} the program is proved safe.
+\noindent Catch is able to prove that the division by |d| is only unsafe if both |c| and |d| are zero, but it is not able to prove that this invariant is maintained. Widening the domain of application of |div| allows the program to be proved safe.
 
 As the safety of this program depends on quite deep results in number theory, it is no surprise that it is beyond the scope of an automatic checker such as Catch.
 
 \paragraph{Gen-Regexps}
 
-This program expects valid regular expressions as input. Ways of crashing the program include entering |""|, |"["|, |"<"| and lots of other inputs. One potential error comes from |head . lines|, which can be replaced by |takeWhile (/= '\n')|. Two potential errors take the form \ignore|(a,_:b) = span f xs|. At first glance this pattern definition is similar to the one in |risers|. But here the pattern is only safe if for one of the elements in the list |xs|, |f| returns True. The test |f| is actually |(/= '-')|, and the only safe condition Catch can express is that |xs| is an infinite list. With the amendment  \ignore|(a,b) = safeSpan f xs|, where |safeSpan| is defined as:
+This program expects valid regular expressions as input. Ways of crashing the program include entering |""|, |"["|, |"<"| and lots of other inputs. One potential error comes from |head . lines|, which can be replaced by |takeWhile (/= '\n')|. Two potential errors take the form \ignore|(a,_:b) = span f xs|. At first glance this pattern definition is similar to the one in |risers|. But here the pattern is only safe if for one of the elements in the list |xs|, |f| returns True. The test |f| is actually |(/= '-')|, and the only safe condition Catch can express is that |xs| is an infinite list. With the amendment  \ignore|(a,b) = safeSpan f xs|, where |safeSpan| is defined by:
 
 \begin{code}
 safeSpan p xs = (a, drop 1 b) where (a,b) = span p xs
@@ -1244,12 +1240,12 @@ Examining the |read| error in more detail, by default Catch outputs the potentia
 \par\noindent\textsf{Partial Main.main}
 \smallskip
 
-Using our knowledge of the intention of functions, we can see that although |read| calls error, the blame probably lies in the caller of |read| -- namely \ignore|parseColourPrefs|. By examining this location in the source code we are able to diagnose and correct the problem. Catch optionally reports all the preconditions it has deduced, although in our experience problems can usually be fixed from source-position information alone.
+We can see that \ignore|parseColourPrefs| calls |read|, which in turn calls |error|. The |read| function is specified to crash on incorrect parses, so the blame probably lies in \ignore|parseColourPrefs|. By examining this location in the source code we are able to diagnose and correct the problem. Catch optionally reports all the preconditions it has deduced, although in our experience problems can usually be fixed from source-position information alone.
 
 \subsection{The XMonad Program}
 \label{sec:xmonad}
 
-XMonad \cite{xmonad} is a window manager, which automatically manages the layout of program windows on the screen. The central module of XMonad contains a pure API, which is used to manipulate a data structure containing information regarding window layout. Catch has been run on this central module, several times, as XMonad has evolved. Their API contains 36 exported functions, most of which are intended to be total. Within the implementation of these functions, there are a number of incomplete patterns and calls to partial functions.
+XMonad \cite{xmonad} is a window manager, which automatically manages the layout of program windows on the screen. The central module of XMonad contains a pure API, which is used to manipulate a data structure containing information regarding window layout. Catch has been run on this central module, several times, as XMonad has evolved. The XMonad API contains 36 exported functions, most of which are intended to be total. Within the implementation of these functions, there are a number of incomplete patterns and calls to partial functions.
 
 When the Catch tool was first used, it detected six issues which were cause for concern -- including unsafe uses of partial functions, API functions which contained incomplete pattern matches, and unnecessary assumptions about the |Ord| class. All these issues were subsequently fixed. While XMonad is a program, Catch is being used to check API functions, ensuring they are complete. The XMonad developers have said: ``QuickCheck and Catch can be used to provide mechanical support for developing a clean, orthogonal API for a complex system'' \cite{xmonad}.
 
@@ -1260,7 +1256,7 @@ When the Catch tool was first used, it detected six issues which were cause for 
 
 There has been a long history of writing tools to analyse programs to detect potential bugs, going back at least to the classic C Lint tool \cite{lint}. In the functional arena there is the Dialyzer tool \cite{dialyzer} for Erlang \cite{erlang}. The aim is to have a static checker that works on unmodified code, with no additional annotations. However, a key difference is that in Dialyzer all warnings indicate a genuine problem that needs to be fixed. Because Erlang is a dynamically typed language, a large proportion of Dialyzer's warnings relate to mistakes a type checker would have detected.
 
-The Catch tool tries to prove that |error| calls are unreachable. The Reach tool \cite{naylor:reach} also checks for reachability, trying to find values which will cause a certain expression to be evaluated. Unlike Catch, if the Reach tool cannot find a way to reach an expression, this is no guarantee that the expression is indeed unreachable. As such, Reach can be used to find examples to provoke non-exhaustive patterns, but not to prove their absence.
+The Catch tool tries to prove that |error| calls are unreachable. The Reach tool \cite{naylor:reach} also checks for reachability, trying to find values which will cause a certain expression to be evaluated. Unlike Catch, if the Reach tool cannot find a way to reach an expression, this is no guarantee that the expression is indeed unreachable. So the tools are complementary: Reach can be used to find examples causing non-exhaustive patterns to fail, Catch can be used to prove there are no such examples.
 
 
 \subsection{Proving Incomplete Patterns Safe}
