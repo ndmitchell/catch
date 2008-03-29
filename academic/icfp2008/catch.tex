@@ -239,7 +239,7 @@ x -< (:)  => (risers x       ) -< (:)
 True      => (risers2 x y z  ) -< (:)
 \end{code}
 
-\noindent The first property says that if the argument to |risers| is a |(:)|-constructed value, the result will be. The second states that the result from |risers2| is always |(:)|-constructed.
+\noindent The first line says that if the argument to |risers| is a |(:)|-constructed value, the result will be. The second states that the result from |risers2| is always |(:)|-constructed.
 
 \begin{comment}
 The analysis method works by calculating preconditions on the arguments for each function, which are sufficient to ensure the function will not call |error|. To calculate preconditions the method uses properties of functions, relating the arguments of a function to the result.
@@ -414,7 +414,7 @@ Three operations must be provided by every constraint model, whose signatures ar
 \begin{figure}
 \begin{code}
 precond   :: FuncName -> Prop (Sat ArgPos)
-property  :: FuncName -> Constraint -> Prop (Sat ArgPos)
+prePost   :: FuncName -> Constraint -> Prop (Sat ArgPos)
 reduce    :: Prop (Sat Expr) -> Prop (Sat ArgPos)
 
 substP ::  [alpha] -> Prop (Sat ArgPos) -> Prop (Sat alpha)
@@ -424,7 +424,7 @@ substP xs p = propMap (\(Sat i k ) -> propLit $ Sat (xs!!i) k) p
 \label{fig:operations}
 \end{figure}
 
-The type signatures for the functions providing preconditions and properties are given in Figure \ref{fig:operations}. The |precond| function takes a function name, and gives a predicate of constraints over the arguments to that function, denoted by argument position. The |property| function additionally requires the postcondition that is desired to hold on the result of the function. During the manipulation of constraints, we will often wish to talk about constraints on expressions, rather than argument positions. We require the |reduce| function, which converts predicates on expressions to predicates on arguments. The |substP| function goes in the opposite direction, replacing constraints on argument positions with the argument expressions.
+The type signatures for the functions providing preconditions and properties are given in Figure \ref{fig:operations}. The |precond| function takes a function name, and gives a predicate of constraints over the arguments to that function, denoted by argument position. The |prePost| function additionally requires the postcondition that is desired to hold on the result of the function. During the manipulation of constraints, we will often wish to talk about constraints on expressions, rather than argument positions. We require the |reduce| function, which converts predicates on expressions to predicates on arguments. The |substP| function goes in the opposite direction, replacing constraints on argument positions with the argument expressions.
 
 \subsection{Basic Pattern (BP) Constraints}
 \label{sec:basic}
@@ -547,7 +547,7 @@ The |pre| function defined in Figure \ref{fig:precondition} does not exploit laz
 % for paper haskell
 \begin{code}
 substP ::  [alpha] -> Prop (Sat ArgPos) -> Prop (Sat alpha)
-property  :: FuncName -> Constraint -> Prop (Sat ArgPos)
+prePost :: FuncName -> Constraint -> Prop (Sat ArgPos)
 \end{code}
 \end{comment}
 
@@ -561,7 +561,7 @@ red (Var   x         ) k =  case var x of
                             Left   i       -> propLit (i `Sat` k)
                             Right  (on,c)  -> red on (c |> k)
 red (Make  c   xs    ) k =  reduce $ substP xs (c <| k)
-red (Call  fn  xs    ) k =  reduce $ substP xs (property fn k)
+red (Call  fn  xs    ) k =  reduce $ substP xs (prePost fn k)
 red (Case  on  alts  ) k =  propAnds [f c e | Alt c vs e <- alts]
     where f c e = reduce (on -< (ctors c \\ [c])) `propOr` red e k
 \end{code}
@@ -584,7 +584,7 @@ pre' null [xs] `propAnd` (null xs -< ["True"] `propOr` pre' tail [xs]
 null xs -< ["True"] `propOr` xs -< [":"]
 \end{code}
 
-\noindent We can now use the property that if the result of |null| is |True|, then the argument must have been |[]| to write:
+\noindent We can now use the \todo{property} that if the result of |null| is |True|, then the argument must have been |[]| to write:
 
 \ignore\begin{code}
 xs -< ["[]"] `propOr` xs -< [":"]
@@ -632,10 +632,10 @@ The intuition is that a constraint is given knowledge of the root constructor of
 
 \begin{figure}
 \ignore\begin{code}
-property :: FuncName -> Constraint -> Prop (Sat ArgPos)
-property Rec0   fn k =  propTrue
-property RecN1  fn k =  property RecN fn k `propAnd`
-                        reduce{property RecN} (propLit $ body fn `Sat` k)
+prePost :: FuncName -> Constraint -> Prop (Sat ArgPos)
+prePost Rec0   fn k =  propTrue
+prePost RecN1  fn k =  prePost RecN fn k `propAnd`
+                       reduce{prePost RecN} (propLit $ body fn `Sat` k)
 \end{code}
 \begin{comment}
 
@@ -653,11 +653,11 @@ end loop
         vs = ... -- free variables
 \end{code}
 \end{comment}
-\caption{Fixed point calculation for |property|.}
+\caption{Fixed point calculation for |prePost|.}
 \label{fig:property_fixp}
 \end{figure}
 
-\para{The |Call| rule} relies on the |property| function, defined in Figure \ref{fig:property_fixp}. The |property| function calculates the precondition necessary to ensure a given postcondition on a function. Initially, all postconditions are assumed to have no precondition. The iterative step takes the body of the function, and uses the |reduce| transformation to obtain a predicate in terms of the arguments to the function, using the previous |property| binding. As in the precondition calculation in \S\ref{sec:precond}, each result becomes increasingly restrictive. If refinement chains of constraint/function pairs are finite, termination is guaranteed. Here again, a speed up can be obtained by tracking the dependencies between constraints, and additionally caching all calculated properties.
+\para{The |Call| rule} relies on the |prePost| function, defined in Figure \ref{fig:property_fixp}. The |prePost| function calculates the precondition necessary to ensure a given postcondition on a function. Initially, all postconditions are assumed to have no precondition. The iterative step takes the body of the function, and uses the |reduce| transformation to obtain a predicate in terms of the arguments to the function, using the previous |prePost| binding. As in the precondition calculation in \S\ref{sec:precond}, each result becomes increasingly restrictive. If refinement chains of constraint/function pairs are finite, termination is guaranteed. Here again, a speed up can be obtained by tracking the dependencies between constraints, and additionally caching all calculated properties.
 
 \subsection{Semantics of Constraints}
 
