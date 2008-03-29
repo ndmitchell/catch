@@ -1,6 +1,7 @@
 
 import Data.List hiding (map)
 import Data.Maybe
+import Data.Char (isSpace)
 import Data.Array
 import System
 
