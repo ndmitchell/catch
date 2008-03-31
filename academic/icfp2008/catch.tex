@@ -178,7 +178,7 @@ We have implemented all the techniques reported here. We encourage readers to do
 The contributions of this paper include:
 
 \begin{itemize}
-\item A method for reasoning about pattern-match failures, in terms of a parameterisable constraint language. The method calculates \textit{preconditions} to functions, and \textit{properties} that functions satisfy.
+\item A method for reasoning about pattern-match failures, in terms of a parameterisable constraint language. The method calculates \textit{preconditions} to functions, and \textit{entailments} that functions satisfy.
 \item Two separate constraint languages that can be used with our method.
 \item Details of the Catch implementation which handles the complete Haskell 98 language \cite{haskell}, by transforming Haskell 98 programs to a first-order language.
 \item Results showing success on a number of small examples drawn from the Nofib suite \cite{nofib}, and for two larger examples, investigating the scalability of the checker.
@@ -232,7 +232,7 @@ In the Core language every pattern match covers all possible constructors of the
 risers4, x -< (:)
 \end{code}
 
-\noindent That is, all callers of |risers4| must supply an argument |x| which is a |(:)|-constructed value. For the proof that this precondition holds, two properties are required (see \S\ref{sec:backward}):
+\noindent That is, all callers of |risers4| must supply an argument |x| which is a |(:)|-constructed value. For the proof that this precondition holds, two entailments are required (see \S\ref{sec:backward}):
 
 \ignore\begin{code}
 x -< (:)  => (risers x       ) -< (:)
@@ -420,11 +420,11 @@ reduce    :: Prop (Sat Expr) -> Prop (Sat ArgPos)
 substP ::  [alpha] -> Prop (Sat ArgPos) -> Prop (Sat alpha)
 substP xs p = propMap (\(Sat i k ) -> propLit $ Sat (xs!!i) k) p
 \end{code}
-\caption{Operations to generate preconditions and properties.}
+\caption{Operations to generate preconditions and entailments.}
 \label{fig:operations}
 \end{figure}
 
-The type signatures for the functions providing preconditions and properties are given in Figure \ref{fig:operations}. The |precond| function takes a function name, and gives a proposition imposing constraints on the arguments to that function, denoted by argument position. The |prePost| function takes a function name and a postcondition, and gives a precondition sufficient to ensure the postcondition. During the manipulation of constraints, we will often wish to talk about constraints on expressions, rather than argument positions. We require the |reduce| function, which converts propositions of constraints on expressions to equivalent propositions of constraints on arguments. The |substP| function goes in the opposite direction, replacing constraints on argument positions with the substituted argument expressions.
+The type signatures for the functions calculating preconditions and entailments are given in Figure \ref{fig:operations}. The |precond| function takes a function name, and gives a proposition imposing constraints on the arguments to that function, denoted by argument position. The |prePost| function takes a function name and a postcondition, and gives a precondition sufficient to ensure the postcondition. During the manipulation of constraints, we will often wish to talk about constraints on expressions, rather than argument positions. We require the |reduce| function, which converts propositions of constraints on expressions to equivalent propositions of constraints on arguments. The |substP| function goes in the opposite direction, replacing constraints on argument positions with the substituted argument expressions.
 
 \subsection{Basic Pattern (BP) Constraints}
 \label{sec:basic}
@@ -657,7 +657,7 @@ end loop
 \label{fig:property_fixp}
 \end{figure}
 
-\para{The |Call| rule} relies on the |prePost| function, defined in Figure \ref{fig:property_fixp}. The |prePost| calculates the precondition necessary to ensure a given postcondition on a function. Similarly to the precondition calculation in \S\ref{sec:precond}, the |prePost| function works iteratively, with each result becoming increasingly restrictive. Initially, all postconditions are assumed to be true. The iterative step takes the body of the function, and uses the |reduce| transformation to obtain a predicate in terms of the arguments to the function, using the previous value of |prePost|. If refinement chains of constraint/function pairs are finite, termination is guaranteed. Here again, a speed up can be obtained by tracking the dependencies between constraints, and additionally caching all calculated properties.
+\para{The |Call| rule} relies on the |prePost| function, defined in Figure \ref{fig:property_fixp}. The |prePost| calculates the precondition necessary to ensure a given postcondition on a function. Similarly to the precondition calculation in \S\ref{sec:precond}, the |prePost| function works iteratively, with each result becoming increasingly restrictive. Initially, all postconditions are assumed to be true. The iterative step takes the body of the function, and uses the |reduce| transformation to obtain a predicate in terms of the arguments to the function, using the previous value of |prePost|. If refinement chains of constraint/function pairs are finite, termination is guaranteed. Here again, a speed up can be obtained by tracking the dependencies between constraints, and additionally caching all calculated results.
 
 \subsection{Semantics of Constraints}
 
