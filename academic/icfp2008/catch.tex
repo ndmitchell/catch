@@ -1001,7 +1001,7 @@ We have implemented both constraint systems in Catch. Factors to consider when c
 \section{Results and Evaluation}
 \label{sec:results}
 
-The best way to see the power of Catch is by example. \S\ref{sec:safety} discusses in general how some programs may need to be modified to obtain provable safety. \S\ref{sec:imaginary} investigates all the examples from the Imaginary section of the Nofib suite \cite{nofib}. To illustrate results for larger and widely-used applications, \S\ref{sec:finitemap} investigates the FiniteMap, \S\ref{sec:hscolour} investigates the HsColour program and \S\ref{sec:xmonad} reports on XMonad.
+The best way to see the power of Catch is by example. \S\ref{sec:safety} discusses in general how some programs may need to be modified to obtain provable safety. \S\ref{sec:imaginary} investigates all the examples from the Imaginary section of the Nofib suite \cite{nofib}. To illustrate results for larger and widely-used applications, \S\ref{sec:finitemap} investigates the FiniteMap library, \S\ref{sec:hscolour} investigates the HsColour program and \S\ref{sec:xmonad} reports on XMonad.
 
 
 \subsection{Modifications for Verifiable Safety}
@@ -1023,7 +1023,7 @@ average xs = if null xs then 0 else sum xs `div` length xs
 
 \para{Widen the domain of definition:} In the example, we widen the domain of definition for the |average| function. The modification is made in one place only -- in the definition of |average| itself.
 
-\para{Narrow the domain of application:} In the example, we narrow the domain of application for the |(/)| function.  Note that we narrow this domain only for the |(/)| application in |average| -- other |(/)| applications may remain unsafe. Another alternative would be to narrow the domain of application for |average|, ensuring that |[]| is not passed as the argument. This alternative would require a deeper understanding of the flow of the program, requiring rather more work.
+\para{Narrow the domain of application:} In the example, we narrow the domain of application for the |div| function.  Note that we narrow this domain only for the |div| application in |average| -- other |div| applications may remain unsafe. Another alternative would be to narrow the domain of application for |average|, ensuring that |[]| is not passed as the argument. This alternative would require a deeper understanding of the flow of the program, requiring rather more work.
 
 In the following sections, where modifications are required, we prefer to make the minimum number of changes. Consequently, we widen the domain of definition.
 
@@ -1074,7 +1074,7 @@ The entire Nofib suite \cite{nofib} is large. We concentrate on the `Imaginary' 
 
 Results are given in Table \ref{tab:results}. Only four programs contain no calls to |error| as all pattern-matches are exhaustive. Four programs use the list-indexing operator |(!!)|, which requires the index to be non-negative and less than the length of the list; Catch can only prove this condition if the list is infinite. Eight programs include applications of either |head| or |tail|, most of which can be proven safe. Seven programs have incomplete patterns, often in a |where| binding and Catch performs well on these. Nine programs use division, with the precondition that the divisor must not be zero; most of these can be proven safe.
 
-Three programs have preconditions on the |main| function, all of which state that the argument must be a natural number. In all cases the generated precondition is a necessary one -- if the input violates the precondition then pattern-match failure will occur.
+Three programs have preconditions on the |main| function, all of which state that the test parameter must be a natural number. In all cases the generated precondition is a necessary one -- if the input violates the precondition then pattern-match failure will occur.
 
 We now discuss general modifications required to allow Catch to begin checking the programs, followed by the six programs which required changes. We finish with the Digits of E2 program -- a program with complex pattern matching that Catch is able to prove safe.
 
@@ -1127,7 +1127,7 @@ As the safety of this program depends on quite deep results in number theory, it
 
 \paragraph{Gen-Regexps}
 
-This program expects valid regular expressions as input. Ways of crashing the program include entering |""|, |"["|, |"<"| and lots of other inputs. One potential error comes from |head . lines|, which can be replaced by |takeWhile (/= '\n')|. Two potential errors take the form \ignore|(a,_:b) = span f xs|. At first glance this pattern definition is similar to the one in |risers|. But here the pattern is only safe if for one of the elements in the list |xs|, |f| returns True. The test |f| is actually |(/= '-')|, and the only safe condition Catch can express is that |xs| is an infinite list. With the amendment  \ignore|(a,b) = safeSpan f xs|, where |safeSpan| is defined by:
+This program expects valid regular expressions as input. There are many ways to crash this program, including entering |""|, |"["| or |"<"|. One potential error comes from |head . lines|, which can be replaced by |takeWhile (/= '\n')|. Two potential errors take the form \ignore|(a,_:b) = span f xs|. At first glance this pattern definition is similar to the one in |risers|. But here the pattern is only safe if for one of the elements in the list |xs|, |f| returns True. The test |f| is actually |(/= '-')|, and the only safe condition Catch can express is that |xs| is an infinite list. With the amendment  \ignore|(a,b) = safeSpan f xs|, where |safeSpan| is defined by:
 
 \begin{code}
 safeSpan p xs = (a, drop 1 b) where (a,b) = span p xs
@@ -1217,7 +1217,7 @@ delFromFM (Branch key ellipses) del_key  | del_key  >   key = ellipses
                                          | del_key  ==  key = ellipses
 \end{code}
 
-At first glance the cases appear to be exhaustive. The law of trichotomy leads us to expect one of the guards to be true. However, the Haskell |Ord| class does not enforce this law. There is nothing to prevent an instance for a type with partially ordered values, some of which are incomparable. So Catch cannot verify the safety to |delFromFM| as defined as above.
+At first glance the cases appear to be exhaustive. The law of trichotomy leads us to expect one of the guards to be true. However, the Haskell |Ord| class does not enforce this law. There is nothing to prevent an instance for a type with partially ordered values, some of which are incomparable. So Catch cannot verify the safety of |delFromFM| as defined as above.
 
 The solution is to use the |compare| function which returns one of |GT|, |EQ| or |LT|. This approach has several advantages: (1) the code is free from non-exhaustive patterns; (2) the assumption of trichotomy is explicit in the return type; (3) the library is faster.
 
@@ -1225,7 +1225,7 @@ The solution is to use the |compare| function which returns one of |GT|, |EQ| or
 \subsection{The HsColour Program}
 \label{sec:hscolour}
 
-Artificial benchmarks are not necessarily intended to be fail-proof. But a real program, with real users, should \textit{never} fail with a pattern-match error. We have taken the HsColour program\footnote{http://www.cs.york.ac.uk/fp/darcs/hscolour/} and analysed it using Catch. HsColour has 12 modules, is 4 years old and has had patches from 6 different people.
+Artificial benchmarks are not necessarily intended to be fail-proof. But a real program, with real users, should \textit{never} fail with a pattern-match error. We have taken the HsColour program\footnote{http://www.cs.york.ac.uk/fp/darcs/hscolour/} and analysed it using Catch. HsColour has 12 modules, is 5 years old and has had patches from 6 different people.
 We have contributed patches back to the author of HsColour, with the result that the development version can be proved free from pattern-match errors.
 
 Catch required 4 small patches to the HsColour program before it could be verified free of pattern-match failures. Details are given in Table \ref{tab:results}. Of the 4 patches, 3 were genuine pattern-match errors which could be tripped by constructing unexpected input. The issues were: (1) |read| was called on a preferences file from the user, this could crash given a malformed preferences file; (2) by giving the document consisting of a single double quote character \texttt{"}, and passing the ``-latex'' flag, a crash occurred; (3) by giving the document \texttt{(`)}, namely open bracket, backtick, close bracket, and passing ``-html -anchor'' a crash occurred. The one patch which did not (as far as we are able to ascertain) fix a real bug could still be considered an improvement, and was minor in nature (a single line).
