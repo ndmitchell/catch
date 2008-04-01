@@ -657,7 +657,7 @@ end loop
 \label{fig:property_fixp}
 \end{figure}
 
-\para{The |Call| rule} relies on the |prePost| function, defined in Figure \ref{fig:property_fixp}. The |prePost| calculates the precondition necessary to ensure a given postcondition on a function. Similarly to the precondition calculation in \S\ref{sec:precond}, the |prePost| function works iteratively, with each result becoming increasingly restrictive. Initially, all postconditions are assumed to be true. The iterative step takes the body of the function, and uses the |reduce| transformation to obtain a predicate in terms of the arguments to the function, using the previous value of |prePost|. If refinement chains of constraint/function pairs are finite, termination is guaranteed. Here again, a speed up can be obtained by tracking the dependencies between constraints, and additionally caching all calculated results.
+\para{The |Call| rule} relies on the |prePost| function, defined in Figure \ref{fig:property_fixp}. This function calculates the precondition necessary to ensure a given postcondition on a function. Similarly to the precondition calculation in \S\ref{sec:precond}, the |prePost| function works iteratively, with each result becoming increasingly restrictive. Initially, all postconditions are assumed to be true. The iterative step takes the body of the function, and uses the |reduce| transformation to obtain a predicate in terms of the arguments to the function, using the previous value of |prePost|. If refinement chains of constraint/function pairs are finite, termination is guaranteed. Here again, a speed up can be obtained by tracking the dependencies between constraints, and additionally caching all calculated results.
 
 \subsection{Semantics of Constraints}
 
@@ -749,7 +749,7 @@ differentiate p (Star    r:rs)  | p `elem` r  = Just (Star r:rs)
 \label{fig:regexp}
 \end{figure}
 
-Catch05 used regular expressions in constraints. A data type for regular expression based constraints (RE-constraints), along with the essential operations upon it is given in Figure \ref{fig:regexp}. In a constraint of the form |(r :- cs)|, |r| is a regular expression and |cs| is a set of constructors. Such a constraint is satisfied by a data structure |d| if every well-defined application to |d| of a sequence of selectors described by |r| reaches a constructor in the set |cs|. If no such sequence of selectors has a well-defined result then the constraint is vacuously true.
+Catch05 used regular expressions in constraints. An implementation of Catch08 regular expression based constraints (RE-constraints) is given in Figure \ref{fig:regexp}. In a constraint of the form |(r :- cs)|, |r| is a regular expression and |cs| is a set of constructors. Such a constraint is satisfied by a data structure |d| if every well-defined application to |d| of a sequence of selectors described by |r| reaches a constructor in the set |cs|. If no such sequence of selectors has a well-defined result then the constraint is vacuously true.
 
 Concerning the helper functions needed to define | ||>| and |<||| in Figure \ref{fig:regexp}, the |differentiate| function is from \citet{conway:regexp}; |integrate| is its inverse; |ewp| is the empty word property.
 
@@ -766,7 +766,7 @@ Catch05 regular expressions were unrestricted and quickly grew to an unmanageabl
 Catch08 implements REs using the data type |RegExp| from Figure \ref{fig:regexp}, with |RegExp| being a list of concatenated |RegItem|. In addition to the restrictions imposed by the data type, we require: (1) within |Atom| the |Selector| is not recursive; (2) within |Star| there is a non-empty list of |Selector|s, each of which is recursive; (3) no two |Star| constructors are adjacent in a concatenation. These restrictions are motivated by three observations:
 
 \begin{itemize}
-\item Because of static typing constructor-sets must all be of the same type. (In Catch05 expressions such as \ignore|hd^*| could arise.)
+\item Because of static typing, constructor-sets must all be of the same type. (In Catch05 expressions such as \ignore|hd^*| could arise.)
 
 \item There are finitely many regular expressions for any type. Combined with the finite number of constructors, this property is enough to guarantee termination when computing a fixed-point iteration on constraints.
 
@@ -817,7 +817,7 @@ The |2^rec| term corresponds to the number of possible constraints under |Star|.
 
 Catch computes over propositional formulae with constraints as atomic propositions. Among other operators on propositions, they are compared for equality to obtain a fixed point. All the fixed-point algorithms given in this paper stop once equal constraints are found. We use Binary Decision Diagrams (BDD) \cite{lee:bdd} to make these equality tests fast. Since the complexity of performing an operation is often proportional to the number of atomic constraints in a proposition, we apply simplification rules to reduce this number. For example, three of the nineteen rules are:
 
-\para{Exhaustion:} In the constraint |x `Sat` (r :- [":","[]"])| the condition lists all the possible constructors. Because of static typing |x| must be one of these constructors. Any such constraint simplifies to True.
+\para{Exhaustion:} In the constraint |x `Sat` (r :- [":","[]"])| the condition lists all the possible constructors. Because of static typing, |x| must be one of these constructors. Any such constraint simplifies to True.
 
 \para{And merging:} The conjunction \ignore|e `Sat` (r :- c_1) `propAnd` e `Sat` (r :- c_2)| can be replaced by \ignore|e `Sat` (r :- (c_1 `intersect` c_2))|.
 
@@ -942,7 +942,7 @@ A big advantage of MP-constraints is that if two constraints on the same express
 (Sat e v_1)  `propAnd`  (Sat e v_2) = Sat e [a `mergeVal` b | a <- v_1, b <- v_2]
 \end{code}
 
-\noindent This ability to combine constraints on equal expressions can be exploited further by translating the program to be analysed. After applying |reduce|, all constraints will be in terms of the arguments to a function. So if all functions took exactly one argument then \textit{all} the constraints associated with a function body could be collapsed into one. We therefore \textit{uncurry} all functions.
+\noindent This ability to combine constraints on equal expressions can be exploited further by translating the program to be analysed. After applying |reduce|, all constraints will be in terms of the arguments to a function. So if all functions took exactly one argument then \textit{all} the constraints associated with a function could be collapsed into one. We therefore \textit{uncurry} all functions.
 
 \begin{example}
 \begin{code}
