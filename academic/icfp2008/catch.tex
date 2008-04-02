@@ -1289,18 +1289,18 @@ One method for specifying properties about functional programs is to use the typ
 \begin{code}
 data Cons
 data Unknown
-newtype List a t = List [a]
+newtype List alpha tau = List [alpha]
 
-cons :: a -> [a] -> List a Cons
+cons :: alpha -> [alpha] -> List alpha Cons
 cons a as = List (a:as)
 
-nil :: List a Unknown
+nil :: List alpha Unknown
 nil = List []
 
-fromList :: [a] -> List a Unknown
+fromList :: [alpha] -> List alpha Unknown
 fromList xs = List xs
 
-safeTail :: List a Cons -> [a]
+safeTail :: List alpha Cons -> [alpha]
 safeTail (List (a:as)) = as
 \end{code}
 \caption{A |safeTail| function with Phantom types.}
@@ -1311,17 +1311,17 @@ Types can sometimes be used to explicitly encode invariants on data in functiona
 
 \begin{figure}
 \ignore\begin{code}
-data ConsT a
+data ConsT alpha
 data NilT
 
-data List a t where
-    Cons  :: a -> List a b -> List a (ConsT b)
-    Nil   :: List a NilT
+data List alpha tau where
+    Cons  :: alpha -> List alpha tau -> List alpha (ConsT tau)
+    Nil   :: List alpha NilT
 
-safeTail :: List a (ConsT t) -> List a t
+safeTail :: List alpha (ConsT tau) -> List alpha tau
 safeTail (Cons a b) = b
 
-fromList :: [a] -> (forall t `o` List a t -> r) -> r
+fromList :: [alpha] -> (forall tau `o` List alpha tau -> beta) -> beta
 fromList []      fn = fn Nil
 fromList (x:xs)  fn = fromList xs (fn . Cons x)
 \end{code}
