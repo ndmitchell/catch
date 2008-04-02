@@ -181,7 +181,7 @@ The contributions of this paper include:
 \item A method for reasoning about pattern-match failures, in terms of a parameterisable constraint language. The method calculates \textit{preconditions} of functions.
 \item Two separate constraint languages that can be used with our method.
 \item Details of the Catch implementation which handles the complete Haskell 98 language \cite{haskell}, by transforming Haskell 98 programs to a first-order language.
-\item Results showing success on a number of small examples drawn from the Nofib suite \cite{nofib}, and for two larger examples, investigating the scalability of the checker.
+\item Results showing success on a number of small examples drawn from the Nofib suite \cite{nofib}, and for three larger examples, investigating the scalability of the checker.
 \end{itemize}
 
 In \citet{me:catch_tfp} a pattern-match checker was described with similar aims, which we will refer to as Catch05\footnote{Although the paper was completed in 2005, publication was delayed}. For Catch05 |risers| was towards the boundary of what was possible, for Catch08 it is trivial. Scalability problems have been addressed and Catch08 handles real Haskell programs, with no restriction on the recursion patterns, higher-order functions or type classes. The underlying constraint mechanism of Catch08 is radically different.
@@ -200,7 +200,7 @@ This section sketches the process of checking that the |risers| function in the 
 
 Rather than analyse full Haskell, Catch analyses a first-order Core language, without lambda expressions, partial application or let bindings. A convertor is provided from the full Haskell 98 language to this restricted language -- see \S\ref{sec:transform}. The result of converting the |risers| program to Core Haskell, with identifiers renamed for ease of human reading, is shown in Figure \ref{fig:risers_core}.
 
-The type of |risers| is polymorphic over types in |Ord|. Catch can check |risers| assuming that |Ord| methods do not raise pattern-match errors, and may return any value. Or a type instance such as |Int| can be specified with a type signature. To keep the example simple, we have chosen the latter.
+The type of |risers| is polymorphic over types in the |Ord| class. Catch can check |risers| assuming that |Ord| methods do not raise pattern-match errors, and may return any value. Or a type instance such as |Int| can be specified with a type signature. To keep the example simple, we have chosen the latter.
 
 \begin{figure}
 \begin{code}
@@ -253,8 +253,8 @@ This section describes the method used to calculate preconditions for functions.
 
 \begin{itemize}
 \item A \textbf{constraint} describes a (possibly infinite) set of values. We say a value \textit{satisfies} a constraint if the value is within the set.
-\item A \textbf{precondition} is a proposition of constraints on the arguments to a function, to ensure the result does not contain $\bot{}$. For example, the precondition on |tail xs| is that |xs| is |(:)|-constructed.
-\item An \textbf{entailment}  is a proposition of constraints on the arguments to a function, to ensure the result satisfies a further constraint. For example, |xs| is |(:)|-constructed ensures |null xs| evaluates to |False|.
+\item A \textbf{precondition} is a proposition combining constraints on the arguments to a function, to ensure the result does not contain $\bot{}$. For example, the precondition on |tail xs| is that |xs| is |(:)|-constructed.
+\item An \textbf{entailment}  is a proposition combining constraints on the arguments to a function, to ensure the result satisfies a further constraint. For example, |xs| is |(:)|-constructed ensures |null xs| evaluates to |False|.
 \end{itemize}
 
 \subsection{Reduced expression language}
@@ -358,7 +358,7 @@ data Int = Neg | Zero | One | Pos
 data Char = Char
 \end{code}
 
-In our experience, integers are most often constrained to be a natural, or to be non-zero. Addition or subtraction of one is the most common operation. Though very simple, the |Int| abstraction models the common properties and operations quite well. For characters, we have found little benefit in any refinement other than considering all characters to be abstracted to the same value.
+Where knowledge about values is encoded as a set of possible constructions. In our experience, integers are most often constrained to be a natural, or to be non-zero. Addition or subtraction of one is the most common operation. Though very simple, the |Int| abstraction models the common properties and operations quite well. For characters, we have found little benefit in any refinement other than considering all characters to be abstracted to the same value.
 
 \begin{comment}
 Possible abstractions of characters include:
@@ -393,7 +393,7 @@ propLit                   :: alpha -> Prop alpha
 \label{fig:prop}
 \end{figure}
 
-We write |Sat x c| to assert that the value of expression |x| must be a member of the set described by the constraint |c|, i.e. that |x| \textit{satisfies} |c|. If any component of |x| evaluates to $\bot{}$, the constraint is automatically satisfied. Within our method, for a component of |x| to evaluate to $\bot{}$, some other constraint must have been violated -- ensuring an error is still reported. Atomic constraints can be combined into propositions, using the proposition data type in Figure \ref{fig:prop}.
+We write |Sat x c| to assert that the value of expression |x| must be a member of the set described by the constraint |c|, i.e. that |x| \textit{satisfies} |c|. If any component of |x| evaluates to $\bot{}$, the constraint is automatically satisfied: in our method, for a component of |x| to evaluate to $\bot{}$, some other constraint must have been violated, so an error is still reported. Atomic constraints can be combined into propositions, using the proposition data type in Figure \ref{fig:prop}.
 
 Several underlying constraint models are possible. To keep the introduction of the algorithms simple we first use \textit{basic pattern constraints} (\S\ref{sec:basic}), which are unsuitable for reasons given in \S\ref{sec:bounded}. We then describe \textit{regular expression constraints} in \S\ref{sec:regexp} -- a variant of the constraints used in Catch05. Finally we present \textit{multi-pattern constraints} in \S\ref{sec:multipattern} -- used in Catch08 to enable scaling to much larger problems.
 
@@ -409,7 +409,7 @@ data Sat alpha = Sat alpha Constraint
 \label{fig:constraint}
 \end{figure}
 
-Three operations must be provided by every constraint model, whose signatures are given in Figure \ref{fig:constraint}. |Sat| is used for constraint satisfaction. The lifting and splitting operators |(||>)| and |(<||)| are discussed in \S\ref{sec:backward}. The expression |x -< cs| generates a predicate ensuring that the value |x| must be constructed by one of the constructors in |cs|.
+Three operations must be provided by every constraint model, whose signatures are given in Figure \ref{fig:constraint}. The lifting and splitting operators |(||>)| and |(<||)| are discussed in \S\ref{sec:backward}. The expression |x -< cs| generates a predicate ensuring that the value |x| must be constructed by one of the constructors in |cs|.
 
 \begin{figure}
 \begin{code}
@@ -424,7 +424,7 @@ substP xs p = propMap (\(Sat i k ) -> propLit $ Sat (xs!!i) k) p
 \label{fig:operations}
 \end{figure}
 
-The type signatures for the functions calculating preconditions and entailments are given in Figure \ref{fig:operations}. The |precond| function takes a function name, and gives a proposition imposing constraints on the arguments to that function, denoted by argument position. The |prePost| function takes a function name and a postcondition, and gives a precondition sufficient to ensure the postcondition. During the manipulation of constraints, we will often wish to talk about constraints on expressions, rather than argument positions. We require the |reduce| function, which converts propositions of constraints on expressions to equivalent propositions of constraints on arguments. The |substP| function goes in the opposite direction, replacing constraints on argument positions with the substituted argument expressions.
+The type signatures for the functions calculating preconditions and entailments are given in Figure \ref{fig:operations}. The |precond| function takes a function name, and gives a proposition imposing constraints on the arguments to that function, denoted by argument position. The |prePost| function takes a function name and a postcondition, and gives a precondition sufficient to ensure the postcondition. During the manipulation of constraints, we often need to talk about constraints on expressions, rather than argument positions: the |reduce| function converts propositions of constraints on expressions to equivalent propositions of constraints on arguments. The |substP| function goes in the opposite direction, replacing constraints on argument positions with the substituted argument expressions.
 
 \subsection{Basic Pattern (BP) Constraints}
 \label{sec:basic}
@@ -572,7 +572,7 @@ red (Case  on  alts  ) k =  propAnds [f c e | Alt c vs e <- alts]
 The |pre| function generates constraints in terms of expressions, which the |precond| function transforms into constraints on function arguments, using |reduce|. The |reduce| function is defined in Figure \ref{fig:backward}. We will first give an example of how |reduce| works, followed by a description of each rule corresponding to an equation in the definition of |red|.
 
 \begin{examplerevisit}{\ref{ex:safeTail}}
-The precondition generated by the |safeTail| function was:
+The precondition for the |safeTail| function is:
 
 \ignore\begin{code}
 pre' null [xs] `propAnd` (null xs -< ["True"] `propOr` pre' tail [xs]
@@ -584,7 +584,7 @@ pre' null [xs] `propAnd` (null xs -< ["True"] `propOr` pre' tail [xs]
 null xs -< ["True"] `propOr` xs -< [":"]
 \end{code}
 
-\noindent We can now use the entailment that |null []| evaluates to |True| to write:
+\noindent Now we use an entailment to turn the constraint on |null|'s result into a constraint on its argument:
 
 \ignore\begin{code}
 xs -< ["[]"] `propOr` xs -< [":"]
@@ -657,7 +657,7 @@ end loop
 \label{fig:property_fixp}
 \end{figure}
 
-\para{The |Call| rule} relies on the |prePost| function, defined in Figure \ref{fig:property_fixp}. This function calculates the precondition necessary to ensure a given postcondition on a function. Similarly to the precondition calculation in \S\ref{sec:precond}, the |prePost| function works iteratively, with each result becoming increasingly restrictive. Initially, all postconditions are assumed to be true. The iterative step takes the body of the function, and uses the |reduce| transformation to obtain a predicate in terms of the arguments to the function, using the previous value of |prePost|. If refinement chains of constraint/function pairs are finite, termination is guaranteed. Here again, a speed up can be obtained by tracking the dependencies between constraints, and additionally caching all calculated results.
+\para{The |Call| rule} relies on the |prePost| function defined in Figure \ref{fig:property_fixp}. This function calculates the precondition necessary to ensure a given postcondition on a function, which forms an entailment. Like the precondition calculation in \S\ref{sec:precond}, the |prePost| function works iteratively, with each result becoming increasingly restrictive. Initially, all postconditions are assumed to be true. The iterative step takes the body of the function, and uses the |reduce| transformation to obtain a predicate in terms of the arguments to the function, using the previous value of |prePost|. If refinement chains of constraint/function pairs are finite, termination is guaranteed. Here again, a speed up can be obtained by tracking the dependencies between constraints, and additionally caching all calculated results.
 
 \subsection{Semantics of Constraints}
 
@@ -675,7 +675,7 @@ satisfiesP x =  (propTrue :: Prop ()) ==
 \end{code}
 \end{minipage}
 
-The first equation returns |True| given a value of type |Bottom|, as if a value contains $\bot{}$ then any constraint is true. In order to be consistent with |<|||, the other operations must respect certain properties:
+The first equation returns |True| given a value of type |Bottom|, as if a value contains $\bot{}$ then any constraint is true. In order to be consistent with |<|||, the other operations must respect certain properties, here expressed as boolean-valued functions that should always return True.
 
 \begin{code}
 propExtend  v@(Value c xs) k i
@@ -889,14 +889,14 @@ hd  |> {alpha :* beta} = {[], (:) alpha :* [], (:) Any}
 tl  |> {alpha :* beta} = {[], alpha :* merge alpha beta}
 \end{code}
 
-For the |<||| operator, if the root pattern matches, then all non-recursive fields are matched to their non-recursive constraints, and all recursive fields have their root and recursive patterns become their recursive pattern. So, for example:
+For the |<||| operator, if the root pattern matches, then all non-recursive fields are matched to their non-recursive constraints, and all recursive fields have their root and recursive patterns become their recursive pattern. In the result, each field is denoted by its argument position. So, for example:
 
 \ignore\begin{code}
 ":" <| {[]         :* beta} = propFalse
 ":" <| {(:) alpha  :* beta} = 0 `Sat` alpha `propAnd` 1 `Sat` {beta :* beta}
 \end{code}
 
-\begin{examplerevisit}{\ref{ex:head}} Safe evaluation of |(head xs)| requires |xs| to be non-empty. The MP-constraint generated by Catch on |xs| is: \ignore|{(:) Any} :* {[], (:) Any}|. This constraint can be read in two portions: the part to the left of |:*| requires the value to be |(:)|-constructed, with an unrestricted |hd| field; the right allows either a |[]| or a |(:)| with an unrestricted |hd| field, and a |tl| field restricted by the constraint on the right of the |:*|. In this particular case, the right of the |:*| places no restrictions on the value. This constraint is longer than the corresponding RE-constraint as it makes explicit that both the |hd| field and the recursive components are unrestricted.
+\begin{examplerevisit}{\ref{ex:head}} Safe evaluation of |(head xs)| requires |xs| to be non-empty. The MP-constraint generated by Catch on |xs| is: \ignore|{(:) Any} :* {[], (:) Any}|. This constraint can be read in two portions: the part to the left of |:*| requires the value to be |(:)|-constructed, with an unrestricted |hd| field; the right allows either a |[]| or a |(:)| with an unrestricted |hd| field, and a |tl| field restricted by the constraint on the right of the |:*|. In this particular case, the right of the |:*| places no restrictions on the value. This constraint is longer than the corresponding RE-constraint as it makes explicit that both the head and the recursive tails are unrestricted.
 \end{examplerevisit}
 
 \begin{examplerevisit}{\ref{ex:map_head}} Safe evaluation of |(map head xs)| requires |xs| to be a list of non-empty lists. The MP-constraint on |xs| is:
@@ -908,6 +908,8 @@ For the |<||| operator, if the root pattern matches, then all non-recursive fiel
 
 \begin{examplerevisit}{\ref{ex:map_head_reverse}} |(map head (reverse x))| requires |xs| to be a list of non-empty lists \textit{or} infinite. The MP-constraint for an infinite list is: \ignore|{(:) Any} :* {(:) Any}|
 \end{examplerevisit}
+
+\bigskip
 
 MP-constraints also have simplification rules.  For example, two of the eight rules are:
 
@@ -1038,11 +1040,11 @@ In the following sections, where modifications are required, we prefer to make t
 
 \textbf{Name} is the name of the checked program (a starred name indicates that changes were needed before safe pattern-matching could be verified);
 \textbf{Src} is the number of lines in the original source code;
-\textbf{Core} is the number of lines of first-order Core, including all libraries, just before analysis;
+\textbf{Core} is the number of lines of first-order Core, \textit{including all needed Prelude and library definitions}, just before analysis;
 \textbf{Err} is the number of calls to |error| (missing pattern cases);
 \textbf{Pre} is the number of functions which have a precondition which is not simply `True';
 \textbf{Sec} is the time taken for transformations and analysis;
-\textbf{Mb} is the maximum residency of Catch at garbage collection time.
+\textbf{Mb} is the maximum residency of Catch at garbage-collection time.
 
 \smallskip\smallskip
 
@@ -1076,7 +1078,7 @@ Results are given in Table \ref{tab:results}. Only four programs contain no call
 
 Three programs have preconditions on the |main| function, all of which state that the test parameter must be a natural number. In all cases the generated precondition is a necessary one -- if the input violates the precondition then pattern-match failure will occur.
 
-We now discuss general modifications required to allow Catch to begin checking the programs, followed by the six programs which required changes. We finish with the Digits of E2 program -- a program with complex pattern matching that Catch is able to prove safe.
+We now discuss general modifications required to allow Catch to begin checking the programs, followed by the six programs which required changes. We finish with the Digits of E2 program -- a program with complex pattern matching that Catch is able to prove safe without modification.
 
 \paragraph{Modifications for Checking}
 
@@ -1247,7 +1249,11 @@ We can see that \ignore|parseColourPrefs| calls |read|, which in turn calls |err
 
 XMonad \cite{xmonad} is a window manager, which automatically manages the layout of program windows on the screen. The central module of XMonad contains a pure API, which is used to manipulate a data structure containing information regarding window layout. Catch has been run on this central module, several times, as XMonad has evolved. The XMonad API contains 36 exported functions, most of which are intended to be total. Within the implementation of these functions, there are a number of incomplete patterns and calls to partial functions.
 
-When the Catch tool was first used, it detected six issues which were cause for concern -- including unsafe uses of partial functions, API functions which contained incomplete pattern matches, and unnecessary assumptions about the |Ord| class. All these issues were subsequently fixed. While XMonad is a program, Catch is being used to check API functions, ensuring they are complete. The XMonad developers have said: ``QuickCheck and Catch can be used to provide mechanical support for developing a clean, orthogonal API for a complex system'' \cite{xmonad}.
+When the Catch tool was first used, it detected six issues which were cause for concern -- including unsafe uses of partial functions, API functions which contained incomplete pattern matches, and unnecessary assumptions about the |Ord| class. All these issues were subsequently fixed. While XMonad is a program, Catch is being used to check API functions, ensuring they are complete.
+
+% The XMonad developers have said: ``QuickCheck and Catch can be used to provide mechanical support for developing a clean, orthogonal API for a complex system'' \cite{xmonad}.
+
+In E-mail correspondence, the XMonad developers have summarised their experience using Catch as follows: ``XMonad made heavy use of Catch in the development of its core data structures and logic. Catch caught several suspect error cases, and helped us improve robustness of the window manager core by weeding out partial functions. It helps encourage a healthy skepticism to partiality, and the quality of code was improved as a result. We'd love to see a partiality checker integrated into GHC.''
 
 \section{Related Work}
 \label{sec:related}
@@ -1333,7 +1339,7 @@ design decisions in Catch simplify the analysis and make it scalable:
 (1) the target of analysis is a very small, first-order core language;
 (2) there are finitely many value-set-defining constraints per type.
 Decision (1) requires a translation from the full language that avoids
-the introduction of analysis bottlenecks such as a mini-interpretter.
+the introduction of analysis bottlenecks such as a mini-interpreter.
 Decision (2) inevitably limits the expressive power of
 constraints; yet it does not prevent the expression of uniform recursive
 constraints on the deep structure of values, as in MP-constraints.
