@@ -68,7 +68,7 @@
 \copyrightyear{2008} %
 \copyrightdata{[to be supplied]}
 
-\titlebanner{\today{} - \currenttime{}}        % These are ignored unless
+\titlebanner{} % \today{} - \currenttime{}}        % These are ignored unless
 \preprintfooter{}   % 'preprint' option specified.
 
 \title{Not All Patterns, But Enough}
@@ -296,8 +296,8 @@ hnf (Call  fn  xs    )
     | fn == "error"  = Nothing
     | otherwise      = hnf (subst (zip (args fn) xs) (body fn))
 hnf (Case  on  alts  )  =  listToMaybe [res
-       |  Just (c,cs) <- [hnf on], Alt n vs e <- alts, c == n
-       ,  Just res <- [hnf (subst (zip vs cs) e)]]
+       |  Just (c,xs) <- [hnf on], Alt n vs e <- alts, c == n
+       ,  Just res <- [hnf (subst (zip vs xs) e)]]
 
 subst :: [(VarName, Expr)] -> Expr -> Expr
 subst r (Var   x     ) = fromMaybe (Var x) (lookup x r)
@@ -330,12 +330,12 @@ isRec        :: Selector  -> Bool
 \label{fig:core_operations}
 \end{figure}
 
-Figure \ref{fig:core_operations} gives the signatures for helper functions over the core data types. In our implementation, these operations are monadic to allow the checking process to be traced -- a detail we have omitted here. Every constructor has an arity, which can be obtained with the |arity| function. To determine alternative constructors the |ctors| function can be used; for example |ctors "True" = ["False", "True"]| and |ctors "[]" = ["[]",":"]|. The |var| function returns |Left i| for a variable bound as the |i|th argument of a top-level function, and |Right (e,(c,i))| for a variable bound as the |i|th component in the |c|-constructed alternative of a case-expression whose scrutinee is |e|. The functions |body| and |args| obtain the body and argument names to a function. The |isRec (c,i)| function returns true if the constructor |c| has a recursive |i|th component; for example, let |hd = (":",0)| and |tl = (":",1)| then |isRec hd = False| but |isRec tl = True|.
+Figure \ref{fig:core_operations} gives the signatures for helper functions over the core data types. In our implementation, these operations are monadic to allow the checking process to be traced -- a detail we have omitted here. Every constructor has an arity, which can be obtained with the |arity| function. To determine alternative constructors the |ctors| function can be used; for example |ctors "True" = ["False", "True"]| and |ctors "[]" = ["[]",":"]|. The |var| function returns |Left i| for a variable bound as the |i|th argument of a top-level function, and |Right (e,(c,i))| for a variable bound as the |i|th component in the |c|-constructed alternative of a case-expression whose scrutinee is |e|. The functions |body| and |args| obtain the body and argument names of a function. The |isRec (c,i)| function returns true if the constructor |c| has a recursive |i|th component; for example, let |hd = (":",0)| and |tl = (":",1)| then |isRec hd = False| but |isRec tl = True|.
 
 \subsubsection{Transformation From Haskell to Core}
 \label{sec:transform}
 
-To generate core representations of programs, we start with Yhc, the York Haskell Compiler \cite{me:yhc_core}. Yhc can transform a Haskell program into a single Yhc Core file, containing all necessary libraries. Yhc Core is higher-order and has let expressions, neither of which are permitted in our Core language. The let expressions can be removed using simple transformations provided by the Yhc Core library. The standard way to make a program first-order is Reynolds style defunctionalization \cite{reynolds:defunc}. This method embeds a mini-interpreter into the resultant program, which would complicate our analysis method considerably. Instead, we use an alternative defunctionalization method \cite{me:firstify_icfp}, which removes higher-order functions without complicating the analysis. Using these steps, we are able to convert the full Haskell 98 language into our Core language.
+To generate core representations of programs, we start with Yhc, the York Haskell Compiler \cite{me:yhc_core}. Yhc can transform a Haskell program into a single Yhc Core file, containing all necessary libraries. Yhc Core is higher-order and has let expressions, neither of which are permitted in our Core language. The let expressions can be removed using simple transformations provided by the Yhc Core library. The standard way to make a program first-order is Reynolds style defunctionalisation \cite{reynolds:defunc}. This method embeds a mini-interpreter into the resultant program, which would complicate our analysis method considerably. Instead, we use an alternative defunctionalisation method \cite{me:firstify_icfp}, which removes higher-order functions without complicating the analysis. Using these steps, we are able to convert the full Haskell 98 language into our Core language.
 
 \subsubsection{Algebraic Abstractions of Primitive Types}
 \label{sec:abstraction}
@@ -442,7 +442,8 @@ For simplicity, our analysis framework will be introduced using basic pattern co
 As an example of an operator definition for the BP-constraint language, |(-<)| can be defined:
 
 \begin{code}
-a -< xs = propOrs [propLit $ a `Sat` Con x (replicate (arity x) Any) | x <- xs]
+a -< xs = propOrs [propLit (a `Sat` anys x) | x <- xs]
+    where anys x = Con x (replicate (arity x) Any)
 \end{code}
 
 \noindent So, for example:
@@ -471,7 +472,7 @@ pre (Case  on  alts  ) = pre on `propAnd` propAnds (map f alts)
 \label{fig:precondition}
 \end{figure}
 
-Our intention is that for every function, a proposition combining constraints on the arguments forms a precondition to ensure the result does not contain $\bot{}$. The precondition for |error| is False. A program is safe if the precondition on |main| is True. Our analysis method derives these preconditions. Given |precond| which returns the precondition of a function, we can determine the precondition of an \textit{expression} using the |pre| function in Figure \ref{fig:precondition}. The intuition behind |pre| is that in all applications |f xs|, the arguments |xs| must satisfy the precondition for |f|. The only exception is that a case expression is safe if the scrutinee is safe, and each alternative is either safe, or never taken.
+Our intention is that for every function, a proposition combining constraints on the arguments forms a precondition to ensure the result does not contain $\bot{}$. The precondition for |error| is False. A program is safe if the precondition on |main| is True. Our analysis method derives these preconditions. Given |precond| which returns the precondition of a function, we can determine the precondition of an \textit{expression} using the |pre| function in Figure \ref{fig:precondition}. The intuition behind |pre| is that in all subexpressions |f xs|, the arguments |xs| must satisfy the precondition for |f|. The only exception is that a case expression is safe if the scrutinee is safe, and each alternative is either safe, or never taken.
 
 \begin{example}
 \label{ex:safeTail}
@@ -487,7 +488,7 @@ safeTail xs = case  null xs of
 pre' null [xs] `propAnd` (null xs -< ["True"] `propOr` pre' tail [xs])
 \end{code}
 
-This predicate states that the invocation of |null xs| must be safe, and either |null xs| is True or |tail xs| must also be safe.
+This predicate states that the invocation of |null xs| must be safe, and either |null xs| is True or |tail xs| must be safe.
 \end{example}
 
 
@@ -575,7 +576,7 @@ The |pre| function generates constraints in terms of expressions, which the |pre
 The precondition for the |safeTail| function is:
 
 \ignore\begin{code}
-pre' null [xs] `propAnd` (null xs -< ["True"] `propOr` pre' tail [xs]
+pre' null [xs] `propAnd` (null xs -< ["True"] `propOr` pre' tail [xs])
 \end{code}
 
 \noindent We can use the preconditions computed for |tail| and |null| to rewrite the precondition as:
@@ -628,7 +629,7 @@ The intuition is that given knowledge of the root constructor of a data value, w
     propLit (0 `Sat` Con "True" []) `propAnd` propLit (1 `Sat` Any)
 \end{code}
 
-\para{The |Case| rule} generates a conjunct for each alternative. An alternative is safe if \textit{either} it is never taken, \textit{or} it meets the constraint when taken.
+\para{The |Case| rule} generates a conjunct for each alternative. An alternative satisfies a constraint if \textit{either} it is never taken, \textit{or} it meets the constraint when taken.
 
 \begin{figure}
 \ignore\begin{code}
@@ -686,7 +687,8 @@ propExtend _ _ _ = True
 \noindent The |propExtend| property requires that if a constraint satisfies a value after they have both been extended, then the original value must have satisfied the original constraint. For example, if |Just alpha `Sat` (("Just",0) ||> k)| is true, then |alpha `Sat` k| must be true.
 
 \begin{code}
-propOneOf  v@(Value c xs) cs | c `notElem` cs = not (satisfiesP (v -< cs))
+propOneOf  v@(Value c xs) cs
+    | c `notElem` cs = not (satisfiesP (v -< cs))
 propOneOf  _ _ = True
 \end{code}
 
@@ -768,7 +770,7 @@ Catch08 implements REs using the data type |RegExp| from Figure \ref{fig:regexp}
 \begin{itemize}
 \item Because of static typing, constructor-sets must all be of the same type. (In Catch05 expressions such as \ignore|hd^*| could arise.)
 
-\item There are finitely many regular expressions for any type. Combined with the finite number of constructors, this property is enough to guarantee termination when computing a fixed-point iteration on constraints.
+\item There are finitely many regular expressions for any type. Combined with the finite number of constructors, this property is sufficient to guarantee termination when computing a fixed-point iteration on constraints.
 
 \item The restricted REs with 0 are closed under integration and differentiation. (The 0 alternative is catered for by the |Maybe| return type in the differentiation. As \ignore|0 :- c| always evaluates to True, |<||| replaces |Nothing| by True.)
 \end{itemize}
@@ -843,12 +845,12 @@ complete c = Pattern c (map (const Any) (nonRecs c))
 
 
 (-<) :: alpha -> [CtorName] -> Prop (Sat alpha)
-e -< cs = propLit (e `Sat` inList cs)
-inList cs =  [  map complete cs :* map complete (ctors (head cs))
-             |  not (null cs)]
+e -< cs = propLit $ Sat e  [   map complete cs
+                           :*  map complete (ctors (head cs))
+                           |   not (null cs)]
 
 (|>) :: Selector -> Constraint -> Constraint
-(c,i) |> k = inList (ctors c \\ [c]) ++ map f k
+(c,i) |> k = map f k
     where
     f Any = Any
     f (ms_1 :* ms_2) | isRec (c,i) = [complete c] :* merge ms_1 ms_2
@@ -882,18 +884,18 @@ Although RE-constraints are capable of solving many examples, they suffer from a
 
 MP-constraints are similar to BP-constraints, but can constrain an infinite number of items. A value |v| satisfies a constraint |p_1 :* p_2| if |v| itself satisfies the pattern |p_1| and \textit{all its recursive components at any depth} satisfy |p_2|. We call |p_1| the root pattern, and |p_2| the recursive pattern. Each of |p_1| and |p_2| is given as a set of matches similar to BP-constraints, but each |Pattern| only specifies the values for the non-recursive selectors, all recursive selectors are handled by |p_2|. A constraint is a disjunctive list of |:*| patterns.
 
-The intuition behind the definition of |(c,i) ||> ps| is that if the selector |(c,i)| is recursive, given a pattern |alpha :* beta|, the new root pattern requires the value to be |c|-constructed, and the recursive patterns become |merge alpha beta| -- i.e. all recursive values must satisfy both the root and recursive patterns of the original pattern. If the selector is non-recursive, then each new pattern contains the old pattern within it, as the appropriate non-recursive field. In either case, any value which is not |c| constructed is permitted. So, for example:
+The intuition behind the definition of |(c,i) ||> ps| is that if the selector |(c,i)| is recursive, given a pattern |alpha :* beta|, the new root pattern requires the value to be |c|-constructed, and the recursive patterns become |merge alpha beta| -- i.e. all recursive values must satisfy both the root and recursive patterns of the original pattern. If the selector is non-recursive, then each new pattern contains the old pattern within it, as the appropriate non-recursive field. So, for example:
 
 \ignore\begin{code}
-hd  |> {alpha :* beta} = {[], (:) alpha :* [], (:) Any}
-tl  |> {alpha :* beta} = {[], alpha :* merge alpha beta}
+hd  |> (alpha :* beta) = {(:) (alpha :* beta)  } :* {[], (:) Any}
+tl  |> (alpha :* beta) = {(:) Any              } :* (merge alpha beta)
 \end{code}
 
 For the |<||| operator, if the root pattern matches, then all non-recursive fields are matched to their non-recursive constraints, and all recursive fields have their root and recursive patterns become their recursive pattern. In the result, each field is denoted by its argument position. So, for example:
 
 \ignore\begin{code}
-":" <| {[]         :* beta} = propFalse
-":" <| {(:) alpha  :* beta} = 0 `Sat` alpha `propAnd` 1 `Sat` {beta :* beta}
+":" <| ({[]         } :* beta) = propFalse
+":" <| ({(:) alpha  } :* beta) = 0 `Sat` alpha `propAnd` 1 `Sat` (beta :* beta)
 \end{code}
 
 \begin{examplerevisit}{\ref{ex:head}} Safe evaluation of |(head xs)| requires |xs| to be non-empty. The MP-constraint generated by Catch on |xs| is: \ignore|{(:) Any} :* {[], (:) Any}|. This constraint can be read in two portions: the part to the left of |:*| requires the value to be |(:)|-constructed, with an unrestricted |hd| field; the right allows either a |[]| or a |(:)| with an unrestricted |hd| field, and a |tl| field restricted by the constraint on the right of the |:*|. In this particular case, the right of the |:*| places no restrictions on the value. This constraint is longer than the corresponding RE-constraint as it makes explicit that both the head and the recursive tails are unrestricted.
@@ -955,12 +957,14 @@ A big advantage of MP-constraints is that if two constraints on the same express
 
 \noindent in uncurried form becomes:
 
+\noindent\begin{minipage}{\linewidth}
 \begin{code}
 (||) a = case  a of
                (x,y) -> case  x of
                               True    -> True
                               False   -> y
-\end{code}\codeexample
+\end{code}
+\end{minipage}
 \end{example}
 
 Combining MP-constraint reduction rules with the uncurrying transformation makes \ignore|Sat ArgPos| equivalent in power to \ignore|Prop (Sat ArgPos)|. This simplification reduces the number of different propositional constraints, making fixed-point computations faster. In the RE-constraint system uncurrying would do no harm, but it would be of no use, as no additional simplification rules would apply.
@@ -1048,26 +1052,26 @@ In the following sections, where modifications are required, we prefer to make t
 
 \smallskip\smallskip
 
-\begin{tabular*}{\linewidth}{lrrrrrrlll}
-\hspace{-2mm} \textbf{Name} & \textbf{Src} & \textbf{Core} & \textbf{Err} & \textbf{Pre} & \textbf{Sec} & \textbf{Mb} \\
+\begin{tabular*}{\linewidth}{@@{}lrrrrrrlll}
+\textbf{Name} & \textbf{Src} & \textbf{Core} & \textbf{Err} & \textbf{Pre} & \textbf{Sec} & \textbf{Mb} \\
 \vspace{-1ex} \\
-\hspace{-2mm} Bernoulli*                   & 35 &  652 & 5 & 11 & 4.1 & 0.8 \\
-\hspace{-2mm} Digits of E1*  \hspace{-3mm} & 44 &  377 & 3 &  8 & 0.3 & 0.6 \\
-\hspace{-2mm} Digits of E2   \hspace{-3mm} & 54 &  455 & 5 & 19 & 0.5 & 0.8 \\
-\hspace{-2mm} Exp3-8                       & 29 &  163 & 0 &  0 & 0.1 & 0.1 \\
-\hspace{-2mm} Gen-Regexps*   \hspace{-3mm} & 41 &  776 & 1 &  1 & 0.3 & 0.4 \\
-\hspace{-2mm} Integrate                    & 39 &  364 & 3 &  3 & 0.3 & 1.9 \\
-\hspace{-2mm} Paraffins*                   & 91 & 1153 & 2 &  2 & 0.8 & 1.9 \\
-\hspace{-2mm} Primes                       & 16 &  241 & 6 & 13 & 0.2 & 0.1 \\
-\hspace{-2mm} Queens                       & 16 &  283 & 0 &  0 & 0.2 & 0.2 \\
-\hspace{-2mm} Rfib                         &  9 &  100 & 0 &  0 & 0.1 & 1.7 \\
-\hspace{-2mm} Tak                          & 12 &  155 & 0 &  0 & 0.1 & 0.1 \\
-\hspace{-2mm} Wheel Sieve 1* \hspace{-3mm} & 37 &  570 & 7 & 10 & 7.5 & 0.9 \\
-\hspace{-2mm} Wheel Sieve 2* \hspace{-3mm} & 45 &  636 & 2 &  2 & 0.3 & 0.6 \\
-\hspace{-2mm} X2n1                         & 10 &  331 & 2 &  5 & 1.8 & 1.9 \\
+Bernoulli*     & 35 &  652 & 5 & 11 & 4.1 & 0.8 \\
+Digits of E1*  & 44 &  377 & 3 &  8 & 0.3 & 0.6 \\
+Digits of E2   & 54 &  455 & 5 & 19 & 0.5 & 0.8 \\
+Exp3-8         & 29 &  163 & 0 &  0 & 0.1 & 0.1 \\
+Gen-Regexps*   & 41 &  776 & 1 &  1 & 0.3 & 0.4 \\
+Integrate      & 39 &  364 & 3 &  3 & 0.3 & 1.9 \\
+Paraffins*     & 91 & 1153 & 2 &  2 & 0.8 & 1.9 \\
+Primes         & 16 &  241 & 6 & 13 & 0.2 & 0.1 \\
+Queens         & 16 &  283 & 0 &  0 & 0.2 & 0.2 \\
+Rfib           &  9 &  100 & 0 &  0 & 0.1 & 1.7 \\
+Tak            & 12 &  155 & 0 &  0 & 0.1 & 0.1 \\
+Wheel Sieve 1* & 37 &  570 & 7 & 10 & 7.5 & 0.9 \\
+Wheel Sieve 2* & 45 &  636 & 2 &  2 & 0.3 & 0.6 \\
+X2n1           & 10 &  331 & 2 &  5 & 1.8 & 1.9 \\
 \vspace{-1ex} \\
-\hspace{-2mm} FiniteMap*    \hspace{-3mm} & 670 & 1829 & 13 & 17 & 1.6 & 1.0 \\
-\hspace{-2mm} HsColour*     \hspace{-3mm} & 823 & 5060 &  4 &  9 & 2.1 & 2.7 \\
+FiniteMap*     & 670 & 1829 & 13 & 17 & 1.6 & 1.0 \\
+HsColour*      & 823 & 5060 &  4 &  9 & 2.1 & 2.7 \\
 \hline
 \end{tabular*}
 \end{table}
@@ -1141,6 +1145,7 @@ safeSpan p xs = (a, drop 1 b) where (a,b) = span p xs
 
 This program defines a data type |Wheel|, and a function |sieve|:
 
+\pagebreak[3]
 \begin{code}
 data Wheel = Wheel Int [Int]
 
@@ -1249,9 +1254,7 @@ We can see that \ignore|parseColourPrefs| calls |read|, which in turn calls |err
 
 XMonad \cite{xmonad} is a window manager, which automatically manages the layout of program windows on the screen. The central module of XMonad contains a pure API, which is used to manipulate a data structure containing information regarding window layout. Catch has been run on this central module, several times, as XMonad has evolved. The XMonad API contains 36 exported functions, most of which are intended to be total. Within the implementation of these functions, there are a number of incomplete patterns and calls to partial functions.
 
-When the Catch tool was first used, it detected six issues which were cause for concern -- including unsafe uses of partial functions, API functions which contained incomplete pattern matches, and unnecessary assumptions about the |Ord| class. All these issues were subsequently fixed. While XMonad is a program, Catch is being used to check API functions, ensuring they are complete.
-
-% The XMonad developers have said: ``QuickCheck and Catch can be used to provide mechanical support for developing a clean, orthogonal API for a complex system'' \cite{xmonad}.
+When the Catch tool was first used, it detected six issues which were cause for concern -- including unsafe uses of partial functions, API functions which contained incomplete pattern matches, and unnecessary assumptions about the |Ord| class. All these issues were subsequently fixed. The XMonad developers have said: ``QuickCheck and Catch can be used to provide mechanical support for developing a clean, orthogonal API for a complex system'' \cite{xmonad}.
 
 In E-mail correspondence, the XMonad developers have summarised their experience using Catch as follows: ``XMonad made heavy use of Catch in the development of its core data structures and logic. Catch caught several suspect error cases, and helped us improve robustness of the window manager core by weeding out partial functions. It helps encourage a healthy skepticism to partiality, and the quality of code was improved as a result. We'd love to see a partiality checker integrated into GHC.''
 
