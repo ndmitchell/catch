@@ -271,7 +271,6 @@ type CtorName  =  String
 type FuncName  =  String
 type VarName   =  String
 type Selector  =  (CtorName, Int)
-type ArgPos    =  Int
 
 data Func  =  Func FuncName [VarName] Expr
 
@@ -900,7 +899,7 @@ A big advantage of MP-constraints is that if two constraints on the same express
 \end{onepage}
 \end{example}
 
-Combining MP-constraint reduction rules with the uncurrying transformation makes \ignore|Sat ArgPos| equivalent in power to \ignore|Prop (Sat ArgPos)|. This simplification reduces the number of different propositional constraints, making fixed-point computations faster. In the RE-constraint system uncurrying would do no harm, but it would be of no use, as no additional simplification rules would apply.
+Combining MP-constraint reduction rules with the uncurrying transformation makes \ignore|Sat alpha| equivalent in power to \ignore|Prop (Sat alpha)|. This simplification reduces the number of different propositional constraints, making fixed-point computations faster. In the RE-constraint system uncurrying would do no harm, but it would be of no use, as no additional simplification rules would apply.
 
 \subsection{Comparison of Constraint Systems}
 
