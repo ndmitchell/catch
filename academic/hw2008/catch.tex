@@ -266,7 +266,7 @@ This section describes the method used to calculate preconditions for functions.
 \label{sec:core}
 
 \begin{figure}
-\begin{code}
+\h{.*}\begin{code}
 type CtorName  =  String
 type FuncName  =  String
 type VarName   =  String
@@ -323,7 +323,7 @@ The evaluation strategy is lazy. A semantics is outlined in Figure \ref{fig:sema
 \subsubsection{Operations on Core}
 
 \begin{figure}
-\begin{code}
+\h{.*}\begin{code}
 ctors        :: CtorName  -> [CtorName]
 arity        :: CtorName  -> Int
 var          :: VarName   -> Maybe (Expr, Selector)
@@ -510,8 +510,8 @@ red :: Expr -> Constraint -> Prop (Sat VarName)
 red (Var   v         ) k =  case var v of
                               Nothing      -> propLit (v `Sat` k)
                               Just (on,s)  -> red on (s |> k)
-red (Make  c   xs    ) k =  reduce $ substP xs (c <| k)
-red (Call  f  xs     ) k =  reduce $ substP xs (prePost f k)
+red (Make  c   xs    ) k =  reduce $ substP (zip [0..] xs) (c <| k)
+red (Call  f  xs     ) k =  reduce $ substP (zip (args f) xs) (prePost f k)
 red (Case  on  alts  ) k =  propAnds [alt c e | Alt c vs e <- alts]
     where alt c e = reduce (on -< (ctors c \\ [c])) `propOr` red e k
 \end{code}
@@ -685,7 +685,7 @@ differentiate p (Star    r:rs)  | p `elem` r  = Just (Star r:rs)
 \label{fig:regexp}
 \end{figure}
 
-Catch05 used regular expressions in constraints. An implementation of Catch08 regular expression based constraints (RE-constraints) is given in Figure \ref{fig:regexp}. In a constraint of the form |(r :- cs)|, |r| is a regular expression and |cs| is a set of constructors. Such a constraint is satisfied by a data structure |d| if every well-defined application to |d| of a sequence of selectors described by |r| reaches a constructor in the set |cs|. If no such sequence of selectors has a well-defined result then the constraint is vacuously true.
+Catch05 used regular expressions in constraints. An implementation of Catch08 regular expression based constraints (RE-constraints) is given in Figure \ref{fig:regexp}. In a constraint of the form \h{.re}|(r :- cs)|, |r| is a regular expression and |cs| is a set of constructors. Such a constraint is satisfied by a data structure |d| if every well-defined application to |d| of a sequence of selectors described by |r| reaches a constructor in the set |cs|. If no such sequence of selectors has a well-defined result then the constraint is vacuously true.
 
 Concerning the helper functions needed to define | ||>| and |<||| in Figure \ref{fig:regexp}, the |differentiate| function is from \citet{conway:regexp}; |integrate| is its inverse; |ewp| is the empty word property.
 
@@ -694,7 +694,7 @@ Catch05 regular expressions were unrestricted and quickly grew to an unmanageabl
 |r_1+r_2|  & union of regular expressions |r_1| and |r_2| \\
 \ignore|r_1^.r_2| & concatenation of regular expressions |r_1| then |r_2| \\
 \ignore|r_1^*|   & any number (possibly zero) occurrences of |r_1| \\
-|sel|  & a selector, i.e. |hd| for the head of a list \\
+\ignore|sel|  & a selector, i.e. |hd| for the head of a list \\
 0        & the language is the empty set \\
 1        & the language is the set containing the empty string
 \end{tabular} \\
@@ -753,7 +753,7 @@ The |2^rec| term corresponds to the number of possible constraints under |Star|.
 
 Catch computes over propositional formulae with constraints as atomic propositions. Among other operators on propositions, they are compared for equality to obtain a fixed point. All the fixed-point algorithms given in this paper stop once equal constraints are found. We use Binary Decision Diagrams (BDD) \cite{lee:bdd} to make these equality tests fast. Since the complexity of performing an operation is often proportional to the number of atomic constraints in a proposition, we apply simplification rules to reduce this number. For example, three of the nineteen rules are:
 
-\para{Exhaustion:} In the constraint |x `Sat` (r :- [":","[]"])| the condition lists all the possible constructors. Because of static typing, |x| must be one of these constructors. Any such constraint simplifies to True.
+\para{Exhaustion:} In the constraint \h{.re}|x `Sat` (r :- [":","[]"])| the condition lists all the possible constructors. Because of static typing, |x| must be one of these constructors. Any such constraint simplifies to True.
 
 \para{And merging:} The conjunction \ignore|e `Sat` (r :- c_1) `propAnd` e `Sat` (r :- c_2)| can be replaced by \ignore|e `Sat` (r :- (c_1 `intersect` c_2))|.
 
@@ -861,8 +861,7 @@ As in \S\ref{sec:finite_re}, we show there are finitely many constraints per typ
 \begin{code}
 count :: Type -> Integer
 count (Type t) = 2 ^ val t
-
-val t = 1 + 2 * 2 ^ (pattern t)
+    where val t = 1 + 2 * 2 ^ (pattern t)
 
 pattern t = sum (map f t)
     where f c = product [count t_2 | Just t_2 <- c]
