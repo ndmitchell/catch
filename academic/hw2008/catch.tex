@@ -444,8 +444,8 @@ e -< [":","[]"]  =  propLit (e `Sat` Con ":" [Any,Any]) `propOr`
 pre ::  Expr -> Prop (Sat Expr)
 pre (Var   v         ) = propTrue
 pre (Make  c  xs     ) = propAnds (map pre xs)
-pre (Call  f  xs     ) = pre' `propAnd` propAnds (map pre xs)
-    where pre'= substP (zip (args f) xs) (precond f)
+pre (Call  f  xs     ) = pre' f xs `propAnd` propAnds (map pre xs)
+    where pre' f xs = substP (zip (args f) xs) (precond f)
 pre (Case  on  alts  ) = pre on `propAnd` propAnds (map alt alts)
     where alt (Alt c vs e) = on -< (ctors c \\ [c]) `propOr` pre e
 \end{code}
