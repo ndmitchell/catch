@@ -319,7 +319,7 @@ The evaluation strategy is lazy. A semantics is outlined in Figure \ref{fig:sema
 \begin{code}
 ctors        :: CtorName  -> [CtorName]
 arity        :: CtorName  -> Int
-var          :: VarName   -> Either ArgPos (Expr, Selector)
+var          :: VarName   -> Maybe (Expr, Selector)
 body         :: FuncName  -> Expr
 args         :: FuncName  -> [VarName]
 isRec        :: Selector  -> Bool
@@ -328,7 +328,8 @@ isRec        :: Selector  -> Bool
 \label{fig:core_operations}
 \end{figure}
 
-Figure \ref{fig:core_operations} gives the signatures for helper functions over the core data types. In our implementation, these operations are monadic to allow the checking process to be traced -- a detail we have omitted here. Every constructor has an arity, which can be obtained with the |arity| function. To determine alternative constructors the |ctors| function can be used; for example |ctors "True" = ["False", "True"]| and |ctors "[]" = ["[]",":"]|. The |var| function returns |Left i| for a variable bound as the |i|th argument of a top-level function, and |Right (e,(c,i))| for a variable bound as the |i|th component in the |c|-constructed alternative of a case-expression whose scrutinee is |e|. The functions |body| and |args| obtain the body and argument names of a function. The |isRec (c,i)| function returns true if the constructor |c| has a recursive |i|th component; for example, let |hd = (":",0)| and |tl = (":",1)| then |isRec hd = False| but |isRec tl = True|.
+Figure \ref{fig:core_operations} gives the signatures for helper functions over the core data types. In our implementation, these operations are monadic to allow the checking process to be traced -- a detail we have omitted here. Every constructor has an arity, which can be obtained with the |arity| function. To determine alternative constructors the |ctors| function can be used; for example |ctors "True" = ["False", "True"]| and |ctors "[]" = ["[]",":"]|. The |var| function returns |Nothing| for a variable bound as the argument of a top-level function, and |Just (e,(c,i))| for a variable bound as the |i|th component in the |c|-constructed alternative of a case-expression whose scrutinee is |e|. The functions |body| and |args| obtain the body and argument names of a function. The |isRec (c,i)| function returns true if the constructor |c| has a recursive |i|th component; for example, let |hd = (":",0)| and |tl = (":",1)| then |isRec hd = False| but |isRec tl = True|.
+
 
 \subsubsection{Transformation From Haskell to Core}
 \label{sec:transform}
@@ -345,7 +346,7 @@ data Int = Neg | Zero | One | Pos
 data Char = Char
 \end{code}
 
-Where knowledge about values is encoded as a set of possible constructions. In our experience, integers are most often constrained to be a natural, or to be non-zero. Addition or subtraction of one is the most common operation. Though very simple, the |Int| abstraction models the common properties and operations quite well. For characters, we have found little benefit in any refinement other than considering all characters to be abstracted to the same value.
+Knowledge about values is encoded as \textit{a set of} possible constructions. In our experience, integers are most often constrained to be a natural, or to be non-zero. Addition or subtraction of one is the most common operation. Though very simple, the |Int| abstraction models the common properties and operations quite well. For characters, we have found little benefit in any refinement other than considering all characters to be abstracted to the same value.
 
 The final issue of abstraction relates to primitive functions in the |IO| monad, such as |getArgs| (which returns the command-line arguments), or |readFile| (which reads from the file-system). In most cases an IO function is modelled as returning \textit{any} value of the correct type, using a function primitive to the checker.
 
@@ -353,7 +354,7 @@ The final issue of abstraction relates to primitive functions in the |IO| monad,
 \label{sec:constraints}
 
 \begin{figure}
-\begin{code}
+\h{.*}\begin{code}
 data Prop alpha
 
 propAnd, propOr           :: Prop alpha -> Prop alpha -> Prop alpha
@@ -372,12 +373,12 @@ We write |Sat x c| to assert that the value of expression |x| must be a member o
 Several underlying constraint models are possible. To keep the introduction of the algorithms simple we first use \textit{basic pattern constraints} (\S\ref{sec:basic}), which are unsuitable for reasons given in \S\ref{sec:bounded}. We then describe \textit{regular expression constraints} in \S\ref{sec:regexp} -- a variant of the constraints used in Catch05. Finally we present \textit{multi-pattern constraints} in \S\ref{sec:multipattern} -- used in Catch08 to enable scaling to much larger problems.
 
 \begin{figure}
-\begin{code}
+\h{.*}\begin{code}
 data Sat alpha = Sat alpha Constraint
 
 (-<)  :: alpha -> [CtorName] -> Prop (Sat alpha)
 (|>)  :: Selector -> Constraint -> Constraint
-(<|)  :: CtorName -> Constraint -> Prop (Sat ArgPos)
+(<|)  :: CtorName -> Constraint -> Prop (Sat Int)
 \end{code}
 \caption{Constraint operations.}
 \label{fig:constraint}
@@ -387,12 +388,12 @@ Three operations must be provided by every constraint model, whose signatures ar
 
 \begin{figure}
 \begin{code}
-precond   :: FuncName -> Prop (Sat ArgPos)
-prePost   :: FuncName -> Constraint -> Prop (Sat ArgPos)
-reduce    :: Prop (Sat Expr) -> Prop (Sat ArgPos)
+precond   :: FuncName -> Prop (Sat VarName)
+prePost   :: FuncName -> Constraint -> Prop (Sat VarName)
+reduce    :: Prop (Sat Expr) -> Prop (Sat VarName)
 
-substP ::  [alpha] -> Prop (Sat ArgPos) -> Prop (Sat alpha)
-substP xs p = propMap (\(Sat i k ) -> propLit $ Sat (xs!!i) k) p
+substP ::  Eq alpha => [(alpha,beta)] -> Prop (Sat alpha) -> Prop (Sat beta)
+substP xs = propMap (\(Sat i k ) -> propLit $ Sat (fromJust $ lookup i xs) k)
 \end{code}
 \caption{Operations to generate preconditions and entailments.}
 \label{fig:operations}
@@ -435,12 +436,12 @@ e -< [":","[]"]  =  propLit (e `Sat` Con ":" [Any,Any]) `propOr`
 \begin{figure}
 \begin{code}
 pre ::  Expr -> Prop (Sat Expr)
-pre (Var   x         ) = propTrue
-pre (Make  _   xs    ) = propAnds (map pre xs)
-pre (Call  fn  xs    ) = pre' fn xs `propAnd` propAnds (map pre xs)
-    where pre' fn xs = substP xs (precond fn)
-pre (Case  on  alts  ) = pre on `propAnd` propAnds (map f alts)
-    where f (Alt c vs e) = on -< (ctors c \\ [c]) `propOr` pre e
+pre (Var   v         ) = propTrue
+pre (Make  c  xs     ) = propAnds (map pre xs)
+pre (Call  f  xs     ) = pre' `propAnd` propAnds (map pre xs)
+    where pre'= substP (zip (args f) xs) (precond f)
+pre (Case  on  alts  ) = pre on `propAnd` propAnds (map alt alts)
+    where alt (Alt c vs e) = on -< (ctors c \\ [c]) `propOr` pre e
 \end{code}
 \caption{Precondition of an expression, |pre|.}
 \label{fig:precondition}
@@ -472,10 +473,10 @@ This predicate states that the invocation of |null xs| must be safe, and either 
 
 \begin{figure}
 \ignore\begin{code}
-precond  :: FuncName -> Prop (Sat ArgPos)
-precond Rec0   fn =  if fn == "error" then propFalse else propTrue
-precond RecN1  fn =  precond RecN fn `propAnd`
-                     reduce (pre{precond RecN} (body fn))
+precond  :: FuncName -> Prop (Sat VarName)
+precond Rec0   f =  if f == "error" then propFalse else propTrue
+precond RecN1  f =  precond RecN f `propAnd`
+                    reduce (pre{precond RecN} (body fn))
 \end{code}
 \caption{Precondition calculation.}
 \label{fig:precond_fixp}
@@ -493,27 +494,19 @@ The |pre| function defined in Figure \ref{fig:precondition} does not exploit laz
 \subsection{Manipulating constraints}
 \label{sec:backward}
 
-\begin{comment}
-% for paper haskell
-\begin{code}
-substP ::  [alpha] -> Prop (Sat ArgPos) -> Prop (Sat alpha)
-prePost :: FuncName -> Constraint -> Prop (Sat ArgPos)
-\end{code}
-\end{comment}
-
 \begin{figure}
 \begin{code}
-reduce :: Prop (Sat Expr) -> Prop (Sat ArgPos)
+reduce :: Prop (Sat Expr) -> Prop (Sat VarName)
 reduce = propMap (\(Sat x k) -> red x k)
 
-red :: Expr -> Constraint -> Prop (Sat ArgPos)
-red (Var   x         ) k =  case var x of
-                            Left   i       -> propLit (i `Sat` k)
-                            Right  (on,c)  -> red on (c |> k)
+red :: Expr -> Constraint -> Prop (Sat VarName)
+red (Var   v         ) k =  case var v of
+                              Nothing      -> propLit (v `Sat` k)
+                              Just (on,s)  -> red on (s |> k)
 red (Make  c   xs    ) k =  reduce $ substP xs (c <| k)
-red (Call  fn  xs    ) k =  reduce $ substP xs (prePost fn k)
-red (Case  on  alts  ) k =  propAnds [f c e | Alt c vs e <- alts]
-    where f c e = reduce (on -< (ctors c \\ [c])) `propOr` red e k
+red (Call  f  xs     ) k =  reduce $ substP xs (prePost f k)
+red (Case  on  alts  ) k =  propAnds [alt c e | Alt c vs e <- alts]
+    where alt c e = reduce (on -< (ctors c \\ [c])) `propOr` red e k
 \end{code}
 \caption{Specification of constraint reduction, |reduce|.}
 \label{fig:backward}
@@ -558,7 +551,7 @@ case  xs of
       y:ys  -> tail y
 \end{code}
 
-Here the initial precondition will be |y -< [":"]|, which evaluates to |y `Sat` Con ":" [Any,Any]|. The |var| function on |y| will return |Right (xs,(":",0))|. After the application of | ||>| the result will be |xs `Sat` Con ":" [Con ":" [Any,Any], Any]|. We have gone from a constraint on |y|, using the knowledge that |y| is bound to a portion of |xs|, to a constraint on |xs|.
+Here the initial precondition will be |y -< [":"]|, which evaluates to the result |y `Sat` Con ":" [Any,Any]|. The |var| function on |y| gives |Right (xs,(":",0))|. After the application of | ||>| the revised constraint refers to |xs| instead of |y|, and will be |xs `Sat` Con ":" [Con ":" [Any,Any], Any]|. We have gone from a constraint on |y|, using the knowledge that |y| is bound to a portion of |xs|, to a constraint on |xs|.
 \end{example}
 
 \para{The |Make| rule} deals with an application of a constructor. The |<||| operator splits a constraint on an entire structure into a proposition combining constraints on each part.
@@ -582,10 +575,10 @@ The intuition is that given knowledge of the root constructor of a data value, w
 
 \begin{figure}
 \ignore\begin{code}
-prePost :: FuncName -> Constraint -> Prop (Sat ArgPos)
-prePost Rec0   fn k =  propTrue
-prePost RecN1  fn k =  prePost RecN fn k `propAnd`
-                       reduce{prePost RecN} (propLit $ body fn `Sat` k)
+prePost :: FuncName -> Constraint -> Prop (Sat VarName)
+prePost Rec0   f k =  propTrue
+prePost RecN1  f k =  prePost RecN f k `propAnd`
+                      reduce{prePost RecN} (propLit $ body f `Sat` k)
 \end{code}
 \caption{Fixed point calculation for |prePost|.}
 \label{fig:property_fixp}
@@ -594,6 +587,7 @@ prePost RecN1  fn k =  prePost RecN fn k `propAnd`
 \para{The |Call| rule} relies on the |prePost| function defined in Figure \ref{fig:property_fixp}. This function calculates the precondition necessary to ensure a given postcondition on a function, which forms an entailment. Like the precondition calculation in \S\ref{sec:precond}, the |prePost| function works iteratively, with each result becoming increasingly restrictive. Initially, all postconditions are assumed to be true. The iterative step takes the body of the function, and uses the |reduce| transformation to obtain a predicate in terms of the arguments to the function, using the previous value of |prePost|. If refinement chains of constraint/function pairs are finite, termination is guaranteed. Here again, a speed up can be obtained by tracking the dependencies between constraints, and additionally caching all calculated results.
 
 \subsection{Semantics of Constraints}
+\label{sec:constraint_semantics}
 
 The semantics of a constraint are determined by which values satisfy it. We can implement a |satisfies| function using the |<||| operator:
 
@@ -601,7 +595,7 @@ The semantics of a constraint are determined by which values satisfy it. We can 
 \begin{code}
 satisfies :: Value -> Constraint -> Bool
 satisfies Bottom        k = True
-satisfies (Value c xs)  k = satisfiesP $ substP xs (c <| k)
+satisfies (Value c xs)  k = satisfiesP $ substP (zip [0..] xs) (c <| k)
 
 satisfiesP :: Prop (Sat Value) -> Bool
 satisfiesP x =  (propTrue :: Prop ()) ==
@@ -644,7 +638,7 @@ When designing a constraint system, the main decision is which distinctions betw
 \label{sec:regexp}
 
 \begin{figure}
-\begin{code}
+\h{.re}\begin{code}
 data Constraint  = RegExp :- [CtorName]
 type RegExp      = [RegItem]
 data RegItem     = Atom Selector | Star [Selector]
@@ -715,7 +709,7 @@ Catch08 implements REs using the data type |RegExp| from Figure \ref{fig:regexp}
 
 \begin{example}
 \label{ex:map_head}
-|(map head xs)| is safe if |xs| evaluates to a list of non-empty lists. The RE-constraint is: \ignore|xs `Sat` (tl^* ^. hd :- {:})|. From the root of |xs|, following any number of tails, then exactly one head, we reach a |(:)|. If |xs| is |[]|, it still satisfies the constraint, as the path is not well defined, having no |hd| selector. If |xs| is infinite then all its infinitely many elements must be |(:)|-constructed.
+|(map head xs)| is safe if |xs| evaluates to a list of non-empty lists. The RE-constraint is: \ignore|xs `Sat` (tl^* ^. hd :- {:})|. From the root of |xs|, following any number of tails, then exactly one head, we reach a |(:)|. If |xs| is |[]|, it still satisfies the constraint, as there are no well defined paths containing a |hd| selector. If |xs| is infinite then all its infinitely many elements must be |(:)|-constructed.
 \end{example}
 
 \begin{example}
@@ -763,7 +757,7 @@ Catch computes over propositional formulae with constraints as atomic propositio
 \label{sec:multipattern}
 
 \begin{figure}
-\begin{code}
+\h{.mp}\begin{code}
 type Constraint  =  [Val]
 data Val         =  [Pattern] :* [Pattern] |  Any
 data Pattern     =  Pattern CtorName [Val]
@@ -815,9 +809,9 @@ merge  ms_1 ms_2 = [Pattern c_1 (zipWith mergeVal vs_1 vs_2) |
 
 Although RE-constraints are capable of solving many examples, they suffer from a problem of scale. As programs become more complex the size of the propositions grows quickly, slowing Catch unacceptably. Multipattern constraints (MP-constraints, defined in Figure \ref{fig:enumeration}) are an alternative which scales better.
 
-MP-constraints are similar to BP-constraints, but can constrain an infinite number of items. A value |v| satisfies a constraint |p_1 :* p_2| if |v| itself satisfies the pattern |p_1| and \textit{all its recursive components at any depth} satisfy |p_2|. We call |p_1| the root pattern, and |p_2| the recursive pattern. Each of |p_1| and |p_2| is given as a set of matches similar to BP-constraints, but each |Pattern| only specifies the values for the non-recursive selectors, all recursive selectors are handled by |p_2|. A constraint is a disjunctive list of |:*| patterns.
+MP-constraints are similar to BP-constraints, but can constrain an infinite number of items. A value |v| satisfies a constraint \h{.mp}|p_1 :* p_2| if |v| itself satisfies the pattern |p_1| and \textit{all its recursive components at any depth} satisfy |p_2|. We call |p_1| the root pattern, and |p_2| the recursive pattern. Each of |p_1| and |p_2| is given as a set of matches similar to BP-constraints, but each |Pattern| only specifies the values for the non-recursive selectors, all recursive selectors are handled by |p_2|. A constraint is a disjunctive list of |:*| patterns.
 
-The intuition behind the definition of |(c,i) ||> ps| is that if the selector |(c,i)| is recursive, given a pattern |alpha :* beta|, the new root pattern requires the value to be |c|-constructed, and the recursive patterns become |merge alpha beta| -- i.e. all recursive values must satisfy both the root and recursive patterns of the original pattern. If the selector is non-recursive, then each new pattern contains the old pattern within it, as the appropriate non-recursive field. So, for example:
+The intuition behind the definition of |(c,i) ||> ps| is that if the selector |(c,i)| is recursive, given a pattern \h{.mp}|alpha :* beta|, the new root pattern requires the value to be |c|-constructed, and the recursive patterns become \h{.mp}|merge alpha beta| -- i.e. all recursive values must satisfy both the root and recursive patterns of the original pattern. If the selector is non-recursive, then each new pattern contains the old pattern within it, as the appropriate non-recursive field. So, for example:
 
 \ignore\begin{code}
 hd  |> (alpha :* beta) = {(:) (alpha :* beta)  } :* {[], (:) Any}
@@ -850,7 +844,7 @@ MP-constraints also have simplification rules.  For example, two of the eight ru
 
 \para{|Val|-list simplification:} Given a |Val|-list, if the value |Any| is in this list, the list is equal to |[Any]|. If a value occurs more than once in the list, one copy can be removed.
 
-\para{|Val| simplification:} If both |p_1| and |p_2| cover all constructors and all their components have |Any| as their constraint, the constraint |p_1 :* p_2| can be replaced with |Any|.
+\para{|Val| simplification:} If both |p_1| and |p_2| cover all constructors and all their components have |Any| as their constraint, the constraint \h{.mp}|p_1 :* p_2| can be replaced with |Any|.
 
 
 \subsubsection{Finitely Many MP-Constraints per Type}
@@ -882,7 +876,7 @@ A big advantage of MP-constraints is that if two constraints on the same express
 \noindent This ability to combine constraints on equal expressions can be exploited further by translating the program to be analysed. After applying |reduce|, all constraints will be in terms of the arguments to a function. So if all functions took exactly one argument then \textit{all} the constraints associated with a function could be collapsed into one. We therefore \textit{uncurry} all functions.
 
 \begin{example}
-\begin{code}
+\h{.*}\begin{code}
 (||) x y = case  x of
                  True   -> True
                  False  -> y
@@ -890,14 +884,14 @@ A big advantage of MP-constraints is that if two constraints on the same express
 
 \noindent in uncurried form becomes:
 
-\noindent\begin{minipage}{\linewidth}
-\begin{code}
+\begin{onepage}
+\ignore\begin{code}
 (||) a = case  a of
                (x,y) -> case  x of
                               True    -> True
                               False   -> y
 \end{code}
-\end{minipage}
+\end{onepage}
 \end{example}
 
 Combining MP-constraint reduction rules with the uncurrying transformation makes \ignore|Sat ArgPos| equivalent in power to \ignore|Prop (Sat ArgPos)|. This simplification reduces the number of different propositional constraints, making fixed-point computations faster. In the RE-constraint system uncurrying would do no harm, but it would be of no use, as no additional simplification rules would apply.
@@ -913,7 +907,7 @@ data T = T
 \end{comment}
 
 \begin{example}
-Let |v_1 = (T:[])| and |v_2 = (T:T:[])| and consider the MP-constraint \ignore|{(:) Any} :* {[]}|. This constraint is satisfied by |v_1| but not by |v_2|. No proposition over RE-constraints can separate these two values.
+Let \h{stmt}|v_1 = (T:[])| and \h{stmt}|v_2 = (T:T:[])| and consider the MP-constraint \ignore|{(:) Any} :* {[]}|. This constraint is satisfied by |v_1| but not by |v_2|. No proposition over RE-constraints can separate these two values.
 \end{example}
 
 \begin{example}
@@ -1009,7 +1003,7 @@ HsColour*      & 823 & 5060 &  4 &  9 & 2.1 & 2.7 \\
 \end{tabular*}
 \end{table}
 
-The entire Nofib suite \cite{nofib} is large. We concentrate on the `Imaginary' section. These programs are all under a page of text, excluding any Prelude or library definitions used, and particularly stress list operations and numeric computations.
+The entire Nofib suite \cite{nofib} is large. We concentrate on the `Imaginary' section. These programs are all under a page of text, \textit{excluding} any Prelude or library definitions used, and particularly stress list operations and numeric computations.
 
 Results are given in Table \ref{tab:results}. Only four programs contain no calls to |error| as all pattern-matches are exhaustive. Four programs use the list-indexing operator |(!!)|, which requires the index to be non-negative and less than the length of the list; Catch can only prove this condition if the list is infinite. Eight programs include applications of either |head| or |tail|, most of which can be proven safe. Seven programs have incomplete patterns, often in a |where| binding and Catch performs well on these. Nine programs use division, with the precondition that the divisor must not be zero; most of these can be proven safe.
 
@@ -1124,7 +1118,7 @@ carryPropagate base (d:ds) = ellipses
          nextcarry:fraction = carryPropagate (base+1) ds
 \end{code}
 
-\noindent There are four potential pattern-match errors in as many lines. Two of these are the calls to |div| and |mod|, both requiring \ignore|base| to be non-zero. A possibly more subtle pattern match error is the \ignore|nextcarry:fraction| left-hand side of the third line. Catch is able to prove that none of these pattern-matches fail. Now consider:
+\noindent There are four potential pattern-match errors in as many lines. Two of these are the calls to |div| and |mod|, both requiring \ignore|base| to be non-zero. A possibly more subtle pattern match error is the \ignore|nextcarry:fraction| left-hand side of the third line. Catch is able to prove that none of these pattern-matches fails. Now consider:
 
 \begin{code}
 e =  ("2."++) $
@@ -1168,7 +1162,7 @@ The solution is to use the |compare| function which returns one of |GT|, |EQ| or
 Artificial benchmarks are not necessarily intended to be fail-proof. But a real program, with real users, should \textit{never} fail with a pattern-match error. We have taken the HsColour program\footnote{http://www.cs.york.ac.uk/fp/darcs/hscolour/} and analysed it using Catch. HsColour has 12 modules, is 5 years old and has had patches from 6 different people.
 We have contributed patches back to the author of HsColour, with the result that the development version can be proved free from pattern-match errors.
 
-Catch required 4 small patches to the HsColour program before it could be verified free of pattern-match failures. Details are given in Table \ref{tab:results}. Of the 4 patches, 3 were genuine pattern-match errors which could be tripped by constructing unexpected input. The issues were: (1) |read| was called on a preferences file from the user, this could crash given a malformed preferences file; (2) by giving the document consisting of a single double quote character \texttt{"}, and passing the ``-latex'' flag, a crash occurred; (3) by giving the document \texttt{(`)}, namely open bracket, backtick, close bracket, and passing ``-html -anchor'' a crash occurred. The one patch which did not (as far as we are able to ascertain) fix a real bug could still be considered an improvement, and was minor in nature (a single line).
+Catch required 4 small patches to the HsColour program before it could be verified free of pattern-match failures. Details of the checking process are given in Table \ref{tab:results}. Of the 4 patches, 3 were genuine pattern-match errors which could be tripped by constructing unexpected input. The issues were: (1) |read| was called on a preferences file from the user, this could crash given a malformed preferences file; (2) by giving the document consisting of a single double quote character \texttt{"}, and passing the ``-latex'' flag, a crash occurred; (3) by giving the document \texttt{(`)}, namely open bracket, backtick, close bracket, and passing ``-html -anchor'' a crash occurred. The one patch which did not (as far as we are able to ascertain) fix a real bug could still be considered an improvement, and was minor in nature (a single line).
 
 Examining the |read| error in more detail, by default Catch outputs the potential error message, and a list of potentially unsafe functions in a call stack:
 
@@ -1255,8 +1249,8 @@ safeTail :: List alpha (ConsT tau) -> List alpha tau
 safeTail (Cons a b) = b
 
 fromList :: [alpha] -> (forall tau `o` List alpha tau -> beta) -> beta
-fromList []      fn = fn Nil
-fromList (x:xs)  fn = fromList xs (fn . Cons x)
+fromList []      f = f Nil
+fromList (x:xs)  f = fromList xs (f . Cons x)
 \end{code}
 \caption{A |safeTail| function using GADTs.}
 \label{fig:gadt}
