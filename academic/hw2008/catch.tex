@@ -50,8 +50,34 @@
 
 %format `Sat` = "\backtick{Sat}"
 
-% too confusing!
-% subst string a = "\mathtt{" a "}"
+
+\hsdef{\begin{comment}
+x,c,i,ps,p_1,p_2,t,xs,r_1,r_2,cs,r,v,k
+s,ss,y,etc,f
+beta,alpha
+rec,ctor
+IO
+\end{comment}}
+\begin{comment}
+\h{.*}\begin{code}
+import Prelude hiding ((||))
+import Data.Array
+import Data.Maybe
+import System.Environment
+import Data.Char
+import Data.List hiding (map)
+
+infixr 2  ||
+
+ellipses :: a
+
+instance Eq a => Eq (Prop a)
+\end{code}
+\h{.mp}\begin{code}
+instance Eq Val
+\end{code}
+\end{comment}
+
 
 \newcommand{\rec}[1]{\hspace{-0.75ex}_{#1}}
 %format Rec0 = "\rec{\mathrm{0}}"
@@ -103,25 +129,6 @@ languages, verification
 
 \keywords
 Haskell, automatic verification, functional programming, pattern-match errors, preconditions
-
-% For Tex2hs
-\begin{comment}
-\begin{code}
-data Constraint = Constraint
-\end{code}
-\begin{code}
-data Sat a = Sat a Constraint
-\end{code}
-\begin{code}
-infix  4  ==, /=
-infixr 2  ||
-
-(||) :: Bool -> Bool -> Bool
-(==) :: Eq a => a -> a -> Bool
-(/=) :: Eq a => a -> a -> Bool
-map :: (a -> b) -> [a] -> [b]
-\end{code}
-\end{comment}
 
 \section{Introduction}
 \label{sec:introduction}
@@ -328,7 +335,7 @@ isRec        :: Selector  -> Bool
 \label{fig:core_operations}
 \end{figure}
 
-Figure \ref{fig:core_operations} gives the signatures for helper functions over the core data types. In our implementation, these operations are monadic to allow the checking process to be traced -- a detail we have omitted here. Every constructor has an arity, which can be obtained with the |arity| function. To determine alternative constructors the |ctors| function can be used; for example |ctors "True" = ["False", "True"]| and |ctors "[]" = ["[]",":"]|. The |var| function returns |Nothing| for a variable bound as the argument of a top-level function, and |Just (e,(c,i))| for a variable bound as the |i|th component in the |c|-constructed alternative of a case-expression whose scrutinee is |e|. The functions |body| and |args| obtain the body and argument names of a function. The |isRec (c,i)| function returns true if the constructor |c| has a recursive |i|th component; for example, let |hd = (":",0)| and |tl = (":",1)| then |isRec hd = False| but |isRec tl = True|.
+Figure \ref{fig:core_operations} gives the signatures for helper functions over the core data types. In our implementation, these operations are monadic to allow the checking process to be traced -- a detail we have omitted here. Every constructor has an arity, which can be obtained with the |arity| function. To determine alternative constructors the |ctors| function can be used; for example \h{stmt}|ctors "True" = ["False", "True"]| and \h{stmt}|ctors "[]" = ["[]",":"]|. The |var| function returns |Nothing| for a variable bound as the argument of a top-level function, and |Just (e,(c,i))| for a variable bound as the |i|th component in the |c|-constructed alternative of a case-expression whose scrutinee is |e|. The functions |body| and |args| obtain the body and argument names of a function. The |isRec (c,i)| function returns true if the constructor |c| has a recursive |i|th component; for example, let \h{stmt}|hd = (":",0)| and \h{stmt}|tl = (":",1)| then \h{stmt}|isRec hd = False| but \h{stmt}|isRec tl = True|.
 
 
 \subsubsection{Transformation From Haskell to Core}
@@ -341,7 +348,7 @@ To generate core representations of programs, we start with Yhc, the York Haskel
 
 Our Core language only has algebraic data types. Catch allows for primitive types such as characters and integers by abstracting them into algebraic types. Two abstractions used in Catch are:
 
-\begin{code}
+\ignore\begin{code}
 data Int = Neg | Zero | One | Pos
 data Char = Char
 \end{code}
@@ -1138,12 +1145,6 @@ The FiniteMap library for Haskell has been widely distributed for over 10 years.
 The first challenge is that there is no |main| function. Catch uses all the exports from the library, and checks each of them as if it had |main| status.
 
 Catch is able to prove that all but one of the non-exhaustive patterns are safe. The definition found unsafe has the form:
-
-\begin{comment}
-\begin{code}
-data Branch a b = Branch a b
-\end{code}
-\end{comment}
 
 \begin{code}
 delFromFM (Branch key ellipses) del_key  | del_key  >   key = ellipses
