@@ -242,9 +242,6 @@ True      => (risers2 x y z  ) -< (:)
 
 \noindent The first line says that if the argument to |risers| is a |(:)|-constructed value, the result will be. The second states that the result from |risers2| is always |(:)|-constructed.
 
-\begin{comment}
-The analysis method works by calculating preconditions on the arguments for each function, which are sufficient to ensure the function will not call |error|. To calculate preconditions the method uses properties of functions, relating the arguments of a function to the result.
-\end{comment}
 
 
 \section{Pattern Match Analysis}
@@ -341,17 +338,6 @@ To generate core representations of programs, we start with Yhc, the York Haskel
 \subsubsection{Algebraic Abstractions of Primitive Types}
 \label{sec:abstraction}
 
-\begin{comment}
-Natural numbers are often encoded by Peano numerals, and this idea can easily be extended to integers:
-
-\begin{code}
-data Pos  = One | Succ Pos
-data Int  = Minus Pos | Zero | Plus Pos
-\end{code}
-
-Although this abstraction of |Int| captures all the underlying detail of the number system, the underlying constraint systems discussed in \S\ref{sec:constraint} would be unable to distinguishing between any pair of numbers both greater than 2, or both less than -2.
-\end{comment}
-
 Our Core language only has algebraic data types. Catch allows for primitive types such as characters and integers by abstracting them into algebraic types. Two abstractions used in Catch are:
 
 \begin{code}
@@ -360,19 +346,6 @@ data Char = Char
 \end{code}
 
 Where knowledge about values is encoded as a set of possible constructions. In our experience, integers are most often constrained to be a natural, or to be non-zero. Addition or subtraction of one is the most common operation. Though very simple, the |Int| abstraction models the common properties and operations quite well. For characters, we have found little benefit in any refinement other than considering all characters to be abstracted to the same value.
-
-\begin{comment}
-Possible abstractions of characters include:
-
-\ignore\begin{code}
-data Char = Char
-data Char = Alpha | Digit | White | Other
-data Char = 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | Other
-data Char = '\0' | '\1' | '\2' ..
-\end{code}
-
-\noindent Catch employs the first abstraction by default, but provides a flag to allow alternatives. In practice, few additional programs are proven safe with a more refined character abstraction.
-\end{comment}
 
 The final issue of abstraction relates to primitive functions in the |IO| monad, such as |getArgs| (which returns the command-line arguments), or |readFile| (which reads from the file-system). In most cases an IO function is modelled as returning \textit{any} value of the correct type, using a function primitive to the checker.
 
@@ -504,20 +477,6 @@ precond Rec0   fn =  if fn == "error" then propFalse else propTrue
 precond RecN1  fn =  precond RecN fn `propAnd`
                      reduce (pre{precond RecN} (body fn))
 \end{code}
-\begin{comment}
-\ignore\begin{code}
-for fn `elem` funcs do conds(fn) := propBool (fn /= "error")
-loop
-    for fn `elem` funcs do
-        conds'(fn) := conds(fn) `propAnd` pre preFun (instantiate fn vs)
-    if conds' == conds then break
-    conds := conds'
-end loop
-    where
-        preFun fn xs = conds(fn)[vs_1/xs_1 .. vs_n/xs_n]
-        vs = ... -- free variables
-\end{code}
-\end{comment}
 \caption{Precondition calculation.}
 \label{fig:precond_fixp}
 \end{figure}
@@ -525,17 +484,6 @@ end loop
 The iterative algorithm for calculating preconditions is given in Figure~\ref{fig:precond_fixp}. Initially all preconditions are assumed to be true, apart from the |error| precondition, which is false. In each iteration we calculate the precondition using the |pre| function from Figure \ref{fig:precondition}, using the previous value of |precond|. Each successive precondition is conjoined with the previous one, and is therefore more restrictive. So \textit{if all chains of increasingly restrictive propositions of constraints are finite}, termination is guaranteed -- a topic we return to in \S\ref{sec:bounded}.
 
 We can improve the efficiency of the algorithm by tracking dependencies between preconditions, and performing the minimum amount of recalculation. Finding strongly connected components in the static call graph of a program allows parts of the program to be checked separately.
-
-%\begin{comment}
-%The precondition on each function must be at least as restrictive as the precondition on the body of that function:
-%
-%\begin{code}
-%propRestrictive fn xs = propIsTrue $
-%    preFun fn xs `propImp` pre preFun (instantiate fn xs)
-%\end{code}
-%
-%One conservative (and useless) implementation of |preFunc| is to always return False. A perfect precondition would be such that \ignore|preFunc fn xs == pre (instantiate fn xs)|.
-%\end{comment}
 
 \subsubsection{Preconditions and Laziness}
 
@@ -639,22 +587,6 @@ prePost Rec0   fn k =  propTrue
 prePost RecN1  fn k =  prePost RecN fn k `propAnd`
                        reduce{prePost RecN} (propLit $ body fn `Sat` k)
 \end{code}
-\begin{comment}
-
-\ignore\begin{code}
-prop := [(fn,k) | fn <- funcs, k <- constraints]
-for (fn,k) `elem` ps do prop(fn,k) := true
-loop
-    for (fn,k) `elem` p do
-        prop'(fn,k) := prop(fn,k) `propAnd` backs (instantiate fn vs `Sat` k)
-    if prop' == prop then break
-    prop := prop'
-end loop
-    where
-        property fn k = prop(fn,k)
-        vs = ... -- free variables
-\end{code}
-\end{comment}
 \caption{Fixed point calculation for |prePost|.}
 \label{fig:property_fixp}
 \end{figure}
