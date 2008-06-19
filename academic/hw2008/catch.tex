@@ -551,7 +551,7 @@ case  xs of
       y:ys  -> tail y
 \end{code}
 
-Here the initial precondition will be |y -< [":"]|, which evaluates to the result |y `Sat` Con ":" [Any,Any]|. The |var| function on |y| gives |Right (xs,(":",0))|. After the application of | ||>| the revised constraint refers to |xs| instead of |y|, and will be |xs `Sat` Con ":" [Con ":" [Any,Any], Any]|. We have gone from a constraint on |y|, using the knowledge that |y| is bound to a portion of |xs|, to a constraint on |xs|.
+Here the initial precondition will be |y -< [":"]|, which evaluates to the result |y `Sat` Con ":" [Any,Any]|. The |var| function on |y| gives |Just (xs,(":",0))|. After the application of | ||>| the revised constraint refers to |xs| instead of |y|, and will be |xs `Sat` Con ":" [Con ":" [Any,Any], Any]|. We have gone from a constraint on |y|, using the knowledge that |y| is bound to a portion of |xs|, to a constraint on |xs|.
 \end{example}
 
 \para{The |Make| rule} deals with an application of a constructor. The |<||| operator splits a constraint on an entire structure into a proposition combining constraints on each part.
