@@ -179,7 +179,7 @@ risers (x:y:etc) = if x <= y then (x:s):ss else [x]:(s:ss)
 
 In other examples, where Catch cannot verify pattern-match safety, it can provide information such as sufficient conditions on arguments for safe application of a function.
 
-We have implemented all the techniques reported here. We encourage readers to download the Catch tool and try it out. It can be obtained from the website at \url{http://www.cs.york.ac.uk/~ndm/catch/}. A copy of the tool has also been released, and is available on Hackage\footnote{\url{http://hackage.haskell.org/}}. We have also given an argument for the soundness of our method in \cite{me:thesis}, showing that if Catch declares a program free from pattern-match errors then that program will \textit{not} crash with a pattern-match error.
+We have implemented all the techniques reported here. We encourage readers to download the Catch tool and try it out. It can be obtained from the website at \url{http://www.cs.york.ac.uk/~ndm/catch/}. A copy of the tool has also been released, and is available on Hackage\footnote{\url{http://hackage.haskell.org/}}. We have also given an argument for the soundness of our method in \cite{me:thesis}, showing that if Catch declares a program free from pattern-match errors then that program is guaranteed not to crash with a pattern-match error.
 
 \subsection{Contributions}
 
