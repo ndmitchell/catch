@@ -296,9 +296,9 @@ eval x = case  hnf x of
 
 hnf :: Expr -> Maybe (CtorName, [Expr])
 hnf (Make  c   xs    )  =  Just (c, xs)
-hnf (Call  fn  xs    )
-    | fn == "error"  = Nothing
-    | otherwise      = hnf (subst (zip (args fn) xs) (body fn))
+hnf (Call  f  xs     )
+    | f == "error"   = Nothing
+    | otherwise      = hnf (subst (zip (args f) xs) (body f))
 hnf (Case  on  alts  )  =  listToMaybe [res
        |  Just (c,xs) <- [hnf on], Alt n vs e <- alts, c == n
        ,  Just res <- [hnf (subst (zip vs xs) e)]]
@@ -482,7 +482,7 @@ This predicate states that the invocation of |null xs| must be safe, and either 
 precond  :: FuncName -> Prop (Sat VarName)
 precond Rec0   f =  if f == "error" then propFalse else propTrue
 precond RecN1  f =  precond RecN f `propAnd`
-                    reduce (pre{precond RecN} (body fn))
+                    reduce (pre{precond RecN} (body f))
 \end{code}
 \caption{Precondition calculation.}
 \label{fig:precond_fixp}
