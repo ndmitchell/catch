@@ -399,7 +399,8 @@ prePost   :: FuncName -> Constraint -> Prop (Sat VarName)
 reduce    :: Prop (Sat Expr) -> Prop (Sat VarName)
 
 substP ::  Eq alpha => [(alpha,beta)] -> Prop (Sat alpha) -> Prop (Sat beta)
-substP xs = propMap (\(Sat i k ) -> propLit $ Sat (fromJust $ lookup i xs) k)
+substP xs = propMap (\(Sat i k ) -> propLit $ Sat (f i) k)
+    where f i = fromJust $ lookup i xs
 \end{code}
 \caption{Operations to generate preconditions and entailments.}
 \label{fig:operations}
