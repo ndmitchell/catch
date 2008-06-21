@@ -511,7 +511,8 @@ red (Var   v         ) k =  case var v of
                               Nothing      -> propLit (v `Sat` k)
                               Just (on,s)  -> red on (s |> k)
 red (Make  c   xs    ) k =  reduce $ substP (zip [0..] xs) (c <| k)
-red (Call  f  xs     ) k =  reduce $ substP (zip (args f) xs) (prePost f k)
+red (Call  f   xs    ) k =  reduce $ substP  (zip (args f) xs)
+                                             (prePost f k)
 red (Case  on  alts  ) k =  propAnds [alt c e | Alt c vs e <- alts]
     where alt c e = reduce (on -< (ctors c \\ [c])) `propOr` red e k
 \end{code}
