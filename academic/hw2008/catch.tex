@@ -192,7 +192,7 @@ The contributions of this paper include:
 \item Results showing success on a number of small examples drawn from the Nofib suite \cite{nofib}, and for three larger examples, investigating the scalability of the checker.
 \end{itemize}
 
-In \citet{me:catch_tfp} a pattern-match checker was described with similar aims, which we will refer to as Catch05\footnote{Although the paper was completed in 2005, publication was delayed}. For Catch05 |risers| was towards the boundary of what was possible, for Catch08 it is trivial. Scalability problems have been addressed and Catch08 handles real Haskell programs, with no restriction on the recursion patterns, higher-order functions or type classes. The underlying constraint mechanism of Catch08 is radically different.
+This paper has similar aims to our previous work \cite{me:catch_tfp}, which we will refer to as Catch05\footnote{Although the paper was completed in 2005, publication was delayed}. For Catch05 |risers| was towards the limit of what was possible, for Catch08 it is trivial. Catch05 could only deal with small programs that used a few restricted forms of recursion. Catch08 uses improved algorithms, along with radically different constraint mechanisms, to deal with real Haskell programs.
 
 \subsection{Road map}
 
@@ -1196,7 +1196,7 @@ The Catch tool tries to prove that |error| calls are unreachable. The Reach tool
 
 \subsection{Proving Incomplete Patterns Safe}
 
-Despite the seriousness of the problem of pattern matching, there are very few other tools for checking pattern-match safety. This paper has similar goals to \citet{me:catch_tfp}, but some key design decisions are radically different. The difference in practice is that Catch08 supports full Haskell, can scale to much larger examples and can feasibly be used on real programs. Some of the reasons for these better results include a different fixed-point mechanism, the use of MP-constraints and a superior translation from Core.
+Despite the seriousness of the problem of pattern matching, there are very few other tools for checking pattern-match safety. This paper has similar goals to \citet{me:catch_tfp}, but many key design decisions are radically different. The difference in practice is that Catch08 supports full Haskell, can scale to much larger examples and can feasibly be used on real programs. Some of the reasons for these better results include a different fixed-point mechanism, the use of MP-constraints and a superior translation from Core.
 
 The closest other work we are aware of is ESC/Haskell \cite{esc_haskell} and its successor Sound Haskell \cite{xu:sound_haskell}. The Sound Haskell approach requires the programmer to give explicit preconditions and contracts which the program obeys. Contracts have more expressive power than our constraints -- one of the examples involves an invariant on an ordered list, something beyond Catch. But the programmer has more work to do. We eagerly await prototypes of either tool, to permit a full comparison against Catch.
 
