@@ -1,4 +1,4 @@
-\documentclass[preprint]{sigplanconf}
+\documentclass{sigplanconf}
 
 \usepackage{amsmath}
 \usepackage{amssymb}
@@ -91,9 +91,9 @@ instance Eq Val
 
 \begin{document}
 
-\conferenceinfo{Haskell Symposium 2008}{date, City.} %
-\copyrightyear{2008} %
-\copyrightdata{[to be supplied]}
+\conferenceinfo{Haskell'08,} {September 25, 2008, Victoria, BC, Canada.}
+\CopyrightYear{2008}
+\copyrightdata{978-1-60558-064-7/08/09}
 
 \titlebanner{\small\rm
     \copyright{} ACM, 2008. This is the author's version of the work. It is posted here by permission of ACM for your personal use. \\ Not for redistribution. The definitive version was published in the Proceedings of the Haskell Symposium 2008, \\ ISBN 978-1-60558-064-7, (25 Sep 2008) http://doi.acm.org/10.1145/1411286.1411293
@@ -102,14 +102,14 @@ instance Eq Val
 \preprintfooter{}   % 'preprint' option specified.
 
 \title{Not All Patterns, But Enough}
-\subtitle{ -- an automatic verifier for partial but sufficient pattern matching}
+\subtitle{an automatic verifier for partial but sufficient pattern matching}
 
 \authorinfo{Neil Mitchell\titlenote{The first author is supported by an EPSRC PhD studentship}}
            {University of York, UK}
-           {\url{http://www.cs.york.ac.uk/~ndm/}}
+           {\verb"ndmitchell@gmail.com"}
 \authorinfo{Colin Runciman}
            {University of York, UK}
-           {\url{http://www.cs.york.ac.uk/~colin/}}
+           {\verb"colin@cs.york.ac.uk"}
 
 \maketitle
 
@@ -154,7 +154,7 @@ partial matching.  Our goal is an automated analysis of Haskell 98 programs
 to check statically that, despite the possible use of partial pattern
 matching, no pattern-match failure can occur.
 
-The problem of pattern-match failures is a serious one. The \textit{darcs} project \cite{darcs} is one of the most successful large scale programs written in Haskell. Taking a look at the darcs bug tracker, 13 problems are errors related to the selector function |fromJust| and 19 are direct pattern-match failures.
+The problem of pattern-match failures is a serious one. The \textit{darcs} project \cite{darcs} is one of the most successful large scale programs written in Haskell. Taking a look at the darcs bug tracker, 13 problems are errors related to the selector function |fromJust| and 19 are pattern-match failures in darcs functions.
 
 Consider the following example taken from \citet{me:catch_tfp}:
 
@@ -261,7 +261,7 @@ This section describes the method used to calculate preconditions for functions.
 
 \begin{itemize}
 \item A \textbf{constraint} describes a (possibly infinite) set of values. We say a value \textit{satisfies} a constraint if the value is within the set.
-\item A \textbf{precondition} is a proposition combining constraints on the arguments to a function, to ensure the result does not contain $\bot{}$. For example, the precondition on |tail xs| is that |xs| is |(:)|-constructed.
+\item A \textbf{precondition} is a proposition combining constraints on the arguments to a function, to ensure that if no part of any argument is $\bot{}$ then no part of the result is $\bot{}$. For example, the precondition on |tail xs| is that |xs| is |(:)|-constructed.
 \item An \textbf{entailment}  is a proposition combining constraints on the arguments to a function, to ensure the result satisfies a further constraint. For example, |xs| is |(:)|-constructed ensures |null xs| evaluates to |False|.
 \end{itemize}
 
@@ -393,7 +393,7 @@ data Sat alpha = Sat alpha Constraint
 \label{fig:constraint}
 \end{figure}
 
-Three operations must be provided by every constraint model, whose signatures are given in Figure \ref{fig:constraint}. The lifting and splitting operators |(||>)| and |(<||)| are discussed in \S\ref{sec:backward}. The expression |x -< cs| generates a predicate ensuring that the value |x| must be constructed by one of the constructors in |cs|.
+Three operations must be provided by every constraint model, whose signatures are given in Figure \ref{fig:constraint}. The lifting and splitting operators |(||>)| and |(<||)| are discussed in \S\ref{sec:backward}. The expression |x -< cs| generates a proposition ensuring that the value |x| must be constructed by one of the constructors in |cs|.
 
 \begin{figure}
 \begin{code}
@@ -409,7 +409,8 @@ substP xs = propMap (\(Sat i k ) -> propLit $ Sat (f i) k)
 \label{fig:operations}
 \end{figure}
 
-The type signatures for the functions calculating preconditions and entailments are given in Figure \ref{fig:operations}. The |precond| function takes a function name, and gives a proposition imposing constraints on the arguments to that function, denoted by argument position. The |prePost| function takes a function name and a postcondition, and gives a precondition sufficient to ensure the postcondition. During the manipulation of constraints, we often need to talk about constraints on expressions, rather than argument positions: the |reduce| function converts propositions of constraints on expressions to equivalent propositions of constraints on arguments. The |substP| function goes in the opposite direction, replacing constraints on argument positions with the substituted argument expressions.
+The type signatures for the functions calculating preconditions and entailments are given in Figure \ref{fig:operations}. The |precond| function takes a function name, and gives a proposition imposing constraints on the arguments to that function. The |prePost| function takes a function name and a postcondition, and gives a precondition sufficient to ensure the postcondition. During the manipulation of constraints, we often need to talk about constraints on expressions, rather than argument variables: the |reduce| function converts propositions of constraints on expressions to equivalent propositions of constraints on arguments. The |substP| function performs substitution, by argument name or position, over propositions of constraints.
+
 
 \subsection{Basic Pattern (BP) Constraints}
 \label{sec:basic}
@@ -532,13 +533,13 @@ The precondition for the |safeTail| function is:
 pre' null [xs] `propAnd` (null xs -< ["True"] `propOr` pre' tail [xs])
 \end{code}
 
-\noindent We can use the preconditions computed for |tail| and |null| to rewrite the precondition as:
+\noindent We can use the preconditions computed for |null| and |tail| to rewrite the precondition as:
 
 \ignore\begin{code}
 null xs -< ["True"] `propOr` xs -< [":"]
 \end{code}
 
-\noindent Now we use an entailment to turn the constraint on |null|'s result into a constraint on its argument:
+\noindent The |reduce| function changes constraints on expressions to constraints on function arguments. It makes use of an entailment to turn the constraint on |null|'s result into a constraint on its argument:
 
 \ignore\begin{code}
 xs -< ["[]"] `propOr` xs -< [":"]
@@ -605,8 +606,9 @@ The semantics of a constraint are determined by which values satisfy it. We can 
 \noindent\begin{minipage}{\linewidth}
 \begin{code}
 satisfies :: Value -> Constraint -> Bool
-satisfies Bottom        k = True
-satisfies (Value c xs)  k = satisfiesP $ substP (zip [0..] xs) (c <| k)
+satisfies Bottom        k =  True
+satisfies (Value c xs)  k =
+    satisfiesP $ substP (zip [0..] xs) (c <| k)
 
 satisfiesP :: Prop (Sat Value) -> Bool
 satisfiesP x =  (propTrue :: Prop ()) ==
@@ -710,7 +712,7 @@ Catch08 implements REs using the data type |RegExp| from Figure \ref{fig:regexp}
 \begin{itemize}
 \item Because of static typing, constructor-sets must all be of the same type. (In Catch05 expressions such as \ignore|hd^*| could arise.)
 
-\item There are finitely many regular expressions for any type. Combined with the finite number of constructors, this property is sufficient to guarantee termination when computing a fixed-point iteration on constraints.
+\item There are finitely many |RexExp| expressions for any type. Combined with the finite number of constructors, this property is sufficient to guarantee termination when computing a fixed-point iteration on constraints.
 
 \item The restricted REs with 0 are closed under integration and differentiation. (The 0 alternative is catered for by the |Maybe| return type in the differentiation. As \ignore|0 :- c| always evaluates to True, |<||| replaces |Nothing| by True.)
 \end{itemize}
