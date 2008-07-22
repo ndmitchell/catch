@@ -343,7 +343,7 @@ Figure \ref{fig:core_operations} gives the signatures for helper functions over 
 \subsubsection{Transformation From Haskell to Core}
 \label{sec:transform}
 
-To generate core representations of programs, we start with Yhc, the York Haskell Compiler \cite{me:yhc_core}. Yhc can transform a Haskell program into a single Yhc Core file, containing all necessary libraries. Yhc Core is higher-order and has let expressions, neither of which are permitted in our Core language. The let expressions can be removed using simple transformations provided by the Yhc Core library. The standard way to make a program first-order is Reynolds style defunctionalisation \cite{reynolds:defunc}. This method embeds a mini-interpreter into the resultant program, which would complicate our analysis method considerably. Instead, we use an alternative defunctionalisation method \cite{me:firstify_hs}, which removes higher-order functions without complicating the analysis. Using these steps, we are able to convert the full Haskell 98 language into our Core language.
+To generate core representations of programs, we start with Yhc, the York Haskell Compiler \cite{me:yhc_core}. Yhc can transform a Haskell program into a single Yhc Core file, containing all necessary libraries. Yhc Core is higher-order and has let expressions, neither of which are permitted in our Core language. The let expressions can be removed using simple transformations provided by the Yhc Core library. The standard way to make a program first-order is Reynolds style defunctionalisation \cite{reynolds:defunc}. This method embeds a mini-interpreter into the resultant program, which would complicate our analysis method considerably. Instead, we use an alternative defunctionalisation method \cite[Chapter 5]{me:thesis}, which removes most higher-order functions without complicating the analysis. If any higher-order functions remain we then use Reynolds method. Using these steps, we are able to convert the full Haskell 98 language into our Core language.
 
 \subsubsection{Algebraic Abstractions of Primitive Types}
 \label{sec:abstraction}
@@ -409,7 +409,7 @@ substP xs = propMap (\(Sat i k ) -> propLit $ Sat (f i) k)
 \label{fig:operations}
 \end{figure}
 
-The type signatures for the functions calculating preconditions and entailments are given in Figure \ref{fig:operations}. The |precond| function takes a function name, and gives a proposition imposing constraints on the arguments to that function. The |prePost| function takes a function name and a postcondition, and gives a precondition sufficient to ensure the postcondition. During the manipulation of constraints, we often need to talk about constraints on expressions, rather than argument variables: the |reduce| function converts propositions of constraints on expressions to equivalent propositions of constraints on arguments. The |substP| function performs substitution, by argument name or position, over propositions of constraints.
+The type signatures for the functions calculating preconditions and entailments are given in Figure \ref{fig:operations}. The |precond| function (see \S\ref{sec:precond}) takes a function name, and gives a proposition imposing constraints on the arguments to that function. The |prePost| function (see \S\ref{sec:backward}) takes a function name and a postcondition, and gives a precondition sufficient to ensure the postcondition. During the manipulation of constraints, we often need to talk about constraints on expressions, rather than argument variables: the |reduce| function (see \S\ref{sec:backward}) converts propositions of constraints on expressions to equivalent propositions of constraints on arguments. The |substP| function performs substitution, by argument name or position, over propositions of constraints.
 
 
 \subsection{Basic Pattern (BP) Constraints}
@@ -468,7 +468,7 @@ safeTail xs = case  null xs of
                     False  -> tail xs
 \end{code}
 
-\noindent The precondition for |safeTail| is computed as:
+\noindent The precondition for |safeTail|, after removing conjunctions with |true|, is computed as:
 
 \ignore\begin{code}
 pre' null [xs] `propAnd` (null xs -< ["True"] `propOr` pre' tail [xs])
@@ -499,7 +499,7 @@ We can improve the efficiency of the algorithm by tracking dependencies between 
 
 \subsubsection{Preconditions and Laziness}
 
-The |pre| function defined in Figure \ref{fig:precondition} does not exploit laziness. The |Call| equation demands that preconditions hold on \textit{all} arguments -- only correct if a function is strict in all arguments. For example, the precondition on |False && error "here"| is False, when it should be True. In general, preconditions may be more restrictive than necessary. However, investigation of a range of examples suggests that inlining |(&&)| and |(||||)| captures many of the common cases where laziness would be required.
+The |pre| function defined in Figure \ref{fig:precondition} does not take laziness into account. The |Call| equation demands that preconditions hold on \textit{all} arguments -- only correct if a function is strict in all arguments. For example, the precondition on |False && error "here"| is False, when it should be True. In general, preconditions may be more restrictive than necessary. However, investigation of a range of examples suggests that inlining |(&&)| and |(||||)| captures many of the common cases where laziness would be required.
 
 
 \subsection{Manipulating constraints}
@@ -566,7 +566,7 @@ case  xs of
 Here the initial precondition will be |y -< [":"]|, which evaluates to the result |y `Sat` Con ":" [Any,Any]|. The |var| function on |y| gives |Just (xs,(":",0))|. After the application of | ||>| the revised constraint refers to |xs| instead of |y|, and will be |xs `Sat` Con ":" [Con ":" [Any,Any], Any]|. We have gone from a constraint on |y|, using the knowledge that |y| is bound to a portion of |xs|, to a constraint on |xs|.
 \end{example}
 
-\para{The |Make| rule} deals with an application of a constructor. The |<||| operator splits a constraint on an entire structure into a proposition combining constraints on each part.
+\para{The |Make| rule} deals with an application of a constructor. The |<||| operator splits a constraint on an entire structure into a proposition combining constraints on each field of a constructor.
 
 \begin{code}
 c <| Any         =  propTrue
@@ -574,7 +574,7 @@ c <| Con c_2 xs  =  propBool (c_2 == c) `propAnd`
                     propAnds (map propLit (zipWith Sat [0..] xs))
 \end{code}
 
-The intuition is that given knowledge of the root constructor of a data value, we can reformulate the constraint in terms of what the constructor fields must satisfy. Some sample applications:
+The intuition is that given knowledge of the root constructor of a data value, we can reformulate the constraint in terms of what the constructor fields must satisfy. For example, |Sat 0 k| requires that the first field satisfies |k|. Some sample applications:
 
 \begin{code}
 "True"   <| Con "True" [] = propTrue
@@ -693,9 +693,26 @@ differentiate p (Star    r:rs)  | p `elem` r  = Just (Star r:rs)
 \label{fig:regexp}
 \end{figure}
 
-Catch05 used regular expressions in constraints. An implementation of Catch08 regular expression based constraints (RE-constraints) is given in Figure \ref{fig:regexp}. In a constraint of the form \h{.re}|(r :- cs)|, |r| is a regular expression and |cs| is a set of constructors. Such a constraint is satisfied by a data structure |d| if every well-defined application to |d| of a sequence of selectors described by |r| reaches a constructor in the set |cs|. If no such sequence of selectors has a well-defined result then the constraint is vacuously true.
+Catch05 used regular expressions in constraints. Figure \ref{fig:regexp} gives an implementation of Catch08 regular expression based constraints (RE-constraints). In a constraint of the form \h{.re}|(r :- cs)|, |r| is a regular expression and |cs| is a set of constructors. Such a constraint is satisfied by a data structure |d| if every well-defined application to |d| of a sequence of selectors described by |r| reaches a constructor in the set |cs|. If no such sequence of selectors has a well-defined result then the constraint is vacuously true.
 
 Concerning the helper functions needed to define | ||>| and |<||| in Figure \ref{fig:regexp}, the |differentiate| function is from \citet{conway:regexp}; |integrate| is its inverse; |ewp| is the empty word property.
+
+\begin{example}
+\label{ex:head}
+|(head xs)| is safe if |xs| evaluates to a non-empty list. The RE-constraint generated by Catch is: \ignore|xs `Sat` (1 :- {:})|. This may be read: from the root of the value |xs|, after following an empty path of selectors, we reach a |(:)|-constructed value.
+\end{example}
+
+\begin{example}
+\label{ex:map_head}
+|(map head xs)| is safe if |xs| evaluates to a list of non-empty lists. The RE-constraint is: \ignore|xs `Sat` (tl^* ^. hd :- {:})|. From the root of |xs|, following any number of tails, then exactly one head, we reach a |(:)|. If |xs| is |[]|, it still satisfies the constraint, as there are no well defined paths containing a |hd| selector. If |xs| is infinite then all its infinitely many elements must be |(:)|-constructed.
+\end{example}
+
+\begin{example}
+\label{ex:map_head_reverse}
+|(map head (reverse xs))| is safe if every item in |xs| is |(:)|-constructed, or if |xs| is infinite -- so |reverse| does not terminate. The RE-constraint is: \ignore|xs `Sat` (tl^* ^. hd :- {:}) `propOr` xs `Sat` (tl^* :- {:})|. The second term specifies the infinite case: if the list |xs| is |(:)|-constructed, it will have a |tl| selector, and therefore the |tl| path is well defined and requires the tail to be |(:)|. Each step in the chain ensures the next path is well defined, and therefore the list is infinite.
+\end{example}
+
+\smallskip
 
 Catch05 regular expressions were unrestricted and quickly grew to an unmanageable size, preventing analysis of larger programs. In general, a regular expression takes one of six forms:\\ \\
 \begin{tabular}{ll}
@@ -716,21 +733,6 @@ Catch08 implements REs using the data type |RegExp| from Figure \ref{fig:regexp}
 
 \item The restricted REs with 0 are closed under integration and differentiation. (The 0 alternative is catered for by the |Maybe| return type in the differentiation. As \ignore|0 :- c| always evaluates to True, |<||| replaces |Nothing| by True.)
 \end{itemize}
-
-\begin{example}
-\label{ex:head}
-|(head xs)| is safe if |xs| evaluates to a non-empty list. The RE-constraint generated by Catch is: \ignore|xs `Sat` (1 :- {:})|. This may be read: from the root of the value |xs|, after following an empty path of selectors, we reach a |(:)|-constructed value.
-\end{example}
-
-\begin{example}
-\label{ex:map_head}
-|(map head xs)| is safe if |xs| evaluates to a list of non-empty lists. The RE-constraint is: \ignore|xs `Sat` (tl^* ^. hd :- {:})|. From the root of |xs|, following any number of tails, then exactly one head, we reach a |(:)|. If |xs| is |[]|, it still satisfies the constraint, as there are no well defined paths containing a |hd| selector. If |xs| is infinite then all its infinitely many elements must be |(:)|-constructed.
-\end{example}
-
-\begin{example}
-\label{ex:map_head_reverse}
-|(map head (reverse xs))| is safe if every item in |xs| is |(:)|-constructed, or if |xs| is infinite -- so |reverse| does not terminate. The RE-constraint is: \ignore|xs `Sat` (tl^* ^. hd :- {:}) `propOr` xs `Sat` (tl^* :- {:})|. The second term specifies the infinite case: if the list |xs| is |(:)|-constructed, it will have a |tl| selector, and therefore the |tl| path is well defined and requires the tail to be |(:)|. Each step in the chain ensures the next path is well defined, and therefore the list is infinite.
-\end{example}
 
 \subsubsection{Finite Number of RE-Constraints}
 \label{sec:finite_re}
@@ -948,7 +950,7 @@ We have implemented both constraint systems in Catch. Factors to consider when c
 \section{Results and Evaluation}
 \label{sec:results}
 
-The best way to see the power of Catch is by example. \S\ref{sec:safety} discusses in general how some programs may need to be modified to obtain provable safety. \S\ref{sec:imaginary} investigates all the examples from the Imaginary section of the Nofib suite \cite{nofib}. To illustrate results for larger and widely-used applications, \S\ref{sec:finitemap} investigates the FiniteMap library, \S\ref{sec:hscolour} investigates the HsColour program and \S\ref{sec:xmonad} reports on XMonad.
+The best way to see the power of Catch is by example. \S\ref{sec:safety} discusses in general how some programs may need to be modified to obtain provable safety. \S\ref{sec:imaginary} investigates all the examples from the Imaginary section of the Nofib suite \cite{nofib}. To illustrate results for larger and widely-used applications, \S\ref{sec:finitemap} investigates the FiniteMap library, \S\ref{sec:hscolour} investigates the HsColour program and \S\ref{sec:xmonad} reports on XMonad. In all cases our defunctionalisation method successfully removes all higher-order functions.
 
 
 \subsection{Modifications for Verifiable Safety}
@@ -1019,7 +1021,7 @@ HsColour*      & 823 & 5060 &  4 &  9 & 2.1 & 2.7 \\
 
 The entire Nofib suite \cite{nofib} is large. We concentrate on the `Imaginary' section. These programs are all under a page of text, \textit{excluding} any Prelude or library definitions used, and particularly stress list operations and numeric computations.
 
-Results using MP-constraints are given in Table \ref{tab:results}. Using RE-constraints, only 8 of the modified programs can be proven safe within 10 minutes. Only four programs contain no calls to |error| as all pattern-matches are exhaustive. Four programs use the list-indexing operator |(!!)|, which requires the index to be non-negative and less than the length of the list; Catch can only prove this condition if the list is infinite. Eight programs include applications of either |head| or |tail|, most of which can be proven safe. Seven programs have incomplete patterns, often in a |where| binding and Catch performs well on these. Nine programs use division, with the precondition that the divisor must not be zero; most of these can be proven safe.
+Results using MP-constraints are given in Table \ref{tab:results}. Using RE-constraints, only 8 programs can be proven safe within 10 minutes, even after the modifications described later in this section. Only four programs contain no calls to |error| as all pattern-matches are exhaustive. Four programs use the list-indexing operator |(!!)|, which requires the index to be non-negative and less than the length of the list; Catch can only prove this condition if the list is infinite. Eight programs include applications of either |head| or |tail|, most of which can be proven safe. Seven programs have incomplete patterns, often in a |where| binding and Catch performs well on these. Nine programs use division, with the precondition that the divisor must not be zero; most of these can be proven safe.
 
 Three programs have preconditions on the |main| function, all of which state that the test parameter must be a natural number. In all cases the generated precondition is a necessary one -- if the input violates the precondition then pattern-match failure will occur.
 
