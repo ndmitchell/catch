@@ -3,6 +3,8 @@ Welcome to Catch
 
 _Catch was part of my PhD. It is unmaintained, and unlikely to work._
 
+The best description of Catch is available from [my website](http://ndmitchell.com) under the publications "Not All Patterns, But Enough - an automatic verifier for partial but sufficient pattern matching" and "Transformation and Analysis of Functional Programs".
+
 A Haskell program may fail at runtime with a pattern-match error if the program has any incomplete (non-exhaustive) patterns in definitions or case alternatives. The Catch tool is a static checker that allows non-exhaustive patterns to exist, yet ensures that a pattern-match error does not occur.
 
 Unfortunately version incompatiblities mean that currently its very difficult to get Catch to compile. Hopefully at some point Catch can be ported to work on GHC Core, and Catch can be used on any programs which are compiled by GHC.
